@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cdp-mcp"
+version = "0.1.0a1"
+description = "MCP server wrapping the Composers' Desktop Project (CDP) for LLM-driven sound transformation."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [{ name = "<Your Name>" }]
+keywords = ["mcp", "cdp", "audio", "sound-design", "composers-desktop-project"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio",
+]
+dependencies = [
+    "mcp>=1.2",
+    "pydantic>=2.0",
+    "soundfile>=0.12",
+    "numpy>=1.24",
+    "librosa>=0.10",
+    "pyloudnorm>=0.1",
+    "matplotlib>=3.7",
+    "Pillow>=10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+cdp-mcp = "cdp_mcp.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cdp_mcp"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
