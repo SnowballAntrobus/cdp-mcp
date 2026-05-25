@@ -309,9 +309,11 @@ async def synth_for_audition(
     lineage entry** — the temp wav is purely a rendering aid. It lives in
     ``session.tmp_dir`` until Phase 1b's ``cleanup()`` tool removes it.
 
-    Output filename: ``<ana_path.stem>.wav``. Overwrites any existing file
-    of the same name — last-write-wins is fine for transient renders, and
-    avoids hash-suffix accumulation in ``tmp/``.
+    Output filename: ``<ana_path.stem>.wav``. Always re-synthesizes; the
+    pre-existing wav (if any) is deleted first because CDP r8's
+    ``pvoc synth`` refuses to overwrite existing files and exits 255.
+    Phase 1b will add a content-addressable cache layer; until then,
+    every call pays the synth cost.
 
     Raises:
         PVOCFailedError: on non-zero exit, timeout, or missing output.
@@ -322,6 +324,11 @@ async def synth_for_audition(
     # Defensive — Task 3's _SUBDIRS already creates tmp/ at session init,
     # but a caller building a Session by hand might forget it.
     session.tmp_dir.mkdir(parents=True, exist_ok=True)
+
+    # CDP r8's pvoc synth refuses to clobber existing output files
+    # (exits 255). Clear the way ourselves so the argv path is always
+    # free when CDP looks.
+    output_path.unlink(missing_ok=True)
 
     argv = [
         "pvoc",

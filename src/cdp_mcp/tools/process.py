@@ -71,6 +71,13 @@ def register(
         Use this for curated programs (those with ``curated: true`` in the
         knowledge index). For uncurated programs or raw escape hatches,
         use ``execute()``.
+
+        ``output_name`` is normalized to carry the right extension before
+        the argv reaches CDP: omit the extension and the appropriate one
+        (``.wav`` for time-domain programs, ``.ana`` for spectral) is
+        appended automatically. Passing a mismatched audio extension
+        (e.g. ``.aiff``) returns a structured ``invalid_output_name``
+        error rather than silently rewriting the name.
         """
         params_dict: dict[str, Any] = params or {}
 
@@ -246,7 +253,18 @@ def register(
         # 9. Build main op argv.
         main_node_id = f"n{counter}"
         out_ext = ".ana" if entry.domain == "spectral" else ".wav"
-        out_filename = output_name or f"{main_node_id}_{slug}{out_ext}"
+        normalized_name, name_error = _normalize_output_name(
+            output_name, out_ext
+        )
+        if name_error is not None:
+            return _failed_envelope(
+                session,
+                latest_tracker,
+                active_graph=graph_dir.id,
+                errors=[name_error],
+                warnings=param_warnings,
+            )
+        out_filename = normalized_name or f"{main_node_id}_{slug}{out_ext}"
         output_path = graph_dir.root / out_filename
         argv = build_cdp_argv(
             entry, post_pvoc_paths, output_path, params_dict, cwd=session.root
@@ -455,5 +473,57 @@ def _failed_envelope(
             session, latest_tracker, active_graph=active_graph
         ),
     ).model_dump(mode="json")
+
+
+# Audio extensions we recognize as "the user clearly meant a specific
+# format." If output_name carries one of these and it isn't the one
+# this program writes, we refuse rather than silently rewrite — better
+# to surface the mismatch than to mint a wav named ``foo.aiff``.
+_AUDIO_EXTENSIONS = frozenset({".wav", ".aif", ".aiff", ".ana", ".pvx"})
+
+
+def _normalize_output_name(
+    name: str | None, expected_ext: str
+) -> tuple[str | None, ErrorEntry | None]:
+    """Normalize a caller-supplied ``output_name`` to carry ``expected_ext``.
+
+    Why this exists: CDP binaries (brassage at least) silently append
+    ``.wav`` when the output argv is extensionless, but our verifier
+    looks at exactly the path we passed — so an extensionless
+    ``output_name`` made CDP write ``foo.wav`` while we checked ``foo``
+    and reported ``output_verification_failed``. Controlling the
+    extension on our side keeps the argv and the verifier in lockstep.
+
+    Returns ``(normalized_name, error)``:
+
+    - ``name is None`` → ``(None, None)``: caller didn't specify; let the
+      auto-name path in :func:`process` fill in ``<node>_<slug>.<ext>``.
+    - Already ends with ``expected_ext`` (case-insensitive) →
+      ``(name, None)``.
+    - No extension at all → ``(name + expected_ext, None)``.
+    - Any other extension → ``(None, ErrorEntry)``. ``invalid_output_name``
+      with a ``fix`` pointing at the right extension. We refuse rather
+      than silently mutate because the user clearly intended a specific
+      format we can't deliver here.
+    """
+    if name is None:
+        return None, None
+    suffix = Path(name).suffix
+    if not suffix:
+        return name + expected_ext, None
+    if suffix.lower() == expected_ext.lower():
+        return name, None
+    return None, ErrorEntry(
+        type="invalid_output_name",
+        message=(
+            f"output_name {name!r} has extension {suffix!r}; this "
+            f"program writes {expected_ext} files."
+        ),
+        fix=(
+            f"Pass output_name with no extension (the {expected_ext} "
+            f"will be appended automatically) or with {expected_ext} "
+            "explicitly."
+        ),
+    )
 
 

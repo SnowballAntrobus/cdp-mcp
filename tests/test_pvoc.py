@@ -294,36 +294,50 @@ exec "{_FAKE_SUBPROCESS}" --write-wav "$OUTPUT"
     # (session_and_graph creates one graph; assert it stayed empty of new files.)
 
 
-async def test_synth_for_audition_overwrites_existing(
+async def test_synth_for_audition_predeletes_existing_output(
     fake_cdp_path, session_and_graph, cache_root
 ):
+    """CDP r8's pvoc synth refuses to overwrite — we must pre-delete.
+
+    Models real CDP behavior with a wrapper that exits 1 if the output
+    path already exists. Pre-create a wav at the target path; the
+    pre-delete must clear it before CDP looks, otherwise the wrapper
+    fails and we'd raise.
+    """
     session, _graph = session_and_graph
     ana = session.inputs_dir / "frog.ana"
     ana.write_bytes(b"\x00" * 2000)
 
-    # Pre-create a dummy file at the target path.
+    # Pre-create a file at the target path. Without our pre-delete, the
+    # refuse-to-overwrite wrapper below would exit 1.
     existing = session.tmp_dir / "frog.wav"
     existing.write_bytes(b"PREVIOUS")
 
+    # Wrapper that mimics CDP r8: refuses to clobber existing output.
     wrapper = fake_cdp_path / "pvoc"
     wrapper.unlink()
     wrapper.write_text(
         f"""#!/bin/sh
 OUTPUT="${{@: -1}}"
+if [ -e "$OUTPUT" ]; then
+    echo "pvoc synth: output file exists, refusing to overwrite" >&2
+    exit 1
+fi
 exec "{_FAKE_SUBPROCESS}" --write-wav "$OUTPUT"
 """
     )
     wrapper.chmod(0o755)
 
-    out_path, _ = await synth_for_audition(
+    out_path, sub = await synth_for_audition(
         ana,
         session=session,
         cdp_path=fake_cdp_path,
         cache_root=cache_root,
         cdp_version="fake",
     )
-    # File got overwritten — new bytes ≠ the dummy we pre-wrote.
+    # Pre-delete worked: CDP didn't see the stale file, wrote a fresh one.
     assert out_path.read_bytes() != b"PREVIOUS"
+    assert sub.exit_code == 0
 
 
 async def test_synth_for_audition_nonzero_exit_raises(

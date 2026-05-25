@@ -361,6 +361,88 @@ async def test_output_name_honored(mcp_with_process):
     assert p["output"].endswith("/stretched.wav")
 
 
+async def test_output_name_extension_appended_when_missing(mcp_with_process):
+    """Regression: extensionless output_name used to mismatch what CDP wrote.
+
+    CDP appends .wav itself when the output argv lacks one (brassage at
+    least), so the verifier opened the bare path and reported a phantom
+    output_verification_failed even though CDP succeeded. Fix normalizes
+    the name up-front so argv and verifier agree.
+    """
+    mcp, sessions, _tracker, _cdp = mcp_with_process
+    session, _ = sessions.set_active("s1")
+    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    p = await _call(
+        mcp,
+        "process",
+        {
+            "program": "modify", "mode": "brassage",
+            "input": "frog.wav", "params": {"velocity": 0.5},
+            "output_name": "capm_brassage_v3",
+        },
+    )
+    assert p["status"] == "ok"
+    assert p["output"].endswith("/capm_brassage_v3.wav")
+
+
+async def test_output_name_extension_preserved_no_double_append(mcp_with_process):
+    """Explicit .wav stays single — no foo.wav.wav nonsense."""
+    mcp, sessions, _tracker, _cdp = mcp_with_process
+    session, _ = sessions.set_active("s1")
+    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    p = await _call(
+        mcp,
+        "process",
+        {
+            "program": "modify", "mode": "brassage",
+            "input": "frog.wav", "params": {"velocity": 0.5},
+            "output_name": "stretched.wav",
+        },
+    )
+    assert p["status"] == "ok"
+    assert p["output"].endswith("/stretched.wav")
+    assert not p["output"].endswith(".wav.wav")
+
+
+async def test_output_name_wrong_extension_rejected(mcp_with_process):
+    """Mismatched audio extension → structured invalid_output_name error."""
+    mcp, sessions, _tracker, _cdp = mcp_with_process
+    session, _ = sessions.set_active("s1")
+    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    p = await _call(
+        mcp,
+        "process",
+        {
+            "program": "modify", "mode": "brassage",
+            "input": "frog.wav", "params": {"velocity": 0.5},
+            "output_name": "x.aiff",
+        },
+    )
+    assert p["status"] == "failed"
+    assert len(p["errors"]) == 1
+    assert p["errors"][0]["type"] == "invalid_output_name"
+    # Fix string should name the expected extension so the LLM can self-correct.
+    assert ".wav" in p["errors"][0]["fix"]
+
+
+async def test_output_name_spectral_appends_ana(mcp_with_process):
+    """Spectral program → missing extension gets .ana, not .wav."""
+    mcp, sessions, _tracker, _cdp = mcp_with_process
+    session, _ = sessions.set_active("s1")
+    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    p = await _call(
+        mcp,
+        "process",
+        {
+            "program": "blur", "mode": "blur",
+            "input": "frog.wav", "params": {"blurring": 10},
+            "output_name": "myblur",
+        },
+    )
+    assert p["status"] == "ok"
+    assert p["output"].endswith("/myblur.ana")
+
+
 async def test_graph_json_records_user_intent(mcp_with_process):
     mcp, sessions, tracker, _cdp = mcp_with_process
     session, _ = sessions.set_active("s1")
