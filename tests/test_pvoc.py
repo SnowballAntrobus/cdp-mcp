@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from cdp_mcp.graph import GraphDir
-from cdp_mcp.pvoc import maybe_insert_pvoc
+from cdp_mcp.pvoc import PVOCFailedError, maybe_insert_pvoc, synth_for_audition
 from cdp_mcp.schema import NodeLineage
 from cdp_mcp.session import Session, SessionConfig
 
@@ -253,3 +253,129 @@ exec "{_FAKE_SUBPROCESS}" --exit 1
     assert result.error_entry.type == "pvoc_failed"
     assert result.subprocess_result is not None
     assert result.subprocess_result.exit_code == 1
+
+
+# ---------------------------------------------------------------------------
+# synth_for_audition (Task 7 — rendering aid, no graph node)
+# ---------------------------------------------------------------------------
+
+
+async def test_synth_for_audition_happy_path(
+    fake_cdp_path, session_and_graph, cache_root
+):
+    """time → wav rendering aid: pvoc synth runs, output lands in tmp_dir."""
+    session, _graph = session_and_graph
+    ana = session.inputs_dir / "frog.ana"
+    ana.write_bytes(b"\x00" * 2000)
+
+    # Replace pvoc binary with a wrapper that writes a valid wav at argv[-1].
+    wrapper = fake_cdp_path / "pvoc"
+    wrapper.unlink()
+    wrapper.write_text(
+        f"""#!/bin/sh
+OUTPUT="${{@: -1}}"
+exec "{_FAKE_SUBPROCESS}" --write-wav "$OUTPUT"
+"""
+    )
+    wrapper.chmod(0o755)
+
+    out_path, sub = await synth_for_audition(
+        ana,
+        session=session,
+        cdp_path=fake_cdp_path,
+        cache_root=cache_root,
+        cdp_version="fake",
+    )
+    assert out_path == session.tmp_dir / "frog.wav"
+    assert out_path.exists()
+    assert out_path.stat().st_size > 0
+    assert sub.exit_code == 0
+    # No node added to any graph.
+    # (session_and_graph creates one graph; assert it stayed empty of new files.)
+
+
+async def test_synth_for_audition_overwrites_existing(
+    fake_cdp_path, session_and_graph, cache_root
+):
+    session, _graph = session_and_graph
+    ana = session.inputs_dir / "frog.ana"
+    ana.write_bytes(b"\x00" * 2000)
+
+    # Pre-create a dummy file at the target path.
+    existing = session.tmp_dir / "frog.wav"
+    existing.write_bytes(b"PREVIOUS")
+
+    wrapper = fake_cdp_path / "pvoc"
+    wrapper.unlink()
+    wrapper.write_text(
+        f"""#!/bin/sh
+OUTPUT="${{@: -1}}"
+exec "{_FAKE_SUBPROCESS}" --write-wav "$OUTPUT"
+"""
+    )
+    wrapper.chmod(0o755)
+
+    out_path, _ = await synth_for_audition(
+        ana,
+        session=session,
+        cdp_path=fake_cdp_path,
+        cache_root=cache_root,
+        cdp_version="fake",
+    )
+    # File got overwritten — new bytes ≠ the dummy we pre-wrote.
+    assert out_path.read_bytes() != b"PREVIOUS"
+
+
+async def test_synth_for_audition_nonzero_exit_raises(
+    fake_cdp_path, session_and_graph, cache_root
+):
+    session, _graph = session_and_graph
+    ana = session.inputs_dir / "frog.ana"
+    ana.write_bytes(b"\x00" * 2000)
+
+    # Wrapper that exits 1 without writing output.
+    wrapper = fake_cdp_path / "pvoc"
+    wrapper.unlink()
+    wrapper.write_text(
+        f"""#!/bin/sh
+exec "{_FAKE_SUBPROCESS}" --exit 1
+"""
+    )
+    wrapper.chmod(0o755)
+
+    with pytest.raises(PVOCFailedError, match="exited with code 1"):
+        await synth_for_audition(
+            ana,
+            session=session,
+            cdp_path=fake_cdp_path,
+            cache_root=cache_root,
+            cdp_version="fake",
+        )
+
+
+async def test_synth_for_audition_missing_output_raises(
+    fake_cdp_path, session_and_graph, cache_root
+):
+    """CDP exits 0 but doesn't write the output file."""
+    session, _graph = session_and_graph
+    ana = session.inputs_dir / "frog.ana"
+    ana.write_bytes(b"\x00" * 2000)
+
+    # Wrapper that returns success but writes nothing.
+    wrapper = fake_cdp_path / "pvoc"
+    wrapper.unlink()
+    wrapper.write_text(
+        f"""#!/bin/sh
+exec "{_FAKE_SUBPROCESS}" --exit 0
+"""
+    )
+    wrapper.chmod(0o755)
+
+    with pytest.raises(PVOCFailedError, match="produced no output"):
+        await synth_for_audition(
+            ana,
+            session=session,
+            cdp_path=fake_cdp_path,
+            cache_root=cache_root,
+            cdp_version="fake",
+        )

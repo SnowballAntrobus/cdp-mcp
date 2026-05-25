@@ -23,6 +23,7 @@ from .graph import GraphDir
 from .processing import _argv_path
 from .schema import ErrorEntry, InputRecord, NodeLineage
 from .security import SecurityError, validate_command
+from .session import Session
 from .subprocess_core import SubprocessResult, run_cdp_command
 from .utils import sha256_file
 
@@ -271,3 +272,86 @@ def _domain_of(path: Path) -> Literal["time", "spectral", "unknown"]:
     if suffix in _SPECTRAL_EXTENSIONS:
         return "spectral"
     return "unknown"
+
+
+# ---------------------------------------------------------------------------
+# synth_for_audition — pure rendering aid (no graph node, no lineage)
+# ---------------------------------------------------------------------------
+
+
+class PVOCFailedError(Exception):
+    """Raised when an audition-only PVOC synth doesn't produce usable output.
+
+    Distinct from :class:`PVOCResult` (which is for the graph-node-producing
+    :func:`maybe_insert_pvoc`): audition synth is a side-effect-free render
+    aid, so failure surfaces as an exception that callers convert into a
+    structured envelope error.
+    """
+
+    def __init__(self, message: str, subprocess_result: SubprocessResult | None = None):
+        super().__init__(message)
+        self.subprocess_result = subprocess_result
+
+
+async def synth_for_audition(
+    ana_path: Path,
+    session: Session,
+    cdp_path: Path,
+    cache_root: Path,
+    cdp_version: str,
+    timeout_seconds: float = 60.0,
+    ctx: Context | None = None,
+) -> tuple[Path, SubprocessResult]:
+    """Run ``pvoc synth`` on ``ana_path``, writing the wav into ``session.tmp_dir``.
+
+    Used by :func:`visualize` and :func:`analyze` so they can render
+    spectral files without polluting the graph. **No graph node, no
+    lineage entry** — the temp wav is purely a rendering aid. It lives in
+    ``session.tmp_dir`` until Phase 1b's ``cleanup()`` tool removes it.
+
+    Output filename: ``<ana_path.stem>.wav``. Overwrites any existing file
+    of the same name — last-write-wins is fine for transient renders, and
+    avoids hash-suffix accumulation in ``tmp/``.
+
+    Raises:
+        PVOCFailedError: on non-zero exit, timeout, or missing output.
+        SecurityError: if the constructed argv fails the security gate
+            (should not happen in normal use; surfaces as a bug signal).
+    """
+    output_path = session.tmp_dir / f"{ana_path.stem}.wav"
+    # Defensive — Task 3's _SUBDIRS already creates tmp/ at session init,
+    # but a caller building a Session by hand might forget it.
+    session.tmp_dir.mkdir(parents=True, exist_ok=True)
+
+    argv = [
+        "pvoc",
+        "synth",
+        _argv_path(ana_path, session.root),
+        _argv_path(output_path, session.root),
+    ]
+
+    validated = validate_command(argv, cdp_path, session.root, cache_root)
+    sub = await run_cdp_command(
+        validated,
+        cwd=session.root,
+        timeout_seconds=timeout_seconds,
+        ctx=ctx,
+    )
+
+    if sub.timed_out:
+        raise PVOCFailedError(
+            f"pvoc synth timed out after {timeout_seconds}s on {ana_path.name}",
+            subprocess_result=sub,
+        )
+    if sub.exit_code != 0:
+        raise PVOCFailedError(
+            f"pvoc synth exited with code {sub.exit_code} on {ana_path.name}",
+            subprocess_result=sub,
+        )
+    if not output_path.exists():
+        raise PVOCFailedError(
+            f"pvoc synth exited 0 but produced no output at {output_path}",
+            subprocess_result=sub,
+        )
+
+    return output_path, sub

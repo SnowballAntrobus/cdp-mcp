@@ -28,9 +28,11 @@ from .config import CDPConfig, CDPConfigError, detect_cdp
 from .graph import LatestTracker
 from .knowledge.loader import KnowledgeIndex
 from .session import SessionManager
+from .tools import analyze as analyze_module
 from .tools import execute as execute_module
 from .tools import introspection, workspace
 from .tools import process as process_module
+from .tools import visualize as visualize_module
 
 mcp = FastMCP("cdp-mcp")
 
@@ -88,6 +90,22 @@ process_module.register(
     mcp,
     sessions=_session_manager,
     knowledge_index=_index,
+    cdp_config_provider=lambda: _cdp_config,
+    latest_tracker=_latest_tracker,
+    cache_root=_cache_root,
+)
+
+visualize_module.register(
+    mcp,
+    sessions=_session_manager,
+    cdp_config_provider=lambda: _cdp_config,
+    latest_tracker=_latest_tracker,
+    cache_root=_cache_root,
+)
+
+analyze_module.register(
+    mcp,
+    sessions=_session_manager,
     cdp_config_provider=lambda: _cdp_config,
     latest_tracker=_latest_tracker,
     cache_root=_cache_root,
