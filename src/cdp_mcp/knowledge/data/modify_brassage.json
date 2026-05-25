@@ -1,0 +1,42 @@
+{
+  "program": "modify",
+  "mode": "brassage",
+  "submode": 2,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur / velocity"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Granular reconstitution of a soundfile, pinned to submode 2 (TIMESTRETCH). Reads the input at a velocity (re)scaled relative to the output, producing time-stretching or compression with a granular character. The program 'modify brassage' has seven internal sub-modes — this entry curates submode 2 only. Other sub-modes (PITCHSHIFT, REVERB, SCRAMBLE, GRANULATE, BRASSAGE proper, FULL MONTY) can be added as separate curated entries post-Phase 1a.",
+  "musical_use": "Time-stretch source material while imparting a granular grain. velocity < 1 stretches (slows down), velocity > 1 compresses (speeds up). velocity = 0 is a special 'infinite stretch' case that requires the -loutlength flag (not exposed in this entry).",
+  "parameters": {
+    "velocity": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Speed of advance in the infile relative to the outfile. Inverse of timestretch factor: 0.5 doubles duration, 2.0 halves it. Must be >= 0; the zero case is degenerate without -loutlength."
+    }
+  },
+  "examples": [
+    {
+      "description": "Stretch a source to double its duration with granular character.",
+      "params": {"velocity": 0.5},
+      "expected_use": "Granular time-stretch of a short sound (e.g. frog vocalization) into a longer textural gesture."
+    }
+  ],
+  "known_issues": [
+    "velocity = 0 produces infinite stretch and requires the -loutlength flag, which this curated entry does not expose. Use a small positive velocity instead."
+  ],
+  "references": ["cdp://docs/modify/brassage"]
+}

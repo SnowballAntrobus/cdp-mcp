@@ -1,0 +1,104 @@
+{
+  "program": "filter",
+  "mode": "sweeping",
+  "submode": 2,
+  "category": "filter",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Filter whose focus frequency sweeps cyclically over a range. Pinned to submode 2 (BAND-PASS) — most musically useful sweep behavior for textured source material. 'filter sweeping' has four filter-shape sub-modes (notch, bandpass, lowpass, highpass); other shapes can be added as separate curated entries later.",
+  "musical_use": "Time-varying bandpass that sweeps between lofrq and hifrq at sweepfrq Hz. Classic wah/sweep effects, automatic spectral animation, vowel-formant-like motion. The 'phase' parameter controls where in the sweep cycle playback starts, useful for stylistic choices (rising vs falling at the entry).",
+  "parameters": {
+    "acuity": {
+      "type": "float",
+      "min": 0.0001,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Filter acuity. Smaller values give a tighter (narrower) filter. Rule of thumb from CDP docs: if acuity = (1/3)^n, gain = (2/3)^n."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Overall gain on output. See the acuity rule-of-thumb above."
+    },
+    "lofrq": {
+      "type": "float",
+      "min": 0.1,
+      "max": null,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Lowest frequency the sweep reaches."
+    },
+    "hifrq": {
+      "type": "float",
+      "min": 0.1,
+      "max": null,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Highest frequency the sweep reaches."
+    },
+    "sweepfrq": {
+      "type": "float",
+      "min": 0.0,
+      "max": 200.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Frequency of the sweep itself. To sweep once over the range, set sweepfrq = infiledur/2 and phase = 0 (up) or 0.5 (down)."
+    },
+    "tail": {
+      "type": "float",
+      "min": 0.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "flag": "-t",
+      "description": "Decay tail duration appended after the input ends."
+    },
+    "phase": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.25,
+      "flag": "-p",
+      "description": "Start of sweep: 0 = lofrq rising, 0.5 = hifrq falling, 1 = lofrq. Default 0.25 = midfrq rising."
+    }
+  },
+  "examples": [
+    {
+      "description": "Bandpass sweep between 200 Hz and 4 kHz at 1 Hz, starting mid-range and rising.",
+      "params": {
+        "acuity": 0.1,
+        "gain": 0.44,
+        "lofrq": 200.0,
+        "hifrq": 4000.0,
+        "sweepfrq": 1.0
+      },
+      "expected_use": "Animate a sustained or looped texture with a slow, audible spectral sweep."
+    }
+  ],
+  "known_issues": [],
+  "references": ["cdp://docs/filter/sweeping"]
+}

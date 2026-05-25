@@ -1,0 +1,97 @@
+{
+  "program": "morph",
+  "mode": "morph",
+  "submode": null,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "any",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Morphs one PVOC spectrum into another. Amplitude and frequency interpolation start/end times can be controlled independently. The 'mode' parameter (1 vs 2) selects the interpolation curve shape (linear/exp vs cosinusoidal) and is genuinely user-tunable, so it lives in parameters rather than as a curator-pinned submode.",
+  "musical_use": "Smooth or staged crossfade between two timbres at the spectral level. Independent control of amplitude and frequency morphing lets you have one parameter lead the other — e.g. amplitude morphs early while frequency holds, then frequency catches up. Classic application: morph between two pitched sources, or between a pitched source and a noise-like one.",
+  "parameters": {
+    "mode": {
+      "type": "int",
+      "min": 1,
+      "max": 2,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Interpolation curve shape. 1 = linear/exponential (controlled by expa/expf). 2 = cosinusoidal spline."
+    },
+    "as": {
+      "type": "float",
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "flag": null,
+      "description": "Time when amplitude-interpolation starts."
+    },
+    "ae": {
+      "type": "float",
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "flag": null,
+      "description": "Time when amplitude-interpolation ends."
+    },
+    "fs": {
+      "type": "float",
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "flag": null,
+      "description": "Time when frequency-interpolation starts."
+    },
+    "fe": {
+      "type": "float",
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "flag": null,
+      "description": "Time when frequency-interpolation ends."
+    },
+    "expa": {
+      "type": "float",
+      "breakpoint_capable": false,
+      "flag": null,
+      "description": "Exponent of amplitude interpolation (mode 1 only). 1 = linear; >1 = increasing slope; <1 = decreasing slope."
+    },
+    "expf": {
+      "type": "float",
+      "breakpoint_capable": false,
+      "flag": null,
+      "description": "Exponent of frequency interpolation (mode 1 only)."
+    },
+    "stagger": {
+      "type": "float",
+      "min": 0.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-s",
+      "description": "Time-delay of entry of the second file."
+    }
+  },
+  "examples": [
+    {
+      "description": "Linear morph from file 1 to file 2 over the first 4 seconds, amplitude leading frequency by 1 second.",
+      "params": {
+        "mode": 1,
+        "as": 0.0,
+        "ae": 3.0,
+        "fs": 1.0,
+        "fe": 4.0,
+        "expa": 1.0,
+        "expf": 1.0
+      },
+      "expected_use": "Spectral morph between two pitched sources where the timbre starts shifting before the pitch does."
+    }
+  ],
+  "known_issues": [],
+  "references": ["cdp://docs/morph/morph"]
+}

@@ -1,0 +1,40 @@
+{
+  "program": "blur",
+  "mode": "blur",
+  "submode": null,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Time-averages the spectrum over a window of analysis frames, smearing spectral content across time. Operates on PVOC analysis files (.ana).",
+  "musical_use": "Softens transients, washes out spectral detail, produces hazy or fogged-out versions of the source. Good for turning percussive material into spectral pads, or for blending a sound with itself over time.",
+  "parameters": {
+    "blurring": {
+      "type": "float",
+      "min": 1.0,
+      "max": null,
+      "unit": "windows",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Number of analysis windows to average over. Larger values produce more smearing. May vary over time (breakpoint capability deferred to Phase 1b)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Moderate blur over 16 analysis windows.",
+      "params": {"blurring": 16.0},
+      "expected_use": "Soften the attack of a percussive spectral source while preserving overall pitch content."
+    }
+  ],
+  "known_issues": [],
+  "references": ["cdp://docs/blur/blur"]
+}

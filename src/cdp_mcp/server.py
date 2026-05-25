@@ -1,9 +1,9 @@
 """FastMCP server assembly.
 
 All logging here goes to ``sys.stderr``. The MCP stdio transport uses stdout
-for JSON-RPC traffic — any stray write to stdout will corrupt the protocol and
-break the client connection silently. Tool implementations must obey the same
-rule.
+for JSON-RPC traffic — any stray write to stdout will corrupt the protocol
+and break the client connection silently. Tool implementations must obey the
+same rule.
 """
 
 from __future__ import annotations
@@ -13,10 +13,17 @@ import sys
 from mcp.server.fastmcp import FastMCP
 
 from .config import CDPConfigError, detect_cdp
+from .knowledge.loader import KnowledgeIndex
 from .tools import introspection
 
 mcp = FastMCP("cdp-mcp")
-introspection.register(mcp)
+
+# Knowledge index is built once at import time and passed by closure into
+# each tool that needs it. ``KnowledgeIndex.load()`` is tolerant of bad
+# entries (warns to stderr and skips) so the server can come up even if a
+# single JSON file is malformed.
+_index = KnowledgeIndex.load()
+introspection.register(mcp, _index)
 
 
 def create_server() -> FastMCP:
