@@ -19,6 +19,7 @@ what to do.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
@@ -196,3 +197,57 @@ class ResultEnvelope(BaseModel):
     cached: bool = False
     duration_ms: int | None = None
     context: ContextBlock = Field(default_factory=ContextBlock)
+
+
+# ---------------------------------------------------------------------------
+# Lineage and output verification (consumed Task 5+)
+# ---------------------------------------------------------------------------
+
+
+class InputRecord(BaseModel):
+    """Provenance for one input file to a node.
+
+    The sha256 is captured at execution time so later ``why()``-style tools
+    (Phase 1b) can confirm a downstream output really did come from the
+    input it claims to.
+    """
+
+    path: str  # absolute path on disk
+    sha256: str  # sha256 hex of the file contents at execution time
+
+
+class NodeLineage(BaseModel):
+    """Per-node provenance record.
+
+    Written into a graph's ``lineage.json`` under ``nodes[node_id]``. Every
+    field is filled in by the engine; nothing is user-supplied at this level.
+    The ``params`` field is a snapshot of the user's parameter dict, included
+    for human-readable debugging and for cache-key derivation in Phase 1b.
+    """
+
+    argv: list[str]  # exact subprocess argv after arch-prefix wrapping
+    inputs: list[InputRecord]
+    output_path: str  # absolute path on disk
+    output_sha256: str | None  # None if output verification failed pre-hashing
+    params: dict[str, Any]  # snapshot of the user's parameter dict
+    cdp_version: str  # captured from the active session's config
+    started_at: datetime
+    finished_at: datetime
+    duration_ms: int
+    exit_code: int | None  # None if the subprocess timed out
+
+
+class OutputVerification(BaseModel):
+    """Result of :func:`cdp_mcp.graph.verify_output`.
+
+    Never raised — failures are encoded in ``ok=False`` plus human-readable
+    ``errors`` strings. ``rms_dbfs`` is intentionally ``float | None`` rather
+    than allowing ``-inf``; JSON forbids non-finite floats and the engine
+    returns this struct over the wire to callers.
+    """
+
+    ok: bool
+    exists: bool
+    size_bytes: int
+    rms_dbfs: float | None  # None if non-wav, unreadable, or silent (rms=0)
+    errors: list[str] = Field(default_factory=list)

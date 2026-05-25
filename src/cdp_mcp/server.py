@@ -25,6 +25,7 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 from .config import CDPConfig, CDPConfigError, detect_cdp
+from .graph import LatestTracker
 from .knowledge.loader import KnowledgeIndex
 from .session import SessionManager
 from .tools import introspection, workspace
@@ -60,6 +61,11 @@ def _resolve_sessions_root() -> Path:
 _sessions_root = _resolve_sessions_root()
 _session_manager = SessionManager(_sessions_root, lambda: _cdp_config)
 workspace.register(mcp, _session_manager)
+
+# In-memory "most recent successful node" pointer, shared by Task 5+ tools.
+# Reset on each server process start, which is fine — Claude Desktop spawns
+# a fresh process per launch and "latest" is meant to be ephemeral.
+_latest_tracker = LatestTracker()
 
 
 def create_server() -> FastMCP:

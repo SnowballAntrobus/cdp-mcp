@@ -18,7 +18,6 @@ No tool registration here — see :mod:`cdp_mcp.tools.workspace`.
 
 from __future__ import annotations
 
-import os
 import platform
 import re
 from collections.abc import Callable
@@ -30,6 +29,7 @@ from pydantic import BaseModel
 
 from . import __version__ as _cdp_mcp_version
 from .config import CDPConfig
+from .utils import atomic_write_text
 
 # Session names: leading alphanumeric, then alphanumeric / underscore /
 # hyphen / dot. Max 64 chars. Rejects path traversal, whitespace, slashes,
@@ -171,16 +171,16 @@ class SessionManager:
             try:
                 self._create_layout(session_root)
                 config = self._build_fresh_config(name)
-                _atomic_write_text(
+                atomic_write_text(
                     config_path,
                     config.model_dump_json(indent=2) + "\n",
                 )
                 # journal.md and tags.json are sibling artifacts written at
                 # creation time; not part of the SessionConfig contract.
-                _atomic_write_text(
+                atomic_write_text(
                     session_root / "tags.json", "{}\n"
                 )
-                _atomic_write_text(
+                atomic_write_text(
                     session_root / "journal.md",
                     _initial_journal(name, config.created_at),
                 )
@@ -252,17 +252,6 @@ def _validate_name(name: str) -> None:
             f"Invalid session name {name!r}: must match "
             f"{_SESSION_NAME_RE.pattern}"
         )
-
-
-def _atomic_write_text(path: Path, content: str) -> None:
-    """Write ``content`` to ``path`` via a tmp file + os.replace.
-
-    This is the canonical pattern for any on-disk metadata cdp-mcp writes;
-    Task 4 will reuse it for ``node_index.json`` and other graph files.
-    """
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(content, encoding="utf-8")
-    os.replace(tmp, path)
 
 
 def _initial_journal(name: str, created_at: datetime) -> str:
