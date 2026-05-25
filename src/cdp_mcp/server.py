@@ -30,6 +30,7 @@ from .knowledge.loader import KnowledgeIndex
 from .session import SessionManager
 from .tools import execute as execute_module
 from .tools import introspection, workspace
+from .tools import process as process_module
 
 mcp = FastMCP("cdp-mcp")
 
@@ -78,6 +79,15 @@ _cache_root.mkdir(parents=True, exist_ok=True)
 execute_module.register(
     mcp,
     sessions=_session_manager,
+    cdp_config_provider=lambda: _cdp_config,
+    latest_tracker=_latest_tracker,
+    cache_root=_cache_root,
+)
+
+process_module.register(
+    mcp,
+    sessions=_session_manager,
+    knowledge_index=_index,
     cdp_config_provider=lambda: _cdp_config,
     latest_tracker=_latest_tracker,
     cache_root=_cache_root,

@@ -1,11 +1,11 @@
 {
   "program": "morph",
   "mode": "morph",
-  "submode": null,
+  "submode": 1,
   "category": "morph",
   "domain": "spectral",
   "input_arity": 2,
-  "channel_constraint": "any",
+  "channel_constraint": "mono",
   "input_format": ".ana",
   "output_format": ".ana",
   "stability": "stable",
@@ -14,19 +14,9 @@
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
-  "description": "Morphs one PVOC spectrum into another. Amplitude and frequency interpolation start/end times can be controlled independently. The 'mode' parameter (1 vs 2) selects the interpolation curve shape (linear/exp vs cosinusoidal) and is genuinely user-tunable, so it lives in parameters rather than as a curator-pinned submode.",
+  "description": "morph morph is the IRCAM-era VOCINTE, written by Trevor Wishart during the composition of VOX-5. Morphs one PVOC spectrum into another, with amplitude and frequency interpolation start/end times controlled independently. This curated entry pins submode 1 (linear/exponential interpolation, shaped by expa/expf exponents); submode 2 (cosinusoidal spline) can be added as a separate curated entry later if needed.",
   "musical_use": "Smooth or staged crossfade between two timbres at the spectral level. Independent control of amplitude and frequency morphing lets you have one parameter lead the other — e.g. amplitude morphs early while frequency holds, then frequency catches up. Classic application: morph between two pitched sources, or between a pitched source and a noise-like one.",
   "parameters": {
-    "mode": {
-      "type": "int",
-      "min": 1,
-      "max": 2,
-      "unit": null,
-      "breakpoint_capable": false,
-      "default": 1,
-      "flag": null,
-      "description": "Interpolation curve shape. 1 = linear/exponential (controlled by expa/expf). 2 = cosinusoidal spline."
-    },
     "as": {
       "type": "float",
       "unit": "seconds",
@@ -81,7 +71,6 @@
     {
       "description": "Linear morph from file 1 to file 2 over the first 4 seconds, amplitude leading frequency by 1 second.",
       "params": {
-        "mode": 1,
         "as": 0.0,
         "ae": 3.0,
         "fs": 1.0,

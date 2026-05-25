@@ -210,10 +210,16 @@ class InputRecord(BaseModel):
     The sha256 is captured at execution time so later ``why()``-style tools
     (Phase 1b) can confirm a downstream output really did come from the
     input it claims to.
+
+    ``source_node`` is set when this input came from an upstream node in the
+    same graph — most commonly an auto-inserted PVOC node. It's ``None``
+    when the input was resolved from outside the graph (session inputs,
+    cross-graph references, absolute paths).
     """
 
     path: str  # absolute path on disk
     sha256: str  # sha256 hex of the file contents at execution time
+    source_node: str | None = None  # upstream node id in the same graph, if any
 
 
 class NodeLineage(BaseModel):
