@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Controllable fake subprocess for run_cdp_command tests.
 
 Invoked as a child process by tests via :data:`sys.executable`. Cross-platform

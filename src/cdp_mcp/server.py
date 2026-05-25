@@ -28,6 +28,7 @@ from .config import CDPConfig, CDPConfigError, detect_cdp
 from .graph import LatestTracker
 from .knowledge.loader import KnowledgeIndex
 from .session import SessionManager
+from .tools import execute as execute_module
 from .tools import introspection, workspace
 
 mcp = FastMCP("cdp-mcp")
@@ -67,6 +68,21 @@ workspace.register(mcp, _session_manager)
 # a fresh process per launch and "latest" is meant to be ephemeral.
 _latest_tracker = LatestTracker()
 
+# Cache root for content-addressable artifacts (Phase 1b cache, etc.). The
+# directory is created at startup so the path-scope security check has a
+# stable, resolved directory to validate against from day one, even before
+# any caching actually happens.
+_cache_root = (Path.home() / ".cdp_mcp" / "cache").resolve()
+_cache_root.mkdir(parents=True, exist_ok=True)
+
+execute_module.register(
+    mcp,
+    sessions=_session_manager,
+    cdp_config_provider=lambda: _cdp_config,
+    latest_tracker=_latest_tracker,
+    cache_root=_cache_root,
+)
+
 
 def create_server() -> FastMCP:
     """Log startup status to stderr and return the configured server."""
@@ -89,4 +105,5 @@ def create_server() -> FastMCP:
             file=sys.stderr,
         )
     print(f"[cdp-mcp] Sessions root: {_sessions_root}", file=sys.stderr)
+    print(f"[cdp-mcp] Cache root: {_cache_root}", file=sys.stderr)
     return mcp

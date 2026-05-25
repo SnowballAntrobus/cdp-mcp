@@ -23,7 +23,7 @@ import math
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .schema import NodeLineage, OutputVerification
+from .schema import ContextBlock, NodeLineage, OutputVerification
 from .session import Session
 from .utils import atomic_write_text
 
@@ -164,6 +164,38 @@ class LatestTracker:
     def clear(self) -> None:
         """Reset; primarily useful for tests."""
         self._latest = None
+
+
+# ---------------------------------------------------------------------------
+# Context block (shared by execute / process result envelopes)
+# ---------------------------------------------------------------------------
+
+
+def build_context_block(
+    session: Session,
+    latest_tracker: LatestTracker,
+    active_graph: str | None = None,
+) -> ContextBlock:
+    """Build the context block returned with every action result.
+
+    Phase 1a: ``active_graph`` from caller, ``latest`` from the tracker,
+    ``recent_graphs`` empty (deferred to Phase 1b), ``available_sources``
+    is the sorted list of filenames directly inside ``session.inputs_dir``.
+
+    Designed to grow: Task 6's ``process()`` will pass its own
+    ``active_graph``; Phase 1b will populate the ``recent_graphs`` history.
+    """
+    input_files: list[str] = []
+    if session.inputs_dir.exists():
+        input_files = sorted(
+            p.name for p in session.inputs_dir.iterdir() if p.is_file()
+        )
+    return ContextBlock(
+        active_graph=active_graph,
+        latest=latest_tracker.latest,
+        recent_graphs=[],
+        available_sources=input_files,
+    )
 
 
 # ---------------------------------------------------------------------------
