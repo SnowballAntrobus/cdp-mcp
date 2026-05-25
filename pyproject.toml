@@ -9,7 +9,7 @@ description = "MCP server wrapping the Composers' Desktop Project (CDP) for LLM-
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
-authors = [{ name = "<Your Name>" }]
+authors = [{ name = "Dante Gil-Marin" }]
 keywords = ["mcp", "cdp", "audio", "sound-design", "composers-desktop-project"]
 classifiers = [
     "Development Status :: 3 - Alpha",

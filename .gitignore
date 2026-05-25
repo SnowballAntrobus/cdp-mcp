@@ -60,7 +60,6 @@ ENV/
 .DS_Store
 
 # Project-specific
-~/.cdp_mcp/
 cdp_sessions/
 *.wav
 *.ana
