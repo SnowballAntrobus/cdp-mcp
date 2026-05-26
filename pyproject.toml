@@ -30,6 +30,7 @@ dependencies = [
     "pyloudnorm>=0.1",
     "matplotlib>=3.7",
     "Pillow>=10.0",
+    "simpleeval>=0.9",
 ]
 
 [project.optional-dependencies]

@@ -18,6 +18,7 @@ from typing import Any
 from mcp.server.fastmcp import Context, FastMCP
 
 from ..config import CDPConfig
+from ..duration_preflight import check_duration_preflight
 from ..error_parsing import parse_cdp_errors
 from ..graph import (
     GraphDir,
@@ -196,6 +197,23 @@ async def process_impl(
             latest_tracker,
             active_graph=None,
             errors=param_errors,
+            warnings=param_warnings,
+        )
+
+    # 6.5. Pre-flight duration prediction. Catches runaway durations
+    # before CDP spawns; the disk watchdog (Task 7) is the reactive
+    # complement for cases pre-flight can't predict.
+    preflight_errors = check_duration_preflight(
+        entry=entry,
+        params=params_dict,
+        resolved_inputs=resolved_inputs,
+    )
+    if preflight_errors:
+        return _failed_envelope(
+            session,
+            latest_tracker,
+            active_graph=None,
+            errors=preflight_errors,
             warnings=param_warnings,
         )
 

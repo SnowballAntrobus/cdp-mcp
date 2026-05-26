@@ -6,7 +6,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pytest
+import soundfile as sf
 from mcp.server.fastmcp import FastMCP
 
 from cdp_mcp.config import CDPConfig
@@ -28,6 +30,14 @@ _PROGRAMS_SPECTRAL = {"blur", "morph"}
 # ---------------------------------------------------------------------------
 # Fixture: fake CDP_PATH with multiple binaries that always write output
 # ---------------------------------------------------------------------------
+
+
+def _write_real_wav(path: Path, duration_s: float, sr: int = 44100) -> None:
+    """Write a silent wav of the given duration. Header is enough; tests
+    of pre-flight need sf.info to read a duration but don't care about
+    content."""
+    samples = np.zeros(int(duration_s * sr), dtype=np.float32)
+    sf.write(str(path), samples, sr)
 
 
 def _write_wrapper(path: Path, write_flag: str) -> None:
@@ -180,7 +190,7 @@ async def test_time_op_wav_input_no_pvoc(mcp_with_process):
     """modify.brassage is a time op with .wav input — no PVOC needed."""
     mcp, sessions, tracker, _cdp = mcp_with_process
     session, _ = sessions.set_active("s1")
-    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
     payload = await _call(
         mcp,
         "process",
@@ -201,7 +211,7 @@ async def test_spectral_op_wav_input_inserts_pvoc(mcp_with_process):
     """blur.blur is a spectral op with .wav input → pvoc anal as n1, blur as n2."""
     mcp, sessions, tracker, _cdp = mcp_with_process
     session, _ = sessions.set_active("s1")
-    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
     payload = await _call(
         mcp,
         "process",
@@ -227,7 +237,7 @@ async def test_spectral_op_wav_input_inserts_pvoc(mcp_with_process):
 async def test_lineage_main_op_source_node_points_at_pvoc(mcp_with_process):
     mcp, sessions, tracker, _cdp = mcp_with_process
     session, _ = sessions.set_active("s1")
-    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
     await _call(
         mcp,
         "process",
@@ -249,7 +259,7 @@ async def test_chain_via_latest_inserts_pvoc_synth(mcp_with_process):
     → engine auto-inserts pvoc synth."""
     mcp, sessions, tracker, _cdp = mcp_with_process
     session, _ = sessions.set_active("s1")
-    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
 
     # Step 1: blur (spectral) — leaves an .ana behind in latest.
     p1 = await _call(
@@ -283,7 +293,7 @@ async def test_chain_via_latest_inserts_pvoc_synth(mcp_with_process):
 async def test_main_op_failure_leaves_latest_unchanged(mcp_with_process):
     mcp, sessions, tracker, cdp_path = mcp_with_process
     session, _ = sessions.set_active("s1")
-    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
 
     # Pin latest to a known value first via a successful run.
     await _call(
@@ -319,7 +329,7 @@ async def test_output_verification_failure(mcp_with_process):
     """CDP exits 0 but writes a silent output → output_verification_failed."""
     mcp, sessions, _tracker, cdp_path = mcp_with_process
     session, _ = sessions.set_active("s1")
-    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
 
     # Replace modify with a wrapper that writes a SILENT wav.
     (cdp_path / "modify").write_text(
@@ -355,7 +365,7 @@ async def test_process_output_exists_pattern(mcp_with_process):
     subprocess_error (additive contract)."""
     mcp, sessions, _tracker, cdp_path = mcp_with_process
     session, _ = sessions.set_active("s1")
-    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
 
     # Wrapper that emits the canonical stderr and exits 255 — mirrors
     # what CDP r8 pvoc synth does when its output already exists.
@@ -386,7 +396,7 @@ async def test_process_silent_output_pattern_via_silent_wav(mcp_with_process):
     (additive contract)."""
     mcp, sessions, _tracker, cdp_path = mcp_with_process
     session, _ = sessions.set_active("s1")
-    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
 
     (cdp_path / "modify").write_text(
         f"""#!/bin/sh
@@ -416,7 +426,7 @@ async def test_process_usage_banner_pattern(mcp_with_process):
     output surfaces a structured usage_banner_returned ErrorEntry."""
     mcp, sessions, _tracker, cdp_path = mcp_with_process
     session, _ = sessions.set_active("s1")
-    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
 
     # Wrapper prints usage and exits 1. Crucially: does NOT write the
     # output file, so usage_banner_returned's missing-output precondition
@@ -443,7 +453,7 @@ exit 1
 async def test_output_name_honored(mcp_with_process):
     mcp, sessions, tracker, _cdp = mcp_with_process
     session, _ = sessions.set_active("s1")
-    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
     p = await _call(
         mcp,
         "process",
@@ -467,7 +477,7 @@ async def test_output_name_extension_appended_when_missing(mcp_with_process):
     """
     mcp, sessions, _tracker, _cdp = mcp_with_process
     session, _ = sessions.set_active("s1")
-    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
     p = await _call(
         mcp,
         "process",
@@ -485,7 +495,7 @@ async def test_output_name_extension_preserved_no_double_append(mcp_with_process
     """Explicit .wav stays single — no foo.wav.wav nonsense."""
     mcp, sessions, _tracker, _cdp = mcp_with_process
     session, _ = sessions.set_active("s1")
-    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
     p = await _call(
         mcp,
         "process",
@@ -504,7 +514,7 @@ async def test_output_name_wrong_extension_rejected(mcp_with_process):
     """Mismatched audio extension → structured invalid_output_name error."""
     mcp, sessions, _tracker, _cdp = mcp_with_process
     session, _ = sessions.set_active("s1")
-    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
     p = await _call(
         mcp,
         "process",
@@ -525,7 +535,7 @@ async def test_output_name_spectral_appends_ana(mcp_with_process):
     """Spectral program → missing extension gets .ana, not .wav."""
     mcp, sessions, _tracker, _cdp = mcp_with_process
     session, _ = sessions.set_active("s1")
-    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
     p = await _call(
         mcp,
         "process",
@@ -542,7 +552,7 @@ async def test_output_name_spectral_appends_ana(mcp_with_process):
 async def test_graph_json_records_user_intent(mcp_with_process):
     mcp, sessions, tracker, _cdp = mcp_with_process
     session, _ = sessions.set_active("s1")
-    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
     await _call(
         mcp,
         "process",
@@ -560,3 +570,34 @@ async def test_graph_json_records_user_intent(mcp_with_process):
     assert graph_json["params"] == {"blurring": 10}
     assert graph_json["output_name"] is None
     assert "issued_at" in graph_json
+
+
+# ---------------------------------------------------------------------------
+# Pre-flight duration prediction (Task 6) — process() rejects runaway
+# durations BEFORE spawning CDP. Complements the reactive watchdog (Task 7).
+# ---------------------------------------------------------------------------
+
+
+async def test_process_preflight_rejects_runaway_duration(mcp_with_process):
+    """A modify brassage call with extremely low velocity predicts a huge
+    output (indur / velocity → thousands of seconds). Pre-flight catches
+    this before CDP spawns — no graph dir created."""
+    mcp, sessions, _tracker, _cdp_path = mcp_with_process
+    session, _ = sessions.set_active("s1")
+    # Real wav so sf.info reads a 2.0s duration.
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
+
+    p = await _call(
+        mcp,
+        "process",
+        {
+            "program": "modify", "mode": "brassage",
+            "input": "frog.wav",
+            "params": {"velocity": 0.001},  # 2 / 0.001 = 2000s > 300s
+        },
+    )
+    assert p["status"] == "failed"
+    types = {e["type"] for e in p["errors"]}
+    assert "predicted_duration_exceeds_cap" in types
+    # No graph dir created — failure happens before step 7.
+    assert p["context"]["active_graph"] is None
