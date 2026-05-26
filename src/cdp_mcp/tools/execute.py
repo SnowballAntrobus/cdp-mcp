@@ -17,6 +17,7 @@ from pathlib import Path
 from mcp.server.fastmcp import Context, FastMCP
 
 from ..config import CDPConfig
+from ..error_parsing import parse_cdp_errors
 from ..graph import LatestTracker, build_context_block
 from ..schema import ContextBlock, ErrorEntry, ResultEnvelope
 from ..security import SecurityError, validate_command
@@ -119,6 +120,19 @@ async def execute_impl(
                 fix=None,
             )
         )
+
+    # Pattern-match specific CDP failure modes. execute() has no
+    # engine-known expected output or verification, so
+    # usage_banner_returned and silent_output won't fire here — only
+    # output_exists and channel_mismatch are applicable.
+    if not result.timed_out:
+        errors.extend(parse_cdp_errors(
+            stdout=result.stdout,
+            stderr=result.stderr,
+            exit_code=result.exit_code,
+            expected_output=None,
+            verification=None,
+        ))
 
     status = "ok" if not errors else "failed"
     envelope = ResultEnvelope(

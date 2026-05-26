@@ -343,6 +343,103 @@ exec "{_FAKE_SUBPROCESS}" --write-wav-silent "$OUTPUT"
     assert any(e["type"] == "output_verification_failed" for e in p["errors"])
 
 
+# ---------------------------------------------------------------------------
+# Stderr pattern parsing — process() surfaces structured ErrorEntry items
+# alongside the generic timeout / subprocess_error / output_verification_failed.
+# ---------------------------------------------------------------------------
+
+
+async def test_process_output_exists_pattern(mcp_with_process):
+    """Refuse-to-clobber stderr ('cannot create output') surfaces as a
+    structured output_exists ErrorEntry alongside the generic
+    subprocess_error (additive contract)."""
+    mcp, sessions, _tracker, cdp_path = mcp_with_process
+    session, _ = sessions.set_active("s1")
+    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+
+    # Wrapper that emits the canonical stderr and exits 255 — mirrors
+    # what CDP r8 pvoc synth does when its output already exists.
+    (cdp_path / "modify").write_text(
+        """#!/bin/sh
+echo "ERROR: cannot create output file foo" >&2
+exit 255
+"""
+    )
+    (cdp_path / "modify").chmod(0o755)
+
+    p = await _call(
+        mcp,
+        "process",
+        {"program": "modify", "mode": "brassage",
+         "input": "frog.wav", "params": {"velocity": 0.5}},
+    )
+    assert p["status"] == "failed"
+    types = {e["type"] for e in p["errors"]}
+    assert "output_exists" in types
+    # Generic subprocess_error coexists (additive, no dedup in Phase 1b).
+    assert "subprocess_error" in types
+
+
+async def test_process_silent_output_pattern_via_silent_wav(mcp_with_process):
+    """A wrapper that exits 0 and writes a silent wav surfaces both the
+    structured silent_output AND the generic output_verification_failed
+    (additive contract)."""
+    mcp, sessions, _tracker, cdp_path = mcp_with_process
+    session, _ = sessions.set_active("s1")
+    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+
+    (cdp_path / "modify").write_text(
+        f"""#!/bin/sh
+OUTPUT=""
+for arg in "$@"; do
+    case "$arg" in *.wav|*.ana) OUTPUT="$arg" ;; esac
+done
+exec "{_FAKE_SUBPROCESS}" --cdp-silent-output "$OUTPUT"
+"""
+    )
+    (cdp_path / "modify").chmod(0o755)
+
+    p = await _call(
+        mcp,
+        "process",
+        {"program": "modify", "mode": "brassage",
+         "input": "frog.wav", "params": {"velocity": 0.5}},
+    )
+    assert p["status"] == "failed"
+    types = {e["type"] for e in p["errors"]}
+    assert "silent_output" in types
+    assert "output_verification_failed" in types
+
+
+async def test_process_usage_banner_pattern(mcp_with_process):
+    """A wrapper that prints 'Usage:' and exits without writing the
+    output surfaces a structured usage_banner_returned ErrorEntry."""
+    mcp, sessions, _tracker, cdp_path = mcp_with_process
+    session, _ = sessions.set_active("s1")
+    (session.inputs_dir / "frog.wav").write_bytes(b"\x00" * 2000)
+
+    # Wrapper prints usage and exits 1. Crucially: does NOT write the
+    # output file, so usage_banner_returned's missing-output precondition
+    # is satisfied.
+    (cdp_path / "modify").write_text(
+        """#!/bin/sh
+echo "Usage: modify brassage mode infile outfile velocity" >&2
+exit 1
+"""
+    )
+    (cdp_path / "modify").chmod(0o755)
+
+    p = await _call(
+        mcp,
+        "process",
+        {"program": "modify", "mode": "brassage",
+         "input": "frog.wav", "params": {"velocity": 0.5}},
+    )
+    assert p["status"] == "failed"
+    types = {e["type"] for e in p["errors"]}
+    assert "usage_banner_returned" in types
+
+
 async def test_output_name_honored(mcp_with_process):
     mcp, sessions, tracker, _cdp = mcp_with_process
     session, _ = sessions.set_active("s1")

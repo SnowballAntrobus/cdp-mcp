@@ -236,3 +236,36 @@ async def test_context_block_lists_input_files_and_latest(mcp_with_execute):
     assert ctx["recent_graphs"][0]["id"] == "graph_abc"
     assert ctx["recent_graphs"][0]["output_node"] == "n1"
     assert ctx["recent_graphs"][0]["alias"] == "latest"
+
+
+# ---------------------------------------------------------------------------
+# Stderr pattern parsing — execute() surfaces structured ErrorEntry items
+# alongside the generic timeout / subprocess_error.
+# ---------------------------------------------------------------------------
+
+
+async def test_execute_surfaces_output_exists_pattern(mcp_with_execute):
+    """When CDP emits the canonical refuse-to-clobber stderr, execute()
+    surfaces a structured output_exists ErrorEntry alongside the generic
+    subprocess_error (additive contract)."""
+    mcp, sessions, _tracker, _cdp_path, _cache = mcp_with_execute
+    session, _ = sessions.set_active("s1")
+
+    # Pre-create the file inside the session tree so the security gate
+    # accepts the path and the refuse-clobber check fires.
+    target = session.inputs_dir / "collide.ana"
+    target.write_bytes(b"pre-existing")
+
+    payload = await _call_raw(
+        mcp,
+        "execute",
+        {"command": [
+            "fake_cdp",
+            "--cdp-refuse-clobber", str(target),
+            "--write-ana", str(target),
+        ]},
+    )
+    assert payload["status"] == "failed"
+    types = {e["type"] for e in payload["errors"]}
+    assert "output_exists" in types
+    assert "subprocess_error" in types  # additive

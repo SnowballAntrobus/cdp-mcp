@@ -18,6 +18,7 @@ from typing import Any
 from mcp.server.fastmcp import Context, FastMCP
 
 from ..config import CDPConfig
+from ..error_parsing import parse_cdp_errors
 from ..graph import (
     GraphDir,
     LatestTracker,
@@ -382,6 +383,17 @@ async def process_impl(
                 ),
             )
         )
+
+    # Pattern-match specific CDP failure modes into structured entries.
+    # Skip on timeout — partial output isn't worth second-guessing.
+    if not sub.timed_out:
+        result_errors.extend(parse_cdp_errors(
+            stdout=sub.stdout,
+            stderr=sub.stderr,
+            exit_code=sub.exit_code,
+            expected_output=output_path,
+            verification=verification,
+        ))
 
     success = (
         sub.exit_code == 0 and not sub.timed_out and verification.ok
