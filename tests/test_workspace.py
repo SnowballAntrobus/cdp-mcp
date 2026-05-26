@@ -32,7 +32,12 @@ def mcp_with_workspace(tmp_path):
     mcp = FastMCP("test-cdp-workspace")
     sessions = SessionManager(tmp_path, lambda: _fake_cdp())
     latest_tracker = LatestTracker()
-    workspace.register(mcp, sessions, latest_tracker=latest_tracker)
+    workspace.register(
+        mcp,
+        sessions,
+        latest_tracker=latest_tracker,
+        cdp_config_provider=lambda: _fake_cdp(),
+    )
     return mcp, sessions, tmp_path, latest_tracker
 
 
@@ -69,6 +74,7 @@ async def test_set_session_happy_path_returns_expected_keys(mcp_with_workspace):
     assert payload["path"] == str(tmp_path / "frog_v1")
     assert payload["inputs_dir"] == str(tmp_path / "frog_v1" / "inputs")
     assert (tmp_path / "frog_v1" / "config.json").is_file()
+    assert payload["warnings"] == []
 
 
 async def test_set_session_second_call_returns_created_false(mcp_with_workspace):
@@ -115,6 +121,58 @@ async def test_set_session_failure_does_not_clear_tracker(mcp_with_workspace):
 
     # Tracker survived the failed activation.
     assert tracker.latest == "g1:n1"
+
+
+async def test_set_session_warns_on_cdp_version_mismatch(tmp_path):
+    """Reactivating a session under a different CDP version surfaces a
+    warning naming both versions. Verifies the full path from on-disk
+    config.json through cdp_version_mismatch_warning into the response
+    envelope, including simulated server-restart-after-CDP-upgrade."""
+    sessions_root = tmp_path / "sessions"
+
+    # First activation: create the session under "r7".
+    mcp1 = FastMCP("test-1")
+    config_v7 = CDPConfig(
+        cdp_path=tmp_path / "fake_cdp",
+        version="r7",
+        detected_binaries=["fake"],
+    )
+    sessions1 = SessionManager(sessions_root, lambda: config_v7)
+    workspace.register(
+        mcp1,
+        sessions1,
+        latest_tracker=LatestTracker(),
+        cdp_config_provider=lambda: config_v7,
+    )
+    create_payload = await _call_raw(mcp1, "set_session", {"name": "frog"})
+    assert create_payload["created"] is True
+    assert create_payload["cdp_version"] == "r7"
+    assert create_payload["warnings"] == []
+
+    # Second activation: same session on disk, different detected CDP.
+    # Fresh MCP/SessionManager simulates a server restart after a CDP
+    # upgrade.
+    mcp2 = FastMCP("test-2")
+    config_v8 = CDPConfig(
+        cdp_path=tmp_path / "fake_cdp",
+        version="r8",
+        detected_binaries=["fake"],
+    )
+    sessions2 = SessionManager(sessions_root, lambda: config_v8)
+    workspace.register(
+        mcp2,
+        sessions2,
+        latest_tracker=LatestTracker(),
+        cdp_config_provider=lambda: config_v8,
+    )
+    reactivate_payload = await _call_raw(mcp2, "set_session", {"name": "frog"})
+    assert reactivate_payload["created"] is False
+    assert reactivate_payload["cdp_version"] == "r7"  # provenance preserved
+    assert len(reactivate_payload["warnings"]) == 1
+    msg = reactivate_payload["warnings"][0]
+    assert "r7" in msg
+    assert "r8" in msg
+    assert "frog" in msg
 
 
 # ---------------------------------------------------------------------------

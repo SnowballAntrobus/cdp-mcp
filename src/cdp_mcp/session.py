@@ -261,3 +261,35 @@ def _initial_journal(name: str, created_at: datetime) -> str:
         f"Created: {created_at.isoformat()}\n"
         f"\n"
     )
+
+
+def cdp_version_mismatch_warning(
+    session: Session,
+    current_cdp_config: CDPConfig | None,
+) -> str | None:
+    """Return a warning message if the session's recorded CDP version
+    differs from the currently detected one.
+
+    Returns ``None`` when no comparison applies: no CDP currently
+    configured, either side is the ``"unknown"`` sentinel (legacy
+    sessions, custom install layouts the detector couldn't parse, or
+    CDP unavailable at session creation), or exact match.
+
+    Pure over its inputs; never raises.
+    """
+    if current_cdp_config is None:
+        return None
+    recorded = session.config.cdp_version
+    current = current_cdp_config.version
+    if recorded == "unknown" or current == "unknown":
+        return None
+    if recorded == current:
+        return None
+    return (
+        f"CDP version mismatch: session {session.name!r} was created "
+        f"with {recorded!r}; current install is {current!r}. "
+        f"Reproducibility may be affected — older cached artifacts or "
+        f"curated knowledge entries may not match exactly. Consider "
+        f"regenerating outputs you intend to use further. Proceeding "
+        f"anyway."
+    )

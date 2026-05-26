@@ -109,6 +109,116 @@ def test_detect_cdp_version_parsed_from_first_line(tmp_path, monkeypatch):
     assert cfg.version == "CDP 7.1.0"
 
 
+# ---------------------------------------------------------------------------
+# Path-component version fallback (stock CDP r8 has no `cdp` binary, so the
+# version label has to come from the install directory name)
+# ---------------------------------------------------------------------------
+
+
+def _make_canonical_binaries(cdp_dir: Path) -> None:
+    """Create canonical binaries detect_cdp() looks for, with NO `cdp` binary."""
+    for name in ("housekeep", "blur", "modify", "pvoc"):
+        _make_executable(cdp_dir / name)
+
+
+@pytest.mark.parametrize(
+    "dir_name,expected",
+    [
+        ("cdpr8", "r8"),
+        ("cdpr7", "r7"),
+        ("cdp8", "r8"),
+        ("cdp_r8", "r8"),
+        ("cdp-r8", "r8"),
+        ("CDPR8", "r8"),
+        ("Cdp-R8", "r8"),
+        ("cdpr8.1", "r8.1"),
+        ("cdpr8.x", "r8.x"),
+    ],
+)
+def test_detect_cdp_version_from_path_component(
+    tmp_path, monkeypatch, dir_name, expected
+):
+    """When cdp_path's ancestry contains a recognizable CDP release directory
+    name, the version is derived from it."""
+    install_root = tmp_path / dir_name / "_cdp" / "_cdprogs"
+    install_root.mkdir(parents=True)
+    _make_canonical_binaries(install_root)
+    monkeypatch.setenv("CDP_PATH", str(install_root))
+    cfg = detect_cdp()
+    assert cfg.version == expected
+
+
+def test_detect_cdp_version_falls_back_when_no_pattern_matches(
+    tmp_path, monkeypatch
+):
+    """Custom install layouts that don't match the cdp[r]?N pattern fall
+    through to "unknown"."""
+    install_root = tmp_path / "sound-tools" / "custom_install"
+    install_root.mkdir(parents=True)
+    _make_canonical_binaries(install_root)
+    monkeypatch.setenv("CDP_PATH", str(install_root))
+    cfg = detect_cdp()
+    assert cfg.version == "unknown"
+
+
+def test_detect_cdp_version_path_innermost_wins(tmp_path, monkeypatch):
+    """When multiple ancestor directories match (unusual but possible), the
+    one closest to cdp_path takes precedence."""
+    install_root = tmp_path / "cdpr8" / "extras" / "cdpr7" / "_cdprogs"
+    install_root.mkdir(parents=True)
+    _make_canonical_binaries(install_root)
+    monkeypatch.setenv("CDP_PATH", str(install_root))
+    cfg = detect_cdp()
+    assert cfg.version == "r7"
+
+
+def test_detect_cdp_version_probe_takes_precedence_over_path(
+    tmp_path, monkeypatch
+):
+    """If a real `cdp` binary exists and emits a version, that wins over the
+    path heuristic. Custom builds and wrappers that DO expose --version
+    are believed."""
+    install_root = tmp_path / "cdpr8" / "_cdprogs"
+    install_root.mkdir(parents=True)
+    _make_canonical_binaries(install_root)
+    _make_executable(install_root / "cdp")
+    monkeypatch.setenv("CDP_PATH", str(install_root))
+
+    class FakeResult:
+        stdout = "CDP 9.0.0-custom\n"
+        stderr = ""
+
+    monkeypatch.setattr(
+        "cdp_mcp.config.subprocess.run",
+        lambda *_a, **_k: FakeResult(),
+    )
+    cfg = detect_cdp()
+    assert cfg.version == "CDP 9.0.0-custom"  # NOT "r8"
+
+
+def test_detect_cdp_version_path_heuristic_on_empty_probe_output(
+    tmp_path, monkeypatch
+):
+    """A `cdp` binary that exists but emits nothing → fall back to the path
+    heuristic, NOT to "unknown" immediately."""
+    install_root = tmp_path / "cdpr8" / "_cdprogs"
+    install_root.mkdir(parents=True)
+    _make_canonical_binaries(install_root)
+    _make_executable(install_root / "cdp")
+    monkeypatch.setenv("CDP_PATH", str(install_root))
+
+    class FakeResult:
+        stdout = ""
+        stderr = ""
+
+    monkeypatch.setattr(
+        "cdp_mcp.config.subprocess.run",
+        lambda *_a, **_k: FakeResult(),
+    )
+    cfg = detect_cdp()
+    assert cfg.version == "r8"
+
+
 def test_detect_cdp_expands_user_home(tmp_path, monkeypatch):
     _stub_cdp_dir(tmp_path)
     # Point HOME at tmp_path so ``~`` resolves there, then pass ``~`` as the env value.

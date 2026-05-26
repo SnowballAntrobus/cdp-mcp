@@ -70,7 +70,12 @@ _session_manager = SessionManager(_sessions_root, lambda: _cdp_config)
 # and "prev_1..prev_4" are conversational state, not session state.
 _latest_tracker = LatestTracker()
 
-workspace.register(mcp, _session_manager, latest_tracker=_latest_tracker)
+workspace.register(
+    mcp,
+    _session_manager,
+    latest_tracker=_latest_tracker,
+    cdp_config_provider=lambda: _cdp_config,
+)
 
 # Cache root for content-addressable artifacts (Phase 1b cache, etc.). The
 # directory is created at startup so the path-scope security check has a

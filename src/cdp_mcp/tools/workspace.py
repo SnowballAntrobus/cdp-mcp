@@ -14,15 +14,19 @@ Task 2's :mod:`cdp_mcp.tools.introspection`.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 
+from ..config import CDPConfig
 from ..graph import LatestTracker
 from ..session import (
     Session,
     SessionInitError,
     SessionManager,
     SessionNameError,
+    cdp_version_mismatch_warning,
 )
 
 
@@ -30,6 +34,7 @@ def register(
     mcp: FastMCP,
     sessions: SessionManager,
     latest_tracker: LatestTracker,
+    cdp_config_provider: Callable[[], CDPConfig | None],
 ) -> None:
     """Register the workspace tools against ``mcp``."""
 
@@ -46,6 +51,11 @@ def register(
         ``prev_1`` .. ``prev_4``) so the new activation starts with no
         aliases. Does not affect on-disk graphs or ``cache_index.json``.
 
+        If the session's recorded CDP version differs from the currently
+        installed one, a one-line warning naming both versions appears
+        in the response's ``warnings`` list. This is advisory —
+        activation proceeds regardless.
+
         Returns a small dict describing the activated session. Raises a
         tool error on invalid names or filesystem failures.
         """
@@ -56,7 +66,11 @@ def register(
         except SessionInitError as e:
             raise ToolError(str(e)) from e
         latest_tracker.clear()
-        return _set_session_response(session, created=created)
+        warnings: list[str] = []
+        mismatch = cdp_version_mismatch_warning(session, cdp_config_provider())
+        if mismatch is not None:
+            warnings.append(mismatch)
+        return _set_session_response(session, created=created, warnings=warnings)
 
     @mcp.tool()
     async def describe_workspace(ctx: Context) -> dict:
@@ -87,7 +101,12 @@ def register(
 # ---------------------------------------------------------------------------
 
 
-def _set_session_response(session: Session, *, created: bool) -> dict:
+def _set_session_response(
+    session: Session,
+    *,
+    created: bool,
+    warnings: list[str],
+) -> dict:
     return {
         "name": session.name,
         "path": str(session.root),
@@ -95,6 +114,7 @@ def _set_session_response(session: Session, *, created: bool) -> dict:
         "cdp_version": session.config.cdp_version,
         "inputs_dir": str(session.inputs_dir),
         "graphs_count": _count_dirs(session.graphs_dir),
+        "warnings": warnings,
     }
 
 

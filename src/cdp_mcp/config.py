@@ -7,6 +7,7 @@ a real CDP binary directory, and best-effort captures the CDP version string.
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -23,6 +24,15 @@ _CANONICAL_BINARIES = ("housekeep", "blur", "modify", "pvoc")
 _MAX_DETECTED_BINARIES = 32
 
 _VERSION_PROBE_TIMEOUT_SECONDS = 5
+
+# Matches canonical CDP release-naming pattern (cdpr8, cdp-r8, CDP_R8,
+# cdpr8.1, etc.). Captured group becomes the version label after an "r"
+# prefix. Stock CDP r8 has no `cdp` binary, so the version label has to
+# come from the install directory name in practice.
+_VERSION_PATH_RE = re.compile(
+    r"^cdp[_-]?r?(\d+(?:\.[\w.]+)?)",
+    re.IGNORECASE,
+)
 
 
 class CDPConfigError(Exception):
@@ -82,23 +92,47 @@ def _detect_binaries(cdp_path: Path) -> list[str]:
 
 
 def _detect_version(cdp_path: Path) -> str:
-    """Best-effort CDP version probe. Returns ``"unknown"`` on any failure."""
-    cdp_binary = cdp_path / "cdp"
-    if not cdp_binary.exists():
-        return "unknown"
-    try:
-        result = subprocess.run(
-            [str(cdp_binary), "--version"],
-            capture_output=True,
-            text=True,
-            timeout=_VERSION_PROBE_TIMEOUT_SECONDS,
-        )
-    except (subprocess.SubprocessError, OSError):
-        return "unknown"
+    """Best-effort CDP version detection.
 
-    output = (result.stdout or result.stderr or "").strip()
-    if not output:
-        return "unknown"
-    # Some CDP builds print a banner with multiple lines; take the first
-    # non-empty line as the version-ish string.
-    return output.splitlines()[0].strip() or "unknown"
+    Strategy, in order:
+
+    1. ``cdp --version`` probe. Stock CDP r8 has no ``cdp`` binary (the
+       closest names are ``cdparams``, ``cdparse``), but custom builds
+       or wrappers may expose this.
+    2. Path-component heuristic. Walk ``cdp_path.parts`` in reverse and
+       match each component against the canonical CDP release-naming
+       pattern. The first match yields ``f"r{captured}"``. Matches CDP's
+       actual distribution model where the version lives in the
+       directory name (``cdpr8/``, ``cdpr7/``).
+    3. ``"unknown"`` sentinel. Still recorded in
+       ``session.config.cdp_version`` for provenance; the mismatch
+       warning in ``set_session()`` correctly skips when either side
+       is ``"unknown"``.
+
+    Never raises.
+    """
+    cdp_binary = cdp_path / "cdp"
+    if cdp_binary.exists():
+        try:
+            result = subprocess.run(
+                [str(cdp_binary), "--version"],
+                capture_output=True,
+                text=True,
+                timeout=_VERSION_PROBE_TIMEOUT_SECONDS,
+            )
+            output = (result.stdout or result.stderr or "").strip()
+            if output:
+                first_line = output.splitlines()[0].strip()
+                if first_line:
+                    return first_line
+        except (subprocess.SubprocessError, OSError):
+            pass  # fall through to path heuristic
+
+    # Path-component fallback: walk parts in reverse so the directory
+    # closest to cdp_path wins on ambiguity (e.g.
+    # /opt/cdpr8/extras/cdpr7/_cdprogs → r7).
+    for part in reversed(cdp_path.parts):
+        m = _VERSION_PATH_RE.match(part)
+        if m:
+            return f"r{m.group(1)}"
+    return "unknown"

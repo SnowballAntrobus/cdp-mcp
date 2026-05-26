@@ -14,6 +14,7 @@ from cdp_mcp.session import (
     SessionManager,
     SessionNameError,
     SessionNotActiveError,
+    cdp_version_mismatch_warning,
 )
 
 # ---------------------------------------------------------------------------
@@ -200,3 +201,85 @@ def test_session_init_error_when_root_is_unwritable(tmp_path):
     # if `blocker` is a file, that raises FileExistsError immediately.
     with pytest.raises((FileExistsError, OSError)):
         SessionManager(blocker, lambda: None)
+
+
+# ---------------------------------------------------------------------------
+# cdp_version_mismatch_warning
+# ---------------------------------------------------------------------------
+
+
+def _session_with_recorded_version(tmp_path: Path, version: str) -> Session:
+    """Build a Session whose config.json records the given CDP version.
+
+    Goes through SessionManager so we exercise the full write+read path.
+    """
+    def provider() -> CDPConfig:
+        return CDPConfig(
+            cdp_path=tmp_path / "fake_cdp_root",
+            version=version,
+            detected_binaries=["fake"],
+        )
+
+    (tmp_path / "fake_cdp_root").mkdir(exist_ok=True)
+    mgr = SessionManager(tmp_path / "sessions", provider)
+    # Normalize version into a valid session-name suffix.
+    safe = version.replace(".", "_").replace("-", "_").replace(" ", "_")
+    session, _ = mgr.set_active(f"sess_{safe}")
+    return session
+
+
+def test_no_mismatch_when_current_config_is_none(tmp_path):
+    s = _session_with_recorded_version(tmp_path, "r8")
+    assert cdp_version_mismatch_warning(s, None) is None
+
+
+def test_no_mismatch_when_recorded_is_unknown_sentinel(tmp_path):
+    mgr = SessionManager(tmp_path / "sessions", lambda: None)
+    session, _ = mgr.set_active("legacy")
+    assert session.config.cdp_version == "unknown"
+    current = CDPConfig(
+        cdp_path=tmp_path / "real",
+        version="r8",
+        detected_binaries=["fake"],
+    )
+    assert cdp_version_mismatch_warning(session, current) is None
+
+
+def test_no_mismatch_when_current_is_unknown_sentinel(tmp_path):
+    """Detector failure on the current install → no warning (symmetric to
+    recorded-is-unknown). Otherwise every session would warn whenever the
+    user happens to use a custom install layout."""
+    s = _session_with_recorded_version(tmp_path, "r8")
+    current = CDPConfig(
+        cdp_path=tmp_path / "real",
+        version="unknown",
+        detected_binaries=["fake"],
+    )
+    assert cdp_version_mismatch_warning(s, current) is None
+
+
+def test_no_mismatch_when_versions_match(tmp_path):
+    s = _session_with_recorded_version(tmp_path, "r8")
+    same = CDPConfig(
+        cdp_path=tmp_path / "real",
+        version="r8",
+        detected_binaries=["fake"],
+    )
+    assert cdp_version_mismatch_warning(s, same) is None
+
+
+def test_mismatch_message_includes_both_versions_and_session_name(tmp_path):
+    s = _session_with_recorded_version(tmp_path, "r7")
+    current = CDPConfig(
+        cdp_path=tmp_path / "real",
+        version="r8",
+        detected_binaries=["fake"],
+    )
+    msg = cdp_version_mismatch_warning(s, current)
+    assert msg is not None
+    assert "r7" in msg
+    assert "r8" in msg
+    assert s.name in msg
+    # Structural check on phrasing without locking exact wording.
+    assert "created" in msg.lower()
+    assert "regenerat" in msg.lower()  # the actionable cue
