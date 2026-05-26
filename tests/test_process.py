@@ -601,3 +601,56 @@ async def test_process_preflight_rejects_runaway_duration(mcp_with_process):
     assert "predicted_duration_exceeds_cap" in types
     # No graph dir created — failure happens before step 7.
     assert p["context"]["active_graph"] is None
+
+
+# ---------------------------------------------------------------------------
+# Disk watchdog (Task 7) — process() surfaces size_cap_exceeded in the
+# envelope and precedence-orders it ahead of the generic subprocess_error.
+# ---------------------------------------------------------------------------
+
+
+async def test_process_envelope_on_watchdog_kill(mcp_with_process, monkeypatch):
+    """A watchdog kill produces a size_cap_exceeded ErrorEntry in the
+    envelope; the generic subprocess_error is NOT additionally surfaced
+    (precedence rule).
+
+    The wrapper writes a ~444-byte wav up-front then sleeps so the
+    watchdog's 1-second poll has time to fire. Cap is 100 bytes."""
+    mcp, sessions, _tracker, cdp_path = mcp_with_process
+    session, _ = sessions.set_active("s1")
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
+
+    # Patch BOTH the source module and the importing module — process.py
+    # captures the constant by name at import time, so patching only
+    # the source doesn't update its bound copy.
+    monkeypatch.setattr("cdp_mcp.limits.OUTPUT_FILE_SIZE_CAP_BYTES", 100)
+    monkeypatch.setattr(
+        "cdp_mcp.tools.process.OUTPUT_FILE_SIZE_CAP_BYTES", 100
+    )
+
+    # Wrapper: write the wav immediately (puts the file over the 100-byte
+    # cap), then sleep so the watchdog (1s production poll) has time to
+    # fire. Pre-flight for modify brassage with velocity=0.5 predicts 4s
+    # — well under the duration cap; only the size cap should fire.
+    (cdp_path / "modify").write_text(
+        f"""#!/bin/sh
+OUTPUT=""
+for arg in "$@"; do
+    case "$arg" in *.wav|*.ana) OUTPUT="$arg" ;; esac
+done
+exec "{_FAKE_SUBPROCESS}" --write-wav "$OUTPUT" --sleep 3
+"""
+    )
+    (cdp_path / "modify").chmod(0o755)
+
+    p = await _call(
+        mcp,
+        "process",
+        {"program": "modify", "mode": "brassage",
+         "input": "frog.wav", "params": {"velocity": 0.5}},
+    )
+    assert p["status"] == "failed"
+    types = {e["type"] for e in p["errors"]}
+    assert "size_cap_exceeded" in types
+    # Precedence rule: subprocess_error is NOT additionally surfaced.
+    assert "subprocess_error" not in types

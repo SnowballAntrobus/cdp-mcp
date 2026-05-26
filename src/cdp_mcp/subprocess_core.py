@@ -23,6 +23,7 @@ import os
 import platform
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 from mcp.server.fastmcp import Context
@@ -40,6 +41,58 @@ class SubprocessResult(BaseModel):
     exit_code: int | None  # None if timed out
     duration_ms: int
     timed_out: bool
+    # Disk watchdog (Task 7): True when the expected output crossed the
+    # size cap and the subprocess was SIGKILL'd. ``triggered_at_bytes``
+    # records the size that triggered the kill. Both defaulted so
+    # existing callers and test fixtures don't need to change.
+    size_cap_exceeded: bool = False
+    triggered_at_bytes: int | None = None
+
+
+# ---------------------------------------------------------------------------
+# Disk watchdog (Task 7)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class _WatchdogState:
+    """Mutable state shared between the watchdog and run_cdp_command."""
+
+    size_cap_exceeded: bool = False
+    triggered_at_bytes: int | None = None
+
+
+async def _disk_watchdog(
+    proc: asyncio.subprocess.Process,
+    output_path: Path,
+    size_cap_bytes: int,
+    state: _WatchdogState,
+    poll_interval_s: float,
+) -> None:
+    """Poll output file size; SIGKILL if it exceeds the cap.
+
+    Returns when either the cap is crossed (after SIGKILL) or when the
+    surrounding ``run_cdp_command`` cancels this task on natural exit.
+
+    Race condition tolerated: if the subprocess exits naturally with a
+    file that's already over cap, the watchdog records the violation
+    in ``state`` but skips the redundant kill (proc.returncode is not
+    None).
+    """
+    while True:
+        await asyncio.sleep(poll_interval_s)
+        try:
+            size = os.path.getsize(output_path)
+        except (FileNotFoundError, OSError):
+            # Subprocess hasn't started writing yet, or a transient stat
+            # failure. Keep polling.
+            continue
+        if size > size_cap_bytes:
+            state.size_cap_exceeded = True
+            state.triggered_at_bytes = size
+            if proc.returncode is None:
+                proc.kill()
+            return
 
 
 # ---------------------------------------------------------------------------
@@ -76,6 +129,9 @@ async def run_cdp_command(
     timeout_seconds: float = 120.0,
     ctx: Context | None = None,
     progress_interval_seconds: float = 5.0,
+    output_path: Path | None = None,
+    size_cap_bytes: int | None = None,
+    watchdog_poll_interval_s: float = 1.0,
 ) -> SubprocessResult:
     """Run a CDP subprocess asynchronously with progress reporting.
 
@@ -89,10 +145,22 @@ async def run_cdp_command(
             stderr line as the message.
         progress_interval_seconds: How often to emit progress. Default 5 s,
             matching the Claude Desktop ~60 s connection timeout headroom.
+        output_path: Path the run is expected to produce. Required to
+            enable the disk watchdog; ``execute()`` passes ``None`` since
+            it has no engine-known output and skips watchdog protection.
+        size_cap_bytes: Output file size cap. When both this and
+            ``output_path`` are non-None, the watchdog polls the output
+            file's size every ``watchdog_poll_interval_s`` and SIGKILLs
+            the subprocess if it exceeds the cap. Partial output is
+            unlinked after the kill.
+        watchdog_poll_interval_s: Polling interval, seconds. Production
+            default 1.0; tests pass smaller values (e.g. 0.05) for fast
+            iteration.
 
     Returns:
         A :class:`SubprocessResult` with both streams captured, the
-        wrapped argv, exit code (or None on timeout), and duration.
+        wrapped argv, exit code (or None on timeout), duration, and
+        watchdog state (``size_cap_exceeded`` + ``triggered_at_bytes``).
     """
     wrapped_argv = _apply_arch_prefix(argv)
     start_ns = time.monotonic_ns()
@@ -115,6 +183,20 @@ async def run_cdp_command(
         _emit_progress(ctx, state, progress_interval_seconds)
     )
 
+    # Disk watchdog (Task 7) — only active when both output_path AND
+    # size_cap_bytes are supplied. execute() passes neither and skips
+    # watchdog protection entirely.
+    watchdog_state = _WatchdogState()
+    watchdog_task: asyncio.Task | None = None
+    if output_path is not None and size_cap_bytes is not None:
+        watchdog_task = asyncio.create_task(_disk_watchdog(
+            proc=proc,
+            output_path=output_path,
+            size_cap_bytes=size_cap_bytes,
+            state=watchdog_state,
+            poll_interval_s=watchdog_poll_interval_s,
+        ))
+
     timed_out = False
     exit_code: int | None
     try:
@@ -124,6 +206,14 @@ async def run_cdp_command(
         proc.kill()
         await proc.wait()
         exit_code = None
+
+    # Cancel the watchdog (no-op if it already returned on a cap-cross).
+    if watchdog_task is not None and not watchdog_task.done():
+        watchdog_task.cancel()
+        try:
+            await watchdog_task
+        except asyncio.CancelledError:
+            pass
 
     # Stream consumers finish naturally when the pipes close. Cancel the
     # progress emitter explicitly and absorb the CancelledError.
@@ -136,6 +226,15 @@ async def run_cdp_command(
     stdout_bytes = await stdout_task
     stderr_bytes = await stderr_task
 
+    # Remove partial output if the watchdog fired. Best-effort: if
+    # unlink fails (e.g. permission, transient FS issue), we proceed —
+    # the caller already knows the cap was exceeded.
+    if watchdog_state.size_cap_exceeded and output_path is not None:
+        try:
+            output_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
     end_ns = time.monotonic_ns()
     duration_ms = (end_ns - start_ns) // 1_000_000
 
@@ -146,6 +245,8 @@ async def run_cdp_command(
         exit_code=exit_code,
         duration_ms=int(duration_ms),
         timed_out=timed_out,
+        size_cap_exceeded=watchdog_state.size_cap_exceeded,
+        triggered_at_bytes=watchdog_state.triggered_at_bytes,
     )
 
 

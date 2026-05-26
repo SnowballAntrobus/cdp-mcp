@@ -69,6 +69,18 @@ Claude calls `process("blur", "blur", input="frog.wav", params={"blurring": 10})
 
 From here you can chain further: `modify brassage` for time-stretching, `extend loop` for looping, etc. The `"latest"` reference always points at the most recent successful output, so you can iterate naturally without naming each intermediate.
 
+## Environment variables
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `CDP_PATH` | (required) | Path to the CDP binaries directory. |
+| `CDP_MCP_SESSIONS_ROOT` | `~/cdp_sessions` | Where session directories live. |
+| `CDP_MCP_DISABLE_ARCH_X86_64` | (off) | Set to `1` on Apple Silicon if your CDP is a native arm64 build. |
+| `CDP_MCP_DURATION_CAP_S` | `300.0` | Predicted output duration cap, seconds. `process()` pre-flight rejects calls above this. |
+| `CDP_MCP_OUTPUT_SIZE_CAP_BYTES` | `1073741824` (1 GB) | Output file size cap. Reactive disk watchdog SIGKILLs the subprocess on crossing. |
+
+Invalid values (non-numeric, non-positive) fall back to defaults with a warning on stderr.
+
 ## Manual smoke test (without Claude Desktop)
 
 ```bash

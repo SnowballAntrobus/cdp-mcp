@@ -122,6 +122,18 @@ def main() -> int:
             "--write-wav-silent but named for what it simulates."
         ),
     )
+    parser.add_argument(
+        "--cdp-grow-file",
+        dest="cdp_grow_file",
+        nargs=4,
+        default=None,
+        metavar=("PATH", "ITERATIONS", "BYTES_PER_ITER", "INTERVAL_S"),
+        help=(
+            "Simulate a process writing output incrementally: append "
+            "BYTES_PER_ITER zero bytes to PATH, sleep INTERVAL_S, repeat "
+            "ITERATIONS times. Used to test the disk watchdog mid-stream."
+        ),
+    )
     args, extras = parser.parse_known_args()
 
     # --cdp-die-on-dot-path: scan all unknown-positional args and die via
@@ -171,6 +183,16 @@ def main() -> int:
         # checks that the file exists and is bigger than 100 bytes.
         with open(args.write_ana, "wb") as f:
             f.write(b"\xff\x00" * 1024)
+
+    if args.cdp_grow_file:
+        # Incremental append loop; lets the disk watchdog catch a file
+        # crossing the size cap mid-run without needing real CDP.
+        path, iters_s, bytes_per_iter_s, interval_s = args.cdp_grow_file
+        for _ in range(int(iters_s)):
+            with open(path, "ab") as f:
+                f.write(b"\x00" * int(bytes_per_iter_s))
+                f.flush()
+            time.sleep(float(interval_s))
 
     if args.sleep > 0:
         time.sleep(args.sleep)

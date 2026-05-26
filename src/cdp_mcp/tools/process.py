@@ -29,6 +29,7 @@ from ..graph import (
     verify_output,
 )
 from ..knowledge.loader import KnowledgeIndex
+from ..limits import OUTPUT_FILE_SIZE_CAP_BYTES
 from ..processing import build_cdp_argv, validate_params
 from ..pvoc import maybe_insert_pvoc
 from ..schema import ContextBlock, ErrorEntry, InputRecord, NodeLineage, ResultEnvelope
@@ -306,6 +307,8 @@ async def process_impl(
         cwd=session.root,
         timeout_seconds=timeout_seconds,
         ctx=ctx,
+        output_path=output_path,
+        size_cap_bytes=OUTPUT_FILE_SIZE_CAP_BYTES,
     )
     finished_at = datetime.now(timezone.utc)
 
@@ -363,7 +366,28 @@ async def process_impl(
 
     # 14 + 15: status, latest, errors aggregation.
     result_errors: list[ErrorEntry] = []
-    if sub.timed_out:
+    # size_cap_exceeded takes precedence over the generic subprocess_error
+    # that the SIGKILL would otherwise produce — the specific signal is
+    # more actionable than "exited with code <signal>".
+    if sub.size_cap_exceeded:
+        result_errors.append(
+            ErrorEntry(
+                type="size_cap_exceeded",
+                message=(
+                    f"output file exceeded the {sub.triggered_at_bytes:,}-byte "
+                    f"cap (limit: {OUTPUT_FILE_SIZE_CAP_BYTES:,} bytes); "
+                    f"the subprocess was killed and partial output removed."
+                ),
+                fix=(
+                    "Reduce the parameters that drive output size (counts, "
+                    "multipliers, time spans), or use a shorter input. To "
+                    "raise the cap for this work, set "
+                    "CDP_MCP_OUTPUT_SIZE_CAP_BYTES in the environment "
+                    "before starting the server."
+                ),
+            )
+        )
+    elif sub.timed_out:
         result_errors.append(
             ErrorEntry(
                 type="timeout",
@@ -385,7 +409,12 @@ async def process_impl(
                 fix=None,
             )
         )
-    if not verification.ok and sub.exit_code == 0 and not sub.timed_out:
+    if (
+        not verification.ok
+        and sub.exit_code == 0
+        and not sub.timed_out
+        and not sub.size_cap_exceeded
+    ):
         # CDP succeeded but the output doesn't look healthy.
         result_errors.append(
             ErrorEntry(

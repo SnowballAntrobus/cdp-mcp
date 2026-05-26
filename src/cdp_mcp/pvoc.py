@@ -20,6 +20,7 @@ from typing import Literal
 from mcp.server.fastmcp import Context
 
 from .graph import GraphDir
+from .limits import OUTPUT_FILE_SIZE_CAP_BYTES
 from .processing import _argv_path
 from .schema import ErrorEntry, InputRecord, NodeLineage
 from .security import SecurityError, validate_command
@@ -177,8 +178,36 @@ async def maybe_insert_pvoc(
         cwd=session_root,  # match main op's cwd so relative paths resolve consistently
         timeout_seconds=timeout_seconds,
         ctx=ctx,
+        output_path=output_path,
+        size_cap_bytes=OUTPUT_FILE_SIZE_CAP_BYTES,
     )
     finished_at = datetime.now(timezone.utc)
+
+    # size_cap_exceeded takes precedence over the generic PVOC failure
+    # so the LLM sees the actionable cause rather than a confusing
+    # "exited with code <signal>".
+    if sub.size_cap_exceeded:
+        return PVOCResult(
+            state="failed",
+            output_path=input_path,
+            node_id=node_id,
+            subprocess_result=sub,
+            error_entry=ErrorEntry(
+                type="size_cap_exceeded",
+                message=(
+                    f"PVOC output exceeded the {sub.triggered_at_bytes:,}-byte "
+                    f"cap (limit: {OUTPUT_FILE_SIZE_CAP_BYTES:,} bytes); the "
+                    f"subprocess was killed and partial output removed. "
+                    f"PVOC artifacts can be 10-20x the source wav size — "
+                    f"long stereo inputs are the usual cause."
+                ),
+                fix=(
+                    "Use a shorter input, or set "
+                    "CDP_MCP_OUTPUT_SIZE_CAP_BYTES in the environment to "
+                    "raise the cap before starting the server."
+                ),
+            ),
+        )
 
     # Verify success: exit 0, not timed out, output file exists and is
     # non-empty. We deliberately *don't* run verify_output here for ana
@@ -343,8 +372,17 @@ async def synth_for_audition(
         cwd=session.root,
         timeout_seconds=timeout_seconds,
         ctx=ctx,
+        output_path=output_path,
+        size_cap_bytes=OUTPUT_FILE_SIZE_CAP_BYTES,
     )
 
+    if sub.size_cap_exceeded:
+        raise PVOCFailedError(
+            f"pvoc synth output exceeded {sub.triggered_at_bytes:,}-byte cap "
+            f"(limit: {OUTPUT_FILE_SIZE_CAP_BYTES:,}) on {ana_path.name}; "
+            f"killed before completion.",
+            subprocess_result=sub,
+        )
     if sub.timed_out:
         raise PVOCFailedError(
             f"pvoc synth timed out after {timeout_seconds}s on {ana_path.name}",

@@ -30,6 +30,7 @@ from typing import Any
 import soundfile as sf
 from simpleeval import InvalidExpression, SimpleEval
 
+from .limits import OUTPUT_DURATION_CAP_S
 from .schema import (
     DurationModelExpression,
     DurationModelLinear,
@@ -38,8 +39,6 @@ from .schema import (
     ErrorEntry,
     KnowledgeEntry,
 )
-
-_OUTPUT_DURATION_CAP_S: float = 300.0  # 5 minutes per node
 
 
 class DurationModelError(Exception):
@@ -171,7 +170,7 @@ def check_duration_preflight(
     entry: KnowledgeEntry,
     params: dict[str, Any],
     resolved_inputs: list[Path],
-    duration_cap_s: float = _OUTPUT_DURATION_CAP_S,
+    duration_cap_s: float = OUTPUT_DURATION_CAP_S,
 ) -> list[ErrorEntry]:
     """Pre-flight duration prediction.
 

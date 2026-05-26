@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from cdp_mcp.subprocess_core import (
     _apply_arch_prefix,
+    _disk_watchdog,
     _should_wrap_arch_x86_64,
+    _WatchdogState,
     run_cdp_command,
 )
 
@@ -306,3 +309,169 @@ async def test_parse_known_args_lets_unrecognized_flags_pass(tmp_path):
         ctx=None,
     )
     assert result.exit_code == 0
+
+
+# ---------------------------------------------------------------------------
+# Disk watchdog (Task 7) — unit tests against _disk_watchdog directly
+# ---------------------------------------------------------------------------
+
+
+async def test_watchdog_fires_when_file_already_over_cap(tmp_path):
+    """Cap is 1000 bytes, file is 5000 → watchdog records + kills."""
+    output = tmp_path / "out.bin"
+    output.write_bytes(b"\x00" * 5000)
+    state = _WatchdogState()
+    mock_proc = MagicMock()
+    mock_proc.returncode = None
+    mock_proc.kill = MagicMock()
+
+    await _disk_watchdog(
+        proc=mock_proc, output_path=output, size_cap_bytes=1000,
+        state=state, poll_interval_s=0.01,
+    )
+
+    assert state.size_cap_exceeded is True
+    assert state.triggered_at_bytes == 5000
+    mock_proc.kill.assert_called_once()
+
+
+async def test_watchdog_skips_kill_when_proc_already_exited(tmp_path):
+    """If the subprocess exits naturally with an over-cap file, record
+    the violation but don't try to kill an already-dead process."""
+    output = tmp_path / "out.bin"
+    output.write_bytes(b"\x00" * 5000)
+    state = _WatchdogState()
+    mock_proc = MagicMock()
+    mock_proc.returncode = 0  # already exited
+    mock_proc.kill = MagicMock()
+
+    await _disk_watchdog(
+        proc=mock_proc, output_path=output, size_cap_bytes=1000,
+        state=state, poll_interval_s=0.01,
+    )
+
+    assert state.size_cap_exceeded is True
+    mock_proc.kill.assert_not_called()
+
+
+async def test_watchdog_handles_missing_output_gracefully(tmp_path):
+    """Output doesn't exist at first poll — subprocess hasn't started
+    writing yet. Watchdog continues polling, doesn't crash."""
+    output = tmp_path / "out.bin"  # doesn't exist
+    state = _WatchdogState()
+    mock_proc = MagicMock()
+    mock_proc.returncode = None
+    mock_proc.kill = MagicMock()
+
+    task = asyncio.create_task(_disk_watchdog(
+        proc=mock_proc, output_path=output, size_cap_bytes=1000,
+        state=state, poll_interval_s=0.01,
+    ))
+    await asyncio.sleep(0.05)
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+    assert state.size_cap_exceeded is False
+    mock_proc.kill.assert_not_called()
+
+
+async def test_watchdog_does_not_fire_under_cap(tmp_path):
+    """File stays under cap → no kill, clean cancellation."""
+    output = tmp_path / "out.bin"
+    output.write_bytes(b"\x00" * 500)  # under 1000-byte cap
+    state = _WatchdogState()
+    mock_proc = MagicMock()
+    mock_proc.returncode = None
+    mock_proc.kill = MagicMock()
+
+    task = asyncio.create_task(_disk_watchdog(
+        proc=mock_proc, output_path=output, size_cap_bytes=1000,
+        state=state, poll_interval_s=0.01,
+    ))
+    await asyncio.sleep(0.05)
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+    assert state.size_cap_exceeded is False
+    mock_proc.kill.assert_not_called()
+
+
+async def test_watchdog_catches_growing_file_mid_run(tmp_path):
+    """File grows over time; watchdog catches it as it crosses the cap."""
+    output = tmp_path / "out.bin"
+    output.touch()
+    state = _WatchdogState()
+    mock_proc = MagicMock()
+    mock_proc.returncode = None
+    mock_proc.kill = MagicMock()
+
+    async def grow_file():
+        for _ in range(20):
+            await asyncio.sleep(0.02)
+            with output.open("ab") as f:
+                f.write(b"\x00" * 500)
+
+    grow_task = asyncio.create_task(grow_file())
+    await _disk_watchdog(
+        proc=mock_proc, output_path=output, size_cap_bytes=2000,
+        state=state, poll_interval_s=0.01,
+    )
+    grow_task.cancel()
+    try:
+        await grow_task
+    except asyncio.CancelledError:
+        pass
+
+    assert state.size_cap_exceeded is True
+    assert state.triggered_at_bytes > 2000
+    mock_proc.kill.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Disk watchdog — integration through run_cdp_command
+# ---------------------------------------------------------------------------
+
+
+async def test_run_cdp_command_watchdog_kills_and_cleans_up(tmp_path):
+    """End-to-end via the fake: --cdp-grow-file appends 200-byte chunks
+    every 10 ms; the watchdog (cap 500 bytes, polling 20 ms) catches it
+    and kills + unlinks the partial output."""
+    output = tmp_path / "out.bin"
+    result = await run_cdp_command(
+        _fake_argv(
+            "--cdp-grow-file", str(output), "30", "200", "0.01",
+            "--exit", "0",
+        ),
+        cwd=tmp_path,
+        timeout_seconds=10.0,
+        ctx=None,
+        output_path=output,
+        size_cap_bytes=500,
+        watchdog_poll_interval_s=0.02,
+    )
+    assert result.size_cap_exceeded is True
+    assert result.triggered_at_bytes is not None
+    assert result.triggered_at_bytes > 500
+    # Partial output was unlinked by run_cdp_command.
+    assert not output.exists()
+
+
+async def test_run_cdp_command_no_watchdog_when_kwargs_absent(tmp_path):
+    """Without output_path / size_cap_bytes, no watchdog spins up.
+    Existing execute()-style behavior is preserved — defaulted fields
+    stay at their zero values."""
+    result = await run_cdp_command(
+        _fake_argv("--exit", "0"),
+        cwd=tmp_path,
+        timeout_seconds=10.0,
+        ctx=None,
+        # no output_path, no size_cap_bytes
+    )
+    assert result.size_cap_exceeded is False
+    assert result.triggered_at_bytes is None
