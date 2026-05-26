@@ -16,6 +16,7 @@ from cdp_mcp.graph import (
     GraphDir,
     LatestTracker,
     ReferenceResolutionError,
+    build_context_block,
     resolve_target,
     verify_output,
 )
@@ -133,19 +134,123 @@ def test_node_ids_returns_sorted(session):
 
 
 # ---------------------------------------------------------------------------
-# LatestTracker
+# LatestTracker — deque + prev_N
 # ---------------------------------------------------------------------------
 
 
-def test_latest_tracker_lifecycle():
+def test_latest_tracker_starts_empty():
     t = LatestTracker()
     assert t.latest is None
+    assert t.get_slot(0) is None
+    assert t.recent_entries() == []
+
+
+def test_latest_tracker_single_update():
+    t = LatestTracker()
     t.update("g1", "n1")
     assert t.latest == "g1:n1"
-    t.update("g2", "n5")
-    assert t.latest == "g2:n5"
+    assert t.get_slot(0).graph_id == "g1"
+    assert t.get_slot(0).node_id == "n1"
+    assert t.get_slot(1) is None
+
+
+def test_latest_tracker_push_shifts_older_to_prev_n():
+    t = LatestTracker()
+    t.update("g1", "n1")
+    t.update("g2", "n1")
+    t.update("g3", "n1")
+    assert t.latest == "g3:n1"
+    assert t.get_slot(0).graph_id == "g3"
+    assert t.get_slot(1).graph_id == "g2"
+    assert t.get_slot(2).graph_id == "g1"
+    assert t.get_slot(3) is None
+
+
+def test_latest_tracker_capacity_drops_oldest():
+    t = LatestTracker()
+    for i in range(1, 7):  # 6 pushes against a 5-slot deque
+        t.update(f"g{i}", "n1")
+    assert t.latest == "g6:n1"
+    # Slots 0..4 hold g6..g2; g1 has aged off.
+    expected = ["g6", "g5", "g4", "g3", "g2"]
+    for pos, gid in enumerate(expected):
+        assert t.get_slot(pos).graph_id == gid
+    # No slot holds g1.
+    for pos in range(5):
+        assert t.get_slot(pos).graph_id != "g1"
+
+
+def test_latest_tracker_recent_entries_assigns_positional_aliases():
+    t = LatestTracker()
+    t.update("g1", "n1")
+    t.update("g2", "n1")
+    t.update("g3", "n1")
+    entries = t.recent_entries()
+    aliases = [e.alias for e in entries]
+    assert aliases == ["latest", "prev_1", "prev_2"]
+    assert entries[0].id == "g3"
+    assert entries[1].id == "g2"
+    assert entries[2].id == "g1"
+
+
+def test_latest_tracker_remove_creates_hole_without_shifting():
+    t = LatestTracker()
+    for i in range(1, 4):
+        t.update(f"g{i}", "n1")
+    # Deque now: [g3, g2, g1]; latest=g3, prev_1=g2, prev_2=g1.
+    t.remove("g2")
+    # The g2 slot is now a hole; g1 and g3 keep their positions.
+    assert t.get_slot(0).graph_id == "g3"
+    assert t.get_slot(1) is None
+    assert t.get_slot(2).graph_id == "g1"
+    # latest still points at g3.
+    assert t.latest == "g3:n1"
+
+
+def test_latest_tracker_recent_entries_skips_holes_keeps_aliases():
+    t = LatestTracker()
+    for i in range(1, 4):
+        t.update(f"g{i}", "n1")
+    t.remove("g2")
+    entries = t.recent_entries()
+    aliases = [e.alias for e in entries]
+    ids = [e.id for e in entries]
+    # prev_1 is the hole; latest (g3) and prev_2 (g1) survive with their
+    # original positional aliases — NOT renumbered.
+    assert aliases == ["latest", "prev_2"]
+    assert ids == ["g3", "g1"]
+
+
+def test_latest_tracker_remove_when_graph_id_absent_is_noop():
+    t = LatestTracker()
+    t.update("g1", "n1")
+    t.remove("does-not-exist")
+    assert t.get_slot(0).graph_id == "g1"
+
+
+def test_latest_tracker_clear_empties_deque():
+    t = LatestTracker()
+    t.update("g1", "n1")
+    t.update("g2", "n1")
     t.clear()
     assert t.latest is None
+    assert t.recent_entries() == []
+    assert t.get_slot(0) is None
+
+
+def test_latest_tracker_push_after_hole_does_not_fill_hole():
+    """New pushes shift everything left and drop from the right end. A
+    hole left by remove() doesn't get 'filled' by the next push — it
+    just shifts toward older positions like any other slot."""
+    t = LatestTracker()
+    for i in range(1, 4):
+        t.update(f"g{i}", "n1")   # [g3, g2, g1]
+    t.remove("g2")                # [g3, None, g1]
+    t.update("g4", "n1")          # [g4, g3, None, g1]
+    assert t.get_slot(0).graph_id == "g4"
+    assert t.get_slot(1).graph_id == "g3"
+    assert t.get_slot(2) is None
+    assert t.get_slot(3).graph_id == "g1"
 
 
 # ---------------------------------------------------------------------------
@@ -217,6 +322,107 @@ def test_resolve_target_absolute_path_missing(session):
 def test_resolve_target_empty_string(session):
     with pytest.raises(ReferenceResolutionError, match="Empty"):
         resolve_target("", session, LatestTracker())
+
+
+def test_resolve_target_prev_1_raises_when_unset(session):
+    with pytest.raises(ReferenceResolutionError, match="prev_1"):
+        resolve_target("prev_1", session, LatestTracker())
+
+
+def test_resolve_target_prev_1_resolves_after_one_prior_action(session):
+    # Two graphs: g_a (oldest), g_b (newest). prev_1 should point at g_a.
+    g_a = GraphDir(session, "ga")
+    out_a = g_a.root / "n1.wav"
+    out_a.write_bytes(b"hi")
+    g_a.add_node("n1", "n1.wav", _fake_lineage())
+
+    g_b = GraphDir(session, "gb")
+    out_b = g_b.root / "n1.wav"
+    out_b.write_bytes(b"hi")
+    g_b.add_node("n1", "n1.wav", _fake_lineage())
+
+    t = LatestTracker()
+    t.update(g_a.id, "n1")
+    t.update(g_b.id, "n1")
+    assert resolve_target("prev_1", session, t) == out_a
+    assert resolve_target("latest", session, t) == out_b
+
+
+def test_resolve_target_prev_n_out_of_range_raises(session):
+    t = LatestTracker()
+    t.update("g1", "n1")
+    with pytest.raises(ReferenceResolutionError, match="N must be 1..4"):
+        resolve_target("prev_5", session, t)
+    with pytest.raises(ReferenceResolutionError, match="N must be 1..4"):
+        resolve_target("prev_0", session, t)
+
+
+def test_resolve_target_prev_n_malformed_raises(session):
+    t = LatestTracker()
+    with pytest.raises(ReferenceResolutionError, match="Malformed prev reference"):
+        resolve_target("prev_abc", session, t)
+
+
+def test_resolve_target_prev_n_on_hole_raises(session):
+    """A slot emptied by remove() does not silently roll forward to the
+    next graph — prev_N for that slot raises a clear error."""
+    g_a = GraphDir(session, "ga")
+    (g_a.root / "n1.wav").write_bytes(b"hi")
+    g_a.add_node("n1", "n1.wav", _fake_lineage())
+    g_b = GraphDir(session, "gb")
+    (g_b.root / "n1.wav").write_bytes(b"hi")
+    g_b.add_node("n1", "n1.wav", _fake_lineage())
+
+    t = LatestTracker()
+    t.update(g_a.id, "n1")
+    t.update(g_b.id, "n1")
+    # Deque: [g_b, g_a]. Now remove g_a — prev_1 becomes a hole.
+    t.remove(g_a.id)
+    with pytest.raises(ReferenceResolutionError, match="prev_1"):
+        resolve_target("prev_1", session, t)
+
+
+# ---------------------------------------------------------------------------
+# build_context_block — recent_graphs + available_sources
+# ---------------------------------------------------------------------------
+
+
+def test_build_context_empty_session_no_actions(session):
+    ctx = build_context_block(session, LatestTracker(), active_graph=None)
+    assert ctx.latest is None
+    assert ctx.recent_graphs == []
+    assert ctx.available_sources == []  # empty inputs_dir
+
+
+def test_build_context_populates_recent_graphs(session):
+    t = LatestTracker()
+    t.update("g1", "n1")
+    t.update("g2", "n2")
+    ctx = build_context_block(session, t, active_graph="g2")
+    assert ctx.active_graph == "g2"
+    assert ctx.latest == "g2:n2"
+    aliases = [e.alias for e in ctx.recent_graphs]
+    assert aliases == ["latest", "prev_1"]
+
+
+def test_build_context_available_sources_includes_recent_refs(session):
+    # Put an input file in the session.
+    (session.inputs_dir / "frog.wav").write_bytes(b"x")
+    t = LatestTracker()
+    t.update("g1", "n1")
+    ctx = build_context_block(session, t, active_graph="g1")
+    # Inputs come first, then graph refs.
+    assert ctx.available_sources == ["frog.wav", "g1:n1"]
+
+
+def test_build_context_available_sources_deduplicates(session):
+    """If an input filename happens to match the string form of a graph
+    ref (it never should in practice, but defensively), no duplicates."""
+    (session.inputs_dir / "g1:n1").write_bytes(b"x")  # contrived
+    t = LatestTracker()
+    t.update("g1", "n1")
+    ctx = build_context_block(session, t, active_graph="g1")
+    assert ctx.available_sources.count("g1:n1") == 1
 
 
 # ---------------------------------------------------------------------------

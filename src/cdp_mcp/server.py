@@ -64,12 +64,13 @@ def _resolve_sessions_root() -> Path:
 
 _sessions_root = _resolve_sessions_root()
 _session_manager = SessionManager(_sessions_root, lambda: _cdp_config)
-workspace.register(mcp, _session_manager)
 
-# In-memory "most recent successful node" pointer, shared by Task 5+ tools.
-# Reset on each server process start, which is fine — Claude Desktop spawns
-# a fresh process per launch and "latest" is meant to be ephemeral.
+# In-memory "recent successful nodes" deque, shared by Task 5+ tools. Reset
+# on each server process start AND on every set_session() call — "latest"
+# and "prev_1..prev_4" are conversational state, not session state.
 _latest_tracker = LatestTracker()
+
+workspace.register(mcp, _session_manager, latest_tracker=_latest_tracker)
 
 # Cache root for content-addressable artifacts (Phase 1b cache, etc.). The
 # directory is created at startup so the path-scope security check has a
@@ -134,4 +135,10 @@ def create_server() -> FastMCP:
         )
     print(f"[cdp-mcp] Sessions root: {_sessions_root}", file=sys.stderr)
     print(f"[cdp-mcp] Cache root: {_cache_root}", file=sys.stderr)
+    print(
+        "[cdp-mcp] Conversational state (latest, prev_1..prev_4) is "
+        "per-process and resets on server restart and on every "
+        "set_session() call.",
+        file=sys.stderr,
+    )
     return mcp

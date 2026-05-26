@@ -20,10 +20,12 @@ from __future__ import annotations
 
 import json
 import math
+from collections import deque
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .schema import ContextBlock, NodeLineage, OutputVerification
+from .schema import ContextBlock, NodeLineage, OutputVerification, RecentGraphEntry
 from .session import Session
 from .utils import atomic_write_text
 
@@ -142,28 +144,88 @@ class GraphDir:
 # ---------------------------------------------------------------------------
 
 
-class LatestTracker:
-    """Single-pointer "most recent successful node" tracker.
+@dataclass(frozen=True)
+class _Slot:
+    """Internal deque entry — the wire shape is RecentGraphEntry, which is
+    built positionally when assembling the context block."""
 
-    Lives in the server process; resets on restart. Phase 1b will expand
-    into a deque with ``prev_1`` .. ``prev_4`` aliases and a
-    ``recent_graphs`` summary for context blocks.
+    graph_id: str
+    node_id: str
+
+
+class LatestTracker:
+    """Length-5 deque of recent successful (graph, node) tuples.
+
+    Provides positional aliases ``latest`` (deque[0]) and ``prev_1`` ..
+    ``prev_4`` (deque[1..4]). Per-process state; not persisted; reset on
+    every ``set_session()`` call so a fresh session activation starts with
+    an empty conversational history (design-doc Rule 2).
+
+    New actions push to the front via ``update()``; the oldest slot falls
+    off when capacity is exceeded. Cleanup of a specific graph (Task 14+)
+    sets the matching slot to ``None`` but does NOT shift adjacent slots —
+    holes stay holes until aged off by new actions (Rule 3).
     """
 
+    _CAPACITY = 5  # latest + prev_1..prev_4
+
     def __init__(self) -> None:
-        self._latest: str | None = None
+        self._deque: deque[_Slot | None] = deque(maxlen=self._CAPACITY)
 
     def update(self, graph_id: str, node_id: str) -> None:
-        """Set the pointer to ``<graph_id>:<node_id>``. Only call on success."""
-        self._latest = f"{graph_id}:{node_id}"
+        """Push a new successful (graph, node) to the front. Capacity-bounded;
+        the oldest slot falls off when the deque was full."""
+        self._deque.appendleft(_Slot(graph_id=graph_id, node_id=node_id))
 
     @property
     def latest(self) -> str | None:
-        return self._latest
+        """Back-compat: return ``"<graph_id>:<node_id>"`` for slot 0, or
+        ``None`` if the deque is empty or slot 0 is a hole."""
+        if not self._deque:
+            return None
+        s = self._deque[0]
+        if s is None:
+            return None
+        return f"{s.graph_id}:{s.node_id}"
+
+    def get_slot(self, position: int) -> _Slot | None:
+        """Return the slot at position N (0 = latest, 1 = prev_1, …) or
+        ``None`` if out of range or a hole."""
+        if position < 0 or position >= len(self._deque):
+            return None
+        return self._deque[position]
+
+    def remove(self, graph_id: str) -> None:
+        """Mark every slot pointing at ``graph_id`` as a hole. Other slots
+        are NOT shifted to fill the gap. Used by the cleanup() transaction
+        in Task 14+; no production caller exists in Phase 1b.
+        """
+        for i, slot in enumerate(self._deque):
+            if slot is not None and slot.graph_id == graph_id:
+                self._deque[i] = None
+
+    def recent_entries(self) -> list[RecentGraphEntry]:
+        """Materialize the deque as a list of RecentGraphEntry for the
+        context block. Holes are skipped; non-hole entries keep their
+        positional alias (``latest``, ``prev_1``, …) even when surrounded
+        by holes — this matches design-doc Rule 3."""
+        out: list[RecentGraphEntry] = []
+        for i, slot in enumerate(self._deque):
+            if slot is None:
+                continue
+            alias = "latest" if i == 0 else f"prev_{i}"
+            out.append(RecentGraphEntry(
+                id=slot.graph_id,
+                output_node=slot.node_id,
+                alias=alias,
+            ))
+        return out
 
     def clear(self) -> None:
-        """Reset; primarily useful for tests."""
-        self._latest = None
+        """Empty the deque. Called by ``set_session()`` so each session
+        activation starts with fresh conversational state, and useful in
+        tests."""
+        self._deque.clear()
 
 
 # ---------------------------------------------------------------------------
@@ -178,23 +240,40 @@ def build_context_block(
 ) -> ContextBlock:
     """Build the context block returned with every action result.
 
-    Phase 1a: ``active_graph`` from caller, ``latest`` from the tracker,
-    ``recent_graphs`` empty (deferred to Phase 1b), ``available_sources``
-    is the sorted list of filenames directly inside ``session.inputs_dir``.
+    Phase 1b: ``active_graph`` from caller, ``latest`` from the tracker,
+    ``recent_graphs`` populated from the tracker's deque (positional
+    aliases ``latest``, ``prev_1`` .. ``prev_4``), and ``available_sources``
+    is session inputs + recent graph refs, deduplicated and ordered with
+    inputs first.
 
-    Designed to grow: Task 6's ``process()`` will pass its own
-    ``active_graph``; Phase 1b will populate the ``recent_graphs`` history.
+    The broader 15-most-recent filesystem scan + tagged keepers +
+    auto-pinned nodes land in Task 8.
     """
     input_files: list[str] = []
     if session.inputs_dir.exists():
         input_files = sorted(
             p.name for p in session.inputs_dir.iterdir() if p.is_file()
         )
+
+    recent = latest_tracker.recent_entries()
+    recent_refs = [f"{e.id}:{e.output_node}" for e in recent]
+
+    # Deduplicate while preserving order: input filenames first, then
+    # graph refs. set() would lose order; this preserves the natural
+    # reading.
+    seen: set[str] = set()
+    available: list[str] = []
+    for s in input_files + recent_refs:
+        if s in seen:
+            continue
+        seen.add(s)
+        available.append(s)
+
     return ContextBlock(
         active_graph=active_graph,
         latest=latest_tracker.latest,
-        recent_graphs=[],
-        available_sources=input_files,
+        recent_graphs=recent,
+        available_sources=available,
     )
 
 
@@ -228,15 +307,35 @@ def resolve_target(
         raise ReferenceResolutionError(f"Empty or non-string reference: {ref!r}")
 
     if ref == "latest":
-        target = latest.latest
-        if target is None:
+        slot = latest.get_slot(0)
+        if slot is None:
             raise ReferenceResolutionError(
                 "Reference 'latest' has no value yet — no node has succeeded "
                 "in this server session."
             )
-        # Recurse once. The latest pointer is always a "<graph_id>:<node_id>"
-        # ref, so this won't bounce back to "latest".
-        return resolve_target(target, session, latest)
+        # Recurse once into the canonical "<graph_id>:<node_id>" form; the
+        # ":" branch below handles the actual lookup.
+        return resolve_target(f"{slot.graph_id}:{slot.node_id}", session, latest)
+
+    if ref.startswith("prev_"):
+        suffix = ref[len("prev_"):]
+        if not suffix.isdigit():
+            raise ReferenceResolutionError(
+                f"Malformed prev reference {ref!r}: expected 'prev_1' .. 'prev_4'."
+            )
+        n = int(suffix)
+        if n < 1 or n > 4:
+            raise ReferenceResolutionError(
+                f"prev_N reference {ref!r}: N must be 1..4 (got {n})."
+            )
+        slot = latest.get_slot(n)
+        if slot is None:
+            raise ReferenceResolutionError(
+                f"Reference {ref!r} has no value — either fewer than {n + 1} "
+                "successful actions in this session, the slot was removed by "
+                "cleanup(), or this server process just started."
+            )
+        return resolve_target(f"{slot.graph_id}:{slot.node_id}", session, latest)
 
     if ":" in ref:
         graph_id, _, node_id = ref.partition(":")

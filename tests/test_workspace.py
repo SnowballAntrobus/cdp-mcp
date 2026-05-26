@@ -10,6 +10,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 
 from cdp_mcp.config import CDPConfig
+from cdp_mcp.graph import LatestTracker
 from cdp_mcp.session import SessionManager
 from cdp_mcp.tools import workspace
 
@@ -30,8 +31,9 @@ def _fake_cdp() -> CDPConfig:
 def mcp_with_workspace(tmp_path):
     mcp = FastMCP("test-cdp-workspace")
     sessions = SessionManager(tmp_path, lambda: _fake_cdp())
-    workspace.register(mcp, sessions)
-    return mcp, sessions, tmp_path
+    latest_tracker = LatestTracker()
+    workspace.register(mcp, sessions, latest_tracker=latest_tracker)
+    return mcp, sessions, tmp_path, latest_tracker
 
 
 async def _call_raw(mcp: FastMCP, name: str, args: dict[str, Any]) -> Any:
@@ -46,7 +48,7 @@ async def _call_raw(mcp: FastMCP, name: str, args: dict[str, Any]) -> Any:
 
 
 async def test_both_tools_registered(mcp_with_workspace):
-    mcp, _, _ = mcp_with_workspace
+    mcp, _, _, _ = mcp_with_workspace
     tools = await mcp.list_tools()
     names = {t.name for t in tools}
     assert {"set_session", "describe_workspace"} <= names
@@ -58,7 +60,7 @@ async def test_both_tools_registered(mcp_with_workspace):
 
 
 async def test_set_session_happy_path_returns_expected_keys(mcp_with_workspace):
-    mcp, _, tmp_path = mcp_with_workspace
+    mcp, _, tmp_path, _ = mcp_with_workspace
     payload = await _call_raw(mcp, "set_session", {"name": "frog_v1"})
     assert payload["name"] == "frog_v1"
     assert payload["created"] is True
@@ -70,16 +72,49 @@ async def test_set_session_happy_path_returns_expected_keys(mcp_with_workspace):
 
 
 async def test_set_session_second_call_returns_created_false(mcp_with_workspace):
-    mcp, _, _ = mcp_with_workspace
+    mcp, _, _, _ = mcp_with_workspace
     await _call_raw(mcp, "set_session", {"name": "frog_v1"})
     payload = await _call_raw(mcp, "set_session", {"name": "frog_v1"})
     assert payload["created"] is False
 
 
 async def test_set_session_invalid_name_raises_tool_error(mcp_with_workspace):
-    mcp, _, _ = mcp_with_workspace
+    mcp, _, _, _ = mcp_with_workspace
     with pytest.raises(ToolError, match="Invalid session name"):
         await _call_raw(mcp, "set_session", {"name": "foo bar"})
+
+
+async def test_set_session_clears_latest_tracker(mcp_with_workspace):
+    """set_session() resets the conversational state (latest, prev_1..) so
+    each session activation starts fresh — design-doc Rule 2."""
+    mcp, _, _, tracker = mcp_with_workspace
+
+    # Activate a session, then push two entries onto the tracker.
+    await _call_raw(mcp, "set_session", {"name": "sess_a"})
+    tracker.update("g1", "n1")
+    tracker.update("g2", "n1")
+    assert tracker.latest == "g2:n1"
+    assert len(tracker.recent_entries()) == 2
+
+    # Re-activate (same name or different) → tracker is wiped.
+    await _call_raw(mcp, "set_session", {"name": "sess_a"})
+    assert tracker.latest is None
+    assert tracker.recent_entries() == []
+
+
+async def test_set_session_failure_does_not_clear_tracker(mcp_with_workspace):
+    """Invalid name → ToolError, tracker stays intact (the previous
+    conversational state shouldn't be lost on a typo)."""
+    mcp, _, _, tracker = mcp_with_workspace
+    await _call_raw(mcp, "set_session", {"name": "sess_a"})
+    tracker.update("g1", "n1")
+    assert tracker.latest == "g1:n1"
+
+    with pytest.raises(ToolError):
+        await _call_raw(mcp, "set_session", {"name": "foo bar"})  # invalid
+
+    # Tracker survived the failed activation.
+    assert tracker.latest == "g1:n1"
 
 
 # ---------------------------------------------------------------------------
@@ -88,7 +123,7 @@ async def test_set_session_invalid_name_raises_tool_error(mcp_with_workspace):
 
 
 async def test_describe_workspace_no_active_session(mcp_with_workspace):
-    mcp, _, _ = mcp_with_workspace
+    mcp, _, _, _ = mcp_with_workspace
     payload = await _call_raw(mcp, "describe_workspace", {})
     assert payload["active_session"] is None
     assert payload["available_sessions"] == []
@@ -96,7 +131,7 @@ async def test_describe_workspace_no_active_session(mcp_with_workspace):
 
 
 async def test_describe_workspace_active_session_minimal(mcp_with_workspace):
-    mcp, _, tmp_path = mcp_with_workspace
+    mcp, _, tmp_path, _ = mcp_with_workspace
     await _call_raw(mcp, "set_session", {"name": "frog_v1"})
     payload = await _call_raw(mcp, "describe_workspace", {})
     assert payload["active_session"] == "frog_v1"
@@ -111,7 +146,7 @@ async def test_describe_workspace_active_session_minimal(mcp_with_workspace):
 
 
 async def test_describe_workspace_counts_input_files(mcp_with_workspace):
-    mcp, _, tmp_path = mcp_with_workspace
+    mcp, _, tmp_path, _ = mcp_with_workspace
     await _call_raw(mcp, "set_session", {"name": "frog_v1"})
     inputs = tmp_path / "frog_v1" / "inputs"
     (inputs / "frog.wav").write_bytes(b"riffstub")
@@ -124,7 +159,7 @@ async def test_describe_workspace_counts_input_files(mcp_with_workspace):
 
 
 async def test_available_sessions_consistent_across_tools(mcp_with_workspace):
-    mcp, _, _ = mcp_with_workspace
+    mcp, _, _, _ = mcp_with_workspace
     await _call_raw(mcp, "set_session", {"name": "a"})
     await _call_raw(mcp, "set_session", {"name": "b"})
     desc = await _call_raw(mcp, "describe_workspace", {})

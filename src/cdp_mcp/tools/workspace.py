@@ -17,6 +17,7 @@ from __future__ import annotations
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 
+from ..graph import LatestTracker
 from ..session import (
     Session,
     SessionInitError,
@@ -25,7 +26,11 @@ from ..session import (
 )
 
 
-def register(mcp: FastMCP, sessions: SessionManager) -> None:
+def register(
+    mcp: FastMCP,
+    sessions: SessionManager,
+    latest_tracker: LatestTracker,
+) -> None:
     """Register the workspace tools against ``mcp``."""
 
     @mcp.tool()
@@ -37,6 +42,10 @@ def register(mcp: FastMCP, sessions: SessionManager) -> None:
         creates the directory layout; subsequent calls with the same name
         just switch active state in memory.
 
+        Resets the in-memory conversational state (``latest``,
+        ``prev_1`` .. ``prev_4``) so the new activation starts with no
+        aliases. Does not affect on-disk graphs or ``cache_index.json``.
+
         Returns a small dict describing the activated session. Raises a
         tool error on invalid names or filesystem failures.
         """
@@ -46,6 +55,7 @@ def register(mcp: FastMCP, sessions: SessionManager) -> None:
             raise ToolError(str(e)) from e
         except SessionInitError as e:
             raise ToolError(str(e)) from e
+        latest_tracker.clear()
         return _set_session_response(session, created=created)
 
     @mcp.tool()
