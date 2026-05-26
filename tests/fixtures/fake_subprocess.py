@@ -5,7 +5,7 @@ Invoked as a child process by tests via :data:`sys.executable`. Cross-platform
 because it's pure Python.
 
 **CDP-quirk flags.** Flags prefixed ``--cdp-<behavior>`` simulate specific
-production CDP quirks (refuse-to-clobber on existing output, SIGILL on
+production CDP quirks (refuse-to-clobber on existing output, crash on
 dotted absolute paths, silent-output despite exit 0). They are distinct
 from the generic ``--write-*`` / ``--stdout`` / ``--stderr`` flags, which
 are agnostic test utilities. New CDP-quirk flags follow the same
@@ -20,14 +20,19 @@ Usage::
                               [--write-wav PATH] [--write-wav-silent PATH]
                               [--write-ana PATH]
                               [--cdp-refuse-clobber PATH]
-                              [--cdp-sigill-on-dot-path]
+                              [--cdp-die-on-dot-path]
                               [--cdp-silent-output PATH]
 
 Flags execute in this order, then the process exits:
 
-1. ``--cdp-sigill-on-dot-path`` scan: SIGILL (POSIX) / ``os.abort()``
-   (Windows) on any absolute-path positional with a ``.`` in an ancestor
-   directory. No stderr is emitted first — matches real brassage.
+1. ``--cdp-die-on-dot-path`` scan: send SIGTERM to self (kills the
+   process with a negative exit code) on any absolute-path positional
+   with a ``.`` in an ancestor directory. Real CDP brassage dies with
+   SIGILL, but SIGTERM is used here to avoid triggering macOS
+   CrashReporter (which intercepts SIGILL/SIGABRT/SIGSEGV/etc. and shows
+   a "Python quit unexpectedly" dialog). Production code only inspects
+   ``exit_code != 0``, so the signal number doesn't matter. No stderr
+   is emitted first — matches real brassage.
 2. ``--cdp-refuse-clobber PATH``: if ``PATH`` exists, emit the canonical
    ``"ERROR: cannot create output file ..."`` to stderr and exit 255,
    ignoring all other flags.
@@ -94,15 +99,17 @@ def main() -> int:
         ),
     )
     parser.add_argument(
-        "--cdp-sigill-on-dot-path",
-        dest="cdp_sigill_on_dot_path",
+        "--cdp-die-on-dot-path",
+        dest="cdp_die_on_dot_path",
         action="store_true",
         default=False,
         help=(
-            "Simulate the brassage SIGILL bug: scan positional args for "
-            "any absolute path with a '.' in an ancestor directory, and "
-            "kill the process with SIGILL if found. No stderr is emitted "
-            "first."
+            "Simulate the brassage crash-on-dotted-path bug: scan "
+            "positional args for any absolute path with a '.' in an "
+            "ancestor directory, and kill the process with SIGTERM if "
+            "found. (Real CDP dies with SIGILL, but SIGTERM is used here "
+            "to avoid triggering macOS CrashReporter — see "
+            "_trigger_signal_death for context.)"
         ),
     )
     parser.add_argument(
@@ -117,13 +124,13 @@ def main() -> int:
     )
     args, extras = parser.parse_known_args()
 
-    # --cdp-sigill-on-dot-path: scan all unknown-positional args and SIGILL
-    # if any looks like an absolute path with '.' in ancestry. Matches the
-    # real brassage bug, which emits no stderr before crashing.
-    if args.cdp_sigill_on_dot_path:
+    # --cdp-die-on-dot-path: scan all unknown-positional args and die via
+    # signal if any looks like an absolute path with '.' in ancestry.
+    # Matches the real brassage bug, which emits no stderr before crashing.
+    if args.cdp_die_on_dot_path:
         for extra in extras:
             if _has_dot_in_ancestry(extra):
-                _trigger_sigill_like()  # never returns
+                _trigger_signal_death()  # never returns
 
     # --cdp-refuse-clobber PATH: if PATH already exists, emit the canonical
     # "cannot create output" stderr and exit 255. Real CDP r8 pvoc synth.
@@ -190,12 +197,30 @@ def _has_dot_in_ancestry(path: str) -> bool:
     return False
 
 
-def _trigger_sigill_like() -> None:
-    """SIGILL on POSIX, ``os.abort()`` elsewhere. Never returns."""
-    if hasattr(signal, "SIGILL") and sys.platform != "win32":
-        os.kill(os.getpid(), signal.SIGILL)
+def _trigger_signal_death() -> None:
+    """Kill self with a signal that produces a negative exit code, without
+    triggering macOS CrashReporter.
+
+    Real CDP brassage dies with SIGILL on Apple Silicon (illegal-instruction
+    from x86 binary under Rosetta). Using SIGILL here would faithfully
+    reproduce that, but on macOS the kernel routes SIGILL/SIGABRT/SIGSEGV
+    and friends through ReportCrash, which generates a crash log in
+    ~/Library/Logs/DiagnosticReports/ and shows the "Python quit
+    unexpectedly" dialog every time the test runs. SIGTERM is a "polite"
+    termination signal that produces returncode = -15 without invoking
+    ReportCrash.
+
+    Production code only inspects exit_code for == 0 / != 0; no path
+    examines a specific signal value. If a future Phase 1b task needs
+    signal-number fidelity, introduce a separate opt-in code path rather
+    than changing this default.
+
+    Never returns.
+    """
+    if hasattr(signal, "SIGTERM") and sys.platform != "win32":
+        os.kill(os.getpid(), signal.SIGTERM)
     else:
-        os.abort()
+        os.abort()  # Windows fallback
 
 
 def _write_wav(path: str, *, silent: bool) -> None:

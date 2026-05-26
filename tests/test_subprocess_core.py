@@ -225,13 +225,12 @@ async def test_cdp_refuse_clobber_exits_255_when_file_exists(tmp_path):
     assert out.read_bytes() == b"pre-existing-bytes"
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="SIGILL not on Windows")
-async def test_cdp_sigill_on_dot_path_triggers_on_dotted_ancestry(tmp_path):
-    """Absolute path with '.' in any ancestor directory → SIGILL.
-    The subprocess exit code is negative (the signal number) on POSIX.
-    """
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only signal kill")
+async def test_cdp_die_on_dot_path_triggers_on_dotted_ancestry(tmp_path):
+    """Absolute path with '.' in any ancestor directory → subprocess is
+    killed by signal, producing a negative exit code on POSIX."""
     result = await run_cdp_command(
-        _fake_argv("--cdp-sigill-on-dot-path", "/some/dotted.dir/frog.wav"),
+        _fake_argv("--cdp-die-on-dot-path", "/some/dotted.dir/frog.wav"),
         cwd=tmp_path,
         timeout_seconds=10.0,
         ctx=None,
@@ -240,11 +239,11 @@ async def test_cdp_sigill_on_dot_path_triggers_on_dotted_ancestry(tmp_path):
     assert result.exit_code < 0
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="SIGILL not on Windows")
-async def test_cdp_sigill_on_dot_path_passes_clean_absolute_path(tmp_path):
-    """Absolute path with no '.' in ancestry → no SIGILL, normal exit."""
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only signal kill")
+async def test_cdp_die_on_dot_path_passes_clean_absolute_path(tmp_path):
+    """Absolute path with no '.' in ancestry → no signal, normal exit."""
     result = await run_cdp_command(
-        _fake_argv("--cdp-sigill-on-dot-path", "/some/clean/dir/frog.wav"),
+        _fake_argv("--cdp-die-on-dot-path", "/some/clean/dir/frog.wav"),
         cwd=tmp_path,
         timeout_seconds=10.0,
         ctx=None,
@@ -252,12 +251,12 @@ async def test_cdp_sigill_on_dot_path_passes_clean_absolute_path(tmp_path):
     assert result.exit_code == 0
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="SIGILL not on Windows")
-async def test_cdp_sigill_on_dot_path_passes_relative_path(tmp_path):
-    """A relative path is never absolute, never triggers SIGILL — even if
-    it happens to contain '.' in a directory name."""
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only signal kill")
+async def test_cdp_die_on_dot_path_passes_relative_path(tmp_path):
+    """A relative path is never absolute, never triggers — even if it
+    happens to contain '.' in a directory name."""
     result = await run_cdp_command(
-        _fake_argv("--cdp-sigill-on-dot-path", "frog_v0.1/inputs/frog.wav"),
+        _fake_argv("--cdp-die-on-dot-path", "frog_v0.1/inputs/frog.wav"),
         cwd=tmp_path,
         timeout_seconds=10.0,
         ctx=None,
@@ -265,12 +264,12 @@ async def test_cdp_sigill_on_dot_path_passes_relative_path(tmp_path):
     assert result.exit_code == 0
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="SIGILL not on Windows")
-async def test_cdp_sigill_on_dot_path_dotted_basename_alone_is_fine(tmp_path):
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only signal kill")
+async def test_cdp_die_on_dot_path_dotted_basename_alone_is_fine(tmp_path):
     """A '.' in basename (file extension) does NOT trigger; only '.' in
     ancestor directory names is the bug being simulated."""
     result = await run_cdp_command(
-        _fake_argv("--cdp-sigill-on-dot-path", "/some/clean/dir/frog.wav"),
+        _fake_argv("--cdp-die-on-dot-path", "/some/clean/dir/frog.wav"),
         cwd=tmp_path,
         timeout_seconds=10.0,
         ctx=None,
