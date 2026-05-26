@@ -29,6 +29,196 @@ from ..session import SessionManager, SessionNotActiveError
 _SPECTRAL_SUFFIXES = frozenset({".ana", ".pvx"})
 
 
+async def analyze_impl(
+    ctx: Context,
+    target: str,
+    t_start: float | None = None,
+    t_duration: float | None = None,
+    timeout_seconds: float = 60.0,
+    *,
+    sessions: SessionManager,
+    cdp_config_provider: Callable[[], CDPConfig | None],
+    latest_tracker: LatestTracker,
+    cache_root: Path,
+) -> dict:
+    """Implementation of ``analyze()``.
+
+    Exposed at module scope so callers can invoke without going through
+    the MCP protocol layer. The ``@mcp.tool()`` wrapper inside
+    :func:`register` is a thin closure that rebinds the deps from
+    server-startup state and delegates here.
+
+    Extracts a concise MIR feature scorecard from the target audio.
+
+    ``target`` accepts a session input filename, a ``<graph_id>:nN``
+    reference, or the ``"latest"`` alias. ``.ana`` / ``.pvx`` targets
+    are auto-synthesized to a temporary ``.wav`` first.
+
+    Returns an envelope whose ``analysis`` field carries the 10-field
+    scorecard: ``duration_s``, ``peak_dbfs``, ``rms_db``, ``lufs_i``,
+    ``spectral_centroid_hz``, ``spectral_flux``, ``zero_crossing_rate``,
+    ``onset_count``, ``n_channels``, ``sample_rate``. Any warnings
+    (e.g. "audio too short for LUFS") surface in ``warnings``.
+    """
+    # 1. Require active session.
+    try:
+        session = sessions.require_active()
+    except SessionNotActiveError as e:
+        return _failed_envelope_no_session(latest_tracker, str(e))
+
+    # 2. Resolve target.
+    try:
+        audio_path = resolve_target(target, session, latest_tracker)
+    except ReferenceResolutionError as e:
+        return _failed_envelope(
+            session,
+            latest_tracker,
+            [
+                ErrorEntry(
+                    type="reference_resolution",
+                    message=str(e),
+                    fix=(
+                        "Check the reference: 'latest', "
+                        "'<graph_id>:<node_id>', an absolute path, or "
+                        "a filename inside the session's inputs/ "
+                        "directory."
+                    ),
+                )
+            ],
+        )
+
+    # 3. Auto-synth if spectral.
+    auto_synthed = False
+    if audio_path.suffix.lower() in _SPECTRAL_SUFFIXES:
+        cdp = cdp_config_provider()
+        if cdp is None:
+            return _failed_envelope(
+                session,
+                latest_tracker,
+                [
+                    ErrorEntry(
+                        type="cdp_not_configured",
+                        message=(
+                            "Cannot auto-synth spectral input — CDP is "
+                            "not configured on this server."
+                        ),
+                        fix=(
+                            "Set CDP_PATH and restart the server, or "
+                            "pass a .wav target."
+                        ),
+                    )
+                ],
+            )
+        try:
+            audio_path, _sub = await synth_for_audition(
+                audio_path,
+                session=session,
+                cdp_path=cdp.cdp_path,
+                cache_root=cache_root,
+                cdp_version=cdp.version,
+                timeout_seconds=timeout_seconds,
+                ctx=ctx,
+            )
+        except (PVOCFailedError, SecurityError) as e:
+            return _failed_envelope(
+                session,
+                latest_tracker,
+                [
+                    ErrorEntry(
+                        type="pvoc_failed",
+                        message=str(e),
+                        fix=(
+                            "Check the input .ana file; if pvoc synth "
+                            "fails on a known-good spectral file, this "
+                            "is a CDP-side issue, not the tool."
+                        ),
+                    )
+                ],
+            )
+        auto_synthed = True
+
+    # 4. Validate window (analyze takes t_duration directly).
+    if t_start is not None and t_start < 0:
+        return _failed_envelope(
+            session,
+            latest_tracker,
+            [
+                ErrorEntry(
+                    type="invalid_window",
+                    message=f"t_start ({t_start}) must be >= 0.",
+                    fix="Pass t_start in seconds, non-negative.",
+                )
+            ],
+        )
+    if t_duration is not None and t_duration <= 0:
+        return _failed_envelope(
+            session,
+            latest_tracker,
+            [
+                ErrorEntry(
+                    type="invalid_window",
+                    message=f"t_duration ({t_duration}) must be > 0.",
+                    fix="Pass t_duration in seconds, positive.",
+                )
+            ],
+        )
+
+    # 5. Extract scorecard — off the event loop via asyncio.to_thread,
+    # with periodic MCP progress heartbeat so longer files don't trip
+    # Claude Desktop's per-tool-call timeout.
+    try:
+        scorecard = await run_with_progress(
+            ctx,
+            "extracting scorecard",
+            extract_scorecard,
+            audio_path,
+            t_start,
+            t_duration,
+        )
+    except FileNotFoundError as e:
+        return _failed_envelope(
+            session,
+            latest_tracker,
+            [ErrorEntry(type="audio_not_found", message=str(e), fix=None)],
+        )
+    except ValueError as e:
+        return _failed_envelope(
+            session,
+            latest_tracker,
+            [
+                ErrorEntry(
+                    type="invalid_window",
+                    message=str(e),
+                    fix=(
+                        "Pass a t_start/t_duration window inside the "
+                        "file's duration."
+                    ),
+                )
+            ],
+        )
+
+    # 6. Build envelope. Promote scorecard.warnings to envelope.warnings;
+    # the analysis dict carries the 10 numeric fields.
+    scorecard_dict = asdict(scorecard)
+    warnings = scorecard_dict.pop("warnings")
+    envelope = ResultEnvelope(
+        status="ok",
+        output=None,
+        stdout="",
+        stderr="",
+        exit_code=None,
+        errors=[],
+        warnings=warnings,
+        cached=False,
+        duration_ms=None,
+        context=build_context_block(session, latest_tracker, active_graph=None),
+    )
+    envelope_dict = envelope.model_dump(mode="json")
+    envelope_dict["analysis"] = scorecard_dict
+    envelope_dict["auto_synthed"] = auto_synthed
+    return envelope_dict
+
+
 def register(
     mcp: FastMCP,
     sessions: SessionManager,
@@ -36,7 +226,10 @@ def register(
     latest_tracker: LatestTracker,
     cache_root: Path,
 ) -> None:
-    """Register the ``analyze`` tool against ``mcp``."""
+    """Register the ``analyze`` tool against ``mcp``.
+
+    Thin wrapper around :func:`analyze_impl`.
+    """
 
     @mcp.tool()
     async def analyze(
@@ -58,163 +251,17 @@ def register(
         ``onset_count``, ``n_channels``, ``sample_rate``. Any warnings
         (e.g. "audio too short for LUFS") surface in ``warnings``.
         """
-        # 1. Require active session.
-        try:
-            session = sessions.require_active()
-        except SessionNotActiveError as e:
-            return _failed_envelope_no_session(latest_tracker, str(e))
-
-        # 2. Resolve target.
-        try:
-            audio_path = resolve_target(target, session, latest_tracker)
-        except ReferenceResolutionError as e:
-            return _failed_envelope(
-                session,
-                latest_tracker,
-                [
-                    ErrorEntry(
-                        type="reference_resolution",
-                        message=str(e),
-                        fix=(
-                            "Check the reference: 'latest', "
-                            "'<graph_id>:<node_id>', an absolute path, or "
-                            "a filename inside the session's inputs/ "
-                            "directory."
-                        ),
-                    )
-                ],
-            )
-
-        # 3. Auto-synth if spectral.
-        auto_synthed = False
-        if audio_path.suffix.lower() in _SPECTRAL_SUFFIXES:
-            cdp = cdp_config_provider()
-            if cdp is None:
-                return _failed_envelope(
-                    session,
-                    latest_tracker,
-                    [
-                        ErrorEntry(
-                            type="cdp_not_configured",
-                            message=(
-                                "Cannot auto-synth spectral input — CDP is "
-                                "not configured on this server."
-                            ),
-                            fix=(
-                                "Set CDP_PATH and restart the server, or "
-                                "pass a .wav target."
-                            ),
-                        )
-                    ],
-                )
-            try:
-                audio_path, _sub = await synth_for_audition(
-                    audio_path,
-                    session=session,
-                    cdp_path=cdp.cdp_path,
-                    cache_root=cache_root,
-                    cdp_version=cdp.version,
-                    timeout_seconds=timeout_seconds,
-                    ctx=ctx,
-                )
-            except (PVOCFailedError, SecurityError) as e:
-                return _failed_envelope(
-                    session,
-                    latest_tracker,
-                    [
-                        ErrorEntry(
-                            type="pvoc_failed",
-                            message=str(e),
-                            fix=(
-                                "Check the input .ana file; if pvoc synth "
-                                "fails on a known-good spectral file, this "
-                                "is a CDP-side issue, not the tool."
-                            ),
-                        )
-                    ],
-                )
-            auto_synthed = True
-
-        # 4. Validate window (analyze takes t_duration directly).
-        if t_start is not None and t_start < 0:
-            return _failed_envelope(
-                session,
-                latest_tracker,
-                [
-                    ErrorEntry(
-                        type="invalid_window",
-                        message=f"t_start ({t_start}) must be >= 0.",
-                        fix="Pass t_start in seconds, non-negative.",
-                    )
-                ],
-            )
-        if t_duration is not None and t_duration <= 0:
-            return _failed_envelope(
-                session,
-                latest_tracker,
-                [
-                    ErrorEntry(
-                        type="invalid_window",
-                        message=f"t_duration ({t_duration}) must be > 0.",
-                        fix="Pass t_duration in seconds, positive.",
-                    )
-                ],
-            )
-
-        # 5. Extract scorecard — off the event loop via asyncio.to_thread,
-        # with periodic MCP progress heartbeat so longer files don't trip
-        # Claude Desktop's per-tool-call timeout.
-        try:
-            scorecard = await run_with_progress(
-                ctx,
-                "extracting scorecard",
-                extract_scorecard,
-                audio_path,
-                t_start,
-                t_duration,
-            )
-        except FileNotFoundError as e:
-            return _failed_envelope(
-                session,
-                latest_tracker,
-                [ErrorEntry(type="audio_not_found", message=str(e), fix=None)],
-            )
-        except ValueError as e:
-            return _failed_envelope(
-                session,
-                latest_tracker,
-                [
-                    ErrorEntry(
-                        type="invalid_window",
-                        message=str(e),
-                        fix=(
-                            "Pass a t_start/t_duration window inside the "
-                            "file's duration."
-                        ),
-                    )
-                ],
-            )
-
-        # 6. Build envelope. Promote scorecard.warnings to envelope.warnings;
-        # the analysis dict carries the 10 numeric fields.
-        scorecard_dict = asdict(scorecard)
-        warnings = scorecard_dict.pop("warnings")
-        envelope = ResultEnvelope(
-            status="ok",
-            output=None,
-            stdout="",
-            stderr="",
-            exit_code=None,
-            errors=[],
-            warnings=warnings,
-            cached=False,
-            duration_ms=None,
-            context=build_context_block(session, latest_tracker, active_graph=None),
+        return await analyze_impl(
+            ctx,
+            target,
+            t_start,
+            t_duration,
+            timeout_seconds,
+            sessions=sessions,
+            cdp_config_provider=cdp_config_provider,
+            latest_tracker=latest_tracker,
+            cache_root=cache_root,
         )
-        envelope_dict = envelope.model_dump(mode="json")
-        envelope_dict["analysis"] = scorecard_dict
-        envelope_dict["auto_synthed"] = auto_synthed
-        return envelope_dict
 
 
 # ---------------------------------------------------------------------------
