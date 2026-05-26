@@ -58,7 +58,6 @@ esac
 """
     )
     wrapper.chmod(0o755)
-    monkeypatch.setenv("CDP_MCP_DISABLE_ARCH_X86_64", "1")
     return cdp
 
 

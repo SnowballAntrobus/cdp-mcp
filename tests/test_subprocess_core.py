@@ -17,22 +17,6 @@ from cdp_mcp.subprocess_core import (
 _FIXTURE = Path(__file__).parent / "fixtures" / "fake_subprocess.py"
 
 
-@pytest.fixture(autouse=True)
-def _disable_arch_wrapping(monkeypatch):
-    """Disable Apple Silicon arch -x86_64 wrapping for tests that exec
-    ``sys.executable``.
-
-    The venv's Python is arm64-native (not a fat binary), so wrapping it
-    with ``arch -x86_64`` fails with "Bad CPU type in executable" — that's
-    a property of the test fixture, not the production code path.
-
-    The explicit ``test_arch_*`` tests below use ``monkeypatch`` to set the
-    env var to specific values; their setenv calls override this autouse
-    fixture for the duration of those tests.
-    """
-    monkeypatch.setenv("CDP_MCP_DISABLE_ARCH_X86_64", "1")
-
-
 def _fake_argv(*extra: str) -> list[str]:
     return [sys.executable, str(_FIXTURE), *extra]
 
@@ -201,3 +185,125 @@ def test_arch_env_disables_wrap(monkeypatch):
         monkeypatch.setenv("CDP_MCP_DISABLE_ARCH_X86_64", v)
         assert _should_wrap_arch_x86_64() is False, f"value {v!r} should disable"
         assert _apply_arch_prefix(["/bin/ls"]) == ["/bin/ls"]
+
+
+# ---------------------------------------------------------------------------
+# CDP-quirk fake flags
+# ---------------------------------------------------------------------------
+
+
+async def test_cdp_refuse_clobber_noop_when_file_missing(tmp_path):
+    """When the path does not exist, --cdp-refuse-clobber is a no-op and
+    the rest of the flag chain runs normally."""
+    out = tmp_path / "out.ana"
+    assert not out.exists()
+    result = await run_cdp_command(
+        _fake_argv("--cdp-refuse-clobber", str(out), "--write-ana", str(out)),
+        cwd=tmp_path,
+        timeout_seconds=10.0,
+        ctx=None,
+    )
+    assert result.exit_code == 0
+    assert out.exists() and out.stat().st_size > 100
+
+
+async def test_cdp_refuse_clobber_exits_255_when_file_exists(tmp_path):
+    """When the path exists, fake bails with exit 255 and the canonical
+    'cannot create output' stderr message, mirroring CDP r8 pvoc synth.
+    The pre-existing file is untouched.
+    """
+    out = tmp_path / "out.ana"
+    out.write_bytes(b"pre-existing-bytes")
+    result = await run_cdp_command(
+        _fake_argv("--cdp-refuse-clobber", str(out), "--write-ana", str(out)),
+        cwd=tmp_path,
+        timeout_seconds=10.0,
+        ctx=None,
+    )
+    assert result.exit_code == 255
+    assert "cannot create output" in result.stderr.lower()
+    assert out.read_bytes() == b"pre-existing-bytes"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="SIGILL not on Windows")
+async def test_cdp_sigill_on_dot_path_triggers_on_dotted_ancestry(tmp_path):
+    """Absolute path with '.' in any ancestor directory → SIGILL.
+    The subprocess exit code is negative (the signal number) on POSIX.
+    """
+    result = await run_cdp_command(
+        _fake_argv("--cdp-sigill-on-dot-path", "/some/dotted.dir/frog.wav"),
+        cwd=tmp_path,
+        timeout_seconds=10.0,
+        ctx=None,
+    )
+    assert result.exit_code is not None
+    assert result.exit_code < 0
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="SIGILL not on Windows")
+async def test_cdp_sigill_on_dot_path_passes_clean_absolute_path(tmp_path):
+    """Absolute path with no '.' in ancestry → no SIGILL, normal exit."""
+    result = await run_cdp_command(
+        _fake_argv("--cdp-sigill-on-dot-path", "/some/clean/dir/frog.wav"),
+        cwd=tmp_path,
+        timeout_seconds=10.0,
+        ctx=None,
+    )
+    assert result.exit_code == 0
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="SIGILL not on Windows")
+async def test_cdp_sigill_on_dot_path_passes_relative_path(tmp_path):
+    """A relative path is never absolute, never triggers SIGILL — even if
+    it happens to contain '.' in a directory name."""
+    result = await run_cdp_command(
+        _fake_argv("--cdp-sigill-on-dot-path", "frog_v0.1/inputs/frog.wav"),
+        cwd=tmp_path,
+        timeout_seconds=10.0,
+        ctx=None,
+    )
+    assert result.exit_code == 0
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="SIGILL not on Windows")
+async def test_cdp_sigill_on_dot_path_dotted_basename_alone_is_fine(tmp_path):
+    """A '.' in basename (file extension) does NOT trigger; only '.' in
+    ancestor directory names is the bug being simulated."""
+    result = await run_cdp_command(
+        _fake_argv("--cdp-sigill-on-dot-path", "/some/clean/dir/frog.wav"),
+        cwd=tmp_path,
+        timeout_seconds=10.0,
+        ctx=None,
+    )
+    assert result.exit_code == 0
+
+
+async def test_cdp_silent_output_writes_silent_wav(tmp_path):
+    """--cdp-silent-output writes an all-zero wav, distinct from
+    --write-wav (which produces non-silent ±8000 frames)."""
+    import wave
+
+    out = tmp_path / "silent.wav"
+    result = await run_cdp_command(
+        _fake_argv("--cdp-silent-output", str(out)),
+        cwd=tmp_path,
+        timeout_seconds=10.0,
+        ctx=None,
+    )
+    assert result.exit_code == 0
+    assert out.exists()
+    with wave.open(str(out), "rb") as w:
+        frames = w.readframes(w.getnframes())
+    assert frames == bytes(len(frames))  # all-zero payload
+
+
+async def test_parse_known_args_lets_unrecognized_flags_pass(tmp_path):
+    """parse_args → parse_known_args widening: unknown flags no longer
+    error. --cdp-sigill-on-dot-path scans the leftover positional args."""
+    result = await run_cdp_command(
+        _fake_argv("--this-flag-does-not-exist", "value", "--exit", "0"),
+        cwd=tmp_path,
+        timeout_seconds=10.0,
+        ctx=None,
+    )
+    assert result.exit_code == 0

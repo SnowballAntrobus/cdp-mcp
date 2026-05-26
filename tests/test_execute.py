@@ -47,7 +47,6 @@ def fake_cdp_path(tmp_path, monkeypatch):
     fake_binary = cdp / "fake_cdp"
     shutil.copy2(_FAKE_SUBPROCESS, fake_binary)
     fake_binary.chmod(0o755)
-    monkeypatch.setenv("CDP_MCP_DISABLE_ARCH_X86_64", "1")
     return cdp
 
 
