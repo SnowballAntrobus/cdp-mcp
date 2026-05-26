@@ -73,6 +73,7 @@
       "unit": "seconds",
       "breakpoint_capable": false,
       "flag": "-t",
+      "flag_kind": "attached_value",
       "description": "Decay tail duration appended after the input ends."
     },
     "phase": {
@@ -83,6 +84,7 @@
       "breakpoint_capable": false,
       "default": 0.25,
       "flag": "-p",
+      "flag_kind": "attached_value",
       "description": "Start of sweep: 0 = lofrq rising, 0.5 = hifrq falling, 1 = lofrq. Default 0.25 = midfrq rising."
     }
   },

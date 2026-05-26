@@ -64,6 +64,7 @@
       "breakpoint_capable": false,
       "default": 0.0,
       "flag": "-s",
+      "flag_kind": "attached_value",
       "description": "Time-delay of entry of the second file."
     }
   },

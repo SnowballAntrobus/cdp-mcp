@@ -48,6 +48,7 @@
       "unit": "ms",
       "breakpoint_capable": false,
       "flag": "-l",
+      "flag_kind": "attached_value",
       "description": "Advance in the infile from one loopstart to the next, in milliseconds. May be zero in submode 3."
     },
     "splen": {
@@ -57,6 +58,7 @@
       "breakpoint_capable": false,
       "default": 25.0,
       "flag": "-w",
+      "flag_kind": "attached_value",
       "description": "Splice (crossfade) length in milliseconds. Default 25 ms."
     },
     "scat": {
@@ -65,6 +67,7 @@
       "unit": "ms",
       "breakpoint_capable": false,
       "flag": "-s",
+      "flag_kind": "attached_value",
       "description": "Make the step advance irregular within the timeframe given."
     }
   },

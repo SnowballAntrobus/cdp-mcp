@@ -136,8 +136,34 @@ def test_parameter_spec_flag_defaults_to_none():
 
 
 def test_parameter_spec_flag_accepts_dash_string():
-    spec = ParameterSpec(type="float", flag="-l")
+    spec = ParameterSpec(type="float", flag="-l", flag_kind="attached_value")
     assert spec.flag == "-l"
+
+
+def test_parameter_spec_flag_kind_required_when_flag_present():
+    with pytest.raises(ValidationError):
+        ParameterSpec(type="float", flag="-l")
+
+
+def test_parameter_spec_flag_kind_forbidden_when_flag_absent():
+    with pytest.raises(ValidationError):
+        ParameterSpec(type="float", flag_kind="attached_value")
+
+
+def test_parameter_spec_attached_value_flag_round_trip():
+    spec = ParameterSpec(type="float", flag="-l", flag_kind="attached_value")
+    assert spec.flag_kind == "attached_value"
+
+
+def test_parameter_spec_no_value_flag_round_trip():
+    spec = ParameterSpec(type="bool", flag="-b", flag_kind="no_value")
+    assert spec.flag_kind == "no_value"
+
+
+def test_parameter_spec_positional_keeps_both_none():
+    spec = ParameterSpec(type="float")
+    assert spec.flag is None
+    assert spec.flag_kind is None
 
 
 # ---------------------------------------------------------------------------

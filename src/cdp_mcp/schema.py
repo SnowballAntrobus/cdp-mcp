@@ -22,7 +22,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 # ---------------------------------------------------------------------------
 # Knowledge-layer models
@@ -36,6 +36,12 @@ class ParameterSpec(BaseModel):
     string (e.g. ``"-l"``, ``"-w"``). ``None`` means the parameter is
     positional. The dict key in :class:`KnowledgeEntry.parameters` is the
     human-readable parameter name (e.g. ``"step"``), not the flag.
+
+    ``flag_kind`` distinguishes CDP's two flag styles: ``"attached_value"``
+    for the common ``-X<value>`` style (e.g. ``-s0.5``), ``"no_value"`` for
+    value-less switches (e.g. ``-b``). Required whenever ``flag`` is
+    non-None — enforced by a model validator so curator omissions fail at
+    load time rather than producing malformed CDP argv.
 
     ``musical_range`` is advisory only — it documents the values that
     typically produce musically useful results, and is *not* enforced at
@@ -55,6 +61,21 @@ class ParameterSpec(BaseModel):
     musical_range: tuple[float, float] | None = None
     description: str | None = None
     flag: str | None = None
+    flag_kind: Literal["attached_value", "no_value"] | None = None
+
+    @model_validator(mode="after")
+    def _flag_kind_matches_flag(self) -> ParameterSpec:
+        if self.flag is None and self.flag_kind is not None:
+            raise ValueError(
+                "flag_kind is set but flag is None — flag_kind only "
+                "applies to parameters with a CLI flag."
+            )
+        if self.flag is not None and self.flag_kind is None:
+            raise ValueError(
+                f"Parameter with flag={self.flag!r} must declare flag_kind "
+                "(\"attached_value\" or \"no_value\")."
+            )
+        return self
 
 
 class Example(BaseModel):

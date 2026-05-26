@@ -166,7 +166,9 @@ def test_argv_multi_input_morph_morph_shape():
             "fe": ParameterSpec(type="float"),
             "expa": ParameterSpec(type="float"),
             "expf": ParameterSpec(type="float"),
-            "stagger": ParameterSpec(type="float", default=0.0, flag="-s"),
+            "stagger": ParameterSpec(
+                type="float", default=0.0, flag="-s", flag_kind="attached_value",
+            ),
         },
         program="morph",
         mode="morph",
@@ -190,7 +192,9 @@ def test_argv_multi_input_morph_morph_shape():
 
 
 def test_argv_flag_attached_no_space():
-    entry = _entry_with({"phase": ParameterSpec(type="float", flag="-p")})
+    entry = _entry_with({
+        "phase": ParameterSpec(type="float", flag="-p", flag_kind="attached_value"),
+    })
     argv = build_cdp_argv(
         entry, [Path("in.wav")], Path("out.wav"), {"phase": 0.25},
         cwd=_OTHER_CWD,
@@ -202,7 +206,9 @@ def test_argv_flag_attached_no_space():
 def test_argv_uses_default_when_param_omitted():
     entry = _entry_with({
         "x": ParameterSpec(type="float"),  # required
-        "splen": ParameterSpec(type="float", default=25.0, flag="-w"),
+        "splen": ParameterSpec(
+            type="float", default=25.0, flag="-w", flag_kind="attached_value",
+        ),
     })
     argv = build_cdp_argv(
         entry, [Path("in.wav")], Path("out.wav"), {"x": 1.0}, cwd=_OTHER_CWD
@@ -284,7 +290,9 @@ def test_optional_flag_with_no_value_omitted_from_argv():
     """
     entry = _entry_with({
         "cnt": ParameterSpec(type="int"),  # required positional
-        "step": ParameterSpec(type="float", flag="-l"),  # optional, no default
+        "step": ParameterSpec(
+            type="float", flag="-l", flag_kind="attached_value",
+        ),  # optional, no default
     })
     argv = build_cdp_argv(
         entry, [Path("in.wav")], Path("out.wav"), {"cnt": 4}, cwd=_OTHER_CWD
@@ -293,12 +301,55 @@ def test_optional_flag_with_no_value_omitted_from_argv():
     assert not any(a.startswith("-l") for a in argv)
 
 
+def test_argv_no_value_flag_emits_bare_switch_when_supplied():
+    """Value-less switch flags emit `-b` alone, not `-bTrue` or `-b1`.
+
+    This test exercises the no_value branch via a synthetic fixture. No
+    Phase 1a curated entry declares a no_value flag yet (the -b switch on
+    extend loop remains unexposed pending bool-param support); the test
+    documents the codegen contract for when one does.
+    """
+    entry = _entry_with({
+        "cnt": ParameterSpec(type="int"),
+        "play_from_start": ParameterSpec(
+            type="bool", flag="-b", flag_kind="no_value", default=False,
+        ),
+    })
+    argv = build_cdp_argv(
+        entry, [Path("in.wav")], Path("out.wav"),
+        {"cnt": 4, "play_from_start": True},
+        cwd=_OTHER_CWD,
+    )
+    assert "-b" in argv
+    # Crucially: no "-bTrue" or "-b1" or any -b<suffix> in argv.
+    assert not any(a.startswith("-b") and len(a) > 2 for a in argv)
+
+
+def test_argv_no_value_flag_omitted_when_not_supplied():
+    """Switch flag with no user value and no default → omit entirely.
+
+    Same skip-when-no-value semantics as attached_value flags; only the
+    emission form differs when the flag IS present.
+    """
+    entry = _entry_with({
+        "cnt": ParameterSpec(type="int"),
+        "play_from_start": ParameterSpec(
+            type="bool", flag="-b", flag_kind="no_value",
+        ),
+    })
+    argv = build_cdp_argv(
+        entry, [Path("in.wav")], Path("out.wav"), {"cnt": 4},
+        cwd=_OTHER_CWD,
+    )
+    assert "-b" not in argv
+
+
 def test_optional_flag_not_required_by_validate_params():
     """validate_params must not flag an optional flag param as missing."""
     entry = _entry_with({
         "cnt": ParameterSpec(type="int"),
-        "step": ParameterSpec(type="float", flag="-l"),
-        "scat": ParameterSpec(type="float", flag="-s"),
+        "step": ParameterSpec(type="float", flag="-l", flag_kind="attached_value"),
+        "scat": ParameterSpec(type="float", flag="-s", flag_kind="attached_value"),
     })
     errors, _ = validate_params(entry, {"cnt": 4})
     types = [e.type for e in errors]

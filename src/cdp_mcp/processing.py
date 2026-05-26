@@ -211,8 +211,15 @@ def build_cdp_argv(
          *input_paths, output_path,
          *params_in_entry_declaration_order]
 
-    Each param emits either ``"<value>"`` (positional, ``spec.flag is None``)
-    or ``"<flag><value>"`` (flag-attached, no space — CDP convention).
+    Each param emits one of three forms:
+
+    - ``"<value>"`` — positional (``spec.flag is None``)
+    - ``"<flag><value>"`` — attached-value flag, no space (CDP convention)
+    - ``"<flag>"`` — value-less switch flag, no value at all
+
+    A flag param with no user value and no default is omitted entirely;
+    emitting a bare ``-l`` for an attached-value flag would be invalid CDP
+    syntax, and the curator clearly didn't want the switch on.
 
     Paths are rendered cwd-relative when they live under ``cwd`` (i.e. inside
     the session tree). Paths outside ``cwd`` stay absolute. This dodges a
@@ -240,7 +247,9 @@ def build_cdp_argv(
         formatted = _format_value(value, spec.type)
         if spec.flag is None:
             argv.append(formatted)
-        else:
+        elif spec.flag_kind == "no_value":
+            argv.append(spec.flag)
+        else:  # attached_value
             argv.append(f"{spec.flag}{formatted}")
     return argv
 
