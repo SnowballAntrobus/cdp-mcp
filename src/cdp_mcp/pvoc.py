@@ -20,6 +20,12 @@ from typing import Literal
 import soundfile as sf
 from mcp.server.fastmcp import Context
 
+from .cache import (
+    cache_lookup,
+    cache_populate,
+    materialize_cached_artifact,
+    pvoc_cache_key,
+)
 from .graph import GraphDir
 from .limits import OUTPUT_FILE_SIZE_CAP_BYTES
 from .processing import _argv_path
@@ -173,6 +179,73 @@ async def maybe_insert_pvoc(
             ),
         )
 
+    # Cache check (Task 10). PVOC anal/synth output is a pure function of
+    # input bytes + argv shape + CDP version. On hit, hardlink the cached
+    # artifact into the graph dir and build a "cache_hit=True" lineage
+    # entry without running any subprocess.
+    input_sha = sha256_file(input_path)
+    argv_discriminator = "_".join(argv_template[1:])  # "anal_1" or "synth"
+    out_suffix = ".ana" if target_domain == "spectral" else ".wav"
+    cache_key = pvoc_cache_key(input_sha, argv_discriminator, cdp_version)
+    cache = cache_lookup(cache_root, "pvoc", cache_key, out_suffix)
+
+    if cache.hit:
+        # Materialize and build a synthetic lineage entry. duration_ms=0
+        # and started_at == finished_at == now() flag this as a cache hit
+        # even before the cache_hit field is inspected.
+        materialize_cached_artifact(cache.path, output_path)
+        output_sha = sha256_file(output_path)
+        source_duration = _try_read_wav_duration(input_path)
+        now = datetime.now(timezone.utc)
+        lineage = NodeLineage(
+            argv=validated,
+            inputs=[
+                InputRecord(
+                    path=str(input_path),
+                    sha256=input_sha,
+                    source_node=None,
+                )
+            ],
+            output_path=str(output_path),
+            output_sha256=output_sha,
+            params={},
+            cdp_version=cdp_version,
+            started_at=now,
+            finished_at=now,
+            duration_ms=0,
+            exit_code=0,
+            source_wav_duration_s=source_duration,
+            cache_hit=True,
+        )
+        try:
+            graph_dir.add_node(node_id, out_filename, lineage)
+        except OSError as e:
+            print(
+                f"[cdp-mcp] WARNING: pvoc cache-hit materialized but graph "
+                f"bookkeeping failed for {node_id}: {e}",
+                file=sys.stderr,
+            )
+            return PVOCResult(
+                state="failed",
+                output_path=input_path,
+                node_id=node_id,
+                lineage=lineage,
+                error_entry=ErrorEntry(
+                    type="graph_bookkeeping_failed",
+                    message=(
+                        f"PVOC cache hit materialized but graph bookkeeping "
+                        f"failed: {e}"
+                    ),
+                    fix="Inspect the graph directory on disk for clues.",
+                ),
+            )
+        return PVOCResult(
+            state="succeeded",
+            output_path=output_path,
+            node_id=node_id,
+            lineage=lineage,
+        )
+
     started_at = datetime.now(timezone.utc)
     sub = await run_cdp_command(
         validated,
@@ -237,19 +310,13 @@ async def maybe_insert_pvoc(
         )
 
     output_sha = sha256_file(output_path)
-    input_sha = sha256_file(input_path)
 
     # Task 8: record the source wav's duration on the PVOC node's lineage
     # so downstream breakpoint compilation can resolve relative-time
     # tuples against the original audio. Only meaningful when the input
     # was a .wav (PVOC anal direction); .ana inputs already have their
     # duration encoded indirectly via the source wav that produced them.
-    source_duration: float | None = None
-    if input_path.suffix.lower() == ".wav":
-        try:
-            source_duration = float(sf.info(str(input_path)).duration)
-        except Exception:  # noqa: BLE001 — soundfile raises a variety
-            pass  # best-effort; downstream compiler falls back to error
+    source_duration = _try_read_wav_duration(input_path)
 
     lineage = NodeLineage(
         argv=sub.argv,
@@ -269,6 +336,7 @@ async def maybe_insert_pvoc(
         duration_ms=sub.duration_ms,
         exit_code=sub.exit_code,
         source_wav_duration_s=source_duration,
+        cache_hit=False,
     )
 
     try:
@@ -294,6 +362,11 @@ async def maybe_insert_pvoc(
             ),
         )
 
+    # Best-effort cache populate. Failure logs a stderr warning and
+    # returns False; we still report success to the caller because the
+    # in-graph output is correct regardless of cache state.
+    cache_populate(cache.path, output_path)
+
     return PVOCResult(
         state="succeeded",
         output_path=output_path,
@@ -315,6 +388,23 @@ def _domain_of(path: Path) -> Literal["time", "spectral", "unknown"]:
     if suffix in _SPECTRAL_EXTENSIONS:
         return "spectral"
     return "unknown"
+
+
+def _try_read_wav_duration(input_path: Path) -> float | None:
+    """Cheap best-effort duration probe for the PVOC source.
+
+    Returns ``None`` for non-wav inputs (.ana inputs encode their
+    duration indirectly via the source wav that produced them) or when
+    ``soundfile.info`` raises. Downstream consumers (breakpoint
+    compiler) treat ``None`` as "duration unknown" and emit an
+    actionable error rather than guessing.
+    """
+    if input_path.suffix.lower() != ".wav":
+        return None
+    try:
+        return float(sf.info(str(input_path)).duration)
+    except Exception:  # noqa: BLE001 — soundfile raises a variety
+        return None
 
 
 # ---------------------------------------------------------------------------

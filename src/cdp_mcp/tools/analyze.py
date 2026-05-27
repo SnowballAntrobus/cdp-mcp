@@ -6,6 +6,7 @@ target grammar and auto-synth behavior as :func:`visualize`.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
@@ -13,6 +14,7 @@ from pathlib import Path
 from mcp.server.fastmcp import Context, FastMCP
 
 from ..analysis import extract_scorecard
+from ..cache import analysis_cache_key, cache_lookup, cache_populate_json
 from ..config import CDPConfig
 from ..graph import (
     LatestTracker,
@@ -25,6 +27,7 @@ from ..pvoc import PVOCFailedError, synth_for_audition
 from ..schema import ContextBlock, ErrorEntry, ResultEnvelope
 from ..security import SecurityError
 from ..session import SessionManager, SessionNotActiveError
+from ..utils import sha256_file
 
 _SPECTRAL_SUFFIXES = frozenset({".ana", ".pvx"})
 
@@ -163,44 +166,71 @@ async def analyze_impl(
             ],
         )
 
-    # 5. Extract scorecard — off the event loop via asyncio.to_thread,
+    # 5. Cache lookup (Task 10). The scorecard JSON is a pure function of
+    # (audio bytes, feature_set, window, librosa-stack versions). On hit,
+    # we skip the librosa extraction entirely.
+    audio_sha = sha256_file(audio_path)
+    cache_key = analysis_cache_key(audio_sha, "concise_v1", t_start, t_duration)
+    cache = cache_lookup(cache_root, "analysis", cache_key, ".json")
+
+    scorecard_dict: dict | None = None
+    warnings: list[str] = []
+    cached = False
+    if cache.hit:
+        try:
+            payload = json.loads(cache.path.read_text())
+            scorecard_dict = payload["scorecard"]
+            warnings = payload.get("warnings", [])
+            cached = True
+        except (OSError, json.JSONDecodeError, KeyError):
+            # Treat a corrupt or stale-shape cache entry as a miss.
+            cached = False
+
+    # 6. Extract scorecard — off the event loop via asyncio.to_thread,
     # with periodic MCP progress heartbeat so longer files don't trip
     # Claude Desktop's per-tool-call timeout.
-    try:
-        scorecard = await run_with_progress(
-            ctx,
-            "extracting scorecard",
-            extract_scorecard,
-            audio_path,
-            t_start,
-            t_duration,
-        )
-    except FileNotFoundError as e:
-        return _failed_envelope(
-            session,
-            latest_tracker,
-            [ErrorEntry(type="audio_not_found", message=str(e), fix=None)],
-        )
-    except ValueError as e:
-        return _failed_envelope(
-            session,
-            latest_tracker,
-            [
-                ErrorEntry(
-                    type="invalid_window",
-                    message=str(e),
-                    fix=(
-                        "Pass a t_start/t_duration window inside the "
-                        "file's duration."
-                    ),
-                )
-            ],
+    if not cached:
+        try:
+            scorecard = await run_with_progress(
+                ctx,
+                "extracting scorecard",
+                extract_scorecard,
+                audio_path,
+                t_start,
+                t_duration,
+            )
+        except FileNotFoundError as e:
+            return _failed_envelope(
+                session,
+                latest_tracker,
+                [ErrorEntry(type="audio_not_found", message=str(e), fix=None)],
+            )
+        except ValueError as e:
+            return _failed_envelope(
+                session,
+                latest_tracker,
+                [
+                    ErrorEntry(
+                        type="invalid_window",
+                        message=str(e),
+                        fix=(
+                            "Pass a t_start/t_duration window inside the "
+                            "file's duration."
+                        ),
+                    )
+                ],
+            )
+        scorecard_dict = asdict(scorecard)
+        warnings = scorecard_dict.pop("warnings")
+        # Best-effort cache populate. Failure logs a warning and returns
+        # False; we still return the freshly computed scorecard.
+        cache_populate_json(
+            cache.path,
+            {"scorecard": scorecard_dict, "warnings": warnings},
         )
 
-    # 6. Build envelope. Promote scorecard.warnings to envelope.warnings;
+    # 7. Build envelope. Promote scorecard.warnings to envelope.warnings;
     # the analysis dict carries the 10 numeric fields.
-    scorecard_dict = asdict(scorecard)
-    warnings = scorecard_dict.pop("warnings")
     envelope = ResultEnvelope(
         status="ok",
         output=None,
@@ -209,7 +239,7 @@ async def analyze_impl(
         exit_code=None,
         errors=[],
         warnings=warnings,
-        cached=False,
+        cached=cached,
         duration_ms=None,
         context=build_context_block(session, latest_tracker, active_graph=None),
     )

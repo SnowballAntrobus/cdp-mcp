@@ -292,6 +292,10 @@ class NodeLineage(BaseModel):
     compiled_breakpoints: dict[str, CompiledBreakpoint] = Field(
         default_factory=dict,
     )
+    # Task 10: True when this node's output was served from the global
+    # derivative cache instead of being freshly computed. Defaulted so
+    # pre-Task-10 lineage JSON files parse unchanged.
+    cache_hit: bool = False
 
 
 class OutputVerification(BaseModel):

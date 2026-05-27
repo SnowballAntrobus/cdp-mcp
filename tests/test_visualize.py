@@ -179,3 +179,66 @@ async def test_window_past_end_returns_invalid_window(mcp_with_visualize):
     assert len(result) == 1
     envelope = result[0]
     assert any(e["type"] == "invalid_window" for e in envelope["errors"])
+
+
+# ---------------------------------------------------------------------------
+# Task 10 — Visualization cache: miss populates, hit skips render
+# ---------------------------------------------------------------------------
+
+
+async def test_visualize_cache_miss_then_hit(mcp_with_visualize, tmp_path):
+    """First call renders + populates the cache; second call materializes
+    the cached PNG without calling ``render_spectrogram``."""
+    mcp, sessions, _tracker = mcp_with_visualize
+    session, _ = sessions.set_active("s1")
+    _write_sine(session.inputs_dir / "frog.wav", seconds=1.0)
+
+    result_1 = await _call(mcp, {"target": "frog.wav"})
+    envelope_1 = result_1[1]
+    assert envelope_1["status"] == "ok"
+    assert envelope_1["cached"] is False
+    # Cache populated.
+    cache_files = list((tmp_path / "cache" / "visualizations").glob("*.png"))
+    assert len(cache_files) == 1
+
+    # Second call: monkey-patch render_spectrogram to raise; cache hit
+    # must short-circuit before reaching it.
+    import cdp_mcp.tools.visualize as visualize_module_path
+
+    def explode(*_a, **_kw):
+        raise AssertionError("render_spectrogram must not run on cache hit")
+
+    original = visualize_module_path.render_spectrogram
+    visualize_module_path.render_spectrogram = explode
+    try:
+        result_2 = await _call(mcp, {"target": "frog.wav"})
+    finally:
+        visualize_module_path.render_spectrogram = original
+
+    envelope_2 = result_2[1]
+    assert envelope_2["status"] == "ok"
+    assert envelope_2["cached"] is True
+    # Metadata fields are populated on the cache-hit path too.
+    assert envelope_2["width_px"] > 0
+    assert envelope_2["height_px"] > 0
+    assert envelope_2["sample_rate"] == _SR
+    assert envelope_2["n_channels"] == 1
+
+
+async def test_visualize_cache_invalidates_on_matplotlib_version_change(
+    mcp_with_visualize, monkeypatch, tmp_path
+):
+    """Matplotlib upgrade → visualization cache invalidates."""
+    from cdp_mcp import cache as cache_mod
+
+    mcp, sessions, _tracker = mcp_with_visualize
+    session, _ = sessions.set_active("s1")
+    _write_sine(session.inputs_dir / "frog.wav", seconds=1.0)
+
+    monkeypatch.setitem(cache_mod._LIB_VERSIONS, "matplotlib", "test-v1")
+    result_1 = await _call(mcp, {"target": "frog.wav"})
+    assert result_1[1]["cached"] is False
+
+    monkeypatch.setitem(cache_mod._LIB_VERSIONS, "matplotlib", "test-v2")
+    result_2 = await _call(mcp, {"target": "frog.wav"})
+    assert result_2[1]["cached"] is False

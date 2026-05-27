@@ -24,6 +24,7 @@ from pathlib import Path
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 
+from ..cache import cache_size_bytes
 from ..config import CDPConfig
 from ..graph import LatestTracker
 from ..session import (
@@ -40,8 +41,14 @@ def register(
     sessions: SessionManager,
     latest_tracker: LatestTracker,
     cdp_config_provider: Callable[[], CDPConfig | None],
+    cache_root: Path,
 ) -> None:
-    """Register the workspace tools against ``mcp``."""
+    """Register the workspace tools against ``mcp``.
+
+    ``cache_root`` is the global derivative-artifact cache root (e.g.
+    ``~/.cdp_mcp/cache``); ``describe_workspace`` reports its per-tier
+    byte counts so users can see disk pressure.
+    """
 
     @mcp.tool()
     async def set_session(ctx: Context, name: str) -> dict:
@@ -85,18 +92,21 @@ def register(
         already on disk plus a hint to call :func:`set_session`. With a
         session active, returns the session's path, creation timestamp, CDP
         version captured at creation, a flat listing of input filenames,
-        a flat listing of envelope filenames (``.brk`` and similar), and
-        a recursive disk-usage estimate.
+        a flat listing of envelope filenames (``.brk`` and similar), a
+        recursive disk-usage estimate, and a ``cache`` block summarising
+        per-tier byte counts of the global derivative-artifact cache.
         """
         active = sessions.active
         available = sessions.list_sessions()
+        cache_block = _cache_block(cache_root)
         if active is None:
             return {
                 "active_session": None,
                 "available_sessions": available,
+                "cache": cache_block,
                 "hint": "Call set_session(name) to activate or create one.",
             }
-        return _describe_active(active, available)
+        return _describe_active(active, available, cache_block)
 
     @mcp.tool()
     async def read_envelope(ctx: Context, name: str) -> dict:
@@ -149,7 +159,11 @@ def _set_session_response(
     }
 
 
-def _describe_active(session: Session, available_sessions: list[str]) -> dict:
+def _describe_active(
+    session: Session,
+    available_sessions: list[str],
+    cache_block: dict,
+) -> dict:
     input_files = _list_input_files(session)
     envelope_files = _list_envelope_files(session)
     return {
@@ -164,7 +178,21 @@ def _describe_active(session: Session, available_sessions: list[str]) -> dict:
         "graph_count": _count_dirs(session.graphs_dir),
         "disk_usage_bytes": _disk_usage(session.root),
         "available_sessions": available_sessions,
+        "cache": cache_block,
     }
+
+
+def _cache_block(cache_root: Path) -> dict:
+    """Per-tier byte counts plus a derived total.
+
+    Keys mirror :data:`cdp_mcp.cache._KNOWN_TIERS` with ``_bytes``
+    suffixes (``pvoc_bytes``, ``analysis_bytes``, …) so the LLM can
+    parse them without guessing the tier name conventions.
+    """
+    sizes = cache_size_bytes(cache_root)
+    block = {f"{tier}_bytes": n for tier, n in sizes.items()}
+    block["total_bytes"] = sum(sizes.values())
+    return block
 
 
 def _list_input_files(session: Session) -> list[str]:

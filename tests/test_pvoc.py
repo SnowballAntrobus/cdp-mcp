@@ -432,3 +432,146 @@ exec "{_FAKE_SUBPROCESS}" --exit 0
             cache_root=cache_root,
             cdp_version="fake",
         )
+
+
+# ---------------------------------------------------------------------------
+# Task 10 — PVOC cache: miss populates, hit skips subprocess, version invalidates
+# ---------------------------------------------------------------------------
+
+
+def _install_real_pvoc_wrapper(fake_cdp_path: Path) -> None:
+    """Replace the ``pvoc`` binary with a wrapper that writes a .ana file
+    at argv[-1] each call. The fake_subprocess marker bytes embed the
+    timestamp, so each call produces *different* output bytes — handy
+    for proving the cache hit served the same file that the first call
+    populated, not a fresh subprocess run."""
+    wrapper = fake_cdp_path / "pvoc"
+    wrapper.unlink()
+    wrapper.write_text(
+        f"""#!/bin/sh
+OUTPUT="${{@: -1}}"
+exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
+"""
+    )
+    wrapper.chmod(0o755)
+
+
+async def test_pvoc_cache_miss_populates_cache(
+    fake_cdp_path, session_and_graph, cache_root
+):
+    """First call: CDP runs, output written to graph, cache populated."""
+    session, graph = session_and_graph
+    inp = session.inputs_dir / "x.wav"
+    sr = 44100
+    sf.write(str(inp), np.zeros(int(0.5 * sr), dtype=np.float32), sr)
+    _install_real_pvoc_wrapper(fake_cdp_path)
+
+    result = await maybe_insert_pvoc(
+        input_path=inp,
+        target_domain="spectral",
+        graph_dir=graph,
+        node_id="n1",
+        cdp_path=fake_cdp_path,
+        session_root=session.root,
+        cache_root=cache_root,
+        cdp_version="r8-fake",
+    )
+    assert result.state == "succeeded", result.error_entry
+    assert result.lineage is not None
+    assert result.lineage.cache_hit is False  # first call was a real run
+    # Cache populated under the pvoc tier — exactly one .ana file.
+    cached_files = list((cache_root / "pvoc").glob("*.ana"))
+    assert len(cached_files) == 1
+    assert cached_files[0].stat().st_size > 0
+
+
+async def test_pvoc_cache_hit_skips_subprocess(
+    fake_cdp_path, session_and_graph, cache_root, monkeypatch
+):
+    """Second call with identical (input, argv, cdp_version) → cache hit.
+    The subprocess MUST NOT run. Lineage reflects cache_hit=True."""
+    session, graph = session_and_graph
+    inp = session.inputs_dir / "x.wav"
+    sr = 44100
+    sf.write(str(inp), np.zeros(int(0.5 * sr), dtype=np.float32), sr)
+    _install_real_pvoc_wrapper(fake_cdp_path)
+
+    # First call: populates cache.
+    first = await maybe_insert_pvoc(
+        input_path=inp,
+        target_domain="spectral",
+        graph_dir=graph,
+        node_id="n1",
+        cdp_path=fake_cdp_path,
+        session_root=session.root,
+        cache_root=cache_root,
+        cdp_version="r8-fake",
+    )
+    assert first.state == "succeeded"
+    first_bytes = first.output_path.read_bytes()
+
+    # Second call: subprocess must not be invoked. Use a fresh graph dir
+    # to avoid node-id reuse; the cache is shared across graphs.
+    graph2 = GraphDir(session, "second-graph")
+    from unittest.mock import AsyncMock
+    boom = AsyncMock(side_effect=AssertionError("subprocess must not run on cache hit"))
+    monkeypatch.setattr("cdp_mcp.pvoc.run_cdp_command", boom)
+
+    second = await maybe_insert_pvoc(
+        input_path=inp,
+        target_domain="spectral",
+        graph_dir=graph2,
+        node_id="n1",
+        cdp_path=fake_cdp_path,
+        session_root=session.root,
+        cache_root=cache_root,
+        cdp_version="r8-fake",
+    )
+    assert second.state == "succeeded", second.error_entry
+    assert second.lineage is not None
+    assert second.lineage.cache_hit is True
+    boom.assert_not_called()
+    # Materialized content matches the first call's output.
+    assert second.output_path.read_bytes() == first_bytes
+
+
+async def test_pvoc_cache_invalidates_on_cdp_version_change(
+    fake_cdp_path, session_and_graph, cache_root
+):
+    """Same audio + same argv but a different cdp_version → cache miss,
+    new entry created. The first cache entry is not served to the
+    second call."""
+    session, graph = session_and_graph
+    inp = session.inputs_dir / "x.wav"
+    sr = 44100
+    sf.write(str(inp), np.zeros(int(0.5 * sr), dtype=np.float32), sr)
+    _install_real_pvoc_wrapper(fake_cdp_path)
+
+    await maybe_insert_pvoc(
+        input_path=inp,
+        target_domain="spectral",
+        graph_dir=graph,
+        node_id="n1",
+        cdp_path=fake_cdp_path,
+        session_root=session.root,
+        cache_root=cache_root,
+        cdp_version="r7",
+    )
+    # Second call: bumped cdp_version → different cache key.
+    graph2 = GraphDir(session, "second-graph")
+    second = await maybe_insert_pvoc(
+        input_path=inp,
+        target_domain="spectral",
+        graph_dir=graph2,
+        node_id="n1",
+        cdp_path=fake_cdp_path,
+        session_root=session.root,
+        cache_root=cache_root,
+        cdp_version="r8",
+    )
+    assert second.state == "succeeded"
+    assert second.lineage is not None
+    assert second.lineage.cache_hit is False
+    # Two distinct cache entries now exist.
+    cached_files = list((cache_root / "pvoc").glob("*.ana"))
+    assert len(cached_files) == 2

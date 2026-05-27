@@ -25,6 +25,7 @@ import librosa
 import librosa.display
 import matplotlib.pyplot as plt  # noqa: E402 — backend already locked above
 import numpy as np
+import soundfile as sf
 from PIL import Image as PILImage
 
 _FIG_W_INCHES = 10.24
@@ -127,6 +128,51 @@ def render_spectrogram(
         duration_s=effective_duration,
         sample_rate=sr,
         n_channels=n_channels,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Cache-hit metadata helper
+# ---------------------------------------------------------------------------
+
+
+def audio_metadata_for_cached_png(
+    audio_path: Path,
+    png_path: Path,
+    t_start: float | None,
+    t_duration: float | None,
+) -> SpectrogramResult:
+    """Build a :class:`SpectrogramResult` for a PNG served from cache.
+
+    The PNG already exists on disk; we just need to populate the
+    envelope's audio + image metadata fields the same way the live
+    render path does. Image dimensions are read from the PNG itself
+    (cheap PIL call); audio metadata comes from ``soundfile.info`` to
+    avoid loading the whole audio array.
+
+    Used by :mod:`cdp_mcp.tools.visualize` on a visualization cache
+    hit. ``audio_path`` is the post-auto-synth audio file (always a
+    .wav by the time we get here).
+    """
+    info = sf.info(str(audio_path))
+    full_duration = float(info.duration)
+    if t_start is None and t_duration is None:
+        effective_duration = full_duration
+    else:
+        start = 0.0 if t_start is None else float(t_start)
+        if t_duration is None:
+            effective_duration = max(0.0, full_duration - start)
+        else:
+            effective_duration = float(t_duration)
+    with PILImage.open(png_path) as im:
+        width_px, height_px = im.size
+    return SpectrogramResult(
+        output_path=png_path,
+        width_px=width_px,
+        height_px=height_px,
+        duration_s=effective_duration,
+        sample_rate=int(info.samplerate),
+        n_channels=int(info.channels),
     )
 
 

@@ -179,3 +179,66 @@ async def test_invalid_window_t_duration_zero(mcp_with_analyze):
     _write_sine(session.inputs_dir / "frog.wav")
     envelope = await _call(mcp, {"target": "frog.wav", "t_duration": 0.0})
     assert any(e["type"] == "invalid_window" for e in envelope["errors"])
+
+
+# ---------------------------------------------------------------------------
+# Task 10 — Analysis cache: miss populates, hit skips extract, version invalidates
+# ---------------------------------------------------------------------------
+
+
+async def test_analyze_cache_miss_then_hit(mcp_with_analyze, tmp_path):
+    """First call populates the cache; second call serves from cache without
+    re-running ``extract_scorecard``. Verified by monkey-patching the
+    extractor to raise on the second invocation."""
+    mcp, sessions, _tracker = mcp_with_analyze
+    session, _ = sessions.set_active("s1")
+    _write_sine(session.inputs_dir / "frog.wav", seconds=1.0)
+
+    # First call: real extraction + cache populate.
+    envelope_1 = await _call(mcp, {"target": "frog.wav"})
+    assert envelope_1["status"] == "ok"
+    assert envelope_1["cached"] is False
+    # Cache populated.
+    cache_files = list((tmp_path / "cache" / "analysis").glob("*.json"))
+    assert len(cache_files) == 1
+
+    # Second call: must NOT re-extract. Patch the extractor module-side
+    # to raise; cache hit should short-circuit before reaching it.
+    import cdp_mcp.tools.analyze as analyze_module_path
+
+    def explode(*_a, **_kw):
+        raise AssertionError("extract_scorecard must not run on cache hit")
+
+    original = analyze_module_path.extract_scorecard
+    analyze_module_path.extract_scorecard = explode
+    try:
+        envelope_2 = await _call(mcp, {"target": "frog.wav"})
+    finally:
+        analyze_module_path.extract_scorecard = original
+
+    assert envelope_2["status"] == "ok"
+    assert envelope_2["cached"] is True
+    # Same numeric scorecard (modulo dict ordering).
+    assert envelope_2["analysis"] == envelope_1["analysis"]
+
+
+async def test_analyze_cache_invalidates_on_librosa_version_change(
+    mcp_with_analyze, monkeypatch
+):
+    """Simulated librosa upgrade: cache key changes → second call misses
+    even though the audio bytes are identical."""
+    from cdp_mcp import cache as cache_mod
+
+    mcp, sessions, _tracker = mcp_with_analyze
+    session, _ = sessions.set_active("s1")
+    _write_sine(session.inputs_dir / "frog.wav", seconds=1.0)
+
+    # First call under librosa-X.
+    monkeypatch.setitem(cache_mod._LIB_VERSIONS, "librosa", "test-v1")
+    e1 = await _call(mcp, {"target": "frog.wav"})
+    assert e1["cached"] is False
+
+    # Same input, "upgraded" librosa version → cache miss again.
+    monkeypatch.setitem(cache_mod._LIB_VERSIONS, "librosa", "test-v2")
+    e2 = await _call(mcp, {"target": "frog.wav"})
+    assert e2["cached"] is False  # different key, no hit

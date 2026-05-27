@@ -28,8 +28,12 @@ def _fake_cdp() -> CDPConfig:
 
 
 @pytest.fixture
-def mcp_with_workspace(tmp_path):
+def mcp_with_workspace(tmp_path, tmp_path_factory):
     mcp = FastMCP("test-cdp-workspace")
+    # cache_root lives OUTSIDE tmp_path because tmp_path is the sessions
+    # root and list_sessions() returns every subdir of it — a cache subdir
+    # nested under tmp_path would show up as a phantom session.
+    cache_root = tmp_path_factory.mktemp("cache").resolve()
     sessions = SessionManager(tmp_path, lambda: _fake_cdp())
     latest_tracker = LatestTracker()
     workspace.register(
@@ -37,8 +41,9 @@ def mcp_with_workspace(tmp_path):
         sessions,
         latest_tracker=latest_tracker,
         cdp_config_provider=lambda: _fake_cdp(),
+        cache_root=cache_root,
     )
-    return mcp, sessions, tmp_path, latest_tracker
+    return mcp, sessions, tmp_path, latest_tracker, cache_root
 
 
 async def _call_raw(mcp: FastMCP, name: str, args: dict[str, Any]) -> Any:
@@ -53,7 +58,7 @@ async def _call_raw(mcp: FastMCP, name: str, args: dict[str, Any]) -> Any:
 
 
 async def test_both_tools_registered(mcp_with_workspace):
-    mcp, _, _, _ = mcp_with_workspace
+    mcp, _, _, _, _ = mcp_with_workspace
     tools = await mcp.list_tools()
     names = {t.name for t in tools}
     assert {"set_session", "describe_workspace"} <= names
@@ -65,7 +70,7 @@ async def test_both_tools_registered(mcp_with_workspace):
 
 
 async def test_set_session_happy_path_returns_expected_keys(mcp_with_workspace):
-    mcp, _, tmp_path, _ = mcp_with_workspace
+    mcp, _, tmp_path, _, _ = mcp_with_workspace
     payload = await _call_raw(mcp, "set_session", {"name": "frog_v1"})
     assert payload["name"] == "frog_v1"
     assert payload["created"] is True
@@ -78,14 +83,14 @@ async def test_set_session_happy_path_returns_expected_keys(mcp_with_workspace):
 
 
 async def test_set_session_second_call_returns_created_false(mcp_with_workspace):
-    mcp, _, _, _ = mcp_with_workspace
+    mcp, _, _, _, _ = mcp_with_workspace
     await _call_raw(mcp, "set_session", {"name": "frog_v1"})
     payload = await _call_raw(mcp, "set_session", {"name": "frog_v1"})
     assert payload["created"] is False
 
 
 async def test_set_session_invalid_name_raises_tool_error(mcp_with_workspace):
-    mcp, _, _, _ = mcp_with_workspace
+    mcp, _, _, _, _ = mcp_with_workspace
     with pytest.raises(ToolError, match="Invalid session name"):
         await _call_raw(mcp, "set_session", {"name": "foo bar"})
 
@@ -93,7 +98,7 @@ async def test_set_session_invalid_name_raises_tool_error(mcp_with_workspace):
 async def test_set_session_clears_latest_tracker(mcp_with_workspace):
     """set_session() resets the conversational state (latest, prev_1..) so
     each session activation starts fresh — design-doc Rule 2."""
-    mcp, _, _, tracker = mcp_with_workspace
+    mcp, _, _, tracker, _ = mcp_with_workspace
 
     # Activate a session, then push two entries onto the tracker.
     await _call_raw(mcp, "set_session", {"name": "sess_a"})
@@ -111,7 +116,7 @@ async def test_set_session_clears_latest_tracker(mcp_with_workspace):
 async def test_set_session_failure_does_not_clear_tracker(mcp_with_workspace):
     """Invalid name → ToolError, tracker stays intact (the previous
     conversational state shouldn't be lost on a typo)."""
-    mcp, _, _, tracker = mcp_with_workspace
+    mcp, _, _, tracker, _ = mcp_with_workspace
     await _call_raw(mcp, "set_session", {"name": "sess_a"})
     tracker.update("g1", "n1")
     assert tracker.latest == "g1:n1"
@@ -129,6 +134,8 @@ async def test_set_session_warns_on_cdp_version_mismatch(tmp_path):
     config.json through cdp_version_mismatch_warning into the response
     envelope, including simulated server-restart-after-CDP-upgrade."""
     sessions_root = tmp_path / "sessions"
+    cache_root = tmp_path / "cache"
+    cache_root.mkdir(parents=True, exist_ok=True)
 
     # First activation: create the session under "r7".
     mcp1 = FastMCP("test-1")
@@ -143,6 +150,7 @@ async def test_set_session_warns_on_cdp_version_mismatch(tmp_path):
         sessions1,
         latest_tracker=LatestTracker(),
         cdp_config_provider=lambda: config_v7,
+        cache_root=cache_root,
     )
     create_payload = await _call_raw(mcp1, "set_session", {"name": "frog"})
     assert create_payload["created"] is True
@@ -164,6 +172,7 @@ async def test_set_session_warns_on_cdp_version_mismatch(tmp_path):
         sessions2,
         latest_tracker=LatestTracker(),
         cdp_config_provider=lambda: config_v8,
+        cache_root=cache_root,
     )
     reactivate_payload = await _call_raw(mcp2, "set_session", {"name": "frog"})
     assert reactivate_payload["created"] is False
@@ -181,7 +190,7 @@ async def test_set_session_warns_on_cdp_version_mismatch(tmp_path):
 
 
 async def test_describe_workspace_no_active_session(mcp_with_workspace):
-    mcp, _, _, _ = mcp_with_workspace
+    mcp, _, _, _, _ = mcp_with_workspace
     payload = await _call_raw(mcp, "describe_workspace", {})
     assert payload["active_session"] is None
     assert payload["available_sessions"] == []
@@ -189,7 +198,7 @@ async def test_describe_workspace_no_active_session(mcp_with_workspace):
 
 
 async def test_describe_workspace_active_session_minimal(mcp_with_workspace):
-    mcp, _, tmp_path, _ = mcp_with_workspace
+    mcp, _, tmp_path, _, _ = mcp_with_workspace
     await _call_raw(mcp, "set_session", {"name": "frog_v1"})
     payload = await _call_raw(mcp, "describe_workspace", {})
     assert payload["active_session"] == "frog_v1"
@@ -204,7 +213,7 @@ async def test_describe_workspace_active_session_minimal(mcp_with_workspace):
 
 
 async def test_describe_workspace_counts_input_files(mcp_with_workspace):
-    mcp, _, tmp_path, _ = mcp_with_workspace
+    mcp, _, tmp_path, _, _ = mcp_with_workspace
     await _call_raw(mcp, "set_session", {"name": "frog_v1"})
     inputs = tmp_path / "frog_v1" / "inputs"
     (inputs / "frog.wav").write_bytes(b"riffstub")
@@ -217,7 +226,7 @@ async def test_describe_workspace_counts_input_files(mcp_with_workspace):
 
 
 async def test_available_sessions_consistent_across_tools(mcp_with_workspace):
-    mcp, _, _, _ = mcp_with_workspace
+    mcp, _, _, _, _ = mcp_with_workspace
     await _call_raw(mcp, "set_session", {"name": "a"})
     await _call_raw(mcp, "set_session", {"name": "b"})
     desc = await _call_raw(mcp, "describe_workspace", {})
@@ -233,7 +242,7 @@ async def test_available_sessions_consistent_across_tools(mcp_with_workspace):
 
 
 async def test_describe_workspace_lists_envelope_files(mcp_with_workspace):
-    mcp, _, tmp_path, _ = mcp_with_workspace
+    mcp, _, tmp_path, _, _ = mcp_with_workspace
     await _call_raw(mcp, "set_session", {"name": "envs"})
     envelopes = tmp_path / "envs" / "envelopes"
     (envelopes / "shift.brk").write_text("0 5\n5 25\n")
@@ -246,7 +255,7 @@ async def test_describe_workspace_lists_envelope_files(mcp_with_workspace):
 
 
 async def test_read_envelope_happy_path(mcp_with_workspace):
-    mcp, _, tmp_path, _ = mcp_with_workspace
+    mcp, _, tmp_path, _, _ = mcp_with_workspace
     await _call_raw(mcp, "set_session", {"name": "envs"})
     contents = "0 5\n5 25\n10 50\n"
     (tmp_path / "envs" / "envelopes" / "shift.brk").write_text(contents)
@@ -259,14 +268,14 @@ async def test_read_envelope_happy_path(mcp_with_workspace):
 
 
 async def test_read_envelope_requires_active_session(mcp_with_workspace):
-    mcp, _, _, _ = mcp_with_workspace
+    mcp, _, _, _, _ = mcp_with_workspace
     # No set_session called yet.
     with pytest.raises(ToolError, match="No active session"):
         await _call_raw(mcp, "read_envelope", {"name": "shift.brk"})
 
 
 async def test_read_envelope_rejects_path_separators(mcp_with_workspace):
-    mcp, _, _, _ = mcp_with_workspace
+    mcp, _, _, _, _ = mcp_with_workspace
     await _call_raw(mcp, "set_session", {"name": "envs"})
     with pytest.raises(ToolError, match="bare basename"):
         await _call_raw(mcp, "read_envelope", {"name": "sub/foo.brk"})
@@ -277,7 +286,7 @@ async def test_read_envelope_rejects_path_separators(mcp_with_workspace):
 async def test_read_envelope_rejects_unsupported_extension(
     mcp_with_workspace,
 ):
-    mcp, _, tmp_path, _ = mcp_with_workspace
+    mcp, _, tmp_path, _, _ = mcp_with_workspace
     await _call_raw(mcp, "set_session", {"name": "envs"})
     # Even if a wav happens to live in envelopes/, the tool refuses.
     (tmp_path / "envs" / "envelopes" / "foo.wav").write_bytes(b"riff stub")
@@ -286,7 +295,7 @@ async def test_read_envelope_rejects_unsupported_extension(
 
 
 async def test_read_envelope_truncates_large_files(mcp_with_workspace):
-    mcp, _, tmp_path, _ = mcp_with_workspace
+    mcp, _, tmp_path, _, _ = mcp_with_workspace
     await _call_raw(mcp, "set_session", {"name": "envs"})
     # 100 KiB > 64 KiB cap.
     big = "x" * (100 * 1024)
@@ -295,3 +304,44 @@ async def test_read_envelope_truncates_large_files(mcp_with_workspace):
     assert payload["truncated"] is True
     assert payload["size_bytes"] == 100 * 1024
     assert len(payload["content"]) == 64 * 1024
+
+
+# ---------------------------------------------------------------------------
+# Task 10 — Cache block in describe_workspace
+# ---------------------------------------------------------------------------
+
+
+async def test_describe_workspace_reports_cache_sizes(mcp_with_workspace):
+    """The ``cache`` block in describe_workspace mirrors
+    :func:`cache_size_bytes` and includes a derived ``total_bytes``."""
+    mcp, _, _, _, cache_root = mcp_with_workspace
+    # Seed each tier with known sizes.
+    (cache_root / "pvoc").mkdir()
+    (cache_root / "pvoc" / "abc.ana").write_bytes(b"x" * 1000)
+    (cache_root / "analysis").mkdir()
+    (cache_root / "analysis" / "a.json").write_text("y" * 250)
+    (cache_root / "visualizations").mkdir()
+    (cache_root / "visualizations" / "v.png").write_bytes(b"z" * 500)
+
+    await _call_raw(mcp, "set_session", {"name": "s1"})
+    desc = await _call_raw(mcp, "describe_workspace", {})
+    cache = desc["cache"]
+    assert cache["pvoc_bytes"] == 1000
+    assert cache["analysis_bytes"] == 250
+    assert cache["visualizations_bytes"] == 500
+    assert cache["audition_bytes"] == 0  # populated by Task 11
+    assert cache["total_bytes"] == 1750
+
+
+async def test_describe_workspace_no_session_includes_cache_block(
+    mcp_with_workspace,
+):
+    """Even before a session is active, the cache block is reported so
+    the LLM can see disk pressure from prior sessions."""
+    mcp, _, _, _, cache_root = mcp_with_workspace
+    (cache_root / "pvoc").mkdir()
+    (cache_root / "pvoc" / "abc.ana").write_bytes(b"x" * 100)
+    desc = await _call_raw(mcp, "describe_workspace", {})
+    assert desc["active_session"] is None
+    assert desc["cache"]["pvoc_bytes"] == 100
+    assert desc["cache"]["total_bytes"] == 100

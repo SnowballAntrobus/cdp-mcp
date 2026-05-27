@@ -18,6 +18,12 @@ from pathlib import Path
 
 from mcp.server.fastmcp import Context, FastMCP, Image
 
+from ..cache import (
+    cache_lookup,
+    cache_populate,
+    materialize_cached_artifact,
+    visualization_cache_key,
+)
 from ..config import CDPConfig
 from ..graph import (
     LatestTracker,
@@ -34,7 +40,16 @@ from ..pvoc import PVOCFailedError, synth_for_audition
 from ..schema import ContextBlock, ErrorEntry, ResultEnvelope
 from ..security import SecurityError
 from ..session import SessionManager, SessionNotActiveError
-from ..visualization import render_spectrogram
+from ..utils import sha256_file
+from ..visualization import (
+    _FIG_DPI,
+    _FIG_H_INCHES,
+    _FIG_W_INCHES,
+    _HOP_LENGTH,
+    _N_FFT,
+    audio_metadata_for_cached_png,
+    render_spectrogram,
+)
 
 _SPECTRAL_SUFFIXES = frozenset({".ana", ".pvx"})
 
@@ -188,52 +203,84 @@ async def visualize_impl(
     )
     png_path = vis_dir / f"{_normalize_target_id(target, audio_path)}_{timestamp}.png"
 
-    # 6. Render — off the event loop via asyncio.to_thread, with
+    # 6. Cache lookup (Task 10). The rendered PNG is a pure function of
+    # (audio bytes, mode, window, render params, librosa+mpl versions).
+    # On hit, materialize the cached PNG into the session's
+    # visualizations/ dir (timestamped path the LLM expects) and
+    # populate metadata from soundfile + PIL — no librosa load needed.
+    audio_sha = sha256_file(audio_path)
+    render_params = (
+        f"nfft={_N_FFT},hop={_HOP_LENGTH},dpi={_FIG_DPI},"
+        f"w={_FIG_W_INCHES},h={_FIG_H_INCHES}"
+    )
+    cache_key = visualization_cache_key(
+        audio_sha, "mel", t_start, t_duration, render_params,
+    )
+    cache = cache_lookup(cache_root, "visualizations", cache_key, ".png")
+
+    cached = False
+    spec_result = None
+    if cache.hit:
+        try:
+            materialize_cached_artifact(cache.path, png_path)
+            spec_result = audio_metadata_for_cached_png(
+                audio_path, png_path, t_start, t_duration,
+            )
+            cached = True
+        except (OSError, ValueError):
+            # Cache file unreadable or corrupt — treat as miss.
+            cached = False
+
+    # 7. Render — off the event loop via asyncio.to_thread, with
     # periodic MCP progress heartbeat so Claude Desktop doesn't time
     # out long renders.
-    try:
-        spec_result = await run_with_progress(
-            ctx,
-            "rendering spectrogram",
-            render_spectrogram,
-            audio_path,
-            png_path,
-            t_start,
-            t_duration,
-        )
-    except FileNotFoundError as e:
-        return [
-            _failed_envelope(
-                session,
-                latest_tracker,
-                [
-                    ErrorEntry(
-                        type="audio_not_found",
-                        message=str(e),
-                        fix=None,
-                    )
-                ],
+    if not cached:
+        try:
+            spec_result = await run_with_progress(
+                ctx,
+                "rendering spectrogram",
+                render_spectrogram,
+                audio_path,
+                png_path,
+                t_start,
+                t_duration,
             )
-        ]
-    except ValueError as e:
-        return [
-            _failed_envelope(
-                session,
-                latest_tracker,
-                [
-                    ErrorEntry(
-                        type="invalid_window",
-                        message=str(e),
-                        fix=(
-                            "Pass a t_start/t_end window inside the "
-                            "file's duration."
-                        ),
-                    )
-                ],
-            )
-        ]
+        except FileNotFoundError as e:
+            return [
+                _failed_envelope(
+                    session,
+                    latest_tracker,
+                    [
+                        ErrorEntry(
+                            type="audio_not_found",
+                            message=str(e),
+                            fix=None,
+                        )
+                    ],
+                )
+            ]
+        except ValueError as e:
+            return [
+                _failed_envelope(
+                    session,
+                    latest_tracker,
+                    [
+                        ErrorEntry(
+                            type="invalid_window",
+                            message=str(e),
+                            fix=(
+                                "Pass a t_start/t_end window inside the "
+                                "file's duration."
+                            ),
+                        )
+                    ],
+                )
+            ]
+        # Best-effort cache populate. Failure logs a warning; the freshly
+        # rendered PNG in vis_dir is still returned.
+        cache_populate(cache.path, png_path)
 
-    # 7. Build envelope. Extra rendering metadata goes into the warnings
+    # 8. Build envelope. Extra rendering metadata goes into the warnings
     # field's adjacent location: we tuck it into a sibling key the LLM
     # can read.
     envelope = ResultEnvelope(
@@ -244,7 +291,7 @@ async def visualize_impl(
         exit_code=None,
         errors=[],
         warnings=[],
-        cached=False,
+        cached=cached,
         duration_ms=None,
         context=build_context_block(session, latest_tracker, active_graph=None),
     )
@@ -256,7 +303,7 @@ async def visualize_impl(
     envelope_dict["n_channels"] = spec_result.n_channels
     envelope_dict["auto_synthed"] = auto_synthed
 
-    # 8. Two content blocks: image + JSON envelope.
+    # 9. Two content blocks: image + JSON envelope.
     return [Image(path=str(png_path)), envelope_dict]
 
 
