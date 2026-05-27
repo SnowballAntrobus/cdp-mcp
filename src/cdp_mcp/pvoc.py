@@ -11,6 +11,8 @@ output is addressable and its lineage is auditable, just like the main op.
 
 from __future__ import annotations
 
+import hashlib
+import math
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -34,7 +36,7 @@ from .schema import ErrorEntry, InputRecord, NodeLineage
 from .security import SecurityError, validate_command
 from .session import Session
 from .subprocess_core import SubprocessResult, run_cdp_command
-from .utils import sha256_file
+from .utils import atomic_write_text, sha256_file
 
 # Map file extensions to CDP's domain vocabulary. Lowercased for comparison.
 _TIME_EXTENSIONS = frozenset({".wav", ".aif", ".aiff", ".amb"})
@@ -531,3 +533,98 @@ async def synth_for_audition(
     cache_populate(cache.path, output_path)
 
     return output_path, sub
+
+
+# ---------------------------------------------------------------------------
+# read_ana_duration — header-only duration of a CDP .ana via sfprops -d
+# ---------------------------------------------------------------------------
+
+
+async def read_ana_duration(
+    ana_path: Path,
+    *,
+    session_root: Path,
+    cdp_path: Path,
+    cache_dir: Path,
+    cdp_version: str,
+    timeout_seconds: float = 10.0,
+    ctx: Context | None = None,
+) -> float | None:
+    """Header-only duration of a CDP ``.ana`` file via ``sfprops -d``.
+
+    Never raises — returns ``None`` on any failure (missing binary,
+    security-validation reject, non-zero exit, unparseable stdout,
+    timeout, I/O error). The disk watchdog (Task 7) is the reactive
+    safety net for the cases this can't predict.
+
+    Investigation outcome (Phase 2 Task 2): the high-level design doc
+    named ``dirsf`` as the candidate, but verification against r8
+    revealed ``dirsf`` is a directory-listing utility, not a per-file
+    header reader. ``pvoc info`` does not exist in r8 (modes are
+    ``anal``/``synth``/``extract``). ``sfprops -d <path>`` is the right
+    tool — exits 0 on success and writes exactly one float to stdout
+    (e.g. ``"7.235465\\n"``); exits 1 on missing/corrupt file.
+    Sub-second cost on a 10 MB ana.
+
+    Cached at ``<cache_dir>/<sha>.duration`` keyed by
+    ``sha256(ana_bytes + cdp_version)``. Cache hits skip the
+    subprocess. Cache writes are non-fatal — failure logs to stderr
+    and returns the live result anyway, matching the project-wide
+    pattern from :func:`cache.cache_populate`.
+    """
+    # ---- Cache lookup -------------------------------------------------------
+    try:
+        ana_sha = sha256_file(ana_path)
+    except OSError:
+        return None
+    cache_key = hashlib.sha256(
+        f"{ana_sha}|{cdp_version}".encode("utf-8")
+    ).hexdigest()
+    cache_path = cache_dir / f"{cache_key}.duration"
+    if cache_path.exists():
+        try:
+            cached = float(cache_path.read_text(encoding="utf-8").strip())
+            if math.isfinite(cached) and cached >= 0:
+                return cached
+        except (OSError, ValueError):
+            # Stale/corrupt cache entry — fall through to live shell-out.
+            pass
+
+    # ---- Shell out to sfprops -d -------------------------------------------
+    argv = ["sfprops", "-d", _argv_path(ana_path, session_root)]
+    try:
+        validated = validate_command(argv, cdp_path, session_root, cache_dir)
+    except SecurityError:
+        return None
+    try:
+        sub = await run_cdp_command(
+            validated,
+            cwd=session_root,
+            timeout_seconds=timeout_seconds,
+            ctx=ctx,
+        )
+    except (OSError, FileNotFoundError):
+        return None
+
+    if sub.timed_out or sub.exit_code != 0:
+        return None
+
+    try:
+        duration = float(sub.stdout.strip())
+    except (ValueError, AttributeError):
+        return None
+    if not math.isfinite(duration) or duration < 0:
+        return None
+
+    # ---- Cache populate (non-fatal) ----------------------------------------
+    try:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        atomic_write_text(cache_path, f"{duration}\n")
+    except OSError as e:
+        print(
+            f"[cdp-mcp] Warning: ana-duration cache populate failed for "
+            f"{cache_path}: {e.__class__.__name__}: {e}. Result returned anyway.",
+            file=sys.stderr,
+        )
+
+    return duration

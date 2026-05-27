@@ -52,19 +52,51 @@ class DurationModelError(Exception):
 # ---------------------------------------------------------------------------
 
 
-def _read_duration_seconds(path: Path) -> float | None:
-    """Header-only audio duration via ``soundfile.info()``.
+async def _read_duration_seconds(
+    path: Path,
+    *,
+    session_root: Path | None = None,
+    cdp_path: Path | None = None,
+    cdp_version: str | None = None,
+    ana_duration_cache_dir: Path | None = None,
+) -> float | None:
+    """Header-only audio duration via ``soundfile.info()`` with .ana fallback.
 
-    Returns ``None`` for any read failure — including ``.ana`` files,
-    which soundfile doesn't support. Never raises; ``None`` is the
-    sentinel for "duration unknown, fall back to chain invariant or
-    skip."
+    Returns ``None`` for any read failure. Never raises; ``None`` is
+    the sentinel for "duration unknown, fall back to chain invariant
+    or skip."
+
+    For ``.ana`` files (which soundfile can't read), falls back to
+    :func:`pvoc.read_ana_duration` — a shell-out to CDP's ``sfprops
+    -d`` — when the CDP context kwargs are supplied. The fallback is
+    optional so the existing unit-test path that calls this without
+    CDP context still works (the .ana branch just returns ``None``,
+    matching Phase 1b behavior).
     """
     try:
         info = sf.info(str(path))
         return float(info.duration)
     except Exception:  # noqa: BLE001 — soundfile raises a variety
-        return None
+        pass
+
+    if (
+        path.suffix.lower() == ".ana"
+        and session_root is not None
+        and cdp_path is not None
+        and cdp_version is not None
+        and ana_duration_cache_dir is not None
+    ):
+        # Local import to avoid circular dependency at module load.
+        from .pvoc import read_ana_duration
+        return await read_ana_duration(
+            path,
+            session_root=session_root,
+            cdp_path=cdp_path,
+            cache_dir=ana_duration_cache_dir,
+            cdp_version=cdp_version,
+        )
+
+    return None
 
 
 def _evaluate_duration_model(
@@ -176,12 +208,16 @@ def _evaluate_duration_model(
 # ---------------------------------------------------------------------------
 
 
-def check_duration_preflight(
+async def check_duration_preflight(
     *,
     entry: KnowledgeEntry,
     params: dict[str, Any],
     resolved_inputs: list[Path],
     duration_cap_s: float = OUTPUT_DURATION_CAP_S,
+    session_root: Path | None = None,
+    cdp_path: Path | None = None,
+    cdp_version: str | None = None,
+    ana_duration_cache_dir: Path | None = None,
 ) -> list[ErrorEntry]:
     """Pre-flight duration prediction.
 
@@ -194,8 +230,24 @@ def check_duration_preflight(
       unknown identifier).
     - ``predicted_duration_negative`` — evaluated to ≤ 0.
     - ``predicted_duration_exceeds_cap`` — predicted > duration_cap_s.
+
+    Optional CDP-context kwargs (``session_root``, ``cdp_path``,
+    ``cdp_version``, ``ana_duration_cache_dir``) enable the ``.ana``
+    duration fallback for inputs soundfile can't read. When omitted,
+    behavior reduces to Phase 1b: ``.ana`` durations resolve to
+    ``None`` and the chain-invariant skip path engages. All four must
+    be provided together to activate the fallback.
     """
-    indurs = [_read_duration_seconds(p) for p in resolved_inputs]
+    indurs = [
+        await _read_duration_seconds(
+            p,
+            session_root=session_root,
+            cdp_path=cdp_path,
+            cdp_version=cdp_version,
+            ana_duration_cache_dir=ana_duration_cache_dir,
+        )
+        for p in resolved_inputs
+    ]
 
     try:
         predicted = _evaluate_duration_model(entry, params, indurs)

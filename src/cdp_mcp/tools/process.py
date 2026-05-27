@@ -34,7 +34,7 @@ from ..graph import (
 from ..knowledge.loader import KnowledgeIndex
 from ..limits import OUTPUT_FILE_SIZE_CAP_BYTES
 from ..processing import build_cdp_argv, validate_params
-from ..pvoc import maybe_insert_pvoc
+from ..pvoc import maybe_insert_pvoc, read_ana_duration
 from ..schema import (
     CompiledBreakpoint,
     ContextBlock,
@@ -214,10 +214,14 @@ async def process_impl(
     # 6.5. Pre-flight duration prediction. Catches runaway durations
     # before CDP spawns; the disk watchdog (Task 7) is the reactive
     # complement for cases pre-flight can't predict.
-    preflight_errors = check_duration_preflight(
+    preflight_errors = await check_duration_preflight(
         entry=entry,
         params=params_dict,
         resolved_inputs=resolved_inputs,
+        session_root=session.root,
+        cdp_path=cdp.cdp_path,
+        cdp_version=cdp.version,
+        ana_duration_cache_dir=session.tmp_dir / "ana_durations",
     )
     if preflight_errors:
         return _failed_envelope(
@@ -302,11 +306,13 @@ async def process_impl(
                 ),
             ))
             continue
-        src_duration, src_kind = _resolve_source_duration(
+        src_duration, src_kind = await _resolve_source_duration(
             session=session,
             post_pvoc_paths=post_pvoc_paths,
             pvoc_source_nodes=pvoc_source_nodes,
             graph_dir=graph_dir,
+            cdp_path=cdp.cdp_path,
+            cdp_version=cdp.version,
         )
         result = compile_breakpoint_value(
             param_name=param_name,
@@ -604,23 +610,33 @@ def register(
 # ---------------------------------------------------------------------------
 
 
-def _resolve_source_duration(
+async def _resolve_source_duration(
     *,
     session: Session,
     post_pvoc_paths: list[Path],
     pvoc_source_nodes: list[str | None],
     graph_dir: GraphDir,
-) -> tuple[float | None, Literal["input_wav", "pvoc_lineage"] | None]:
+    cdp_path: Path,
+    cdp_version: str,
+) -> tuple[
+    float | None,
+    Literal["input_wav", "pvoc_lineage", "ana_sfprops"] | None,
+]:
     """Best-effort source-audio duration for breakpoint compilation.
 
-    Same-graph only: when the main op consumes a .wav directly we read
-    it via ``sf.info``; when it consumes a .ana that we just produced
-    via auto-PVOC, we look up the PVOC node's recorded
-    ``source_wav_duration_s``. Cross-graph .ana (the user passed a
-    ``<other_graph>:<node>`` reference whose output came from a graph
-    we didn't touch this call) returns ``(None, None)`` — the caller
-    surfaces ``param_breakpoint_no_source_duration``. Cross-graph
-    lineage walking is out of scope for Task 8.
+    Order of attempts:
+
+    1. ``.wav`` input → read via ``sf.info``; tag ``input_wav``.
+    2. ``.ana`` from a same-graph auto-PVOC node → look up the node's
+       recorded ``source_wav_duration_s``; tag ``pvoc_lineage``.
+    3. ``.ana`` with no same-graph PVOC node (pre-converted .ana in
+       ``inputs/``, or cross-graph reference) → shell out to
+       ``sfprops -d`` via :func:`pvoc.read_ana_duration`; tag
+       ``ana_sfprops``. Phase 2 Task 2.
+
+    Returns ``(None, None)`` only when every attempt fails — the caller
+    then surfaces ``param_breakpoint_no_source_duration``. Cross-graph
+    lineage walking remains out of scope.
     """
     if not post_pvoc_paths:
         return None, None
@@ -638,6 +654,18 @@ def _resolve_source_duration(
             )
             if duration is not None:
                 return duration, "pvoc_lineage"
+        # Fallback: pre-converted or cross-graph .ana — shell out.
+        cache_dir = session.tmp_dir / "ana_durations"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        d = await read_ana_duration(
+            first,
+            session_root=session.root,
+            cdp_path=cdp_path,
+            cache_dir=cache_dir,
+            cdp_version=cdp_version,
+        )
+        if d is not None:
+            return d, "ana_sfprops"
     return None, None
 
 

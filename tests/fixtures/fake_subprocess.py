@@ -19,6 +19,7 @@ Usage::
                               [--raw-stdout-bytes HEX]
                               [--write-wav PATH] [--write-wav-silent PATH]
                               [--write-ana PATH]
+                              [--print-ana-duration SECONDS]
                               [--cdp-refuse-clobber PATH]
                               [--cdp-die-on-dot-path]
                               [--cdp-silent-output PATH]
@@ -52,8 +53,13 @@ Flags execute in this order, then the process exits:
    anti-pattern they're simulating).
 10. ``--write-ana`` writes ~2 KB of arbitrary bytes at the given path —
     passes verify_output's size check (no RMS check for .ana).
-11. Sleep ``--sleep`` seconds.
-12. Exit with code ``--exit`` (default 0).
+11. ``--print-ana-duration SECONDS`` prints ``SECONDS\\n`` to stdout —
+    mimics the single-float stdout shape of ``sfprops -d`` for
+    ``read_ana_duration`` tests. Generic test utility, not a CDP-quirk
+    flag (sfprops is doing what it's supposed to; we're just simulating
+    its output).
+12. Sleep ``--sleep`` seconds.
+13. Exit with code ``--exit`` (default 0).
 
 Every print uses ``flush=True`` so the parent process sees output in
 real time. **Uses only Python stdlib** — the system Python that exec-runs
@@ -88,6 +94,15 @@ def main() -> int:
                         help="Write a silent (all-zero) 200-sample wav at this path.")
     parser.add_argument("--write-ana", default=None,
                         help="Write a ~2 KB stub .ana file at this path.")
+    parser.add_argument(
+        "--print-ana-duration",
+        dest="print_ana_duration",
+        default=None,
+        help=(
+            "Print '<SECONDS>\\n' to stdout — mimics the single-float "
+            "output of 'sfprops -d <ana>' for read_ana_duration tests."
+        ),
+    )
     parser.add_argument(
         "--cdp-refuse-clobber",
         dest="cdp_refuse_clobber",
@@ -183,6 +198,9 @@ def main() -> int:
         # checks that the file exists and is bigger than 100 bytes.
         with open(args.write_ana, "wb") as f:
             f.write(b"\xff\x00" * 1024)
+
+    if args.print_ana_duration is not None:
+        print(args.print_ana_duration, flush=True)
 
     if args.cdp_grow_file:
         # Incremental append loop; lets the disk watchdog catch a file

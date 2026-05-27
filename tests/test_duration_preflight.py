@@ -247,7 +247,7 @@ def test_expression_no_indur_reference_works_even_when_indur_unknown():
 # ---------------------------------------------------------------------------
 
 
-def test_preflight_passes_when_predicted_under_cap(tmp_path):
+async def test_preflight_passes_when_predicted_under_cap(tmp_path):
     input_wav = tmp_path / "in.wav"
     _make_wav(input_wav, duration_s=2.0)
     entry = _make_entry(
@@ -256,14 +256,14 @@ def test_preflight_passes_when_predicted_under_cap(tmp_path):
         ),
         parameters={"velocity": ParameterSpec(type="float")},
     )
-    errors = check_duration_preflight(
+    errors = await check_duration_preflight(
         entry=entry, params={"velocity": 0.5},
         resolved_inputs=[input_wav],
     )
     assert errors == []
 
 
-def test_preflight_rejects_when_exceeds_cap(tmp_path):
+async def test_preflight_rejects_when_exceeds_cap(tmp_path):
     input_wav = tmp_path / "in.wav"
     _make_wav(input_wav, duration_s=2.0)
     entry = _make_entry(
@@ -273,7 +273,7 @@ def test_preflight_rejects_when_exceeds_cap(tmp_path):
         parameters={"velocity": ParameterSpec(type="float")},
     )
     # 2.0 / 0.001 = 2000s, way over the 300s cap.
-    errors = check_duration_preflight(
+    errors = await check_duration_preflight(
         entry=entry, params={"velocity": 0.001},
         resolved_inputs=[input_wav],
     )
@@ -283,7 +283,7 @@ def test_preflight_rejects_when_exceeds_cap(tmp_path):
     assert "300" in errors[0].message
 
 
-def test_preflight_rejects_when_negative(tmp_path):
+async def test_preflight_rejects_when_negative(tmp_path):
     input_wav = tmp_path / "in.wav"
     _make_wav(input_wav, duration_s=2.0)
     entry = _make_entry(
@@ -292,7 +292,7 @@ def test_preflight_rejects_when_negative(tmp_path):
         ),
         parameters={"long_offset": ParameterSpec(type="float")},
     )
-    errors = check_duration_preflight(
+    errors = await check_duration_preflight(
         entry=entry, params={"long_offset": 5.0},
         resolved_inputs=[input_wav],
     )
@@ -300,7 +300,7 @@ def test_preflight_rejects_when_negative(tmp_path):
     assert errors[0].type == "predicted_duration_negative"
 
 
-def test_preflight_rejects_on_evaluation_failure(tmp_path):
+async def test_preflight_rejects_on_evaluation_failure(tmp_path):
     input_wav = tmp_path / "in.wav"
     _make_wav(input_wav, duration_s=2.0)
     entry = _make_entry(
@@ -309,7 +309,7 @@ def test_preflight_rejects_on_evaluation_failure(tmp_path):
         ),
         parameters={"velocity": ParameterSpec(type="float")},
     )
-    errors = check_duration_preflight(
+    errors = await check_duration_preflight(
         entry=entry, params={"velocity": 0},
         resolved_inputs=[input_wav],
     )
@@ -317,28 +317,30 @@ def test_preflight_rejects_on_evaluation_failure(tmp_path):
     assert errors[0].type == "predicted_duration_evaluation_failed"
 
 
-def test_preflight_skips_when_static_indur_unknown(tmp_path):
-    """`.ana` input → soundfile.info() fails → indur is None → static
-    falls back to skip (chain invariant)."""
+async def test_preflight_skips_when_static_indur_unknown(tmp_path):
+    """`.ana` input + no CDP context → indur is None → static falls
+    back to skip (chain invariant). Without the CDP-context kwargs,
+    the .ana fallback path stays disabled and behavior matches Phase 1b.
+    """
     ana_input = tmp_path / "in.ana"
     ana_input.write_bytes(b"fake ana data")  # not a real .ana, sf.info fails
     entry = _make_entry(
         duration_model=DurationModelStatic(kind="static"),
     )
-    errors = check_duration_preflight(
+    errors = await check_duration_preflight(
         entry=entry, params={}, resolved_inputs=[ana_input],
     )
     assert errors == []
 
 
-def test_preflight_can_override_cap(tmp_path):
+async def test_preflight_can_override_cap(tmp_path):
     """The cap is a kwarg for testability; tests can tighten it."""
     input_wav = tmp_path / "in.wav"
     _make_wav(input_wav, duration_s=2.0)
     entry = _make_entry(
         duration_model=DurationModelStatic(kind="static"),
     )
-    errors = check_duration_preflight(
+    errors = await check_duration_preflight(
         entry=entry, params={}, resolved_inputs=[input_wav],
         duration_cap_s=1.0,  # tighter than the 2-second input
     )
@@ -351,17 +353,113 @@ def test_preflight_can_override_cap(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_read_duration_seconds_wav(tmp_path):
+async def test_read_duration_seconds_wav(tmp_path):
     p = tmp_path / "in.wav"
     _make_wav(p, duration_s=3.5)
-    assert _read_duration_seconds(p) == pytest.approx(3.5, abs=0.01)
+    assert await _read_duration_seconds(p) == pytest.approx(3.5, abs=0.01)
 
 
-def test_read_duration_seconds_unreadable_returns_none(tmp_path):
+async def test_read_duration_seconds_unreadable_returns_none(tmp_path):
     p = tmp_path / "fake.ana"
     p.write_bytes(b"not a real audio file")
-    assert _read_duration_seconds(p) is None
+    assert await _read_duration_seconds(p) is None
 
 
-def test_read_duration_seconds_nonexistent_returns_none(tmp_path):
-    assert _read_duration_seconds(tmp_path / "missing.wav") is None
+async def test_read_duration_seconds_nonexistent_returns_none(tmp_path):
+    assert await _read_duration_seconds(tmp_path / "missing.wav") is None
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 Task 2 — .ana duration fallback via sfprops
+# ---------------------------------------------------------------------------
+
+
+_FAKE_SUBPROCESS_FOR_PREFLIGHT = (
+    Path(__file__).parent / "fixtures" / "fake_subprocess.py"
+).resolve()
+
+
+def _install_fake_sfprops(cdp_path: Path, duration: str) -> None:
+    """Drop a fake ``sfprops`` into ``cdp_path`` that prints ``duration``."""
+    wrapper = cdp_path / "sfprops"
+    wrapper.write_text(
+        f"""#!/usr/bin/env bash
+exec "{_FAKE_SUBPROCESS_FOR_PREFLIGHT}" --print-ana-duration "{duration}"
+"""
+    )
+    wrapper.chmod(0o755)
+
+
+async def test_preflight_uses_ana_fallback_when_cdp_context_provided(
+    tmp_path,
+):
+    """`.ana` input + fake ``sfprops`` + CDP-context kwargs → fallback
+    runs, the duration is realized, and the static model exercises it.
+
+    Where ``test_preflight_skips_when_static_indur_unknown`` passes by
+    skipping (chain invariant), this test passes by *computing* — the
+    .ana indur becomes a real value the duration_model can evaluate.
+    """
+    cdp_path = (tmp_path / "cdp").resolve()
+    cdp_path.mkdir()
+    _install_fake_sfprops(cdp_path, duration="42.0")
+
+    session_root = (tmp_path / "session").resolve()
+    session_root.mkdir()
+    inputs_dir = session_root / "inputs"
+    inputs_dir.mkdir()
+    ana_input = inputs_dir / "in.ana"
+    ana_input.write_bytes(b"\xff\x00" * 1024)
+    cache_dir = session_root / "tmp" / "ana_durations"
+
+    entry = _make_entry(
+        duration_model=DurationModelStatic(kind="static"),
+    )
+    # Static + a single 42-second .ana indur > 300s cap should reject.
+    errors = await check_duration_preflight(
+        entry=entry,
+        params={},
+        resolved_inputs=[ana_input],
+        duration_cap_s=10.0,  # tighten so 42s breaches
+        session_root=session_root,
+        cdp_path=cdp_path,
+        cdp_version="r8-fake",
+        ana_duration_cache_dir=cache_dir,
+    )
+    assert len(errors) == 1
+    assert errors[0].type == "predicted_duration_exceeds_cap"
+    assert "42" in errors[0].message
+
+
+async def test_preflight_ana_fallback_disabled_without_full_cdp_context(
+    tmp_path,
+):
+    """Omitting any of the four CDP-context kwargs reduces to Phase 1b:
+    the .ana branch returns None and the static model skips the check.
+    This is the load-bearing backward-compat guarantee."""
+    cdp_path = (tmp_path / "cdp").resolve()
+    cdp_path.mkdir()
+    _install_fake_sfprops(cdp_path, duration="42.0")
+
+    session_root = (tmp_path / "session").resolve()
+    session_root.mkdir()
+    inputs_dir = session_root / "inputs"
+    inputs_dir.mkdir()
+    ana_input = inputs_dir / "in.ana"
+    ana_input.write_bytes(b"\xff\x00" * 1024)
+
+    entry = _make_entry(
+        duration_model=DurationModelStatic(kind="static"),
+    )
+    # Provide three of the four kwargs (omit ana_duration_cache_dir);
+    # the fallback must stay off, so duration is None → skip.
+    errors = await check_duration_preflight(
+        entry=entry,
+        params={},
+        resolved_inputs=[ana_input],
+        duration_cap_s=10.0,
+        session_root=session_root,
+        cdp_path=cdp_path,
+        cdp_version="r8-fake",
+    )
+    assert errors == []

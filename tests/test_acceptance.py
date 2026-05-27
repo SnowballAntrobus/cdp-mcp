@@ -33,6 +33,7 @@ import soundfile as sf
 from cdp_mcp.config import detect_cdp
 from cdp_mcp.graph import LatestTracker
 from cdp_mcp.knowledge.loader import KnowledgeIndex
+from cdp_mcp.pvoc import read_ana_duration
 from cdp_mcp.session import SessionManager
 from cdp_mcp.tools.analyze import analyze_impl
 from cdp_mcp.tools.process import process_impl
@@ -165,6 +166,33 @@ async def test_frog_acceptance_chain(acceptance_env):
         assert (graph_1_dir / required).is_file(), (
             f"Missing {required} in {graph_1_dir}"
         )
+
+    # ------------------------------------------------------------------
+    # Step 1.5 (Phase 2 Task 2 gate): real `sfprops -d` parses the
+    # auto-PVOC output's .ana duration cleanly. Reads the n1 (pvoc anal)
+    # node's .ana — the input wav was 2 s, so this should report ~2 s
+    # within a couple of analysis frames. If real CDP r8's sfprops
+    # ever stops parsing cleanly, this assertion fails on first run and
+    # the read_ana_duration design premise needs revision.
+    # ------------------------------------------------------------------
+    pvoc_ana_path = graph_1_dir / node_index_1["n1"]
+    assert pvoc_ana_path.suffix == ".ana"
+    ana_duration = await read_ana_duration(
+        pvoc_ana_path,
+        session_root=env.session.root,
+        cdp_path=env.cdp_config.cdp_path,
+        cache_dir=env.session.tmp_dir / "ana_durations",
+        cdp_version=env.cdp_config.version,
+    )
+    assert ana_duration is not None, (
+        f"read_ana_duration returned None against real sfprops on "
+        f"{pvoc_ana_path} — the Phase 2 Task 2 design premise may need "
+        f"revision (see docs/phase-2-determinism.md / pvoc.read_ana_duration)."
+    )
+    assert ana_duration == pytest.approx(2.0, abs=0.05), (
+        f"sfprops reported {ana_duration:.4f}s for an .ana derived from "
+        f"a 2.0s wav; expected ~2.0s within an analysis frame."
+    )
 
     # ------------------------------------------------------------------
     # Step 2: visualize the blur output — auto-synths .ana → temp .wav.

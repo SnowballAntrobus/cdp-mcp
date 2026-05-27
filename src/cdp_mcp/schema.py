@@ -257,6 +257,10 @@ class CompiledBreakpoint(BaseModel):
       directly via ``soundfile.info()``.
     - ``"pvoc_lineage"`` — duration came from an auto-PVOC node in the
       same graph (chained .wav → .ana → main op case).
+    - ``"ana_sfprops"`` — duration came from shelling out to CDP's
+      ``sfprops -d`` on a .ana whose source wav isn't reachable in the
+      current graph (pre-converted .ana in inputs/, or cross-graph
+      reference). Phase 2 Task 2.
     - ``"preexisting_brk"`` — user supplied an existing .brk file by
       path. No compilation happened; ``source_duration_s`` is ``None``.
     """
@@ -264,7 +268,9 @@ class CompiledBreakpoint(BaseModel):
     path: str  # absolute path to the .brk file
     sha256: str  # content hash of the .brk file
     source_duration_s: float | None  # None when path mode (not compiled)
-    source_kind: Literal["input_wav", "pvoc_lineage", "preexisting_brk"]
+    source_kind: Literal[
+        "input_wav", "pvoc_lineage", "ana_sfprops", "preexisting_brk"
+    ]
 
 
 class NodeLineage(BaseModel):

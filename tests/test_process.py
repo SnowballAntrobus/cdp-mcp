@@ -820,3 +820,52 @@ exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
     assert bp["blurring"]["source_kind"] == "pvoc_lineage"
     assert bp["blurring"]["source_duration_s"] == pytest.approx(2.0, abs=0.01)
 
+
+async def test_process_breakpoint_source_kind_ana_sfprops_fallback(
+    mcp_with_process,
+):
+    """Pre-converted .ana in inputs/ → no same-graph PVOC lineage →
+    _resolve_source_duration falls back to sfprops via read_ana_duration.
+
+    Asserts the lineage record carries source_kind="ana_sfprops" and
+    the duration matches the fake sfprops output. Phase 2 Task 2.
+    """
+    mcp, sessions, _tracker, cdp_path = mcp_with_process
+    session, _ = sessions.set_active("s1")
+
+    # Stub .ana input — bytes don't matter, just that it has the .ana suffix
+    # so PVOC anal isn't auto-inserted (blur is spectral, input is already
+    # spectral, so the auto-insert is skipped and pvoc_source_nodes[0] is None).
+    (session.inputs_dir / "frog.ana").write_bytes(b"\xff\x00" * 1024)
+
+    # Install fake sfprops that reports a known duration. Generic test util,
+    # not a CDP-quirk flag.
+    (cdp_path / "sfprops").write_text(
+        f"""#!/usr/bin/env bash
+exec "{_FAKE_SUBPROCESS}" --print-ana-duration "7.5"
+"""
+    )
+    (cdp_path / "sfprops").chmod(0o755)
+
+    p = await _call(
+        mcp,
+        "process",
+        {
+            "program": "blur", "mode": "blur",
+            "input": "frog.ana",
+            # Relative-time breakpoints — require source_duration_s to compile.
+            "params": {"blurring": [[0.0, 5], [1.0, 50]]},
+        },
+    )
+    assert p["status"] == "ok", p["errors"]
+
+    graph_id = p["context"]["active_graph"]
+    doc = json.loads(
+        (session.graphs_dir / graph_id / "lineage.json").read_text()
+    )
+    # Pre-converted .ana → no PVOC auto-insert → blur is the only node.
+    assert list(doc["nodes"].keys()) == ["n1"]
+    bp_record = doc["nodes"]["n1"]["compiled_breakpoints"]["blurring"]
+    assert bp_record["source_kind"] == "ana_sfprops"
+    assert bp_record["source_duration_s"] == pytest.approx(7.5, abs=0.001)
+

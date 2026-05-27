@@ -15,6 +15,7 @@ from cdp_mcp.graph import GraphDir
 from cdp_mcp.pvoc import (
     PVOCFailedError,
     maybe_insert_pvoc,
+    read_ana_duration,
     synth_for_audition,
 )
 from cdp_mcp.schema import NodeLineage
@@ -724,3 +725,223 @@ async def test_audition_cache_populate_failure_non_fatal(
     assert "cache populate failed" in err.lower()
     # Nothing got written to the cache.
     assert list(audition_dir.glob("*.wav")) == []
+
+    
+# ---------------------------------------------------------------------------
+# Phase 2 Task 2 — read_ana_duration (sfprops -d shell-out, session-cached)
+# ---------------------------------------------------------------------------
+
+
+def _install_sfprops_wrapper(
+    cdp_path: Path,
+    *,
+    duration: str = "2.143",
+    exit_code: int = 0,
+    extra_argv: list[str] | None = None,
+) -> None:
+    """Install a fake ``sfprops`` binary that prints ``duration`` and exits.
+
+    ``extra_argv`` lets callers inject additional fake-subprocess flags
+    (e.g. ``--sleep 5`` for the timeout test). The wrapper ignores its
+    own argv (sfprops -d <path>) and just defers to fake_subprocess.py.
+    """
+    wrapper = cdp_path / "sfprops"
+    if wrapper.exists():
+        wrapper.unlink()
+    extras = " ".join(extra_argv or [])
+    wrapper.write_text(
+        f"""#!/usr/bin/env bash
+exec "{_FAKE_SUBPROCESS}" --print-ana-duration "{duration}" --exit {exit_code} {extras}
+"""
+    )
+    wrapper.chmod(0o755)
+
+
+@pytest.fixture
+def ana_input(session_and_graph) -> Path:
+    """Stub .ana file in session.inputs_dir for sfprops shell-out tests."""
+    session, _graph = session_and_graph
+    ana = session.inputs_dir / "stub.ana"
+    ana.write_bytes(b"\xff\x00" * 1024)
+    return ana
+
+
+async def test_read_ana_duration_happy_path(
+    fake_cdp_path, session_and_graph, ana_input
+):
+    session, _graph = session_and_graph
+    _install_sfprops_wrapper(fake_cdp_path, duration="2.143")
+    cache_dir = session.tmp_dir / "ana_durations"
+
+    d = await read_ana_duration(
+        ana_input,
+        session_root=session.root,
+        cdp_path=fake_cdp_path,
+        cache_dir=cache_dir,
+        cdp_version="r8",
+    )
+    assert d == pytest.approx(2.143)
+
+
+async def test_read_ana_duration_cache_miss_populates_cache(
+    fake_cdp_path, session_and_graph, ana_input
+):
+    session, _graph = session_and_graph
+    _install_sfprops_wrapper(fake_cdp_path, duration="3.5")
+    cache_dir = session.tmp_dir / "ana_durations"
+
+    d = await read_ana_duration(
+        ana_input,
+        session_root=session.root,
+        cdp_path=fake_cdp_path,
+        cache_dir=cache_dir,
+        cdp_version="r8",
+    )
+    assert d == pytest.approx(3.5)
+    files = list(cache_dir.glob("*.duration"))
+    assert len(files) == 1
+    assert files[0].read_text(encoding="utf-8").strip() == "3.5"
+
+
+async def test_read_ana_duration_cache_hit_skips_subprocess(
+    fake_cdp_path, session_and_graph, ana_input, monkeypatch
+):
+    """Second call with identical (ana bytes, cdp_version) → cache hit;
+    ``run_cdp_command`` must not be invoked."""
+    session, _graph = session_and_graph
+    _install_sfprops_wrapper(fake_cdp_path, duration="4.0")
+    cache_dir = session.tmp_dir / "ana_durations"
+
+    first = await read_ana_duration(
+        ana_input,
+        session_root=session.root,
+        cdp_path=fake_cdp_path,
+        cache_dir=cache_dir,
+        cdp_version="r8",
+    )
+    assert first == pytest.approx(4.0)
+
+    from unittest.mock import AsyncMock
+    boom = AsyncMock(side_effect=AssertionError(
+        "subprocess must not run on read_ana_duration cache hit"
+    ))
+    monkeypatch.setattr("cdp_mcp.pvoc.run_cdp_command", boom)
+
+    second = await read_ana_duration(
+        ana_input,
+        session_root=session.root,
+        cdp_path=fake_cdp_path,
+        cache_dir=cache_dir,
+        cdp_version="r8",
+    )
+    assert second == pytest.approx(4.0)
+    boom.assert_not_called()
+
+
+async def test_read_ana_duration_cache_invalidates_on_cdp_version_change(
+    fake_cdp_path, session_and_graph, ana_input
+):
+    session, _graph = session_and_graph
+    _install_sfprops_wrapper(fake_cdp_path, duration="5.0")
+    cache_dir = session.tmp_dir / "ana_durations"
+
+    await read_ana_duration(
+        ana_input,
+        session_root=session.root,
+        cdp_path=fake_cdp_path,
+        cache_dir=cache_dir,
+        cdp_version="r7",
+    )
+    # Bump cdp_version — different key → second cache file appears.
+    await read_ana_duration(
+        ana_input,
+        session_root=session.root,
+        cdp_path=fake_cdp_path,
+        cache_dir=cache_dir,
+        cdp_version="r8",
+    )
+    files = list(cache_dir.glob("*.duration"))
+    assert len(files) == 2
+
+
+async def test_read_ana_duration_missing_binary_returns_none(
+    fake_cdp_path, session_and_graph, ana_input
+):
+    """No ``sfprops`` in ``fake_cdp_path`` → security check rejects → None."""
+    session, _graph = session_and_graph
+    # Deliberately do NOT install an sfprops wrapper.
+    cache_dir = session.tmp_dir / "ana_durations"
+
+    d = await read_ana_duration(
+        ana_input,
+        session_root=session.root,
+        cdp_path=fake_cdp_path,
+        cache_dir=cache_dir,
+        cdp_version="r8",
+    )
+    assert d is None
+
+
+async def test_read_ana_duration_exit_one_returns_none(
+    fake_cdp_path, session_and_graph, ana_input
+):
+    """Non-zero exit (mimics sfprops on corrupt file) → returns None."""
+    session, _graph = session_and_graph
+    _install_sfprops_wrapper(fake_cdp_path, duration="0", exit_code=1)
+    cache_dir = session.tmp_dir / "ana_durations"
+
+    d = await read_ana_duration(
+        ana_input,
+        session_root=session.root,
+        cdp_path=fake_cdp_path,
+        cache_dir=cache_dir,
+        cdp_version="r8",
+    )
+    assert d is None
+    # And no cache entry on failure — failures don't poison the cache.
+    assert list(cache_dir.glob("*.duration")) == []
+
+
+async def test_read_ana_duration_unparseable_stdout_returns_none(
+    fake_cdp_path, session_and_graph, ana_input
+):
+    """sfprops emits non-numeric text on stdout → returns None.
+
+    Defensive against the Phase 1b §5 finding that CDP can write error
+    text to stdout even on exit 0.
+    """
+    session, _graph = session_and_graph
+    _install_sfprops_wrapper(fake_cdp_path, duration="banana")
+    cache_dir = session.tmp_dir / "ana_durations"
+
+    d = await read_ana_duration(
+        ana_input,
+        session_root=session.root,
+        cdp_path=fake_cdp_path,
+        cache_dir=cache_dir,
+        cdp_version="r8",
+    )
+    assert d is None
+
+
+async def test_read_ana_duration_timeout_returns_none(
+    fake_cdp_path, session_and_graph, ana_input
+):
+    """Subprocess exceeds the timeout → returns None."""
+    session, _graph = session_and_graph
+    # --sleep runs *before* --exit so the process is killed before printing.
+    _install_sfprops_wrapper(
+        fake_cdp_path, duration="6.0", extra_argv=["--sleep", "5"]
+    )
+    cache_dir = session.tmp_dir / "ana_durations"
+
+    d = await read_ana_duration(
+        ana_input,
+        session_root=session.root,
+        cdp_path=fake_cdp_path,
+        cache_dir=cache_dir,
+        cdp_version="r8",
+        timeout_seconds=0.5,
+    )
+    assert d is None
+
