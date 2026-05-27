@@ -123,6 +123,18 @@ CDP_PATH=/path/to/cdpr8/_cdp/_cdprogs pytest tests/test_acceptance.py -v
 
 The per-tool tests in `test_execute.py`, `test_process.py`, `test_visualize.py`, `test_analyze.py` use a fake-CDP wrapper (`tests/fixtures/fake_subprocess.py`) and cover orchestration concerns exhaustively without needing CDP installed.
 
+### Slow tests (MCP keepalive stress test)
+
+Tests marked `@pytest.mark.slow` are excluded from the default `pytest` cycle (configured in `pyproject.toml`). They take 80–120 seconds. To run:
+
+```bash
+pytest -m slow tests/test_stress.py
+```
+
+`tests/test_stress.py` exercises the MCP keepalive mechanism: a subprocess sleeps for 80 s while emitting periodic stderr, and the test asserts that `ctx.report_progress` fired multiple times during the run. Without those notifications Claude Desktop would close the connection at ~60 s. The test uses `tests/fixtures/fake_subprocess.py` rather than real CDP for deterministic duration across machines — see the test's module docstring for the rationale.
+
+To run every test including slow ones: `pytest -m ''`.
+
 ### Apple Silicon
 
 CDP binaries are x86-only. The server auto-wraps subprocesses with `arch -x86_64` on arm64 macOS. Disable with `CDP_MCP_DISABLE_ARCH_X86_64=1` (needed for tests where the test subprocess runs a system Python that isn't a fat binary).

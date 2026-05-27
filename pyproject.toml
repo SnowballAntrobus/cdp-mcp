@@ -58,5 +58,14 @@ select = ["E", "F", "I", "W", "UP", "B"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 # Belt-and-suspenders against async-coordination bugs hanging the suite.
-# Individual tests can tighten via @pytest.mark.timeout(<seconds>).
+# Individual tests can tighten via @pytest.mark.timeout(<seconds>) or
+# loosen with a larger value (the stress test in tests/test_stress.py
+# uses @pytest.mark.timeout(300) since it intentionally runs ~60-180s).
 timeout = 30
+markers = [
+    "slow: tests that take longer than 30 seconds and need real CDP (use `pytest -m slow`)",
+    "timeout: per-test timeout in seconds (provided by pytest-timeout)",
+]
+# Default: exclude slow tests. Run them with `pytest -m slow` or
+# `pytest -m ''` to run everything.
+addopts = "-m 'not slow'"
