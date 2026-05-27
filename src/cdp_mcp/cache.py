@@ -242,6 +242,17 @@ def analysis_cache_key(
     )
 
 
+def audition_cache_key(ana_sha256: str, cdp_version: str) -> str:
+    """Cache key for an audition synth result.
+
+    ``synth_for_audition`` runs ``pvoc synth`` to convert a spectral
+    ``.ana`` to a temporary ``.wav`` for ``visualize``/``analyze`` to
+    render. Output is a pure function of (.ana bytes, CDP version);
+    no Python libraries are involved.
+    """
+    return _compose_key("audition", ana_sha256, cdp_version)
+
+
 def visualization_cache_key(
     audio_sha256: str,
     mode: str,

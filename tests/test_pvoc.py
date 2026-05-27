@@ -575,3 +575,148 @@ async def test_pvoc_cache_invalidates_on_cdp_version_change(
     # Two distinct cache entries now exist.
     cached_files = list((cache_root / "pvoc").glob("*.ana"))
     assert len(cached_files) == 2
+
+
+# ---------------------------------------------------------------------------
+# Task 11 — Audition cache for synth_for_audition
+# ---------------------------------------------------------------------------
+
+
+def _install_pvoc_synth_wrapper(fake_cdp_path: Path) -> None:
+    """Replace ``pvoc`` with a wrapper that emits a valid wav at argv[-1]
+    for the synth call."""
+    wrapper = fake_cdp_path / "pvoc"
+    wrapper.unlink()
+    wrapper.write_text(
+        f"""#!/bin/sh
+OUTPUT="${{@: -1}}"
+exec "{_FAKE_SUBPROCESS}" --write-wav "$OUTPUT"
+"""
+    )
+    wrapper.chmod(0o755)
+
+
+async def test_audition_cache_miss_populates_cache(
+    fake_cdp_path, session_and_graph, cache_root
+):
+    """First call: subprocess runs and populates the audition tier."""
+    session, _graph = session_and_graph
+    ana = session.inputs_dir / "frog.ana"
+    ana.write_bytes(b"\x00" * 2000)
+    _install_pvoc_synth_wrapper(fake_cdp_path)
+
+    out, sub = await synth_for_audition(
+        ana,
+        session=session,
+        cdp_path=fake_cdp_path,
+        cache_root=cache_root,
+        cdp_version="r8",
+    )
+    # Miss → CDP wrote to session.tmp_dir.
+    assert out.parent == session.tmp_dir
+    assert sub.duration_ms >= 0
+    # Cache populated.
+    cached = list((cache_root / "audition").glob("*.wav"))
+    assert len(cached) == 1
+    assert cached[0].stat().st_size > 0
+
+
+async def test_audition_cache_hit_skips_subprocess(
+    fake_cdp_path, session_and_graph, cache_root, monkeypatch
+):
+    """Second call with identical (.ana bytes, cdp_version) → cache hit.
+    Subprocess MUST NOT run; we return the cache path directly."""
+    session, _graph = session_and_graph
+    ana = session.inputs_dir / "frog.ana"
+    ana.write_bytes(b"\x00" * 2000)
+    _install_pvoc_synth_wrapper(fake_cdp_path)
+
+    # Prime cache.
+    out1, _ = await synth_for_audition(
+        ana,
+        session=session,
+        cdp_path=fake_cdp_path,
+        cache_root=cache_root,
+        cdp_version="r8",
+    )
+    assert out1.parent == session.tmp_dir
+
+    # Second call — subprocess must not be invoked.
+    from unittest.mock import AsyncMock
+    boom = AsyncMock(side_effect=AssertionError("subprocess must not run on cache hit"))
+    monkeypatch.setattr("cdp_mcp.pvoc.run_cdp_command", boom)
+
+    out2, sub2 = await synth_for_audition(
+        ana,
+        session=session,
+        cdp_path=fake_cdp_path,
+        cache_root=cache_root,
+        cdp_version="r8",
+    )
+    boom.assert_not_called()
+    # Hit → returned path is the cache file, not session.tmp_dir.
+    assert out2.parent == (cache_root / "audition").resolve()
+    assert sub2.duration_ms == 0
+    assert sub2.argv == []
+    assert "audition cache hit" in sub2.stderr
+
+
+async def test_audition_cache_invalidates_on_cdp_version_change(
+    fake_cdp_path, session_and_graph, cache_root
+):
+    """Same .ana bytes, different cdp_version → cache miss again. Two
+    distinct cache entries result."""
+    session, _graph = session_and_graph
+    ana = session.inputs_dir / "frog.ana"
+    ana.write_bytes(b"\x00" * 2000)
+    _install_pvoc_synth_wrapper(fake_cdp_path)
+
+    out1, _ = await synth_for_audition(
+        ana, session=session, cdp_path=fake_cdp_path,
+        cache_root=cache_root, cdp_version="r7",
+    )
+    out2, sub2 = await synth_for_audition(
+        ana, session=session, cdp_path=fake_cdp_path,
+        cache_root=cache_root, cdp_version="r8",
+    )
+    # Both runs went through the subprocess (both miss).
+    assert out1.parent == session.tmp_dir
+    assert out2.parent == session.tmp_dir
+    assert sub2.argv != []  # subprocess actually invoked
+    cached = list((cache_root / "audition").glob("*.wav"))
+    assert len(cached) == 2  # two distinct cache entries
+
+
+async def test_audition_cache_populate_failure_non_fatal(
+    fake_cdp_path, session_and_graph, cache_root, capsys
+):
+    """If cache_populate can't write (chmod 0555 on the audition dir),
+    the call still returns the in-session output successfully with a
+    stderr warning."""
+    import os
+    if os.geteuid() == 0:
+        pytest.skip("Root can write through 0o500 perms — skip.")
+    session, _graph = session_and_graph
+    ana = session.inputs_dir / "frog.ana"
+    ana.write_bytes(b"\x00" * 2000)
+    _install_pvoc_synth_wrapper(fake_cdp_path)
+
+    # Pre-create the audition dir as read-only so the .tmp write fails.
+    audition_dir = cache_root / "audition"
+    audition_dir.mkdir()
+    audition_dir.chmod(0o555)
+    try:
+        out, sub = await synth_for_audition(
+            ana, session=session, cdp_path=fake_cdp_path,
+            cache_root=cache_root, cdp_version="r8",
+        )
+    finally:
+        audition_dir.chmod(0o755)  # restore for tmp_path cleanup
+
+    assert out.exists()  # in-session output still usable
+    assert out.parent == session.tmp_dir
+    assert sub.exit_code == 0
+    err = capsys.readouterr().err
+    assert "cache populate failed" in err.lower()
+    # Nothing got written to the cache.
+    assert list(audition_dir.glob("*.wav")) == []

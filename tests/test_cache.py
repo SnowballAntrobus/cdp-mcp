@@ -16,6 +16,7 @@ from cdp_mcp.cache import (
     _format_window,
     _lib_versions_for_tier,
     analysis_cache_key,
+    audition_cache_key,
     cache_lookup,
     cache_populate,
     cache_populate_json,
@@ -110,6 +111,36 @@ def test_visualization_cache_key_sensitive_to_render_params():
     a = visualization_cache_key("audio_sha", "mel", None, None, "rp_a")
     b = visualization_cache_key("audio_sha", "mel", None, None, "rp_b")
     assert a != b
+
+
+def test_audition_cache_key_deterministic():
+    a = audition_cache_key("ana_sha", "r8")
+    b = audition_cache_key("ana_sha", "r8")
+    assert a == b
+
+
+def test_audition_cache_key_sensitive_to_ana_sha():
+    a = audition_cache_key("sha_one", "r8")
+    b = audition_cache_key("sha_two", "r8")
+    assert a != b
+
+
+def test_audition_cache_key_sensitive_to_cdp_version():
+    a = audition_cache_key("ana_sha", "r8")
+    b = audition_cache_key("ana_sha", "r9")
+    assert a != b
+
+
+def test_audition_cache_key_distinct_from_other_tiers():
+    """Same audio sha through different per-tier builders yields
+    different keys — the tier-prefix component prevents accidental
+    cross-tier collisions (e.g., same .ana hash showing up as both a
+    pvoc-synth key and an audition key would otherwise collide on the
+    bytes content)."""
+    ana_sha = "abc"
+    pvoc_k = pvoc_cache_key(ana_sha, "synth", "r8")
+    audition_k = audition_cache_key(ana_sha, "r8")
+    assert pvoc_k != audition_k
 
 
 def test_lib_versions_for_tier_excludes_irrelevant_libs():

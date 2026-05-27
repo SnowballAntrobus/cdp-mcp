@@ -21,6 +21,7 @@ import soundfile as sf
 from mcp.server.fastmcp import Context
 
 from .cache import (
+    audition_cache_key,
     cache_lookup,
     cache_populate,
     materialize_cached_artifact,
@@ -442,17 +443,38 @@ async def synth_for_audition(
     lineage entry** — the temp wav is purely a rendering aid. It lives in
     ``session.tmp_dir`` until Phase 1b's ``cleanup()`` tool removes it.
 
-    Output filename: ``<ana_path.stem>.wav``. Always re-synthesizes; the
+    Output filename: ``<ana_path.stem>.wav``. On a cache miss the
     pre-existing wav (if any) is deleted first because CDP r8's
     ``pvoc synth`` refuses to overwrite existing files and exits 255.
-    Phase 1b will add a content-addressable cache layer; until then,
-    every call pays the synth cost.
+
+    Cached at ``~/.cdp_mcp/cache/audition/<sha>.wav`` keyed by
+    ``sha256(ana_bytes + cdp_version)`` (Task 11). A cache hit returns
+    the cached path directly, skipping the subprocess entirely; a miss
+    runs ``pvoc synth`` into ``session.tmp_dir`` (the cwd-relative
+    argv path keeps Task 2's brassage-style path-mangling defense in
+    play) and then populates the cache best-effort.
 
     Raises:
         PVOCFailedError: on non-zero exit, timeout, or missing output.
         SecurityError: if the constructed argv fails the security gate
             (should not happen in normal use; surfaces as a bug signal).
     """
+    # Cache check (Task 11). On hit, return the cache path directly;
+    # callers read via librosa (no writes), so no materialize needed.
+    ana_sha = sha256_file(ana_path)
+    cache = cache_lookup(
+        cache_root, "audition", audition_cache_key(ana_sha, cdp_version), ".wav",
+    )
+    if cache.hit:
+        return cache.path, SubprocessResult(
+            argv=[],
+            stdout="",
+            stderr="(audition cache hit)",
+            exit_code=0,
+            duration_ms=0,
+            timed_out=False,
+        )
+
     output_path = session.tmp_dir / f"{ana_path.stem}.wav"
     # Defensive — Task 3's _SUBDIRS already creates tmp/ at session init,
     # but a caller building a Session by hand might forget it.
@@ -502,5 +524,10 @@ async def synth_for_audition(
             f"pvoc synth exited 0 but produced no output at {output_path}",
             subprocess_result=sub,
         )
+
+    # Best-effort cache populate (Task 11). Failure logs a stderr
+    # warning and returns False; the in-session output remains usable
+    # regardless of cache state.
+    cache_populate(cache.path, output_path)
 
     return output_path, sub

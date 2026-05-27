@@ -242,3 +242,54 @@ async def test_visualize_cache_invalidates_on_matplotlib_version_change(
     monkeypatch.setitem(cache_mod._LIB_VERSIONS, "matplotlib", "test-v2")
     result_2 = await _call(mcp, {"target": "frog.wav"})
     assert result_2[1]["cached"] is False
+
+
+# ---------------------------------------------------------------------------
+# Task 11 — Audition cache user-facing payoff: parameter variation hits cache
+# ---------------------------------------------------------------------------
+
+
+async def test_visualize_param_variation_hits_audition_cache(
+    mcp_with_visualize, tmp_path, monkeypatch
+):
+    """Two visualize() calls on the same .ana target with different
+    t_start values. First call: viz miss + audition miss → pvoc synth
+    runs. Second call: viz miss (different window) + audition hit →
+    pvoc synth MUST NOT run.
+
+    This is the headline payoff of Task 11 — varying parameters on a
+    spectral target gets cheap after the first call.
+    """
+    mcp, sessions, _tracker = mcp_with_visualize
+    session, _ = sessions.set_active("s1")
+
+    # The fake_subprocess --write-wav stub emits 200 samples at 44.1kHz
+    # (~4.5ms), so t_start values must stay well under that. Both calls
+    # produce different windows → different viz cache keys → both viz
+    # cache miss; identical .ana bytes → audition cache hits on call 2.
+    (session.inputs_dir / "frog.ana").write_bytes(b"\x00" * 2000)
+
+    # First call: cold, pvoc synth runs (no t_start).
+    result_1 = await _call(mcp, {"target": "frog.ana"})
+    assert result_1[1]["status"] == "ok", result_1[0] if result_1[0].get("errors") else result_1
+    assert result_1[1]["auto_synthed"] is True
+
+    # Second call: different window (viz cache miss), but the .ana
+    # bytes are identical → audition cache hit. Patch run_cdp_command
+    # to fail loudly if invoked.
+    from unittest.mock import AsyncMock
+    boom = AsyncMock(side_effect=AssertionError(
+        "pvoc synth must not run on audition cache hit"
+    ))
+    monkeypatch.setattr("cdp_mcp.pvoc.run_cdp_command", boom)
+
+    result_2 = await _call(
+        mcp, {"target": "frog.ana", "t_start": 0.001, "t_end": 0.004}
+    )
+    boom.assert_not_called()
+    assert isinstance(result_2, list) and len(result_2) == 2, result_2
+    envelope_2 = result_2[1]
+    assert envelope_2["status"] == "ok", envelope_2
+    assert envelope_2["auto_synthed"] is True
+    # Viz cache itself missed (different window).
+    assert envelope_2["cached"] is False
