@@ -288,6 +288,72 @@ def test_preexisting_brk_missing_file_errors(tmp_path):
     )
 
 
+def test_preexisting_brk_bare_name_found_in_envelopes_dir(tmp_path):
+    """Bare basename like 'shift.brk' resolves against envelopes_dir
+    first — the canonical location. This is the ergonomic shortcut the
+    follow-up fix targeted (no more requiring 'envelopes/shift.brk')."""
+    envelopes = tmp_path / "envelopes"
+    envelopes.mkdir()
+    (envelopes / "shift.brk").write_text("0 5\n5 25\n")
+    result = compile_breakpoint_value(
+        param_name="blurring",
+        param_spec=_BREAKPOINT_SPEC,
+        value="shift.brk",
+        source_duration_s=None,
+        source_kind=None,
+        session_root=tmp_path,
+        envelopes_dir=envelopes,
+    )
+    assert not result.errors
+    assert result.compiled_path == (envelopes / "shift.brk").resolve()
+    assert result.record.source_kind == "preexisting_brk"
+
+
+def test_preexisting_brk_explicit_envelopes_path_still_works(tmp_path):
+    """Explicit 'envelopes/shift.brk' falls back to session_root
+    resolution after the envelopes_dir/envelopes/shift.brk primary
+    miss — and that points at the same file. Backward compatibility."""
+    envelopes = tmp_path / "envelopes"
+    envelopes.mkdir()
+    (envelopes / "shift.brk").write_text("0 5\n5 25\n")
+    result = compile_breakpoint_value(
+        param_name="blurring",
+        param_spec=_BREAKPOINT_SPEC,
+        value="envelopes/shift.brk",
+        source_duration_s=None,
+        source_kind=None,
+        session_root=tmp_path,
+        envelopes_dir=envelopes,
+    )
+    assert not result.errors
+    assert result.compiled_path == (envelopes / "shift.brk").resolve()
+
+
+def test_preexisting_brk_missing_in_both_locations_reports_both(tmp_path):
+    """When the file isn't in envelopes_dir OR session_root, the error
+    message lists both attempted paths and the fix names envelopes/."""
+    envelopes = tmp_path / "envelopes"
+    envelopes.mkdir()
+    result = compile_breakpoint_value(
+        param_name="blurring",
+        param_spec=_BREAKPOINT_SPEC,
+        value="missing.brk",
+        source_duration_s=None,
+        source_kind=None,
+        session_root=tmp_path,
+        envelopes_dir=envelopes,
+    )
+    err = next(
+        e for e in result.errors
+        if e.type == "param_breakpoint_file_unreadable"
+    )
+    # Both attempted paths appear in the message.
+    assert str(envelopes / "missing.brk") in err.message
+    assert str(tmp_path / "missing.brk") in err.message
+    # Fix names the canonical envelopes/ location.
+    assert "envelopes/" in err.fix
+
+
 # ---------------------------------------------------------------------------
 # Determinism / content addressing
 # ---------------------------------------------------------------------------

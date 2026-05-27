@@ -225,3 +225,73 @@ async def test_available_sessions_consistent_across_tools(mcp_with_workspace):
     # should list both newly-created sessions sorted.
     assert desc["available_sessions"] == ["a", "b"]
     assert desc["active_session"] == "b"
+
+
+# ---------------------------------------------------------------------------
+# read_envelope + envelope_files in describe_workspace
+# ---------------------------------------------------------------------------
+
+
+async def test_describe_workspace_lists_envelope_files(mcp_with_workspace):
+    mcp, _, tmp_path, _ = mcp_with_workspace
+    await _call_raw(mcp, "set_session", {"name": "envs"})
+    envelopes = tmp_path / "envs" / "envelopes"
+    (envelopes / "shift.brk").write_text("0 5\n5 25\n")
+    (envelopes / "ramp.brk").write_text("0 1\n10 100\n")
+    # Subdirectory inside envelopes/ is skipped (flat listing convention).
+    (envelopes / "subdir").mkdir()
+    desc = await _call_raw(mcp, "describe_workspace", {})
+    assert desc["envelope_files"] == ["ramp.brk", "shift.brk"]
+    assert desc["envelope_count"] == 2
+
+
+async def test_read_envelope_happy_path(mcp_with_workspace):
+    mcp, _, tmp_path, _ = mcp_with_workspace
+    await _call_raw(mcp, "set_session", {"name": "envs"})
+    contents = "0 5\n5 25\n10 50\n"
+    (tmp_path / "envs" / "envelopes" / "shift.brk").write_text(contents)
+    payload = await _call_raw(mcp, "read_envelope", {"name": "shift.brk"})
+    assert payload["name"] == "shift.brk"
+    assert payload["content"] == contents
+    assert payload["size_bytes"] == len(contents.encode("utf-8"))
+    assert payload["truncated"] is False
+    assert payload["path"].endswith("/envelopes/shift.brk")
+
+
+async def test_read_envelope_requires_active_session(mcp_with_workspace):
+    mcp, _, _, _ = mcp_with_workspace
+    # No set_session called yet.
+    with pytest.raises(ToolError, match="No active session"):
+        await _call_raw(mcp, "read_envelope", {"name": "shift.brk"})
+
+
+async def test_read_envelope_rejects_path_separators(mcp_with_workspace):
+    mcp, _, _, _ = mcp_with_workspace
+    await _call_raw(mcp, "set_session", {"name": "envs"})
+    with pytest.raises(ToolError, match="bare basename"):
+        await _call_raw(mcp, "read_envelope", {"name": "sub/foo.brk"})
+    with pytest.raises(ToolError, match="bare basename"):
+        await _call_raw(mcp, "read_envelope", {"name": "../escape.brk"})
+
+
+async def test_read_envelope_rejects_unsupported_extension(
+    mcp_with_workspace,
+):
+    mcp, _, tmp_path, _ = mcp_with_workspace
+    await _call_raw(mcp, "set_session", {"name": "envs"})
+    # Even if a wav happens to live in envelopes/, the tool refuses.
+    (tmp_path / "envs" / "envelopes" / "foo.wav").write_bytes(b"riff stub")
+    with pytest.raises(ToolError, match="Unsupported envelope extension"):
+        await _call_raw(mcp, "read_envelope", {"name": "foo.wav"})
+
+
+async def test_read_envelope_truncates_large_files(mcp_with_workspace):
+    mcp, _, tmp_path, _ = mcp_with_workspace
+    await _call_raw(mcp, "set_session", {"name": "envs"})
+    # 100 KiB > 64 KiB cap.
+    big = "x" * (100 * 1024)
+    (tmp_path / "envs" / "envelopes" / "big.brk").write_text(big)
+    payload = await _call_raw(mcp, "read_envelope", {"name": "big.brk"})
+    assert payload["truncated"] is True
+    assert payload["size_bytes"] == 100 * 1024
+    assert len(payload["content"]) == 64 * 1024

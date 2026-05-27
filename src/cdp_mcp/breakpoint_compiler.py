@@ -141,6 +141,7 @@ def compile_breakpoint_value(
             param_name=param_name,
             value=value,
             session_root=session_root,
+            envelopes_dir=envelopes_dir,
         )
 
     # List mode — relative or absolute tuple list.
@@ -198,24 +199,52 @@ def _handle_preexisting_path(
     param_name: str,
     value: str,
     session_root: Path,
+    envelopes_dir: Path,
 ) -> BreakpointCompileResult:
-    # Resolve relative paths against session_root; absolute paths pass
-    # through (the path-scope security gate in build_cdp_argv catches
-    # paths outside the session tree later).
+    """Resolve and read a pre-existing .brk file referenced by path.
+
+    Resolution order for relative paths:
+    1. ``envelopes_dir / value`` — canonical location for .brk files.
+       Bare basenames like ``"shift.brk"`` find files dropped into
+       ``<session>/envelopes/`` on the first try.
+    2. ``session_root / value`` — fallback for explicit paths like
+       ``"envelopes/shift.brk"`` or ``"templates/foo/bar.brk"``.
+
+    Absolute paths pass through unchanged. The path-scope security
+    gate in ``build_cdp_argv`` rejects paths outside the session tree
+    later if needed.
+    """
     raw_path = Path(value)
-    resolved = raw_path if raw_path.is_absolute() else (session_root / raw_path)
+    primary: Path | None = None
+    fallback: Path | None = None
+    if raw_path.is_absolute():
+        resolved = raw_path
+    else:
+        primary = envelopes_dir / raw_path
+        fallback = session_root / raw_path
+        resolved = primary if primary.exists() else fallback
     try:
         resolved = resolved.resolve(strict=True)
-    except (OSError, FileNotFoundError) as e:
+    except (OSError, FileNotFoundError):
+        if primary is not None and fallback is not None:
+            message = (
+                f"Parameter {param_name!r} references .brk file "
+                f"{value!r} but it was not found. Searched: "
+                f"{primary}, {fallback}."
+            )
+        else:
+            message = (
+                f"Parameter {param_name!r} references .brk file "
+                f"{value!r} but it could not be resolved."
+            )
         return BreakpointCompileResult(errors=[ErrorEntry(
             type="param_breakpoint_file_unreadable",
-            message=(
-                f"Parameter {param_name!r} references .brk file "
-                f"{value!r} but it could not be resolved: {e}."
-            ),
+            message=message,
             fix=(
-                "Check the file path. Relative paths resolve against the "
-                "session root."
+                "Place the .brk file in the session's envelopes/ "
+                "directory (canonical location), or pass an explicit "
+                "relative path from the session root (e.g. "
+                "'templates/my.brk')."
             ),
         )])
     try:

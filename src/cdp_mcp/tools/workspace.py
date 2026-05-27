@@ -1,13 +1,17 @@
 """Workspace tools: create/switch sessions, describe the current state.
 
-Two tools live here in Phase 1a:
+Three tools live here:
 
 - ``set_session(name)`` — activate (or create) the named session on disk.
 - ``describe_workspace()`` — return situational awareness for the active
-  session, including a count of input files and known sibling sessions.
+  session, including counts of input files and envelope files and known
+  sibling sessions.
+- ``read_envelope(name)`` — read a `.brk` / `.txt` artifact from the
+  active session's ``envelopes/`` directory. Lets the LLM introspect
+  user-supplied breakpoint files without copy-paste.
 
-Both follow Task 1's convention: ``async def`` with ``ctx: Context`` first.
-Both are backed by a :class:`~cdp_mcp.session.SessionManager` captured by
+All follow Task 1's convention: ``async def`` with ``ctx: Context`` first.
+All are backed by a :class:`~cdp_mcp.session.SessionManager` captured by
 closure in :func:`register`, mirroring the knowledge-index pattern from
 Task 2's :mod:`cdp_mcp.tools.introspection`.
 """
@@ -15,6 +19,7 @@ Task 2's :mod:`cdp_mcp.tools.introspection`.
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
@@ -80,10 +85,8 @@ def register(
         already on disk plus a hint to call :func:`set_session`. With a
         session active, returns the session's path, creation timestamp, CDP
         version captured at creation, a flat listing of input filenames,
-        and a recursive disk-usage estimate.
-
-        Designed to grow: later tasks will add recent_graphs detail
-        (Task 4) and available_sources (Task 6) here.
+        a flat listing of envelope filenames (``.brk`` and similar), and
+        a recursive disk-usage estimate.
         """
         active = sessions.active
         available = sessions.list_sessions()
@@ -94,6 +97,34 @@ def register(
                 "hint": "Call set_session(name) to activate or create one.",
             }
         return _describe_active(active, available)
+
+    @mcp.tool()
+    async def read_envelope(ctx: Context, name: str) -> dict:
+        """Read a text artifact from the active session's ``envelopes/``.
+
+        Useful for inspecting user-supplied breakpoint (``.brk``) files
+        before feeding them to ``process()``, or for confirming the
+        engine-compiled ``.brk`` content that ``process()`` writes
+        whenever you pass a breakpoint list. Phase 1b supports ``.brk``
+        and ``.txt`` extensions.
+
+        Args:
+            name: A bare basename inside ``envelopes/``. Path separators
+                and ``..`` are rejected — point at a file directly in
+                the envelopes directory.
+
+        Returns a dict with ``name``, ``path``, ``size_bytes``,
+        ``content`` (UTF-8 text, truncated at 64 KiB), and ``truncated``
+        (bool). Raises a tool error when no session is active, the name
+        is invalid, the extension is unsupported, or the file doesn't
+        exist.
+        """
+        session = sessions.active
+        if session is None:
+            raise ToolError(
+                "No active session. Call set_session(<name>) first."
+            )
+        return _read_envelope(session, name)
 
 
 # ---------------------------------------------------------------------------
@@ -120,6 +151,7 @@ def _set_session_response(
 
 def _describe_active(session: Session, available_sessions: list[str]) -> dict:
     input_files = _list_input_files(session)
+    envelope_files = _list_envelope_files(session)
     return {
         "active_session": session.name,
         "session_path": str(session.root),
@@ -127,6 +159,8 @@ def _describe_active(session: Session, available_sessions: list[str]) -> dict:
         "cdp_version_at_creation": session.config.cdp_version,
         "input_files": input_files,
         "input_count": len(input_files),
+        "envelope_files": envelope_files,
+        "envelope_count": len(envelope_files),
         "graph_count": _count_dirs(session.graphs_dir),
         "disk_usage_bytes": _disk_usage(session.root),
         "available_sessions": available_sessions,
@@ -139,6 +173,54 @@ def _list_input_files(session: Session) -> list[str]:
     return sorted(
         p.name for p in session.inputs_dir.iterdir() if p.is_file()
     )
+
+
+def _list_envelope_files(session: Session) -> list[str]:
+    """Sorted basenames in ``envelopes/``. Files only — skips subdirs."""
+    if not session.envelopes_dir.exists():
+        return []
+    return sorted(
+        p.name for p in session.envelopes_dir.iterdir() if p.is_file()
+    )
+
+
+# Cap envelope content returned by read_envelope. Realistic .brk files are
+# at most a few KB; this is defensive against pathological cases.
+_READ_ENVELOPE_MAX_BYTES = 64 * 1024
+_READ_ENVELOPE_ALLOWED_EXTENSIONS = (".brk", ".txt")
+
+
+def _read_envelope(session: Session, name: str) -> dict:
+    """Implement read_envelope's body. Lives at module scope so tests
+    can exercise the validation directly if needed."""
+    if "/" in name or "\\" in name or name in ("", ".", "..") or name.startswith("."):
+        raise ToolError(
+            f"Invalid envelope name {name!r}: must be a bare basename "
+            "inside envelopes/ (no path separators, no '..')."
+        )
+    suffix = Path(name).suffix.lower()
+    if suffix not in _READ_ENVELOPE_ALLOWED_EXTENSIONS:
+        raise ToolError(
+            f"Unsupported envelope extension {suffix!r}: "
+            f"read_envelope accepts {_READ_ENVELOPE_ALLOWED_EXTENSIONS}."
+        )
+    target = session.envelopes_dir / name
+    if not target.is_file():
+        raise ToolError(
+            f"Envelope file not found: {target}. "
+            f"Call describe_workspace() to list available envelope files."
+        )
+    raw = target.read_bytes()
+    truncated = len(raw) > _READ_ENVELOPE_MAX_BYTES
+    payload = raw[:_READ_ENVELOPE_MAX_BYTES] if truncated else raw
+    content = payload.decode("utf-8", errors="replace")
+    return {
+        "name": name,
+        "path": str(target),
+        "size_bytes": len(raw),
+        "content": content,
+        "truncated": truncated,
+    }
 
 
 def _count_dirs(path) -> int:
