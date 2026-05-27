@@ -7,7 +7,9 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
+import numpy as np
 import pytest
+import soundfile as sf
 
 from cdp_mcp.graph import GraphDir
 from cdp_mcp.pvoc import PVOCFailedError, maybe_insert_pvoc, synth_for_audition
@@ -157,6 +159,44 @@ exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
     # node_index.json reflects the new node.
     index = json.loads(graph.node_index_path.read_text())
     assert index["n1"] == "n1_pvoc-anal.ana"
+
+
+async def test_pvoc_insert_records_source_wav_duration(
+    fake_cdp_path, session_and_graph, cache_root
+):
+    """Task 8: maybe_insert_pvoc on a real .wav input records the wav's
+    duration in NodeLineage.source_wav_duration_s. Downstream breakpoint
+    compilation reads this to convert relative-time tuples to absolute
+    seconds across chained .ana ops."""
+    session, graph = session_and_graph
+    # Real wav so sf.info reads a duration. 2.5 second silent mono wav.
+    inp = session.inputs_dir / "real.wav"
+    sr = 44100
+    sf.write(str(inp), np.zeros(int(2.5 * sr), dtype=np.float32), sr)
+
+    wrapper = fake_cdp_path / "pvoc"
+    wrapper.unlink()
+    wrapper.write_text(
+        f"""#!/bin/sh
+OUTPUT="${{@: -1}}"
+exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
+"""
+    )
+    wrapper.chmod(0o755)
+
+    result = await maybe_insert_pvoc(
+        input_path=inp,
+        target_domain="spectral",
+        graph_dir=graph,
+        node_id="n1",
+        cdp_path=fake_cdp_path,
+        session_root=session.root,
+        cache_root=cache_root,
+        cdp_version="fake",
+    )
+    assert result.state == "succeeded", result.error_entry
+    assert result.lineage is not None
+    assert result.lineage.source_wav_duration_s == pytest.approx(2.5, abs=0.01)
 
 
 async def test_ana_to_time_runs_pvoc_synth(

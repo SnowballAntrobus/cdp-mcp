@@ -121,6 +121,16 @@ def _evaluate_duration_model(
         if any(d is None for d in indurs) and "indur" in model.expr:
             return None
 
+        # Task 8: if any param is a breakpoint value (list or .brk path),
+        # pre-flight can't predict — the parameter varies over time.
+        # Skip; the Task 7 watchdog catches runaway output, and the
+        # breakpoint compiler (step 8.5 in process.py) runs structured
+        # validation independently.
+        for name, value in params.items():
+            if not isinstance(value, (int, float)) or isinstance(value, bool):
+                if name in model.expr:
+                    return None
+
         names: dict[str, Any] = dict(params)
         # Single-input convenience: indur is the lone input duration.
         if len(indurs) == 1 and indurs[0] is not None:

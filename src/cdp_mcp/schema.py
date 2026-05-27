@@ -243,6 +243,30 @@ class InputRecord(BaseModel):
     source_node: str | None = None  # upstream node id in the same graph, if any
 
 
+class CompiledBreakpoint(BaseModel):
+    """Record of a compiled breakpoint file used by one node.
+
+    Captured in :class:`NodeLineage.compiled_breakpoints` so cache-key
+    construction (Task 12) can incorporate the .brk content sha, and so
+    the provenance trail shows which audio duration the relative-time
+    list was compiled against.
+
+    ``source_kind`` distinguishes:
+
+    - ``"input_wav"`` — duration came from the main op's .wav input
+      directly via ``soundfile.info()``.
+    - ``"pvoc_lineage"`` — duration came from an auto-PVOC node in the
+      same graph (chained .wav → .ana → main op case).
+    - ``"preexisting_brk"`` — user supplied an existing .brk file by
+      path. No compilation happened; ``source_duration_s`` is ``None``.
+    """
+
+    path: str  # absolute path to the .brk file
+    sha256: str  # content hash of the .brk file
+    source_duration_s: float | None  # None when path mode (not compiled)
+    source_kind: Literal["input_wav", "pvoc_lineage", "preexisting_brk"]
+
+
 class NodeLineage(BaseModel):
     """Per-node provenance record.
 
@@ -262,6 +286,12 @@ class NodeLineage(BaseModel):
     finished_at: datetime
     duration_ms: int
     exit_code: int | None  # None if the subprocess timed out
+    # Task 8 additions — both defaulted for backward compat with
+    # pre-Phase-1b lineage JSON files.
+    source_wav_duration_s: float | None = None
+    compiled_breakpoints: dict[str, CompiledBreakpoint] = Field(
+        default_factory=dict,
+    )
 
 
 class OutputVerification(BaseModel):

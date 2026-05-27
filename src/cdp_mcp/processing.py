@@ -76,6 +76,11 @@ def validate_params(
         if type_error is not None:
             errors.append(type_error)
             continue
+        # Range + musical-range checks only apply to scalar constants.
+        # List / .brk-path values go through the breakpoint compiler
+        # (Task 8) which validates content separately.
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            continue
         range_error = _check_range(name, spec, value)
         if range_error is not None:
             errors.append(range_error)
@@ -106,11 +111,9 @@ def _check_type(
     spec: ParameterSpec,
     value: Any,
 ) -> ErrorEntry | None:
-    """Phase 1a accepts only int / float scalars.
-
-    Lists get a tailored Phase 1b hint because breakpoint support is the
-    most likely "why isn't my list working?" question.
-    """
+    """Accepts int / float scalars, list (breakpoint pairs), and `.brk`
+    path strings. Compiler validates list / path contents separately
+    (Task 8). Bool still rejected (no curated bool params yet)."""
     if isinstance(value, bool):
         # bool is a subclass of int; treat it as a type error in Phase 1a
         # since no curated entries expose bool-typed params yet.
@@ -126,22 +129,31 @@ def _check_type(
     if isinstance(value, (int, float)):
         return None
     if isinstance(value, list):
+        # Breakpoint compiler (Task 8) validates the list contents.
+        return None
+    if isinstance(value, str) and value.lower().endswith(".brk"):
+        # Pre-existing .brk path; the compiler reads + hashes it.
+        return None
+    if isinstance(value, str):
         return ErrorEntry(
             type="param_type",
-            message=f"Parameter {name!r} got a list value {value!r}.",
+            message=f"Parameter {name!r} got str {value!r}.",
             fix=(
-                "Breakpoint lists and path-to-.brk references are not "
-                "supported in Phase 1a. Phase 1b will add breakpoint "
-                "compilation. For now, pass a constant numeric value."
+                "Strings are only accepted for breakpoint file paths "
+                "(must end in .brk). Otherwise pass a number or a "
+                "breakpoint tuple list."
             ),
         )
     return ErrorEntry(
         type="param_type",
         message=(
             f"Parameter {name!r} got {type(value).__name__} {value!r}; "
-            "expected a number."
+            "expected a number, breakpoint list, or .brk path."
         ),
-        fix=f"Pass an int or float{_range_hint(spec)}.",
+        fix=(
+            f"Pass an int or float, a breakpoint list, or a .brk path "
+            f"string{_range_hint(spec)}."
+        ),
     )
 
 
@@ -244,7 +256,13 @@ def build_cdp_argv(
         # something the curator left unset would change CDP's behavior.)
         if spec.flag is not None and value is None:
             continue
-        formatted = _format_value(value, spec.type)
+        if isinstance(value, Path):
+            # Compiled breakpoint file (Task 8). Render cwd-relative
+            # inside the session tree (CDP-quirk workaround applies
+            # the same as for inputs/outputs).
+            formatted = _argv_path(value, cwd)
+        else:
+            formatted = _format_value(value, spec.type)
         if spec.flag is None:
             argv.append(formatted)
         elif spec.flag_kind == "no_value":

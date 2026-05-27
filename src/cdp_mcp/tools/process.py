@@ -13,10 +13,12 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
+import soundfile as sf
 from mcp.server.fastmcp import Context, FastMCP
 
+from ..breakpoint_compiler import compile_breakpoint_value, is_breakpoint_value
 from ..config import CDPConfig
 from ..duration_preflight import check_duration_preflight
 from ..error_parsing import parse_cdp_errors
@@ -25,6 +27,7 @@ from ..graph import (
     LatestTracker,
     ReferenceResolutionError,
     build_context_block,
+    lookup_source_wav_duration,
     resolve_target,
     verify_output,
 )
@@ -32,9 +35,16 @@ from ..knowledge.loader import KnowledgeIndex
 from ..limits import OUTPUT_FILE_SIZE_CAP_BYTES
 from ..processing import build_cdp_argv, validate_params
 from ..pvoc import maybe_insert_pvoc
-from ..schema import ContextBlock, ErrorEntry, InputRecord, NodeLineage, ResultEnvelope
+from ..schema import (
+    CompiledBreakpoint,
+    ContextBlock,
+    ErrorEntry,
+    InputRecord,
+    NodeLineage,
+    ResultEnvelope,
+)
 from ..security import SecurityError, validate_command
-from ..session import SessionManager, SessionNotActiveError
+from ..session import Session, SessionManager, SessionNotActiveError
 from ..subprocess_core import run_cdp_command
 from ..utils import sha256_file
 
@@ -266,6 +276,62 @@ async def process_impl(
         else:
             pvoc_source_nodes.append(None)
 
+    # 8.5. Compile breakpoint parameters (Task 8). For each list / .brk
+    # path-valued param, validate breakpoint_capable, resolve the
+    # source duration, run the compiler, and mutate params_dict to
+    # point at the compiled .brk file so build_cdp_argv renders it.
+    breakpoint_errors: list[ErrorEntry] = []
+    breakpoint_warnings: list[str] = []
+    compiled_breakpoints: dict[str, CompiledBreakpoint] = {}
+    for param_name, spec in entry.parameters.items():
+        value = params_dict.get(param_name)
+        if value is None or not is_breakpoint_value(value):
+            continue
+        if not spec.breakpoint_capable:
+            breakpoint_errors.append(ErrorEntry(
+                type="param_breakpoint_not_capable",
+                message=(
+                    f"Parameter {param_name!r} got a breakpoint value but "
+                    f"its breakpoint_capable flag is false."
+                ),
+                fix=(
+                    f"Either pass a constant numeric value, or update "
+                    f"the entry to set "
+                    f"parameters.{param_name}.breakpoint_capable to true "
+                    f"(curation change)."
+                ),
+            ))
+            continue
+        src_duration, src_kind = _resolve_source_duration(
+            session=session,
+            post_pvoc_paths=post_pvoc_paths,
+            pvoc_source_nodes=pvoc_source_nodes,
+            graph_dir=graph_dir,
+        )
+        result = compile_breakpoint_value(
+            param_name=param_name,
+            param_spec=spec,
+            value=value,
+            source_duration_s=src_duration,
+            source_kind=src_kind,
+            session_root=session.root,
+            envelopes_dir=session.envelopes_dir,
+        )
+        breakpoint_errors.extend(result.errors)
+        breakpoint_warnings.extend(result.warnings)
+        if result.record is not None and result.compiled_path is not None:
+            params_dict[param_name] = result.compiled_path
+            compiled_breakpoints[param_name] = result.record
+
+    if breakpoint_errors:
+        return _failed_envelope(
+            session,
+            latest_tracker,
+            active_graph=graph_dir.id,
+            errors=breakpoint_errors,
+            warnings=param_warnings + breakpoint_warnings,
+        )
+
     # 9. Build main op argv.
     main_node_id = f"n{counter}"
     out_ext = ".ana" if entry.domain == "spectral" else ".wav"
@@ -342,6 +408,7 @@ async def process_impl(
         finished_at=finished_at,
         duration_ms=sub.duration_ms,
         exit_code=sub.exit_code,
+        compiled_breakpoints=compiled_breakpoints,
     )
 
     try:
@@ -535,6 +602,43 @@ def register(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _resolve_source_duration(
+    *,
+    session: Session,
+    post_pvoc_paths: list[Path],
+    pvoc_source_nodes: list[str | None],
+    graph_dir: GraphDir,
+) -> tuple[float | None, Literal["input_wav", "pvoc_lineage"] | None]:
+    """Best-effort source-audio duration for breakpoint compilation.
+
+    Same-graph only: when the main op consumes a .wav directly we read
+    it via ``sf.info``; when it consumes a .ana that we just produced
+    via auto-PVOC, we look up the PVOC node's recorded
+    ``source_wav_duration_s``. Cross-graph .ana (the user passed a
+    ``<other_graph>:<node>`` reference whose output came from a graph
+    we didn't touch this call) returns ``(None, None)`` — the caller
+    surfaces ``param_breakpoint_no_source_duration``. Cross-graph
+    lineage walking is out of scope for Task 8.
+    """
+    if not post_pvoc_paths:
+        return None, None
+    first = post_pvoc_paths[0]
+    if first.suffix.lower() == ".wav":
+        try:
+            return float(sf.info(str(first)).duration), "input_wav"
+        except Exception:  # noqa: BLE001
+            return None, None
+    if first.suffix.lower() == ".ana":
+        node_id = pvoc_source_nodes[0] if pvoc_source_nodes else None
+        if node_id:
+            duration = lookup_source_wav_duration(
+                session, graph_dir.id, node_id
+            )
+            if duration is not None:
+                return duration, "pvoc_lineage"
+    return None, None
 
 
 def _failed_envelope_no_session(

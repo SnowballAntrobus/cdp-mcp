@@ -144,6 +144,30 @@ class GraphDir:
 # ---------------------------------------------------------------------------
 
 
+def lookup_source_wav_duration(
+    session: Session,
+    graph_id: str,
+    node_id: str,
+) -> float | None:
+    """Read ``source_wav_duration_s`` from a node's lineage record.
+
+    Used by the breakpoint compiler (Task 8) when the input to the main
+    op is a `.ana` file that came from an auto-PVOC node in this graph.
+    Single-level lookup — does NOT walk further upstream. Returns
+    ``None`` when the lineage file is missing, the field is unset
+    (e.g., older pre-Task-8 lineage), or any read/parse error. Never
+    raises.
+    """
+    lineage_path = session.graphs_dir / graph_id / "lineage.json"
+    try:
+        with lineage_path.open(encoding="utf-8") as f:
+            doc = json.load(f)
+        v = doc.get("nodes", {}).get(node_id, {}).get("source_wav_duration_s")
+        return float(v) if v is not None else None
+    except (OSError, json.JSONDecodeError, ValueError, TypeError):
+        return None
+
+
 @dataclass(frozen=True)
 class _Slot:
     """Internal deque entry — the wire shape is RecentGraphEntry, which is

@@ -22,10 +22,10 @@
       "min": 1.0,
       "max": null,
       "unit": "windows",
-      "breakpoint_capable": false,
+      "breakpoint_capable": true,
       "default": null,
       "flag": null,
-      "description": "Number of analysis windows to average over. Larger values produce more smearing. May vary over time (breakpoint capability deferred to Phase 1b)."
+      "description": "Number of analysis windows to average over. Larger values produce more smearing. Accepts a breakpoint list for time-varying blur — e.g., [[0.0, 5], [1.0, 50]] to ramp from 5 to 50 windows over the input duration."
     }
   },
   "examples": [

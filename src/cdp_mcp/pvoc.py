@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
+import soundfile as sf
 from mcp.server.fastmcp import Context
 
 from .graph import GraphDir
@@ -238,6 +239,18 @@ async def maybe_insert_pvoc(
     output_sha = sha256_file(output_path)
     input_sha = sha256_file(input_path)
 
+    # Task 8: record the source wav's duration on the PVOC node's lineage
+    # so downstream breakpoint compilation can resolve relative-time
+    # tuples against the original audio. Only meaningful when the input
+    # was a .wav (PVOC anal direction); .ana inputs already have their
+    # duration encoded indirectly via the source wav that produced them.
+    source_duration: float | None = None
+    if input_path.suffix.lower() == ".wav":
+        try:
+            source_duration = float(sf.info(str(input_path)).duration)
+        except Exception:  # noqa: BLE001 — soundfile raises a variety
+            pass  # best-effort; downstream compiler falls back to error
+
     lineage = NodeLineage(
         argv=sub.argv,
         inputs=[
@@ -255,6 +268,7 @@ async def maybe_insert_pvoc(
         finished_at=finished_at,
         duration_ms=sub.duration_ms,
         exit_code=sub.exit_code,
+        source_wav_duration_s=source_duration,
     )
 
     try:

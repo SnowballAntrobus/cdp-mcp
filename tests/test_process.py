@@ -654,3 +654,169 @@ exec "{_FAKE_SUBPROCESS}" --write-wav "$OUTPUT" --sleep 3
     assert "size_cap_exceeded" in types
     # Precedence rule: subprocess_error is NOT additionally surfaced.
     assert "subprocess_error" not in types
+
+
+# ---------------------------------------------------------------------------
+# Polymorphic parameters + breakpoint compilation (Task 8)
+# ---------------------------------------------------------------------------
+
+
+async def test_process_breakpoint_compilation_happy_path(mcp_with_process):
+    """blur_blur with a breakpoint list on `blurring` compiles to a
+    .brk file in envelopes/. The fake `blur` wrapper writes a .ana so
+    process() can complete; we inspect the compiled file separately."""
+    mcp, sessions, _tracker, cdp_path = mcp_with_process
+    session, _ = sessions.set_active("s1")
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
+
+    # Wrapper: just write a fake .ana so verification + lineage succeed.
+    (cdp_path / "blur").write_text(
+        f"""#!/bin/sh
+OUTPUT=""
+for arg in "$@"; do
+    case "$arg" in *.ana) OUTPUT="$arg" ;; esac
+done
+exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
+"""
+    )
+    (cdp_path / "blur").chmod(0o755)
+
+    p = await _call(
+        mcp,
+        "process",
+        {
+            "program": "blur", "mode": "blur",
+            "input": "frog.wav",
+            "params": {"blurring": [[0.0, 5], [1.0, 50]]},
+        },
+    )
+    assert p["status"] == "ok", p["errors"]
+    brk_files = list(session.envelopes_dir.glob("blurring_*.brk"))
+    assert len(brk_files) == 1
+    contents = brk_files[0].read_text()
+    # Expect three points: (0, 5), (2, 50) from compiling [0.0, 5] and
+    # [1.0, 50] against 2s duration. The (1.0, 50) at t=2.0 already
+    # reaches source_duration so no auto-append is needed.
+    lines = [line for line in contents.splitlines() if line.strip()]
+    assert len(lines) == 2
+    assert lines[0].split() == ["0", "5"]
+    assert lines[1].split() == ["2", "50"]
+
+
+async def test_process_breakpoint_not_capable_rejected(mcp_with_process):
+    """modify brassage's velocity is not breakpoint_capable → list
+    value rejected with a structured error before CDP spawns."""
+    mcp, sessions, _tracker, _cdp_path = mcp_with_process
+    session, _ = sessions.set_active("s1")
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
+
+    p = await _call(
+        mcp,
+        "process",
+        {
+            "program": "modify", "mode": "brassage",
+            "input": "frog.wav",
+            "params": {"velocity": [[0.0, 0.5], [1.0, 2.0]]},
+        },
+    )
+    assert p["status"] == "failed"
+    types = {e["type"] for e in p["errors"]}
+    assert "param_breakpoint_not_capable" in types
+
+
+async def test_process_breakpoint_preexisting_brk_path(mcp_with_process):
+    """User pre-writes a .brk file under envelopes/ and references it
+    by relative path. Compiler hashes + records source_kind."""
+    mcp, sessions, _tracker, cdp_path = mcp_with_process
+    session, _ = sessions.set_active("s1")
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
+
+    # Pre-write the user's .brk.
+    (session.envelopes_dir / "my_curve.brk").write_text("0 5\n1 25\n2 50\n")
+
+    (cdp_path / "blur").write_text(
+        f"""#!/bin/sh
+OUTPUT=""
+for arg in "$@"; do
+    case "$arg" in *.ana) OUTPUT="$arg" ;; esac
+done
+exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
+"""
+    )
+    (cdp_path / "blur").chmod(0o755)
+
+    p = await _call(
+        mcp,
+        "process",
+        {
+            "program": "blur", "mode": "blur",
+            "input": "frog.wav",
+            "params": {"blurring": "envelopes/my_curve.brk"},
+        },
+    )
+    assert p["status"] == "ok", p["errors"]
+    # Inspect lineage for source_kind == "preexisting_brk".
+    graph_id = p["context"]["active_graph"]
+    doc = json.loads(
+        (session.graphs_dir / graph_id / "lineage.json").read_text()
+    )
+    main_node = next(
+        (n for n in doc["nodes"].values() if "blur" in n["argv"][-3]),
+        None,
+    )
+    assert main_node is not None
+    brk_record = main_node["compiled_breakpoints"]["blurring"]
+    assert brk_record["source_kind"] == "preexisting_brk"
+    assert brk_record["sha256"] != ""
+
+
+async def test_process_breakpoint_compilation_records_sha_in_lineage(
+    mcp_with_process,
+):
+    """Every compiled .brk records its content sha in
+    NodeLineage.compiled_breakpoints — what Task 12's cache key will
+    consume."""
+    mcp, sessions, _tracker, cdp_path = mcp_with_process
+    session, _ = sessions.set_active("s1")
+    _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
+
+    (cdp_path / "blur").write_text(
+        f"""#!/bin/sh
+OUTPUT=""
+for arg in "$@"; do
+    case "$arg" in *.ana) OUTPUT="$arg" ;; esac
+done
+exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
+"""
+    )
+    (cdp_path / "blur").chmod(0o755)
+
+    p = await _call(
+        mcp,
+        "process",
+        {
+            "program": "blur", "mode": "blur",
+            "input": "frog.wav",
+            "params": {"blurring": [[0.0, 5], [1.0, 50]]},
+        },
+    )
+    assert p["status"] == "ok"
+    graph_id = p["context"]["active_graph"]
+    doc = json.loads(
+        (session.graphs_dir / graph_id / "lineage.json").read_text()
+    )
+    # The main node (blur) should have compiled_breakpoints recorded.
+    main_node = next(
+        (n for n in doc["nodes"].values() if "blur" in n["argv"][-3]),
+        None,
+    )
+    assert main_node is not None
+    bp = main_node["compiled_breakpoints"]
+    assert "blurring" in bp
+    assert bp["blurring"]["sha256"] != ""
+    # PVOC was auto-inserted (.wav → .ana for blur), so source_kind is
+    # "pvoc_lineage" — the breakpoint compiler looked up the just-
+    # inserted PVOC node's source_wav_duration_s.
+    assert bp["blurring"]["source_kind"] == "pvoc_lineage"
+    assert bp["blurring"]["source_duration_s"] == pytest.approx(2.0, abs=0.01)
+

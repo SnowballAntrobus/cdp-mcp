@@ -79,12 +79,26 @@ def test_type_error_on_string():
     assert any(e.type == "param_type" for e in errors)
 
 
-def test_type_error_on_list_mentions_phase_1b():
+def test_list_accepted_at_type_check_level():
+    """Task 8 (Phase 1b): lists are now accepted by _check_type. Actual
+    breakpoint-content validation happens later in the compiler (step
+    8.5 in process.py) — and only if breakpoint_capable is true. Here
+    we just confirm validate_params doesn't reject the list at the
+    type-check stage."""
     entry = _entry_with({"x": ParameterSpec(type="float")})
-    errors, _ = validate_params(entry, {"x": [0.0, 0.5, 1.0]})
-    matching = [e for e in errors if e.type == "param_type"]
-    assert matching
-    assert any("Phase 1b" in (e.fix or "") for e in matching)
+    errors, _ = validate_params(entry, {"x": [[0.0, 0.5], [1.0, 1.0]]})
+    # No param_type error — validate_params passes the list through.
+    assert not any(e.type == "param_type" for e in errors)
+
+
+def test_brk_path_string_accepted_at_type_check_level():
+    """Task 8: .brk path strings accepted by _check_type. Non-.brk
+    strings still rejected with a hint pointing at breakpoint paths."""
+    entry = _entry_with({"x": ParameterSpec(type="float")})
+    ok_errors, _ = validate_params(entry, {"x": "envelopes/my.brk"})
+    assert not any(e.type == "param_type" for e in ok_errors)
+    bad_errors, _ = validate_params(entry, {"x": "not_a_brk_path"})
+    assert any(e.type == "param_type" for e in bad_errors)
 
 
 def test_bool_value_rejected_in_phase_1a():
