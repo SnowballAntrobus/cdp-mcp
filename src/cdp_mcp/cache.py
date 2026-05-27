@@ -19,11 +19,10 @@ Phase 4 introduces ``cleanup_cache()`` with predicate-based eviction.
 
 This module is consumed by:
 
-- :mod:`cdp_mcp.pvoc` (Task 10) — PVOC anal/synth output cache.
-- :mod:`cdp_mcp.tools.analyze` (Task 10) — scorecard JSON cache.
-- :mod:`cdp_mcp.tools.visualize` (Task 10) — mel-spectrogram PNG cache.
-- :mod:`cdp_mcp.pvoc` audition path (Task 11, planned) — same module.
-- :mod:`cdp_mcp.tools.process` (Task 12, planned) — process-output cache.
+- :mod:`cdp_mcp.pvoc` — PVOC anal/synth output cache.
+- :mod:`cdp_mcp.tools.analyze` — scorecard JSON cache.
+- :mod:`cdp_mcp.tools.visualize` — mel-spectrogram PNG cache.
+- :mod:`cdp_mcp.pvoc` audition path — same module.
 """
 
 from __future__ import annotations
