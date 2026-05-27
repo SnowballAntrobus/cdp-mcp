@@ -39,7 +39,7 @@ def fake_cdp_path(tmp_path, monkeypatch):
     wrapper = cdp / "pvoc"
     wrapper.unlink()
     wrapper.write_text(
-        f"""#!/bin/sh
+        f"""#!/usr/bin/env bash
 case "$1" in
     synth)
         OUTPUT="${{@: -1}}"

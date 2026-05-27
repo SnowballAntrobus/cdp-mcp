@@ -12,7 +12,11 @@ import pytest
 import soundfile as sf
 
 from cdp_mcp.graph import GraphDir
-from cdp_mcp.pvoc import PVOCFailedError, maybe_insert_pvoc, synth_for_audition
+from cdp_mcp.pvoc import (
+    PVOCFailedError,
+    maybe_insert_pvoc,
+    synth_for_audition,
+)
 from cdp_mcp.schema import NodeLineage
 from cdp_mcp.session import Session, SessionConfig
 
@@ -131,7 +135,7 @@ async def test_wav_to_spectral_runs_pvoc_anal(
     wrapper = fake_cdp_path / "pvoc"
     wrapper.unlink()
     wrapper.write_text(
-        f"""#!/bin/sh
+        f"""#!/usr/bin/env bash
 # $@ is "anal 1 <input> <output>" — output is the last arg.
 OUTPUT="${{@: -1}}"
 exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
@@ -177,7 +181,7 @@ async def test_pvoc_insert_records_source_wav_duration(
     wrapper = fake_cdp_path / "pvoc"
     wrapper.unlink()
     wrapper.write_text(
-        f"""#!/bin/sh
+        f"""#!/usr/bin/env bash
 OUTPUT="${{@: -1}}"
 exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
 """
@@ -210,7 +214,7 @@ async def test_ana_to_time_runs_pvoc_synth(
     wrapper = fake_cdp_path / "pvoc"
     wrapper.unlink()
     wrapper.write_text(
-        f"""#!/bin/sh
+        f"""#!/usr/bin/env bash
 OUTPUT="${{@: -1}}"
 exec "{_FAKE_SUBPROCESS}" --write-wav "$OUTPUT"
 """
@@ -311,7 +315,7 @@ async def test_synth_for_audition_happy_path(
     wrapper = fake_cdp_path / "pvoc"
     wrapper.unlink()
     wrapper.write_text(
-        f"""#!/bin/sh
+        f"""#!/usr/bin/env bash
 OUTPUT="${{@: -1}}"
 exec "{_FAKE_SUBPROCESS}" --write-wav "$OUTPUT"
 """
@@ -356,7 +360,7 @@ async def test_synth_for_audition_predeletes_existing_output(
     wrapper = fake_cdp_path / "pvoc"
     wrapper.unlink()
     wrapper.write_text(
-        f"""#!/bin/sh
+        f"""#!/usr/bin/env bash
 OUTPUT="${{@: -1}}"
 if [ -e "$OUTPUT" ]; then
     echo "pvoc synth: output file exists, refusing to overwrite" >&2
@@ -448,7 +452,7 @@ def _install_real_pvoc_wrapper(fake_cdp_path: Path) -> None:
     wrapper = fake_cdp_path / "pvoc"
     wrapper.unlink()
     wrapper.write_text(
-        f"""#!/bin/sh
+        f"""#!/usr/bin/env bash
 OUTPUT="${{@: -1}}"
 exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
 """
@@ -588,7 +592,7 @@ def _install_pvoc_synth_wrapper(fake_cdp_path: Path) -> None:
     wrapper = fake_cdp_path / "pvoc"
     wrapper.unlink()
     wrapper.write_text(
-        f"""#!/bin/sh
+        f"""#!/usr/bin/env bash
 OUTPUT="${{@: -1}}"
 exec "{_FAKE_SUBPROCESS}" --write-wav "$OUTPUT"
 """
