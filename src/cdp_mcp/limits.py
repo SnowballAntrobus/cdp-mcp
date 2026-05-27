@@ -1,13 +1,14 @@
 """Resource limits, with env-var overrides for the values users
 typically want to tune.
 
-Defaults match the design doc. Override via the corresponding
-``CDP_MCP_*`` env variable; invalid values (non-numeric, non-positive)
-fall back to defaults with a stderr warning, matching the codebase's
-existing env-var resolution pattern. Edit env vars manually — they're
-a developer/operator tuning surface, not LLM-tunable.
+Defaults match the project's tuned resource caps; override via the
+corresponding ``CDP_MCP_*`` env variable below. Invalid values
+(non-numeric, non-positive) fall back to defaults with a stderr
+warning, matching the codebase's existing env-var resolution
+pattern. Edit env vars manually — they're a developer/operator
+tuning surface, not LLM-tunable.
 
-Two limits ship in Phase 1b:
+Two limits:
 
 - ``OUTPUT_DURATION_CAP_S`` — predicted output duration cap, seconds.
   Used by ``duration_preflight.check_duration_preflight``. Default 300s.

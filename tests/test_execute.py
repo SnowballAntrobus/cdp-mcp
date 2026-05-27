@@ -227,11 +227,11 @@ async def test_context_block_lists_input_files_and_latest(mcp_with_execute):
     )
     assert payload["status"] == "ok"
     ctx = payload["context"]
-    # Phase 1b: available_sources is inputs first, then deque entries.
+    # available_sources is inputs first, then deque entries.
     assert ctx["available_sources"] == ["a.wav", "b.wav", "graph_abc:n1"]
     assert ctx["active_graph"] is None
     assert ctx["latest"] == "graph_abc:n1"
-    # Phase 1b: recent_graphs is populated from the tracker's deque.
+    # recent_graphs is populated from the tracker's deque.
     assert len(ctx["recent_graphs"]) == 1
     assert ctx["recent_graphs"][0]["id"] == "graph_abc"
     assert ctx["recent_graphs"][0]["output_node"] == "n1"

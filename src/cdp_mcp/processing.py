@@ -121,9 +121,9 @@ def _check_type(
             type="param_type",
             message=f"Parameter {name!r} got bool {value!r}; expected a number.",
             fix=(
-                "Bool-typed parameters and value-less flags are not exposed "
-                "in Phase 1a. Phase 1b will add bool-flag support. For the "
-                "switch you want, reach for execute()."
+                "Bool-typed parameters and value-less flags are not "
+                "currently exposed in any curated entry. For the switch "
+                "you want, reach for execute()."
             ),
         )
     if isinstance(value, (int, float)):

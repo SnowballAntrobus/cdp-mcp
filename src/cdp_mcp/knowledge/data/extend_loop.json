@@ -79,7 +79,7 @@
     }
   ],
   "known_issues": [
-    "The -b flag (play from beginning of infile even if looping doesn't begin there) is not exposed in Phase 1a curated parameters. Phase 1b will add bool-flag support to the schema. To use -b in the meantime, reach for execute()."
+    "The -b flag (play from beginning of infile even if looping doesn't begin there) is not currently exposed in the curated parameters. Schema support for value-less flags exists (flag_kind: 'no_value'); future curation work may surface it. To use -b in the meantime, reach for execute()."
   ],
   "references": ["cdp://docs/extend/loop"]
 }

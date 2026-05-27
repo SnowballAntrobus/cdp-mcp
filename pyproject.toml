@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cdp-mcp"
-version = "0.1.0a1"
+version = "0.1.0a2"
 description = "MCP server wrapping the Composers' Desktop Project (CDP) for LLM-driven sound transformation."
 readme = "README.md"
 license = { file = "LICENSE" }

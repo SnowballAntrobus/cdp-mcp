@@ -125,8 +125,8 @@ def test_set_by_non_numeric_param_raises():
 
 
 def test_linear_returns_param_value():
-    """Phase 1b: linear evaluates as outdur = float(params[param]).
-    Same as set_by until the schema gains a multiplier field."""
+    """linear evaluates as outdur = float(params[param]) — currently
+    identical to set_by until the schema gains a multiplier field."""
     entry = _make_entry(
         duration_model=DurationModelLinear(kind="linear", param="cnt"),
     )

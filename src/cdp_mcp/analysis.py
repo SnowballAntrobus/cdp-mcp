@@ -4,9 +4,12 @@ Pure-function extraction — no MCP types, no tool registration. The MCP tool
 layer (:mod:`cdp_mcp.tools.analyze`) wraps :func:`extract_scorecard` with
 target resolution, PVOC auto-synth, and envelope construction.
 
-The scorecard's 10 fields are exactly what the Phase 1a design doc
-specifies — no more, no less. Verbose mode (full feature matrices, MFCCs,
-chroma, tonnetz) lands in Phase 1b.
+The scorecard surfaces a curated 10-field summary of the audio: the
+basic level/dynamics metrics (duration, peak, RMS, LUFS), three
+spectral descriptors (centroid, flux, zero-crossing rate), onset
+count, channel count, and sample rate. Verbose feature matrices
+(MFCCs, chroma, tonnetz, full STFT) aren't currently exposed — a
+future expansion could add them as an opt-in mode.
 """
 
 from __future__ import annotations
@@ -100,7 +103,8 @@ def extract_scorecard(
         np.mean(librosa.feature.spectral_centroid(y=y_mono, sr=sr))
     )
     # librosa.onset.onset_strength is the spectral-flux-based novelty
-    # function — what the design doc means by "spectral_flux".
+    # function — the librosa-side analogue of "spectral_flux" in the
+    # scorecard.
     spectral_flux = float(
         np.mean(librosa.onset.onset_strength(y=y_mono, sr=sr))
     )

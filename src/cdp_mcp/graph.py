@@ -5,15 +5,17 @@ Three responsibilities under one roof for Phase 1a:
 - :class:`GraphDir` — manages one ``<session>/graphs/<id>/`` directory and
   the metadata files within (``graph.json``, ``node_index.json``,
   ``lineage.json``).
-- :class:`LatestTracker` — in-memory single-pointer "most recent successful
-  node". Phase 1b will expand into a full ``recent_graphs`` deque.
+- :class:`LatestTracker` — in-memory deque (maxlen=5) of recent successful
+  nodes with ``latest`` / ``prev_1`` .. ``prev_4`` aliases. Per-process,
+  not persisted across server restarts.
 - :func:`resolve_target` — turns a user-supplied reference (``"latest"``,
   ``"<graph_id>:n2"``, an absolute path, or a session-relative path) into
   an absolute :class:`~pathlib.Path` on disk.
 - :func:`verify_output` — never-raises post-execution validity check on a
   CDP output file (existence + size + RMS for wav).
 
-No tools are registered from this module; Tasks 5/6 import these primitives.
+No tools are registered from this module; the action-layer tools import
+these primitives.
 """
 
 from __future__ import annotations
@@ -264,14 +266,14 @@ def build_context_block(
 ) -> ContextBlock:
     """Build the context block returned with every action result.
 
-    Phase 1b: ``active_graph`` from caller, ``latest`` from the tracker,
-    ``recent_graphs`` populated from the tracker's deque (positional
-    aliases ``latest``, ``prev_1`` .. ``prev_4``), and ``available_sources``
-    is session inputs + recent graph refs, deduplicated and ordered with
+    ``active_graph`` from the caller, ``latest`` from the tracker,
+    ``recent_graphs`` from the tracker's deque (positional aliases
+    ``latest``, ``prev_1`` .. ``prev_4``), and ``available_sources`` is
+    session inputs + recent graph refs, deduplicated and ordered with
     inputs first.
 
-    The broader 15-most-recent filesystem scan + tagged keepers +
-    auto-pinned nodes land in Task 8.
+    The broader filesystem-scan-based "history" view is in
+    ``describe_workspace``; explicit tagging is reserved for Phase 4.
     """
     input_files: list[str] = []
     if session.inputs_dir.exists():

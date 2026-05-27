@@ -88,10 +88,11 @@ def _evaluate_duration_model(
         return max(known)
 
     if isinstance(model, (DurationModelSetBy, DurationModelLinear)):
-        # Phase 1b: `linear` is currently identical to `set_by`. The
-        # schema's `linear` kind doesn't encode a multiplier field, so
-        # we evaluate as `outdur = float(params[param])`. The kind tag
-        # is preserved for future schema refinement.
+        # `linear` is currently identical to `set_by` — the schema's
+        # `linear` kind doesn't encode a multiplier field, so we
+        # evaluate as `outdur = float(params[param])`. The kind tag is
+        # preserved for future schema refinement (a `factor_expr` field
+        # would genuinely distinguish linear from set_by).
         param_name = model.param
         if param_name not in params:
             raise DurationModelError(
