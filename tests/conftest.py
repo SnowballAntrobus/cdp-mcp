@@ -53,13 +53,16 @@ def _disable_apple_silicon_arch_wrapping():
 def real_cdp_path() -> Path | None:
     """Return the real CDP installation root, or ``None`` if not configured.
 
-    Used by the acceptance test (``tests/test_acceptance.py``) to skip
-    cleanly when ``$CDP_PATH`` is unset or doesn't contain the binaries
-    the chain needs. Returns ``None`` instead of skipping at fixture
-    scope so the call site can attach a context-specific skip reason.
+    Used by tests that exercise real CDP (e.g. ``test_acceptance.py``,
+    ``test_determinism_sweep.py``) to skip cleanly when ``$CDP_PATH`` is
+    unset or doesn't contain the binaries those tests need. Returns
+    ``None`` instead of skipping at fixture scope so the call site can
+    attach a context-specific skip reason.
 
-    The frog chain in the acceptance test uses ``blur``, ``pvoc``,
-    ``modify``, and ``extend``. All four must be present.
+    The required list is the union of binaries used by the real-CDP
+    tests: ``blur``, ``pvoc``, ``modify``, ``extend`` (acceptance chain)
+    plus ``morph`` and ``filter`` (Phase 2 determinism sweep). All six
+    must be present.
     """
     env = os.environ.get("CDP_PATH")
     if not env:
@@ -67,7 +70,7 @@ def real_cdp_path() -> Path | None:
     p = Path(env)
     if not p.is_dir():
         return None
-    required = ["blur", "pvoc", "modify", "extend"]
+    required = ["blur", "pvoc", "modify", "extend", "morph", "filter"]
     if not all((p / name).is_file() for name in required):
         return None
     return p

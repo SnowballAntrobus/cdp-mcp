@@ -1,0 +1,35 @@
+{
+  "blur blur": {
+    "input": "frog_stand_in.wav",
+    "params": {"blurring": 16.0}
+  },
+  "extend loop": {
+    "input": "frog_stand_in.wav",
+    "params": {"cnt": 4, "start": 0.5, "len": 200.0}
+  },
+  "filter sweeping": {
+    "input": "frog_stand_in.wav",
+    "params": {
+      "acuity": 0.1,
+      "gain": 0.44,
+      "lofrq": 200.0,
+      "hifrq": 4000.0,
+      "sweepfrq": 1.0
+    }
+  },
+  "modify brassage": {
+    "input": "frog_stand_in.wav",
+    "params": {"velocity": 0.5}
+  },
+  "morph morph": {
+    "input": ["frog_stand_in.wav", "frog_stand_in_b.wav"],
+    "params": {
+      "as": 0.0,
+      "ae": 1.5,
+      "fs": 0.5,
+      "fe": 2.0,
+      "expa": 1.0,
+      "expf": 1.0
+    }
+  }
+}
