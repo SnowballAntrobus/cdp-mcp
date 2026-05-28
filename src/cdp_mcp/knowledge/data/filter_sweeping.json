@@ -65,7 +65,7 @@
       "breakpoint_capable": true,
       "default": null,
       "flag": null,
-      "description": "Frequency of the sweep itself. To sweep once over the range, set sweepfrq = infiledur/2 and phase = 0 (up) or 0.5 (down)."
+      "description": "Frequency of the sweep itself, in Hz — the focus oscillates lofrq<->hifrq at this rate. For a single rising pass across the whole file, set sweepfrq = 1/(2*infiledur) with phase = 0 (e.g. a 10 s file -> 0.05 Hz; a 7.2 s file -> ~0.069 Hz); use phase = 0.5 for a single falling pass. Read the input's duration first (it is not known to this tool). NOTE: CDP's own usage banner mis-states this as 'infiledur/2', which would give many sweeps -- that is a CDP doc error."
     },
     "tail": {
       "type": "float",
