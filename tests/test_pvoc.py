@@ -136,9 +136,13 @@ async def test_wav_to_spectral_runs_pvoc_anal(
     wrapper = fake_cdp_path / "pvoc"
     wrapper.unlink()
     wrapper.write_text(
-        f"""#!/usr/bin/env bash
-# $@ is "anal 1 <input> <output>" — output is the last arg.
-OUTPUT="${{@: -1}}"
+        f"""#!/bin/sh
+# Find the .ana output path among argv — robust to PVOC's `-c<N> -o<N>`
+# flags being appended after the positionals (Phase 2 Task 4).
+OUTPUT=""
+for arg in "$@"; do
+    case "$arg" in *.ana) OUTPUT="$arg" ;; esac
+done
 exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
 """
     )
@@ -182,8 +186,13 @@ async def test_pvoc_insert_records_source_wav_duration(
     wrapper = fake_cdp_path / "pvoc"
     wrapper.unlink()
     wrapper.write_text(
-        f"""#!/usr/bin/env bash
-OUTPUT="${{@: -1}}"
+        f"""#!/bin/sh
+# Find the .ana output path among argv — robust to PVOC's `-c<N> -o<N>`
+# flags being appended after the positionals (Phase 2 Task 4).
+OUTPUT=""
+for arg in "$@"; do
+    case "$arg" in *.ana) OUTPUT="$arg" ;; esac
+done
 exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
 """
     )
@@ -453,8 +462,13 @@ def _install_real_pvoc_wrapper(fake_cdp_path: Path) -> None:
     wrapper = fake_cdp_path / "pvoc"
     wrapper.unlink()
     wrapper.write_text(
-        f"""#!/usr/bin/env bash
-OUTPUT="${{@: -1}}"
+        f"""#!/bin/sh
+# Find the .ana output path among argv — robust to PVOC's `-c<N> -o<N>`
+# flags being appended after the positionals (Phase 2 Task 4).
+OUTPUT=""
+for arg in "$@"; do
+    case "$arg" in *.ana) OUTPUT="$arg" ;; esac
+done
 exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
 """
     )

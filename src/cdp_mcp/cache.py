@@ -207,17 +207,36 @@ def materialize_cached_artifact(src: Path, dst: Path) -> None:
 
 def pvoc_cache_key(
     audio_sha256: str,
-    argv_discriminator: str,
+    operation: str,
+    window: int,
+    overlap: int,
     cdp_version: str,
 ) -> str:
     """Cache key for a PVOC anal/synth result.
 
     Only the CDP binary version matters as a software input — PVOC
-    doesn't involve librosa / numpy / scipy. ``argv_discriminator`` is
-    a short stable string like ``"anal_1"`` or ``"synth"`` derived from
-    the post-program argv tail.
+    doesn't involve librosa / numpy / scipy.
+
+    ``operation`` is ``"anal"`` or ``"synth"``. ``window`` (analysis
+    FFT points, ``pvoc anal -c`` flag) and ``overlap`` (filter overlap
+    factor, ``-o`` flag) are explicit so the key discriminates between
+    `.ana` files produced at different analysis params — Phase 2 Task
+    4 precondition for Task 8's user-facing ``_pvoc.window`` /
+    ``_pvoc.overlap`` engine controls. Both values participate in the
+    key even for ``"synth"`` (where CDP synth doesn't read them); the
+    audio_sha256 of the ``.ana`` already implicitly captures the
+    analysis params, so this is at worst no-op and at best
+    future-proofs against any CDP-level dependency we don't currently
+    know about.
     """
-    return _compose_key("pvoc", audio_sha256, argv_discriminator, cdp_version)
+    return _compose_key(
+        "pvoc",
+        audio_sha256,
+        operation,
+        str(window),
+        str(overlap),
+        cdp_version,
+    )
 
 
 def analysis_cache_key(
