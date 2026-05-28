@@ -42,14 +42,6 @@ from .utils import atomic_write_text, sha256_file
 _TIME_EXTENSIONS = frozenset({".wav", ".aif", ".aiff", ".amb"})
 _SPECTRAL_EXTENSIONS = frozenset({".ana", ".pvx"})
 
-# CDP r8 defaults for ``pvoc anal`` — verified against the binary's usage
-# banner (run ``pvoc anal`` with no args). Pinned here so the cache key,
-# the argv build, and any future tests share one source of truth. Task 4
-# keeps these hardcoded; Task 8 will expose ``_pvoc.window`` /
-# ``_pvoc.overlap`` engine controls that override per-call.
-_DEFAULT_PVOC_WINDOW = 1024     # "points": analysis FFT size (power of 2, 2-32768)
-_DEFAULT_PVOC_OVERLAP = 3       # filter overlap factor (range 1-4)
-
 
 # ---------------------------------------------------------------------------
 # Result type
@@ -95,9 +87,6 @@ async def maybe_insert_pvoc(
     cdp_version: str,
     timeout_seconds: float = 120.0,
     ctx: Context | None = None,
-    *,
-    window: int = _DEFAULT_PVOC_WINDOW,
-    overlap: int = _DEFAULT_PVOC_OVERLAP,
 ) -> PVOCResult:
     """Insert a ``pvoc anal`` or ``pvoc synth`` node if domains don't match.
 
@@ -110,15 +99,6 @@ async def maybe_insert_pvoc(
         cdp_path, session_root, cache_root: Passed to the security gate.
         cdp_version: Recorded into the lineage.
         timeout_seconds, ctx: Forwarded to ``run_cdp_command``.
-        window: ``pvoc anal -c`` flag (analysis FFT points). Always
-            emitted in the anal argv so lineage shows exactly what was
-            used; participates in the cache key. ``pvoc synth`` ignores
-            this value (CDP synth reads the analysis params from the
-            ``.ana`` file). Defaults to CDP r8's standard 1024. Task 8
-            will route a user-supplied value here.
-        overlap: ``pvoc anal -o`` flag (filter overlap factor). Same
-            shape as ``window`` — emitted for anal, ignored by synth,
-            in the cache key. Default 3.
 
     Returns a :class:`PVOCResult`. Skipped / succeeded paths produce a
     usable ``output_path``; failed paths carry an ``error_entry``.
@@ -149,25 +129,13 @@ async def maybe_insert_pvoc(
             ),
         )
 
-    # Pick direction. Window/overlap are always emitted as explicit
-    # ``-c<N>``/``-o<N>`` flags in the anal argv so the lineage matches
-    # the cache key 1:1 — no "default-equals-implicit" elision. CDP r8
-    # quirk: the flags MUST come AFTER the input/output positionals (a
-    # flag in the middle gets interpreted as a filename), so they're
-    # held in ``post_argv_flags`` and appended below.
-    post_argv_flags: list[str] = []
+    # Pick direction.
     if input_domain == "time" and target_domain == "spectral":
-        # ``"1"`` is the analysis MODE (1=STANDARD ANALYSIS in CDP r8's
-        # pvoc anal banner; modes 2/3 are envelope/magnitude variants
-        # out of scope for Phase 2).
         argv_template = ["pvoc", "anal", "1"]
-        post_argv_flags = [f"-c{window}", f"-o{overlap}"]
         out_filename = f"{node_id}_pvoc-anal.ana"
-        operation = "anal"
     elif input_domain == "spectral" and target_domain == "time":
         argv_template = ["pvoc", "synth"]
         out_filename = f"{node_id}_pvoc-synth.wav"
-        operation = "synth"
     else:
         # Shouldn't reach here given the checks above, but be defensive.
         return PVOCResult(
@@ -191,7 +159,6 @@ async def maybe_insert_pvoc(
         *argv_template,
         _argv_path(input_path, session_root),
         _argv_path(output_path, session_root),
-        *post_argv_flags,
     ]
 
     # Security gate — paths are inside the session by construction, but the
@@ -220,10 +187,9 @@ async def maybe_insert_pvoc(
     # artifact into the graph dir and build a "cache_hit=True" lineage
     # entry without running any subprocess.
     input_sha = sha256_file(input_path)
+    argv_discriminator = "_".join(argv_template[1:])  # "anal_1" or "synth"
     out_suffix = ".ana" if target_domain == "spectral" else ".wav"
-    cache_key = pvoc_cache_key(
-        input_sha, operation, window, overlap, cdp_version
-    )
+    cache_key = pvoc_cache_key(input_sha, argv_discriminator, cdp_version)
     cache = cache_lookup(cache_root, "pvoc", cache_key, out_suffix)
 
     if cache.hit:

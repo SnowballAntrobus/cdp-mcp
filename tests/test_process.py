@@ -86,18 +86,14 @@ def fake_cdp_path(tmp_path, monkeypatch):
     for name in _PROGRAMS_SPECTRAL:
         _write_wrapper(cdp / name, "--write-ana")
     # pvoc is special — write whichever output extension matches.
-    # Find the output path by extension; robust to `-c<N> -o<N>` flags
-    # being appended after the positionals (Phase 2 Task 4).
     (cdp / "pvoc").write_text(
         f"""#!/bin/sh
+# argv[1] is "anal" or "synth"; argv[-1] is the output path.
 OUTPUT=""
+for arg in "$@"; do OUTPUT="$arg"; done
 case "$1" in
-    anal)
-        for arg in "$@"; do case "$arg" in *.ana) OUTPUT="$arg" ;; esac; done
-        exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT" ;;
-    synth)
-        for arg in "$@"; do case "$arg" in *.wav) OUTPUT="$arg" ;; esac; done
-        exec "{_FAKE_SUBPROCESS}" --write-wav "$OUTPUT" ;;
+    anal) exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT" ;;
+    synth) exec "{_FAKE_SUBPROCESS}" --write-wav "$OUTPUT" ;;
     *) exit 1 ;;
 esac
 """
@@ -773,15 +769,8 @@ exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
     doc = json.loads(
         (session.graphs_dir / graph_id / "lineage.json").read_text()
     )
-    # Find the main op node by program name in argv[0] (resolved binary
-    # path). Phase 2 Task 4 added `-c<N> -o<N>` flags to the PVOC anal
-    # argv, which shifted argv[-3] from "1" to the .ana output path —
-    # the substring `"blur" in argv[-3]` then started ambiguously
-    # matching the auto-inserted PVOC node too (its output lives under
-    # a "blur-blur" graph slug). argv[0]'s basename is the safest
-    # discriminator.
     main_node = next(
-        (n for n in doc["nodes"].values() if n["argv"][0].endswith("/blur")),
+        (n for n in doc["nodes"].values() if "blur" in n["argv"][-3]),
         None,
     )
     assert main_node is not None
@@ -826,15 +815,8 @@ exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
         (session.graphs_dir / graph_id / "lineage.json").read_text()
     )
     # The main node (blur) should have compiled_breakpoints recorded.
-    # Find the main op node by program name in argv[0] (resolved binary
-    # path). Phase 2 Task 4 added `-c<N> -o<N>` flags to the PVOC anal
-    # argv, which shifted argv[-3] from "1" to the .ana output path —
-    # the substring `"blur" in argv[-3]` then started ambiguously
-    # matching the auto-inserted PVOC node too (its output lives under
-    # a "blur-blur" graph slug). argv[0]'s basename is the safest
-    # discriminator.
     main_node = next(
-        (n for n in doc["nodes"].values() if n["argv"][0].endswith("/blur")),
+        (n for n in doc["nodes"].values() if "blur" in n["argv"][-3]),
         None,
     )
     assert main_node is not None

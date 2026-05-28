@@ -55,65 +55,27 @@ def test_format_window_distinguishes_none_from_zero():
 
 
 def test_pvoc_cache_key_deterministic():
-    a = pvoc_cache_key("audio_sha", "anal", window=1024, overlap=3, cdp_version="r8")
-    b = pvoc_cache_key("audio_sha", "anal", window=1024, overlap=3, cdp_version="r8")
+    a = pvoc_cache_key("audio_sha", "anal_1", "r8")
+    b = pvoc_cache_key("audio_sha", "anal_1", "r8")
     assert a == b
 
 
-def test_pvoc_cache_key_sensitive_to_operation():
-    """anal and synth share audio + version + window + overlap but
-    must produce distinct keys."""
-    a = pvoc_cache_key("audio_sha", "anal", window=1024, overlap=3, cdp_version="r8")
-    b = pvoc_cache_key("audio_sha", "synth", window=1024, overlap=3, cdp_version="r8")
+def test_pvoc_cache_key_sensitive_to_argv():
+    a = pvoc_cache_key("audio_sha", "anal_1", "r8")
+    b = pvoc_cache_key("audio_sha", "synth", "r8")
     assert a != b
 
 
 def test_pvoc_cache_key_sensitive_to_cdp_version():
-    a = pvoc_cache_key("audio_sha", "anal", window=1024, overlap=3, cdp_version="r8")
-    b = pvoc_cache_key("audio_sha", "anal", window=1024, overlap=3, cdp_version="r9")
+    a = pvoc_cache_key("audio_sha", "anal_1", "r8")
+    b = pvoc_cache_key("audio_sha", "anal_1", "r9")
     assert a != b
 
 
 def test_pvoc_cache_key_sensitive_to_audio():
-    a = pvoc_cache_key("sha_a", "anal", window=1024, overlap=3, cdp_version="r8")
-    b = pvoc_cache_key("sha_b", "anal", window=1024, overlap=3, cdp_version="r8")
+    a = pvoc_cache_key("sha_a", "anal_1", "r8")
+    b = pvoc_cache_key("sha_b", "anal_1", "r8")
     assert a != b
-
-
-def test_pvoc_cache_key_sensitive_to_window():
-    """Phase 2 Task 4: changing the analysis window must invalidate the
-    cached .ana — otherwise Task 8's user-controllable ``_pvoc.window``
-    would silently serve a stale entry produced at the previous window."""
-    a = pvoc_cache_key("audio_sha", "anal", window=1024, overlap=3, cdp_version="r8")
-    b = pvoc_cache_key("audio_sha", "anal", window=2048, overlap=3, cdp_version="r8")
-    assert a != b
-
-
-def test_pvoc_cache_key_sensitive_to_overlap():
-    """Phase 2 Task 4: same as the window case for the overlap factor."""
-    a = pvoc_cache_key("audio_sha", "anal", window=1024, overlap=3, cdp_version="r8")
-    b = pvoc_cache_key("audio_sha", "anal", window=1024, overlap=4, cdp_version="r8")
-    assert a != b
-
-
-def test_pvoc_cache_key_invariant_when_defaults_match():
-    """Two key calls using the pinned default constants produce the
-    same key. Trips a test failure if the defaults ever silently shift
-    (which would invalidate every existing PVOC cache entry in one go)."""
-    from cdp_mcp.pvoc import _DEFAULT_PVOC_OVERLAP, _DEFAULT_PVOC_WINDOW
-    a = pvoc_cache_key(
-        "audio_sha", "anal",
-        window=_DEFAULT_PVOC_WINDOW,
-        overlap=_DEFAULT_PVOC_OVERLAP,
-        cdp_version="r8",
-    )
-    b = pvoc_cache_key(
-        "audio_sha", "anal",
-        window=_DEFAULT_PVOC_WINDOW,
-        overlap=_DEFAULT_PVOC_OVERLAP,
-        cdp_version="r8",
-    )
-    assert a == b
 
 
 def test_analysis_cache_key_includes_librosa_version(monkeypatch):
@@ -176,7 +138,7 @@ def test_audition_cache_key_distinct_from_other_tiers():
     pvoc-synth key and an audition key would otherwise collide on the
     bytes content)."""
     ana_sha = "abc"
-    pvoc_k = pvoc_cache_key(ana_sha, "synth", window=1024, overlap=3, cdp_version="r8")
+    pvoc_k = pvoc_cache_key(ana_sha, "synth", "r8")
     audition_k = audition_cache_key(ana_sha, "r8")
     assert pvoc_k != audition_k
 
