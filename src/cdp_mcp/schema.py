@@ -57,6 +57,13 @@ class ParameterSpec(BaseModel):
     max: float | None = None
     unit: str | None = None
     breakpoint_capable: bool = False
+    # Phase 2 Task 5. Multi-input entries (input_arity > 1) need to say which
+    # input's duration defines the breakpoint envelope's relative-time axis.
+    # ``"input1"`` / ``"input2"`` pick a specific input; ``"max"`` / ``"min"``
+    # take the longer / shorter of the inputs. Must be None on single-input
+    # entries; required when ``breakpoint_capable=True`` on a multi-input
+    # entry. Enforced by a ``KnowledgeEntry``-level validator.
+    breakpoint_duration_source: Literal["input1", "input2", "max", "min"] | None = None
     default: float | int | str | bool | None = None
     musical_range: tuple[float, float] | None = None
     description: str | None = None
@@ -173,6 +180,22 @@ class KnowledgeEntry(BaseModel):
     phase_sensitive: bool = False
     stereo_link_default: Literal["linked", "related", "independent"] | None = None
     duration_model: DurationModel
+    # Phase 2 Task 5. How the engine should align multi-input durations when
+    # no per-call override is supplied. Accepted values:
+    #
+    # - ``"pad_with_fade"`` — pad shorter inputs with silence + fade-in/out
+    #   so they match the longest. Default for most multi-input combiners.
+    # - ``"truncate_to_shortest"`` — truncate all inputs to the shortest.
+    # - ``"fail"`` — refuse to run when input lengths differ; surface a
+    #   structured error.
+    # - ``"stagger:<float>"`` — for programs that have their own offset
+    #   mechanism (e.g. ``morph morph``'s ``-s`` flag); the float is the
+    #   default offset in seconds.
+    # - ``None`` — no strategy (default behavior; appropriate for
+    #   single-input entries).
+    #
+    # Enforced format by a model_validator below; engine wiring is Task 8.
+    default_length_strategy: str | None = None
     curated: bool = True
     version_sensitive: bool = False
     description: str
@@ -181,6 +204,48 @@ class KnowledgeEntry(BaseModel):
     examples: list[Example] = Field(default_factory=list)
     known_issues: list[str] = Field(default_factory=list)
     references: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _breakpoint_duration_source_consistent(self) -> KnowledgeEntry:
+        """Per Phase 2 Task 5, ``breakpoint_duration_source`` is only
+        meaningful on multi-input entries, and is required whenever a
+        multi-input entry has a breakpoint-capable parameter."""
+        multi = isinstance(self.input_arity, int) and self.input_arity > 1
+        for name, spec in self.parameters.items():
+            if spec.breakpoint_duration_source is not None and not multi:
+                raise ValueError(
+                    f"Parameter {name!r}: breakpoint_duration_source is "
+                    f"only meaningful for multi-input entries "
+                    f"(input_arity > 1)."
+                )
+            if multi and spec.breakpoint_capable and spec.breakpoint_duration_source is None:
+                raise ValueError(
+                    f"Parameter {name!r}: breakpoint_capable on a "
+                    f"multi-input entry requires breakpoint_duration_source."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def _default_length_strategy_format(self) -> KnowledgeEntry:
+        """Phase 2 Task 5: validate the ``default_length_strategy``
+        string shape. Accepted: ``"pad_with_fade"``,
+        ``"truncate_to_shortest"``, ``"fail"``, ``"stagger:<float>"``,
+        or ``None``."""
+        s = self.default_length_strategy
+        if s is None:
+            return self
+        if s in {"pad_with_fade", "truncate_to_shortest", "fail"}:
+            return self
+        if s.startswith("stagger:"):
+            try:
+                float(s.removeprefix("stagger:"))
+                return self
+            except ValueError:
+                pass
+        raise ValueError(
+            f"default_length_strategy {s!r} must be one of: 'pad_with_fade', "
+            f"'truncate_to_shortest', 'fail', or 'stagger:<float>'."
+        )
 
 
 # ---------------------------------------------------------------------------

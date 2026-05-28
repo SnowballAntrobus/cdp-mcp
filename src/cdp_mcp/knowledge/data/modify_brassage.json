@@ -22,7 +22,7 @@
       "min": 0.0,
       "max": null,
       "unit": null,
-      "breakpoint_capable": false,
+      "breakpoint_capable": true,
       "default": null,
       "flag": null,
       "description": "Speed of advance in the infile relative to the outfile. Inverse of timestretch factor: 0.5 doubles duration, 2.0 halves it. Must be >= 0; the zero case is degenerate without -loutlength."

@@ -708,8 +708,17 @@ exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
 
 
 async def test_process_breakpoint_not_capable_rejected(mcp_with_process):
-    """modify brassage's velocity is not breakpoint_capable → list
-    value rejected with a structured error before CDP spawns."""
+    """A stay-False parameter rejects breakpoint values with a structured
+    error before CDP spawns.
+
+    Phase 2 Task 5 empirically confirmed ``extend loop``'s ``cnt`` rejects
+    envelopes (CDP responds ``brkpnt_files not permitted``), so the
+    knowledge JSON keeps ``breakpoint_capable: false`` for it. The
+    pre-Task-5 version of this test used ``modify brassage``'s
+    ``velocity``, which DID flip to True in Task 5. ``cnt`` is the
+    structurally clearest stay-False case (a "breakpoint envelope of
+    loop-repeat counts" doesn't make sense).
+    """
     mcp, sessions, _tracker, _cdp_path = mcp_with_process
     session, _ = sessions.set_active("s1")
     _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
@@ -718,9 +727,9 @@ async def test_process_breakpoint_not_capable_rejected(mcp_with_process):
         mcp,
         "process",
         {
-            "program": "modify", "mode": "brassage",
+            "program": "extend", "mode": "loop",
             "input": "frog.wav",
-            "params": {"velocity": [[0.0, 0.5], [1.0, 2.0]]},
+            "params": {"cnt": [[0.0, 2], [1.0, 4]], "start": 0.5, "len": 200.0},
         },
     )
     assert p["status"] == "failed"
