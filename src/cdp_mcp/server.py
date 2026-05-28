@@ -29,6 +29,7 @@ from .graph import LatestTracker
 from .knowledge.loader import KnowledgeIndex
 from .session import SessionManager
 from .tools import analyze as analyze_module
+from .tools import breakpoint as breakpoint_module
 from .tools import execute as execute_module
 from .tools import introspection, workspace
 from .tools import process as process_module
@@ -40,6 +41,10 @@ mcp = FastMCP("cdp-mcp")
 # tools. Loader logs "[cdp-mcp] Loaded N knowledge entries" to stderr.
 _index = KnowledgeIndex.load()
 introspection.register(mcp, _index)
+
+# breakpoint() — pure envelope constructor; only dependency is the
+# knowledge index (for construction-time breakpoint_capable validation).
+breakpoint_module.register(mcp, _index)
 
 
 # CDP detection. We do it once at import so the SessionManager has a
