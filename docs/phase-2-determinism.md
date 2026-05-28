@@ -1,18 +1,31 @@
 # Phase 2 — Curated-entry determinism findings
 
-## Why this exists
+> **Status (Phase 2, Task 6.7): the standing determinism sweep was removed.**
+> The test module and its param fixture that produced the findings below
+> (`tests/test_determinism_sweep.py`, `tests/fixtures/determinism_params.json`)
+> were deleted in Task 6.7. The sweep guarded only the Phase 4 Task 12
+> process-output cache — a feature that is deferred *and* conditional — while
+> generating disproportionate CI noise (flaky ~2/10 under full-suite load).
+> This document is **kept** and recast as a CDP-behavior forensic record and a
+> Phase 4 precondition input. The valuable, durable part is the CDP r8
+> tick-timestamp finding (see **Test infrastructure forensics**); the test
+> that produced it is not. Phase 4 Task 12 must redo this investigation
+> against the then-current CDP version and curated entry set before relying
+> on process-output cacheability — see **Implications for Phase 4 Task 12**.
+
+## Why this existed
 
 Phase 1b byte-verified that `pvoc anal` and `pvoc synth` are deterministic across runs (handoff §5.5). The other five Phase 1a curated entries — `blur blur`, `extend loop`, `filter sweeping`, `modify brassage`, and `morph morph` (sm1) — were presumed deterministic but never compared.
 
 Phase 4 Task 12 (process-output cache reactivation) is gated on this verification: a content-addressed cache that materializes outputs by hardlink is only safe on byte-deterministic entries. The high-level design doc moved this sweep from Phase 3 to Phase 2 for that reason.
 
-## Methodology
+## Methodology (now-removed sweep)
 
-The test module [tests/test_determinism_sweep.py](../tests/test_determinism_sweep.py) runs each curated entry twice with a canonical param config on a synthetic 2 s mono 44.1 kHz noise burst (exponential-decay envelope, seed 42; seed 43 for the `morph morph` secondary input). Per-entry parameters are pinned in [tests/fixtures/determinism_params.json](../tests/fixtures/determinism_params.json).
+The now-removed determinism sweep ran each curated entry twice with a canonical param config on a synthetic 2 s mono 44.1 kHz noise burst (exponential-decay envelope, seed 42; seed 43 for the `morph morph` secondary input). Per-entry parameters were pinned in an accompanying fixture.
 
-The two paired calls use distinct `cache_root` paths so PVOC cache hits cannot short-circuit the second invocation — we measure CDP-level determinism, not cache materialization.
+The two paired calls used distinct `cache_root` paths so PVOC cache hits could not short-circuit the second invocation — it measured CDP-level determinism, not cache materialization.
 
-Outputs are byte-compared via SHA-256. On a mismatch, a diagnostic helper classifies the divergence:
+Outputs were byte-compared via SHA-256. On a mismatch, a diagnostic helper classified the divergence:
 
 - `.wav` outputs → read samples via `soundfile`, compare arrays directly.
 - `.ana` outputs → audition-synth both via `pvoc.synth_for_audition` (itself byte-deterministic per Phase 1b §5.5.2), then compare the synthed wavs.
@@ -23,18 +36,23 @@ Result categories:
 - `non_deterministic_header_only` — decoded samples match across runs but raw bytes differ (likely an embedded timestamp or UUID in a chunk header). Safe to cache by decoded-sample equivalence; raw-byte caching would need adjustment.
 - `non_deterministic_samples` — decoded samples themselves diverge. Not safe to cache.
 
-## Test environment
+## Test environment (point-in-time, when the sweep ran)
 
 - CDP version (`detect_cdp().version`): `r8`
 - CDP install root: `cdpr8/_cdp/_cdprogs` (in-repo copy used for verification; x86_64 binaries running under Rosetta)
 - Host OS / arch: `Darwin 24.6.0 (arm64)`
 - Python: `3.13.2`
-- Repo commit SHA: `af6962e` (the change set adding this test module is uncommitted at verification time; the listed SHA is the parent of the sweep work)
-- Verification command: `CDP_PATH=cdpr8/_cdp/_cdprogs pytest tests/test_determinism_sweep.py -v` (5 passed in ~0.7 s across three consecutive runs)
+- Repo commit SHA: `af6962e` (the change set adding the sweep module was uncommitted at verification time; the listed SHA is the parent of the sweep work)
 
-## Results
+## Results — preliminary Phase 2 snapshot (5 entries, CDP r8)
 
-All five curated entries verified **sample-deterministic with header-only non-determinism**.
+> **Caveat:** this is a point-in-time observation from the now-removed sweep,
+> **not a maintained guarantee.** It covered only the five Phase 1a curated
+> entries against a single CDP r8 build and one canonical param config per
+> entry. Do not treat it as settling cacheability for any later entry set or
+> CDP version — Phase 4 Task 12 must re-verify (see below).
+
+All five curated entries observed **sample-deterministic with header-only non-determinism**.
 
 Initial Phase 2 Task 1 verification reported all five entries as raw-byte `deterministic` (single paired run, captured under same tick). Phase 2 Task 2.5 follow-up investigation (after the sweep flaked at ~1-in-5 isolation rate and ~1-in-3 full-suite rate) found the divergence is in CDP-embedded tick-counter metadata; samples are bit-identical in every observed case. See **Test infrastructure forensics** below for the full trace.
 
@@ -50,24 +68,37 @@ Initial Phase 2 Task 1 verification reported all five entries as raw-byte `deter
 
 ## Implications for Phase 4 Task 12
 
-Process-output cache reactivation is unblocked on this curated set, but the **cache key construction must use decoded-sample equivalence**, not raw-file sha256. Otherwise:
+This is the primary forward-looking content of the doc. Two instructions to
+whoever implements the process-output cache:
 
-- Most cache lookups would miss (whenever the cached entry and the current run fall in different ticks).
-- The cache would fragment by tick window rather than by actual computation.
+**1. Redo the determinism investigation before relying on cacheability.** The
+snapshot above is preliminary and stale by Phase 4: it covered only the five
+Phase 1a entries against one CDP r8 build, whereas the curated entry set will
+be ~30 (post-Phase-3) by the time the cache is designed. Re-run the sweep
+against (a) the **then-current CDP version** and (b) the **then-current curated
+entry set**, with broader param regimes and input material than the single 2 s
+noise burst used here. Treat the tick-timestamp finding below as a starting
+point, not a settled result.
 
-Two ways to implement decoded-sample equivalence:
+**2. Key the cache on sample-equivalence, not raw-file sha256.** CDP r8 output
+is sample-stable but byte-unstable (the tick metadata — see forensics below).
+Raw-byte keys would make most lookups miss (whenever the cached entry and the
+current run fall in different ticks) and fragment the cache by tick window
+rather than by actual computation. Two ways to implement decoded-sample
+equivalence:
+
 1. **Sample-hash cache keys.** For `.wav`, read via `soundfile.read` and hash the sample array bytes. For `.ana`, hash everything past the CDP RIFF-WAVE header (the data chunk starts after the `LIST/adtl/...` metadata).
 2. **Header-stripped raw hash.** Identify the volatile-byte regions (one in `.wav`, one in `.ana`) and zero them before sha256.
 
 Option 1 is the more durable choice — it survives any future CDP header-layout shift.
 
-No per-entry cache exclusions are needed; all five entries are safe to cache by sample equivalence.
+On the five-entry snapshot, no per-entry cache exclusions were needed; all five were safe to cache by sample equivalence. Whether that holds for the wider Phase 4 entry set is exactly what instruction 1 above must re-establish.
 
 ## Test infrastructure forensics
 
 ### The flake
 
-`tests/test_determinism_sweep.py` failed roughly 1-in-5 isolation runs and 1-in-3 full-suite runs when verifying against `cdpr8/_cdp/_cdprogs`. The failing parametrized case varied (`blur_blur`, `extend_loop`, `morph_morph`, `filter_sweeping` all observed). Phase 2 Task 2.5 investigated.
+The now-removed determinism sweep failed roughly 1-in-5 isolation runs and 1-in-3 full-suite runs when verifying against `cdpr8/_cdp/_cdprogs`. The failing parametrized case varied (`blur_blur`, `extend_loop`, `morph_morph`, `filter_sweeping` all observed). Phase 2 Task 2.5 investigated; Task 6.7 later removed the test entirely (this flake is what motivated the removal — it guarded only the deferred Phase 4 cache).
 
 ### Investigation outcome
 
@@ -82,7 +113,7 @@ Paired runs that fall in the same tick window produce byte-identical output. Pai
 
 ### Diagnostic capture
 
-Reproduced under the `CDP_MCP_DETERMINISM_DIAGNOSTICS=1` env-guarded instrumentation in [tests/test_determinism_sweep.py](../tests/test_determinism_sweep.py). Sample failure trace for `extend loop`:
+Reproduced under a `CDP_MCP_DETERMINISM_DIAGNOSTICS=1` env-guarded instrumentation that lived in the now-removed sweep. Sample failure trace for `extend loop`:
 
 ```
 DETERMINISM DIAGNOSTIC — extend loop: expected='deterministic', observed='non_deterministic_header_only'
@@ -113,9 +144,7 @@ The single divergent byte at offset 179 lies inside the `LIST/adtl/note/sfif DAT
 
 Per the Phase 2 Task 2.5 plan's Stage 1 interpretation guide ("All failures `non_deterministic_header_only` → jump to Stage 4 / Outcome 2"), no bisection or production-code change was needed.
 
-`DETERMINISM_EXPECTATIONS` in the sweep test was changed from `str` values to `frozenset[str]` per entry, accepting `{"deterministic", "non_deterministic_header_only"}` for all five entries. Either outcome is correct given CDP's tick-based metadata. A `non_deterministic_samples` observation would fall outside the set and fail the assertion loudly — that remains the real signal worth surfacing.
-
-The diagnostic instrumentation stays in the test, gated by `CDP_MCP_DETERMINISM_DIAGNOSTICS=1`, for future triage if CDP's metadata behavior shifts in a later release.
+At Task 2.5 the sweep's `DETERMINISM_EXPECTATIONS` was changed from `str` values to `frozenset[str]` per entry, accepting `{"deterministic", "non_deterministic_header_only"}` for all five entries — either outcome is correct given CDP's tick-based metadata, while a `non_deterministic_samples` observation would have fallen outside the set and failed loudly. That tolerance kept the sweep green but did not address the root annoyance (the test guarded a deferred feature at real cost), which is why Task 6.7 removed it outright. If Phase 4 re-introduces a sweep, this `frozenset` expectation shape and the `CDP_MCP_DETERMINISM_DIAGNOSTICS`-gated diagnostic dump are the patterns worth resurrecting — both are recorded here and in git history.
 
 ### Hypotheses ruled out during the audit
 
