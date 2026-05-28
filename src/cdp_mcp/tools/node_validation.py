@@ -403,6 +403,14 @@ async def _resolve_source_duration(
     Returns ``(None, None)`` only when every attempt fails — the caller
     then surfaces ``param_breakpoint_no_source_duration``. Cross-graph
     lineage walking remains out of scope.
+
+    Note (multi-input): this resolver is hardcoded to ``post_pvoc_paths[0]``
+    (input 1). It does **not** read a parameter's ``breakpoint_duration_source``
+    field. The only curated multi-input breakpoint-capable entry,
+    ``combine cross``, declares ``breakpoint_duration_source: "input1"`` — which
+    *coincides* with this ``[0]`` default, so it resolves correctly today. Honoring
+    ``input2``/``max``/``min`` is deferred Task 8 work with no current consumer;
+    don't assume the field is being consumed until that lands.
     """
     if not post_pvoc_paths:
         return None, None

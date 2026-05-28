@@ -1,0 +1,37 @@
+{
+  "program": "combine",
+  "mode": "cross",
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "duration_model": { "kind": "static" },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "combine cross (formerly SPECCROS) makes a weighted substitution of the spectral amplitudes of the first PVOC file with those of the second — a timbral crossover, not a full morph. Single-degree control via interp.",
+  "musical_use": "Impose the spectral-amplitude character of one sound onto another by a controllable amount. Lighter than a morph (weighted, not full substitution); good as a standalone timbral blend or as preparation that moves one sound toward another's timbral field before morphing. With a time-varying interp envelope, the crossover can sweep from none to full across the file. On inputs of differing length, CDP produces output the duration of the shorter input (order-independent).",
+  "parameters": {
+    "interp": {
+      "type": "float",
+      "flag": "-i",
+      "flag_kind": "attached_value",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.5,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "input1",
+      "description": "Degree of replacement of input1's channel amplitudes by input2's. 0 = input1 unchanged; 1 = full amplitude replacement. Weighted crossover. May vary over time (breakpoint envelope scales to input1's duration)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Halfway timbral crossover: impose input2's spectral amplitudes onto input1 by 50%.",
+      "params": { "interp": 0.5 },
+      "expected_use": "Standalone timbral blend, or to move one sound toward another's timbral field before a morph."
+    }
+  ]
+}

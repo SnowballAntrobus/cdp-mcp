@@ -65,9 +65,9 @@ async def test_list_categories_returns_sorted_unique(mcp_with_tools):
 # ---------------------------------------------------------------------------
 
 
-async def test_list_programs_no_filter_returns_all_five(mcp_with_tools):
+async def test_list_programs_no_filter_returns_all_curated(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {})
-    assert len(payload) == 5
+    assert len(payload) == 6
     keys = {(e["program"], e["mode"]) for e in payload}
     assert keys == {
         ("blur", "blur"),
@@ -75,6 +75,7 @@ async def test_list_programs_no_filter_returns_all_five(mcp_with_tools):
         ("morph", "morph"),
         ("extend", "loop"),
         ("filter", "sweeping"),
+        ("combine", "cross"),
     }
 
 
@@ -86,7 +87,7 @@ async def test_list_programs_category_filter(mcp_with_tools):
 async def test_list_programs_domain_filter(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {"domain": "spectral"})
     keys = {(e["program"], e["mode"]) for e in payload}
-    assert keys == {("blur", "blur"), ("morph", "morph")}
+    assert keys == {("blur", "blur"), ("morph", "morph"), ("combine", "cross")}
 
 
 async def test_list_programs_combined_filters_compose_and(mcp_with_tools):

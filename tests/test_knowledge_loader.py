@@ -19,13 +19,14 @@ def real_index():
 # ---------------------------------------------------------------------------
 
 
-def test_all_five_entries_present(real_index):
+def test_all_curated_entries_present(real_index):
     expected = {
         ("blur", "blur"),
         ("modify", "brassage"),
         ("morph", "morph"),
         ("extend", "loop"),
         ("filter", "sweeping"),
+        ("combine", "cross"),
     }
     for program, mode in expected:
         assert real_index.get(program, mode) is not None, f"missing {program} {mode}"
@@ -49,7 +50,7 @@ def test_list_entries_by_category(real_index):
 def test_list_entries_by_domain_spectral(real_index):
     entries = real_index.list_entries(domain="spectral")
     keys = {(e.program, e.mode) for e in entries}
-    assert keys == {("blur", "blur"), ("morph", "morph")}
+    assert keys == {("blur", "blur"), ("morph", "morph"), ("combine", "cross")}
 
 
 def test_list_entries_filters_compose_and(real_index):
@@ -58,11 +59,11 @@ def test_list_entries_filters_compose_and(real_index):
 
 
 def test_curated_only_passthrough_includes_all(real_index):
-    # All Phase 1a entries are curated, so curated_only=False just returns the
+    # All curated entries are curated, so curated_only=False just returns the
     # same set. The flag's behavior is exercised; the data doesn't (yet)
     # contain uncurated entries to filter out.
-    assert len(real_index.list_entries(curated_only=False)) == 5
-    assert len(real_index.list_entries(curated_only=True)) == 5
+    assert len(real_index.list_entries(curated_only=False)) == 6
+    assert len(real_index.list_entries(curated_only=True)) == 6
 
 
 def test_get_returns_none_for_missing(real_index):
