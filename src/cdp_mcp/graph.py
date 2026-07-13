@@ -492,21 +492,35 @@ def _compute_wav_rms_dbfs(
     Stereo content is flattened (not channel-averaged) before RMS — see the
     Task 4 plan for why: averaging cancels anti-correlated channels and
     underreports total signal energy.
+
+    Reads in fixed-size blocks and accumulates sum-of-squares in float64
+    (Phase 2 hardening, M2): the previous whole-file ``sf.read`` decoded
+    a cap-sized (1 GB) wav into ~4 GB of float64 *plus* a flatten copy —
+    an ~8 GB transient — while blocking whatever thread runs it. The
+    blockwise result is identical (same float64 accumulation order,
+    modulo block-boundary summation order, far below audible or
+    threshold-relevant precision).
     """
     # Lazy import: soundfile pulls in libsndfile via cffi; not free.
     import numpy as np
     import soundfile as sf
 
+    total_sq = 0.0
+    total_n = 0
     try:
-        samples, _sr = sf.read(str(path), dtype="float64")
+        # 1 M frames/block ≈ 16 MB float64 for stereo — bounded regardless
+        # of file size.
+        for block in sf.blocks(str(path), blocksize=1_048_576, dtype="float64"):
+            arr = np.asarray(block, dtype=np.float64)
+            total_sq += float(np.sum(arr * arr))
+            total_n += int(arr.size)
     except Exception as e:  # noqa: BLE001 — soundfile raises a variety
         return None, f"could not read wav: {e}"
 
-    flat = np.asarray(samples, dtype=np.float64).flatten()
-    if flat.size == 0:
+    if total_n == 0:
         return None, "wav contains no samples"
 
-    rms = float(np.sqrt(np.mean(flat ** 2)))
+    rms = float(math.sqrt(total_sq / total_n))
     if rms == 0.0:
         return None, "silent (rms = 0)"
 

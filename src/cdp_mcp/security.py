@@ -240,6 +240,25 @@ def _is_path_like(arg: str) -> bool:
     return Path(arg).suffix.lower() in _PATH_LIKE_EXTENSIONS
 
 
+def _strip_flag_prefix(arg: str) -> str:
+    """Return the value part of a CDP attached-value flag argument.
+
+    CDP's convention is single-letter flags with the value attached and
+    no space (``-b0.5``, ``-ffile.brk``). The path-scope check must
+    inspect the *value*: without stripping, a flag-attached absolute
+    path like ``-e/Users/x/secret.wav`` is not itself absolute, gets
+    joined under ``session_root``, resolves inside the session, and
+    passes — while CDP's own flag parser strips the ``-e`` and opens
+    the absolute path *outside* the sandbox. (Phase 2 hardening, M1.)
+
+    Non-flag arguments (no leading ``-``, or ``-`` followed by a digit
+    — negative numbers) are returned unchanged.
+    """
+    if len(arg) >= 2 and arg[0] == "-" and arg[1].isalpha():
+        return arg[2:]
+    return arg
+
+
 def _check_path_scope(
     rest: list[str],
     session_root: Path,
@@ -253,9 +272,14 @@ def _check_path_scope(
         "the file into the session."
     )
     for i, arg in enumerate(rest, start=1):
-        if not isinstance(arg, str) or not _is_path_like(arg):
+        if not isinstance(arg, str):
             continue
-        candidate = Path(arg).expanduser()
+        # Scope-check the flag *value* for attached-value flags — see
+        # _strip_flag_prefix for the bypass this closes.
+        value = _strip_flag_prefix(arg)
+        if not _is_path_like(value):
+            continue
+        candidate = Path(value).expanduser()
         if not candidate.is_absolute():
             # CDP runs with cwd=session.root, so relative paths resolve there.
             candidate = session_root / candidate

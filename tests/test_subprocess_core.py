@@ -475,3 +475,65 @@ async def test_run_cdp_command_no_watchdog_when_kwargs_absent(tmp_path):
     )
     assert result.size_cap_exceeded is False
     assert result.triggered_at_bytes is None
+
+
+# ---------------------------------------------------------------------------
+# Cancellation cleanup (Phase 2 hardening)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.timeout(15)
+async def test_cancellation_kills_subprocess_and_reaps_helpers(
+    tmp_path, monkeypatch
+):
+    """Cancelling the tool task mid-run must not leak the CDP process.
+
+    Regression for the pre-hardening behavior: a client stop/disconnect
+    (FastMCP cancels the tool task) left the subprocess running to
+    completion in the background and the progress task firing on a dead
+    request context. The ``finally`` block in ``run_cdp_command`` now
+    kills the process tree and reaps every helper task on any exit.
+    """
+    procs: list[asyncio.subprocess.Process] = []
+    real_create = asyncio.create_subprocess_exec
+
+    async def recording_create(*args, **kwargs):
+        p = await real_create(*args, **kwargs)
+        procs.append(p)
+        return p
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", recording_create)
+
+    task = asyncio.create_task(
+        run_cdp_command(
+            _fake_argv("--sleep", "30"),
+            cwd=tmp_path,
+            timeout_seconds=60.0,
+            ctx=None,
+        )
+    )
+    # Wait for the subprocess to actually exist, then a beat more so the
+    # helper tasks are running too.
+    while not procs:
+        await asyncio.sleep(0.01)
+    await asyncio.sleep(0.05)
+
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    proc = procs[0]
+    # The child was killed AND reaped (returncode set) — not left running.
+    assert proc.returncode is not None
+    assert proc.returncode != 0  # SIGKILL, not a natural exit
+
+    # No orphaned helper coroutines still alive on the loop.
+    leftovers = [
+        t
+        for t in asyncio.all_tasks()
+        if not t.done()
+        and t.get_coro().__qualname__.startswith(
+            ("_read_all", "_read_stderr_lines", "_emit_progress", "_disk_watchdog")
+        )
+    ]
+    assert not leftovers

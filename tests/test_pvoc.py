@@ -726,7 +726,7 @@ async def test_audition_cache_populate_failure_non_fatal(
     # Nothing got written to the cache.
     assert list(audition_dir.glob("*.wav")) == []
 
-    
+
 # ---------------------------------------------------------------------------
 # Phase 2 Task 2 — read_ana_duration (sfprops -d shell-out, session-cached)
 # ---------------------------------------------------------------------------

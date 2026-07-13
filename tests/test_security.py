@@ -251,3 +251,42 @@ def test_triple_violation_all_three_types_reported(roots):
     assert "binary_not_in_cdp_path" in types
     assert "metacharacter_rejected" in types
     assert "path_outside_session" in types
+
+
+# ---------------------------------------------------------------------------
+# Flag-attached path values (Phase 2 hardening, M1)
+# ---------------------------------------------------------------------------
+
+
+def test_flag_attached_absolute_path_outside_session_rejected(roots):
+    """Regression: ``-e/etc/passwd`` must be scope-checked as the path
+    ``/etc/passwd``, not as a relative path named ``-e/etc/passwd``
+    (which joins under session_root and sails through). CDP's flag
+    parser strips the ``-e`` and would open the file outside the
+    sandbox."""
+    cdp, session, cache = roots
+    with pytest.raises(SecurityError) as exc:
+        validate_command(["blur", "-e/etc/passwd"], cdp, session, cache)
+    types = {e.type for e in exc.value.errors}
+    assert "path_outside_session" in types
+
+
+def test_flag_attached_tilde_path_outside_session_rejected(roots):
+    cdp, session, cache = roots
+    with pytest.raises(SecurityError) as exc:
+        validate_command(["blur", "-f~/foo.brk"], cdp, session, cache)
+    types = {e.type for e in exc.value.errors}
+    assert "path_outside_session" in types
+
+
+def test_flag_attached_relative_path_inside_session_passes(roots):
+    cdp, session, cache = roots
+    validate_command(
+        ["blur", "-fenvelopes/env.brk"], cdp, session, cache
+    )  # no raise
+
+
+def test_flag_attached_numeric_values_still_skip_scope_check(roots):
+    cdp, session, cache = roots
+    # Attached numeric flag values and negative numbers are not paths.
+    validate_command(["blur", "-b0.5", "-g1.5", "-9", "-0.25"], cdp, session, cache)

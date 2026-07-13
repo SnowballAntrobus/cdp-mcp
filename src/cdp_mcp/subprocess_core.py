@@ -19,8 +19,10 @@ Binary resolution and command-line assembly are Task 5/6 concerns.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import os
 import platform
+import signal
 import sys
 import time
 from dataclasses import dataclass
@@ -90,8 +92,7 @@ async def _disk_watchdog(
         if size > size_cap_bytes:
             state.size_cap_exceeded = True
             state.triggered_at_bytes = size
-            if proc.returncode is None:
-                proc.kill()
+            _kill_process_tree(proc)
             return
 
 
@@ -116,6 +117,37 @@ def _apply_arch_prefix(argv: list[str]) -> list[str]:
     if _should_wrap_arch_x86_64():
         return ["arch", "-x86_64", *argv]
     return list(argv)
+
+
+# ---------------------------------------------------------------------------
+# Process-tree kill
+# ---------------------------------------------------------------------------
+
+
+def _kill_process_tree(proc: asyncio.subprocess.Process) -> None:
+    """SIGKILL ``proc`` and (on POSIX) its whole process group.
+
+    The subprocess is spawned with ``start_new_session=True``, so its
+    process-group id equals its pid and ``os.killpg`` reaps any children
+    a CDP binary may have forked (a plain ``proc.kill()`` would leave
+    them holding the stdout/stderr pipe write-ends open — the stream
+    readers would then never see EOF and the tool call would hang after
+    its own "hard timeout"). No-op if the process already exited.
+    Never raises.
+    """
+    if proc.returncode is not None:
+        return
+    pid = proc.pid
+    # Strict pid validation before killpg: killpg(0) would kill OUR OWN
+    # process group and killpg(-n)/killpg(1) other groups entirely. Test
+    # doubles (MagicMock procs) also fail this check safely — their
+    # ``pid`` is not an int — and fall through to ``proc.kill()``.
+    if os.name == "posix" and type(pid) is int and pid > 1:
+        with contextlib.suppress(ProcessLookupError, PermissionError, OSError):
+            os.killpg(pid, signal.SIGKILL)
+            return
+    with contextlib.suppress(ProcessLookupError):
+        proc.kill()
 
 
 # ---------------------------------------------------------------------------
@@ -165,11 +197,16 @@ async def run_cdp_command(
     wrapped_argv = _apply_arch_prefix(argv)
     start_ns = time.monotonic_ns()
 
+    # ``start_new_session=True`` (POSIX): the child becomes its own
+    # process-group leader so _kill_process_tree can killpg the whole
+    # tree — see that helper's docstring for why proc.kill() alone is
+    # not enough.
     proc = await asyncio.create_subprocess_exec(
         *wrapped_argv,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
         cwd=str(cwd),
+        start_new_session=(os.name == "posix"),
     )
 
     # Shared mutable state: stderr consumer writes the latest line, the
@@ -197,57 +234,89 @@ async def run_cdp_command(
             poll_interval_s=watchdog_poll_interval_s,
         ))
 
+    helper_tasks: tuple[asyncio.Task | None, ...] = (
+        progress_task, watchdog_task, stdout_task, stderr_task,
+    )
+
     timed_out = False
     exit_code: int | None
     try:
-        exit_code = await asyncio.wait_for(proc.wait(), timeout=timeout_seconds)
-    except asyncio.TimeoutError:
-        timed_out = True
-        proc.kill()
-        await proc.wait()
-        exit_code = None
-
-    # Cancel the watchdog (no-op if it already returned on a cap-cross).
-    if watchdog_task is not None and not watchdog_task.done():
-        watchdog_task.cancel()
         try:
-            await watchdog_task
-        except asyncio.CancelledError:
-            pass
+            exit_code = await asyncio.wait_for(
+                proc.wait(), timeout=timeout_seconds
+            )
+        except asyncio.TimeoutError:
+            timed_out = True
+            _kill_process_tree(proc)
+            await proc.wait()
+            exit_code = None
 
-    # Stream consumers finish naturally when the pipes close. Cancel the
-    # progress emitter explicitly and absorb the CancelledError.
-    progress_task.cancel()
-    try:
-        await progress_task
-    except asyncio.CancelledError:
-        pass
+        # Cancel the watchdog (no-op if it already returned on a cap-cross).
+        if watchdog_task is not None and not watchdog_task.done():
+            watchdog_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await watchdog_task
 
-    stdout_bytes = await stdout_task
-    stderr_bytes = await stderr_task
+        # Stream consumers finish naturally when the pipes close. Cancel
+        # the progress emitter explicitly and absorb the CancelledError.
+        progress_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await progress_task
 
-    # Remove partial output if the watchdog fired. Best-effort: if
-    # unlink fails (e.g. permission, transient FS issue), we proceed —
-    # the caller already knows the cap was exceeded.
-    if watchdog_state.size_cap_exceeded and output_path is not None:
-        try:
-            output_path.unlink(missing_ok=True)
-        except OSError:
-            pass
+        # Bounded drains: after a process-group SIGKILL the pipes must
+        # close, but "must" is a soft guarantee when unknown binaries are
+        # involved — never let a stuck reader outlive the hard timeout.
+        stdout_bytes = await _drain_stream_task(stdout_task)
+        stderr_bytes = await _drain_stream_task(stderr_task)
 
-    end_ns = time.monotonic_ns()
-    duration_ms = (end_ns - start_ns) // 1_000_000
+        # Remove partial output if the watchdog fired. Best-effort: if
+        # unlink fails (e.g. permission, transient FS issue), we proceed —
+        # the caller already knows the cap was exceeded.
+        if watchdog_state.size_cap_exceeded and output_path is not None:
+            try:
+                output_path.unlink(missing_ok=True)
+            except OSError:
+                pass
 
-    return SubprocessResult(
-        argv=wrapped_argv,
-        stdout=stdout_bytes.decode("utf-8", errors="replace"),
-        stderr=stderr_bytes.decode("utf-8", errors="replace"),
-        exit_code=exit_code,
-        duration_ms=int(duration_ms),
-        timed_out=timed_out,
-        size_cap_exceeded=watchdog_state.size_cap_exceeded,
-        triggered_at_bytes=watchdog_state.triggered_at_bytes,
-    )
+        end_ns = time.monotonic_ns()
+        duration_ms = (end_ns - start_ns) // 1_000_000
+
+        return SubprocessResult(
+            argv=wrapped_argv,
+            stdout=stdout_bytes.decode("utf-8", errors="replace"),
+            stderr=stderr_bytes.decode("utf-8", errors="replace"),
+            exit_code=exit_code,
+            duration_ms=int(duration_ms),
+            timed_out=timed_out,
+            size_cap_exceeded=watchdog_state.size_cap_exceeded,
+            triggered_at_bytes=watchdog_state.triggered_at_bytes,
+        )
+    finally:
+        # Runs on EVERY exit — most importantly task cancellation (client
+        # hit stop / disconnected mid-run, which FastMCP surfaces as a
+        # CancelledError at any await above). Without this, the CDP
+        # process kept running unbounded and the progress task kept
+        # firing on a dead request context. Everything here is
+        # idempotent and a no-op on the normal path.
+        #
+        # Order matters: kill synchronously first (the one resource that
+        # must not leak), cancel helpers synchronously second, and only
+        # then do the bounded best-effort awaits — if cancellation
+        # interrupts those, the kill and the cancels have already
+        # happened.
+        _kill_process_tree(proc)
+        for t in helper_tasks:
+            if t is not None and not t.done():
+                t.cancel()
+        with contextlib.suppress(BaseException):
+            await asyncio.wait_for(
+                asyncio.gather(
+                    proc.wait(),
+                    *(t for t in helper_tasks if t is not None),
+                    return_exceptions=True,
+                ),
+                timeout=5.0,
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -259,6 +328,31 @@ async def _read_all(stream: asyncio.StreamReader | None) -> bytes:
     if stream is None:
         return b""
     return await stream.read()
+
+
+_STREAM_DRAIN_TIMEOUT_S = 5.0
+
+
+async def _drain_stream_task(task: asyncio.Task) -> bytes:
+    """Await a stream-consumer task with a bounded timeout.
+
+    Normally the pipes close as soon as the (killed or exited) process
+    tree releases them and the task is already done or completes
+    instantly. If an unknown binary leaked the pipe write-end to
+    something we failed to kill, give up after a few seconds and return
+    whatever we have (nothing) rather than hanging the tool call
+    forever.
+    """
+    try:
+        return await asyncio.wait_for(task, timeout=_STREAM_DRAIN_TIMEOUT_S)
+    except asyncio.TimeoutError:
+        print(
+            "[cdp-mcp] WARNING: subprocess stream did not close after "
+            f"{_STREAM_DRAIN_TIMEOUT_S}s; abandoning read (output will be "
+            "truncated).",
+            file=sys.stderr,
+        )
+        return b""
 
 
 async def _read_stderr_lines(

@@ -11,6 +11,7 @@ output is addressable and its lineage is auditable, just like the main op.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import math
 import sys
@@ -185,8 +186,10 @@ async def maybe_insert_pvoc(
     # Cache check (Task 10). PVOC anal/synth output is a pure function of
     # input bytes + argv shape + CDP version. On hit, hardlink the cached
     # artifact into the graph dir and build a "cache_hit=True" lineage
-    # entry without running any subprocess.
-    input_sha = sha256_file(input_path)
+    # entry without running any subprocess. Hashing runs off the event
+    # loop — these are the big-file sha256 calls the async commitment
+    # names explicitly. (Phase 2 hardening, M2.)
+    input_sha = await asyncio.to_thread(sha256_file, input_path)
     argv_discriminator = "_".join(argv_template[1:])  # "anal_1" or "synth"
     out_suffix = ".ana" if target_domain == "spectral" else ".wav"
     cache_key = pvoc_cache_key(input_sha, argv_discriminator, cdp_version)
@@ -197,7 +200,7 @@ async def maybe_insert_pvoc(
         # and started_at == finished_at == now() flag this as a cache hit
         # even before the cache_hit field is inspected.
         materialize_cached_artifact(cache.path, output_path)
-        output_sha = sha256_file(output_path)
+        output_sha = await asyncio.to_thread(sha256_file, output_path)
         source_duration = _try_read_wav_duration(input_path)
         now = datetime.now(timezone.utc)
         lineage = NodeLineage(
@@ -312,7 +315,7 @@ async def maybe_insert_pvoc(
             ),
         )
 
-    output_sha = sha256_file(output_path)
+    output_sha = await asyncio.to_thread(sha256_file, output_path)
 
     # Task 8: record the source wav's duration on the PVOC node's lineage
     # so downstream breakpoint compilation can resolve relative-time
@@ -463,7 +466,7 @@ async def synth_for_audition(
     """
     # Cache check (Task 11). On hit, return the cache path directly;
     # callers read via librosa (no writes), so no materialize needed.
-    ana_sha = sha256_file(ana_path)
+    ana_sha = await asyncio.to_thread(sha256_file, ana_path)
     cache = cache_lookup(
         cache_root, "audition", audition_cache_key(ana_sha, cdp_version), ".wav",
     )
@@ -574,11 +577,11 @@ async def read_ana_duration(
     """
     # ---- Cache lookup -------------------------------------------------------
     try:
-        ana_sha = sha256_file(ana_path)
+        ana_sha = await asyncio.to_thread(sha256_file, ana_path)
     except OSError:
         return None
     cache_key = hashlib.sha256(
-        f"{ana_sha}|{cdp_version}".encode("utf-8")
+        f"{ana_sha}|{cdp_version}".encode()
     ).hexdigest()
     cache_path = cache_dir / f"{cache_key}.duration"
     if cache_path.exists():

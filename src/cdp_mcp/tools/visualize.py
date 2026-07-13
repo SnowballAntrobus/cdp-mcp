@@ -12,6 +12,7 @@ auto-synthesized to a temp wav before rendering (see
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
@@ -208,7 +209,8 @@ async def visualize_impl(
     # On hit, materialize the cached PNG into the session's
     # visualizations/ dir (timestamped path the LLM expects) and
     # populate metadata from soundfile + PIL — no librosa load needed.
-    audio_sha = sha256_file(audio_path)
+    # Hash off the event loop (Phase 2 hardening, M2).
+    audio_sha = await asyncio.to_thread(sha256_file, audio_path)
     render_params = (
         f"nfft={_N_FFT},hop={_HOP_LENGTH},dpi={_FIG_DPI},"
         f"w={_FIG_W_INCHES},h={_FIG_H_INCHES}"
@@ -227,8 +229,13 @@ async def visualize_impl(
                 audio_path, png_path, t_start, t_duration,
             )
             cached = True
-        except (OSError, ValueError):
-            # Cache file unreadable or corrupt — treat as miss.
+        except Exception:  # noqa: BLE001 — treat any cache-hit hiccup as a miss
+            # Cache file unreadable, corrupt PNG, or unreadable audition
+            # wav (sf.LibsndfileError is a RuntimeError subclass, which
+            # the old (OSError, ValueError) guard let escape as a raw
+            # protocol error). Fall through to a fresh render — the
+            # cache is an optimization, never a correctness dependency.
+            # (Phase 2 hardening, M3.)
             cached = False
 
     # 7. Render — off the event loop via asyncio.to_thread, with
@@ -271,6 +278,30 @@ async def visualize_impl(
                             fix=(
                                 "Pass a t_start/t_end window inside the "
                                 "file's duration."
+                            ),
+                        )
+                    ],
+                )
+            ]
+        except Exception as e:  # noqa: BLE001 — soundfile/librosa raise a zoo
+            # Corrupt/truncated/unsupported audio must surface as a
+            # structured envelope, not a raw protocol error. (Phase 2
+            # hardening, M3.)
+            return [
+                _failed_envelope(
+                    session,
+                    latest_tracker,
+                    [
+                        ErrorEntry(
+                            type="render_failed",
+                            message=(
+                                f"spectrogram render failed on "
+                                f"{audio_path.name}: {type(e).__name__}: {e}"
+                            ),
+                            fix=(
+                                "The audio file may be corrupt, truncated, "
+                                "or in an unsupported encoding. Re-generate "
+                                "it or check it with analyze()."
                             ),
                         )
                     ],

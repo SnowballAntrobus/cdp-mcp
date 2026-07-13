@@ -463,3 +463,18 @@ async def test_preflight_ana_fallback_disabled_without_full_cdp_context(
         cdp_version="r8-fake",
     )
     assert errors == []
+
+
+def test_expression_type_error_becomes_structured(  # Phase 2 hardening, M11
+):
+    """A curated expr whose operator application raises TypeError (e.g.
+    a string literal leaking into arithmetic) must surface as
+    DurationModelError — the structured
+    predicted_duration_evaluation_failed path — not a raw TypeError."""
+    entry = _make_entry(
+        duration_model=DurationModelExpression(
+            kind="expression", expr="indur * 'x'",
+        ),
+    )
+    with pytest.raises(DurationModelError, match="TypeError"):
+        _evaluate_duration_model(entry, {}, [10.0])

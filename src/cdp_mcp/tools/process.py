@@ -10,6 +10,7 @@ lineage in a fresh graph directory.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
@@ -182,25 +183,31 @@ async def process_impl(
     )
     finished_at = datetime.now(timezone.utc)
 
-    # 12. Verify output (Task 4).
-    verification = verify_output(output_path)
+    # 12. Verify output (Task 4). Off the event loop: verification
+    # decodes audio for the RMS/silence check and hashing reads whole
+    # files — both are sync CPU/IO work that must not starve MCP
+    # heartbeats. (Phase 2 hardening, M2.)
+    verification = await asyncio.to_thread(verify_output, output_path)
 
     # 13. Build main node lineage.
-    output_sha: str | None = None
-    if verification.exists and verification.size_bytes > 0:
-        try:
-            output_sha = sha256_file(output_path)
-        except OSError:
-            output_sha = None
+    def _hash_lineage_files() -> tuple[str | None, list[InputRecord]]:
+        out_sha: str | None = None
+        if verification.exists and verification.size_bytes > 0:
+            try:
+                out_sha = sha256_file(output_path)
+            except OSError:
+                out_sha = None
+        records = [
+            InputRecord(
+                path=str(p),
+                sha256=sha256_file(p) if p.exists() else "",
+                source_node=src,
+            )
+            for p, src in zip(post_pvoc_paths, pvoc_source_nodes, strict=False)
+        ]
+        return out_sha, records
 
-    main_inputs = [
-        InputRecord(
-            path=str(p),
-            sha256=sha256_file(p) if p.exists() else "",
-            source_node=src,
-        )
-        for p, src in zip(post_pvoc_paths, pvoc_source_nodes, strict=False)
-    ]
+    output_sha, main_inputs = await asyncio.to_thread(_hash_lineage_files)
     lineage = NodeLineage(
         argv=validated,
         inputs=main_inputs,

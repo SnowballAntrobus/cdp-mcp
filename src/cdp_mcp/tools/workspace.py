@@ -18,6 +18,7 @@ Task 2's :mod:`cdp_mcp.tools.introspection`.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from pathlib import Path
 
@@ -98,7 +99,10 @@ def register(
         """
         active = sessions.active
         available = sessions.list_sessions()
-        cache_block = _cache_block(cache_root)
+        # Disk walks (cache rglob + recursive session du) run off the
+        # event loop — a multi-GB session tree or cache on a slow disk
+        # would otherwise stall MCP heartbeats. (Phase 2 hardening, M2.)
+        cache_block = await asyncio.to_thread(_cache_block, cache_root)
         if active is None:
             return {
                 "active_session": None,
@@ -106,7 +110,9 @@ def register(
                 "cache": cache_block,
                 "hint": "Call set_session(name) to activate or create one.",
             }
-        return _describe_active(active, available, cache_block)
+        return await asyncio.to_thread(
+            _describe_active, active, available, cache_block
+        )
 
     @mcp.tool()
     async def read_envelope(ctx: Context, name: str) -> dict:
@@ -238,14 +244,18 @@ def _read_envelope(session: Session, name: str) -> dict:
             f"Envelope file not found: {target}. "
             f"Call describe_workspace() to list available envelope files."
         )
-    raw = target.read_bytes()
-    truncated = len(raw) > _READ_ENVELOPE_MAX_BYTES
-    payload = raw[:_READ_ENVELOPE_MAX_BYTES] if truncated else raw
+    # Cap the READ, not just the response: the old read_bytes() loaded a
+    # pathological multi-GB file fully into RAM before truncating.
+    # (Phase 2 hardening, M2.)
+    size_bytes = target.stat().st_size
+    truncated = size_bytes > _READ_ENVELOPE_MAX_BYTES
+    with target.open("rb") as fh:
+        payload = fh.read(_READ_ENVELOPE_MAX_BYTES)
     content = payload.decode("utf-8", errors="replace")
     return {
         "name": name,
         "path": str(target),
-        "size_bytes": len(raw),
+        "size_bytes": size_bytes,
         "content": content,
         "truncated": truncated,
     }

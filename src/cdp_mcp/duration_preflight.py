@@ -176,7 +176,22 @@ def _evaluate_duration_model(
         evaluator = SimpleEval(names=names, functions={})
         try:
             result = evaluator.eval(model.expr)
-        except (InvalidExpression, ZeroDivisionError, OverflowError) as e:
+        except (
+            InvalidExpression,
+            ZeroDivisionError,
+            OverflowError,
+            # simpleeval propagates these raw from operator application —
+            # e.g. a curated expr containing a string literal
+            # (``indur * '2'``) raises TypeError, and pathological
+            # operand values raise ValueError/MemoryError. All of them
+            # are curation defects that must surface as the structured
+            # predicted_duration_evaluation_failed, not a raw crash.
+            # (Phase 2 hardening, M11.)
+            TypeError,
+            ValueError,
+            KeyError,
+            MemoryError,
+        ) as e:
             raise DurationModelError(
                 f"failed to evaluate expression {model.expr!r}: "
                 f"{type(e).__name__}: {e}"

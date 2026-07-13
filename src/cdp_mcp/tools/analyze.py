@@ -6,6 +6,7 @@ target grammar and auto-synth behavior as :func:`visualize`.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import Callable
 from dataclasses import asdict
@@ -169,7 +170,10 @@ async def analyze_impl(
     # 5. Cache lookup (Task 10). The scorecard JSON is a pure function of
     # (audio bytes, feature_set, window, librosa-stack versions). On hit,
     # we skip the librosa extraction entirely.
-    audio_sha = sha256_file(audio_path)
+    # Hash off the event loop — sha256 of a long wav is exactly the
+    # sync CPU work the async commitment says must not starve MCP
+    # heartbeats. (Phase 2 hardening, M2.)
+    audio_sha = await asyncio.to_thread(sha256_file, audio_path)
     cache_key = analysis_cache_key(audio_sha, "concise_v1", t_start, t_duration)
     cache = cache_lookup(cache_root, "analysis", cache_key, ".json")
 
@@ -182,8 +186,9 @@ async def analyze_impl(
             scorecard_dict = payload["scorecard"]
             warnings = payload.get("warnings", [])
             cached = True
-        except (OSError, json.JSONDecodeError, KeyError):
-            # Treat a corrupt or stale-shape cache entry as a miss.
+        except (OSError, json.JSONDecodeError, KeyError, TypeError):
+            # Treat a corrupt or stale-shape cache entry (including a
+            # non-dict JSON root — TypeError at the subscript) as a miss.
             cached = False
 
     # 6. Extract scorecard — off the event loop via asyncio.to_thread,
@@ -216,6 +221,29 @@ async def analyze_impl(
                         fix=(
                             "Pass a t_start/t_duration window inside the "
                             "file's duration."
+                        ),
+                    )
+                ],
+            )
+        except Exception as e:  # noqa: BLE001 — soundfile/librosa raise a zoo
+            # sf.LibsndfileError is a RuntimeError subclass; audioread and
+            # librosa raise their own types; corrupt/truncated audio must
+            # surface as a structured envelope, not a raw protocol error.
+            # (Phase 2 hardening, M3.)
+            return _failed_envelope(
+                session,
+                latest_tracker,
+                [
+                    ErrorEntry(
+                        type="analysis_failed",
+                        message=(
+                            f"feature extraction failed on "
+                            f"{audio_path.name}: {type(e).__name__}: {e}"
+                        ),
+                        fix=(
+                            "The audio file may be corrupt, truncated, or "
+                            "in an unsupported encoding. Re-generate it or "
+                            "check it with visualize()/a wav tool."
                         ),
                     )
                 ],
