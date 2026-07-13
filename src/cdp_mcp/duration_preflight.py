@@ -172,6 +172,18 @@ def _evaluate_duration_model(
         for i, d in enumerate(indurs):
             if d is not None:
                 names[f"indur{i + 1}"] = d
+        # Pre-computed aggregates. functions={} keeps the expression
+        # language arithmetic-only, so min/max over input durations are
+        # injected as *names* — the documented pattern for anything
+        # non-arithmetic a curated model needs. Consumer: combine cross
+        # (CDP emits the shorter input's duration; ``expr:
+        # "indur_min"``). The skip guard above ("indur" substring +
+        # any-unknown) already covers these: reaching here with an
+        # indur_* reference means every input duration is known.
+        known = [d for d in indurs if d is not None]
+        if known:
+            names["indur_min"] = min(known)
+            names["indur_max"] = max(known)
 
         evaluator = SimpleEval(names=names, functions={})
         try:

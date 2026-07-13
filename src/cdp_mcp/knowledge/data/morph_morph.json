@@ -11,8 +11,10 @@
   "stability": "stable",
   "phase_sensitive": false,
   "stereo_link_default": null,
-  "duration_model": {"kind": "static"},
-  "default_length_strategy": "stagger:0",
+  "duration_model": {
+    "kind": "static"
+  },
+  "default_length_strategy": null,
   "curated": true,
   "version_sensitive": false,
   "description": "morph morph is the IRCAM-era VOCINTE, written by Trevor Wishart during the composition of VOX-5. Morphs one PVOC spectrum into another, with amplitude and frequency interpolation start/end times controlled independently. This curated entry pins submode 1 (linear/exponential interpolation, shaped by expa/expf exponents); submode 2 (cosinusoidal spline) can be added as a separate curated entry later if needed.",
@@ -83,6 +85,10 @@
       "expected_use": "Spectral morph between two pitched sources where the timbre starts shifting before the pitch does."
     }
   ],
-  "known_issues": [],
-  "references": ["cdp://docs/morph/morph"]
+  "known_issues": [
+    "Differing-length inputs: morph has its own -s stagger flag (curated as the 'stagger' parameter); engine-level length alignment (_pvoc.length_strategy / pad_with_fade) is NOT wired — Phase 2 Task 07 was implemented then reverted (fb8fda6) for lack of a consumer. A previous 'default_length_strategy: \"stagger:0\"' declaration here was dead data and was removed; re-declare it when the alignment engine lands."
+  ],
+  "references": [
+    "cdp://docs/morph/morph"
+  ]
 }

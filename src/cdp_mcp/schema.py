@@ -48,8 +48,11 @@ class ParameterSpec(BaseModel):
     validation time. Phase 1a leaves it unset on every entry; curated in
     Phase 3.
 
-    ``breakpoint_capable`` is set to ``False`` everywhere in Phase 1a;
-    breakpoint compilation lands in Phase 1b.
+    ``breakpoint_capable`` was empirically verified per parameter against
+    the CDP r8 binary in the Phase 2 curation review (see
+    ``docs/phase-2-breakpoint-review.md``); outcomes are pinned in
+    ``tests/test_breakpoint_curation.py``, which fails on any drift
+    between the JSONs and the verified table.
     """
 
     type: Literal["float", "int", "str", "bool"]

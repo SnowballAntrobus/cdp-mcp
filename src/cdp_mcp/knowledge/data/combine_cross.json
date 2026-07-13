@@ -9,7 +9,7 @@
   "output_format": ".ana",
   "stability": "stable",
   "phase_sensitive": false,
-  "duration_model": { "kind": "static" },
+  "duration_model": { "kind": "expression", "expr": "indur_min" },
   "curated": true,
   "version_sensitive": false,
   "description": "combine cross (formerly SPECCROS) makes a weighted substitution of the spectral amplitudes of the first PVOC file with those of the second — a timbral crossover, not a full morph. Single-degree control via interp.",

@@ -2,6 +2,8 @@
 
 > *Version 9 — final pre-Phase-2 revision. Absorbs four-reviewer feedback on v8: tool count corrected to ten throughout; `breakpoint_capable` curation review moved from Phase 3 to Phase 2 (Phase 2's `breakpoint()` tool needs targets); `_pvoc.window`/`_pvoc.overlap` cache key extension promoted from Open Questions to a Phase 2 ordering constraint (must land before the engine controls are exposed, or the LLM will hallucinate that window changes had no effect); determinism sweep for the five Phase 1a entries moved from Phase 3 to Phase 2; `batch()` semantics spelled out (atomic context event, single-graph-directory layout, alias resolution); `graph()` node ID scoping committed (bare = intra-graph, `<graph_id>:nN` = cross-graph); `graph()` intermediate cache lookups committed to content-hash addressing from lineage; multi-input wiring conventions named (which input drives breakpoint duration, `_pvoc.length_strategy` values, cross-graph multi-input cwd-relative argv); curating `combine cross` alongside multi-input wiring committed; `compare()` loudness matching given an algorithm with multi-method support; `progression()` aspect ratio and truncation behavior specified; `validate_node()` extraction from `process_impl` flagged as a precondition for `graph(dry_run=True)`; `simpleeval` configuration tightened with `names={}`; `.ana` duration via `dirsf` shell-out committed as the resolution path; "official Anthropic Ableton connector" reference dropped (no such public artifact); various smaller corrections. v9 is the implementation reference for Phase 2.*
 
+> *v9.1 (2026-07-13) — mid-Phase-2 sync against the code audit (`docs/phase-2-audit-2026-07-13.md`). Corrections where implementation diverged from or superseded v9: `.ana` duration ships via `sfprops -d` (not `dirsf` — see Phase 2 operational fixes); `visualize` is mel-only with `t_end` (the `mode` parameter lands with the Phase 2 observation track); `describe_workspace`'s `history` field is now implemented; `combine cross` needs no length alignment (CDP natively truncates to the shorter input; its `duration_model` is `expression: "indur_min"` via evaluator-injected `indur_min`/`indur_max` names); Tasks 04 (PVOC cache-key extension) and 07 (`pad_with_fade`) were implemented then reverted pending consumers — see "Phase 2 mid-course reverts" under Architectural decisions.*
+
 ## Overview
 
 An MCP server that wraps the Composers' Desktop Project (CDP) — a 500+ program suite of offline sound-transformation tools — for use by an LLM (specifically Claude) in collaboration with a human composer. The immediate goal is a 32-second IDM-style piece built from heavily processed frog croak samples. The broader goal is a reusable tool for LLM-augmented experimental sound design.
@@ -356,7 +358,7 @@ Target: ~22 tools across six groups. Phase 1a+1b shipped 10; the rest land in su
 
 ### Observation
 
-- `visualize(target, mode="mel"|"lin"|"cqt"|"multi", t_start?, t_duration?)` [1a/1b for `"mel"`; other modes Phase 2]. PNG output. `.ana` targets auto-synth via audition cache. **Phase 1b adds**: cache layer (~120× speedup on hits).
+- `visualize(target, t_start?, t_end?)` [1a/1b — mel-only as shipped]. PNG output. `.ana` targets auto-synth via audition cache. **Phase 1b adds**: cache layer (~120× speedup on hits). The `mode="mel"|"lin"|"cqt"|"multi"` parameter lands with the Phase 2 observation track (the cache key already carries a mode discriminator).
 
 - `analyze(target, t_start?, t_duration?, verbose=False)` [1a/1b concise; verbose Phase 2]. **Phase 1b adds**: cache layer (~1231× speedup on hits).
 
@@ -602,7 +604,7 @@ Phase 2 has two structurally independent tracks (DAG/orchestration and Observati
 
 **Operational fixes during Phase 2:**
 - Linux test portability: `_install_real_pvoc_wrapper` shebang from `#!/bin/sh` to `#!/usr/bin/env bash`. Production code is fine; this is a test-fixture-only fix that unblocks cross-platform CI.
-- `.ana` duration for pre-converted files: shell out to CDP's `dirsf` utility (or `pvoc info` if available in r8) and parse the duration from stdout, cached in `session/tmp/`. If `dirsf` fails, gracefully degrade and skip pre-flight for raw `.ana` inputs (the watchdog still covers reactively). This beats writing a custom binary parser for CDP's `.ana` header format.
+- `.ana` duration for pre-converted files: **shipped via `sfprops -d`** (cached in `session/tmp/`, never raises; graceful skip + reactive watchdog on failure). Investigation outcome: v9 named `dirsf`, but verification against r8 found `dirsf` is a directory-listing utility and `pvoc info` doesn't exist (modes are anal/synth/extract); `sfprops -d <path>` writes exactly one float to stdout and is the right tool. This beat writing a custom binary parser for CDP's `.ana` header format.
 
 ### Phase 3: Knowledge Completion
 
@@ -659,6 +661,13 @@ Substantially reduced after Phase 1b and the Phase 2 preconditions above. Remain
 - **`simpleeval` configuration** tightened from `functions={}` to `functions={} + names={}` so default builtins (`int`, `float`, `abs`, `min`, `max`) are not silently accessible.
 - **Channel handling wiring** likely defers to Phase 3 because Phase 1a/2 entries are all mono-or-any; building the L/R-split machinery without a `phase_sensitive: true` entry to exercise is speculative.
 - **PVOC cache key** grows to include `window` and `overlap` in Phase 2 — before `_pvoc.*` engine controls are exposed to the LLM.
+
+### Phase 2 mid-course reverts (2026-05-28; rationale recorded 2026-07-13)
+
+Two implemented Phase 2 tasks were deliberately reverted the same afternoon `combine cross` landed. The commits carry no rationale; recording it here so neither gets re-litigated from scratch.
+
+- **Task 04 — PVOC cache-key extension (window/overlap)** — implemented in `3a7000e`, reverted in `c804a03`. The `_pvoc.window`/`_pvoc.overlap` engine controls did not ship in this pass, so the extended key had no consumer while invalidating every existing PVOC cache entry. The v9 ordering constraint is *unbroken* (neither key nor controls shipped) and still applies: re-land the key extension (revert the revert) **before** exposing `_pvoc.*`.
+- **Task 07 — `pad_with_fade` primitive (`audio_align.py`)** — implemented in `896d868`, reverted in `fb8fda6`. `combine cross` (Task 09) turned out to need no length alignment — CDP natively truncates to the shorter input, order-independent — leaving the primitive consumer-less, exactly the pattern "rough end-to-end first" exists to catch. Re-land alongside the first curated entry that actually exercises `_pvoc.length_strategy` (`morph morph` sidesteps it via its own `-s` stagger flag; its former `default_length_strategy: "stagger:0"` declaration was removed as dead data, see the entry's `known_issues`).
 
 ### Decided (still decided)
 

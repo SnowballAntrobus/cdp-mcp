@@ -478,3 +478,41 @@ def test_expression_type_error_becomes_structured(  # Phase 2 hardening, M11
     )
     with pytest.raises(DurationModelError, match="TypeError"):
         _evaluate_duration_model(entry, {}, [10.0])
+
+
+def test_expression_indur_min_multi_input():
+    """combine cross's model: CDP emits the shorter input's duration.
+    min/max aren't callable (functions={}), so the evaluator injects
+    pre-computed indur_min/indur_max names."""
+    entry = _make_entry(
+        duration_model=DurationModelExpression(
+            kind="expression", expr="indur_min",
+        ),
+        arity=2,
+    )
+    result = _evaluate_duration_model(entry, {}, [3.0, 4.5])
+    assert result == pytest.approx(3.0)
+
+
+def test_expression_indur_max_multi_input():
+    entry = _make_entry(
+        duration_model=DurationModelExpression(
+            kind="expression", expr="indur_max",
+        ),
+        arity=2,
+    )
+    result = _evaluate_duration_model(entry, {}, [3.0, 4.5])
+    assert result == pytest.approx(4.5)
+
+
+def test_expression_indur_min_skips_when_any_duration_unknown():
+    """The 'indur' substring skip guard covers indur_min: with any input
+    duration unknown, preflight skips (watchdog covers reactively)
+    rather than predicting from partial information."""
+    entry = _make_entry(
+        duration_model=DurationModelExpression(
+            kind="expression", expr="indur_min",
+        ),
+        arity=2,
+    )
+    assert _evaluate_duration_model(entry, {}, [3.0, None]) is None

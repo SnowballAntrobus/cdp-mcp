@@ -19,6 +19,8 @@ Task 2's :mod:`cdp_mcp.tools.introspection`.
 from __future__ import annotations
 
 import asyncio
+import json
+import re
 from collections.abc import Callable
 from pathlib import Path
 
@@ -94,8 +96,12 @@ def register(
         session active, returns the session's path, creation timestamp, CDP
         version captured at creation, a flat listing of input filenames,
         a flat listing of envelope filenames (``.brk`` and similar), a
-        recursive disk-usage estimate, and a ``cache`` block summarising
-        per-tier byte counts of the global derivative-artifact cache.
+        ``history`` mapping of every graph ID in the session to its
+        primary output filename (explicit recall for graphs that have
+        scrolled out of the conversational ``recent_graphs`` window —
+        reference them as ``<graph_id>:<node_id>``), a recursive
+        disk-usage estimate, and a ``cache`` block summarising per-tier
+        byte counts of the global derivative-artifact cache.
         """
         active = sessions.active
         available = sessions.list_sessions()
@@ -172,6 +178,7 @@ def _describe_active(
 ) -> dict:
     input_files = _list_input_files(session)
     envelope_files = _list_envelope_files(session)
+    history = _history(session)
     return {
         "active_session": session.name,
         "session_path": str(session.root),
@@ -181,11 +188,50 @@ def _describe_active(
         "input_count": len(input_files),
         "envelope_files": envelope_files,
         "envelope_count": len(envelope_files),
-        "graph_count": _count_dirs(session.graphs_dir),
+        "graph_count": len(history),
+        "history": history,
         "disk_usage_bytes": _disk_usage(session.root),
         "available_sessions": available_sessions,
         "cache": cache_block,
     }
+
+
+def _history(session: Session) -> dict[str, str | None]:
+    """Compressed mapping of every session graph ID to its primary output.
+
+    The design-doc-committed "explicit recall" complement to the
+    in-memory ``recent_graphs`` deque: built from the filesystem at call
+    time, so it survives server restarts and covers graphs that have
+    scrolled out of the conversational window. The primary output is the
+    highest-numbered node's filename (the main op — auto-PVOC nodes get
+    lower numbers); reference it as ``<graph_id>:<node_id>`` or by name.
+    Unreadable/empty ``node_index.json`` → ``None`` (the graph directory
+    exists but has no addressable output — e.g. a validation-stage
+    failure).
+    """
+    if not session.graphs_dir.exists():
+        return {}
+    result: dict[str, str | None] = {}
+    for graph_root in sorted(session.graphs_dir.iterdir()):
+        if not graph_root.is_dir():
+            continue
+        index_path = graph_root / "node_index.json"
+        primary: str | None = None
+        try:
+            index = json.loads(index_path.read_text(encoding="utf-8"))
+            if isinstance(index, dict) and index:
+                primary = index[max(index, key=_node_sort_key)]
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            primary = None
+        result[graph_root.name] = primary
+    return result
+
+
+def _node_sort_key(node_id: str) -> tuple[int, str]:
+    """Order node IDs numerically (``n2`` > ``n1``, ``n10`` > ``n9``),
+    falling back to lexicographic for non-conforming IDs."""
+    m = re.match(r"n(\d+)", node_id)
+    return (int(m.group(1)) if m else -1, node_id)
 
 
 def _cache_block(cache_root: Path) -> dict:

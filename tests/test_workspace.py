@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -345,3 +346,52 @@ async def test_describe_workspace_no_session_includes_cache_block(
     assert desc["active_session"] is None
     assert desc["cache"]["pvoc_bytes"] == 100
     assert desc["cache"]["total_bytes"] == 100
+
+
+# ---------------------------------------------------------------------------
+# describe_workspace: history (design-doc commitment, added Phase 2)
+# ---------------------------------------------------------------------------
+
+
+async def test_describe_workspace_history_maps_graphs_to_primary_outputs(
+    mcp_with_workspace,
+):
+    mcp, _, tmp_path, _, _ = mcp_with_workspace
+    await _call_raw(mcp, "set_session", {"name": "frog_v1"})
+    graphs = tmp_path / "frog_v1" / "graphs"
+
+    # Graph A: auto-PVOC node (n1) + main op (n2) → primary is n2's file.
+    a = graphs / "20260101T000000-blur-blur"
+    a.mkdir(parents=True)
+    (a / "node_index.json").write_text(
+        '{"n1": "n1_pvoc-anal.ana", "n2": "n2_blur-blur.ana"}'
+    )
+    # Graph B: ten nodes — numeric ordering must pick n10, not n9.
+    b = graphs / "20260101T000001-graph"
+    b.mkdir()
+    index = {f"n{i}": f"n{i}_op.wav" for i in range(1, 11)}
+    (b / "node_index.json").write_text(json.dumps(index))
+    # Graph C: empty index (validation-stage failure) → None.
+    c = graphs / "20260101T000002-failed"
+    c.mkdir()
+    (c / "node_index.json").write_text("{}")
+    # Graph D: corrupt index → None, not a crash.
+    d = graphs / "20260101T000003-corrupt"
+    d.mkdir()
+    (d / "node_index.json").write_text("{nope")
+
+    payload = await _call_raw(mcp, "describe_workspace", {})
+    assert payload["history"] == {
+        "20260101T000000-blur-blur": "n2_blur-blur.ana",
+        "20260101T000001-graph": "n10_op.wav",
+        "20260101T000002-failed": None,
+        "20260101T000003-corrupt": None,
+    }
+    assert payload["graph_count"] == 4
+
+
+async def test_describe_workspace_history_empty_session(mcp_with_workspace):
+    mcp, _, _, _, _ = mcp_with_workspace
+    await _call_raw(mcp, "set_session", {"name": "frog_v1"})
+    payload = await _call_raw(mcp, "describe_workspace", {})
+    assert payload["history"] == {}
