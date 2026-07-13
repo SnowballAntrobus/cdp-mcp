@@ -14,7 +14,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import Context, FastMCP
 
-from ..analysis import extract_scorecard
+from ..analysis import extract_scorecard, extract_verbose
 from ..cache import analysis_cache_key, cache_lookup, cache_populate_json
 from ..config import CDPConfig
 from ..graph import (
@@ -39,6 +39,7 @@ async def analyze_impl(
     t_start: float | None = None,
     t_duration: float | None = None,
     timeout_seconds: float = 60.0,
+    verbose: bool = False,
     *,
     sessions: SessionManager,
     cdp_config_provider: Callable[[], CDPConfig | None],
@@ -257,6 +258,42 @@ async def analyze_impl(
             {"scorecard": scorecard_dict, "warnings": warnings},
         )
 
+    # 6.5. Verbose block (Phase 2, opt-in). Cached separately in the
+    # analysis tier — verbose extraction (MFCC/chroma/beat tracking) is
+    # several times the cost of the scorecard, and most calls don't
+    # want it.
+    verbose_block: dict | None = None
+    if verbose:
+        verbose_cache = cache_lookup(
+            cache_root, "analysis",
+            analysis_cache_key(audio_sha, "verbose_v1", t_start, t_duration),
+            ".json",
+        )
+        if verbose_cache.hit:
+            try:
+                verbose_block = json.loads(verbose_cache.path.read_text())
+            except (OSError, json.JSONDecodeError, TypeError):
+                verbose_block = None
+        if verbose_block is None:
+            try:
+                verbose_block = await run_with_progress(
+                    ctx, "extracting verbose features", extract_verbose,
+                    audio_path, t_start, t_duration,
+                )
+            except Exception as e:  # noqa: BLE001 — librosa zoo (M3)
+                return _failed_envelope(session, latest_tracker, [ErrorEntry(
+                    type="analysis_failed",
+                    message=(
+                        f"verbose feature extraction failed on "
+                        f"{audio_path.name}: {type(e).__name__}: {e}"
+                    ),
+                    fix=(
+                        "The concise scorecard may still work — retry "
+                        "with verbose=False, or re-generate the audio."
+                    ),
+                )])
+            cache_populate_json(verbose_cache.path, verbose_block)
+
     # 7. Build envelope. Promote scorecard.warnings to envelope.warnings;
     # the analysis dict carries the 10 numeric fields.
     envelope = ResultEnvelope(
@@ -273,6 +310,8 @@ async def analyze_impl(
     )
     envelope_dict = envelope.model_dump(mode="json")
     envelope_dict["analysis"] = scorecard_dict
+    if verbose_block is not None:
+        envelope_dict["analysis_verbose"] = verbose_block
     envelope_dict["auto_synthed"] = auto_synthed
     return envelope_dict
 
@@ -296,6 +335,7 @@ def register(
         t_start: float | None = None,
         t_duration: float | None = None,
         timeout_seconds: float = 60.0,
+        verbose: bool = False,
     ) -> dict:
         """Extract a concise MIR feature scorecard from the target audio.
 
@@ -308,6 +348,13 @@ def register(
         ``spectral_centroid_hz``, ``spectral_flux``, ``zero_crossing_rate``,
         ``onset_count``, ``n_channels``, ``sample_rate``. Any warnings
         (e.g. "audio too short for LUFS") surface in ``warnings``.
+
+        ``verbose=True`` adds an ``analysis_verbose`` block: MFCC
+        means/stds (13 coefficients — timbre), chroma means (12 pitch
+        classes — harmonic color), a tempo estimate, and per-channel
+        peak/RMS. Use it when comparing timbral character across
+        processed variants, or checking whether a transformation
+        preserved pitch content.
         """
         return await analyze_impl(
             ctx,
@@ -315,6 +362,7 @@ def register(
             t_start,
             t_duration,
             timeout_seconds,
+            verbose,
             sessions=sessions,
             cdp_config_provider=cdp_config_provider,
             latest_tracker=latest_tracker,

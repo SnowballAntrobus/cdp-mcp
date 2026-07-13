@@ -31,10 +31,13 @@ from .session import SessionManager
 from .tools import analyze as analyze_module
 from .tools import batch as batch_module
 from .tools import breakpoint as breakpoint_module
+from .tools import compare as compare_module
 from .tools import execute as execute_module
 from .tools import graph_tool as graph_module
 from .tools import introspection, workspace
 from .tools import process as process_module
+from .tools import progression as progression_module
+from .tools import segments as segments_module
 from .tools import visualize as visualize_module
 
 mcp = FastMCP("cdp-mcp")
@@ -142,6 +145,17 @@ analyze_module.register(
     latest_tracker=_latest_tracker,
     cache_root=_cache_root,
 )
+
+# Observation track (Phase 2): segments / compare / progression share
+# visualize's dependency shape.
+for _obs_module in (segments_module, compare_module, progression_module):
+    _obs_module.register(
+        mcp,
+        sessions=_session_manager,
+        cdp_config_provider=lambda: _cdp_config,
+        latest_tracker=_latest_tracker,
+        cache_root=_cache_root,
+    )
 
 
 def create_server() -> FastMCP:

@@ -56,6 +56,7 @@ def render_spectrogram(
     output_path: Path,
     t_start: float | None = None,
     t_duration: float | None = None,
+    markers: list[float] | None = None,
 ) -> SpectrogramResult:
     """Render a mel spectrogram PNG to ``output_path``.
 
@@ -68,6 +69,10 @@ def render_spectrogram(
         output_path: PNG destination. Parent directory must exist.
         t_start: Optional time-window start in seconds.
         t_duration: Optional time-window duration in seconds.
+        markers: Optional vertical marker times in seconds (Phase 2,
+            ``segments()``) — drawn as thin cyan lines over the
+            spectrogram. Callers must fold the marker list into their
+            cache key (marker positions change the pixels).
 
     Raises:
         FileNotFoundError: if ``audio_path`` doesn't exist.
@@ -107,6 +112,9 @@ def render_spectrogram(
             ax=ax,
         )
         fig.colorbar(img, ax=ax, format="%+2.0f dB")
+        if markers:
+            for t in markers:
+                ax.axvline(x=t, color="cyan", linewidth=0.8, alpha=0.85)
         ax.set_title(f"{audio_path.name} — mel spectrogram")
         fig.savefig(output_path, dpi=_FIG_DPI, bbox_inches="tight")
     finally:
