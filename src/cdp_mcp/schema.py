@@ -263,9 +263,17 @@ class ErrorEntry(BaseModel):
 
 
 class RecentGraphEntry(BaseModel):
+    """One slot of the conversational ``recent_graphs`` deque.
+
+    ``output_node`` is ``None`` for a ``batch()`` entry — batch is an
+    atomic context event (one deque slot for N outputs; design-doc
+    Context Block rule 6) whose elements are addressed via
+    ``latest_batch[i]``, with ``batch_size`` carrying N."""
+
     id: str
-    output_node: str
+    output_node: str | None
     alias: str
+    batch_size: int | None = None
 
 
 class ContextBlock(BaseModel):

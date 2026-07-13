@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -176,7 +177,8 @@ class _Slot:
     built positionally when assembling the context block."""
 
     graph_id: str
-    node_id: str
+    node_id: str | None  # None → batch entry (see record_batch)
+    batch_size: int | None = None
 
 
 class LatestTracker:
@@ -197,22 +199,41 @@ class LatestTracker:
 
     def __init__(self) -> None:
         self._deque: deque[_Slot | None] = deque(maxlen=self._CAPACITY)
+        self._latest_batch: tuple[str, list[str]] | None = None
 
     def update(self, graph_id: str, node_id: str) -> None:
         """Push a new successful (graph, node) to the front. Capacity-bounded;
         the oldest slot falls off when the deque was full."""
         self._deque.appendleft(_Slot(graph_id=graph_id, node_id=node_id))
 
+    def record_batch(self, graph_id: str, node_ids: list[str]) -> None:
+        """Push ONE synthetic entry for a whole batch() call (design-doc
+        Context Block rule 6 — a 10-element batch must not evict the
+        entire conversational window). ``latest`` continues to name the
+        last *single-output* action; individual elements resolve via
+        ``latest_batch[i]``."""
+        self._deque.appendleft(_Slot(
+            graph_id=graph_id, node_id=None, batch_size=len(node_ids),
+        ))
+        self._latest_batch = (graph_id, list(node_ids))
+
+    @property
+    def latest_batch(self) -> tuple[str, list[str]] | None:
+        return self._latest_batch
+
     @property
     def latest(self) -> str | None:
-        """Back-compat: return ``"<graph_id>:<node_id>"`` for slot 0, or
-        ``None`` if the deque is empty or slot 0 is a hole."""
-        if not self._deque:
-            return None
-        s = self._deque[0]
-        if s is None:
-            return None
-        return f"{s.graph_id}:{s.node_id}"
+        """``"<graph_id>:<node_id>"`` of the most recent *single-output*
+        action. Batch entries are transparent to ``latest`` (rule 6 —
+        it keeps naming the last single-output action), but a hole
+        (cleanup-pruned slot) ends the scan: a pruned latest is gone,
+        not silently replaced by something older (rule 3)."""
+        for s in self._deque:
+            if s is None:
+                return None
+            if s.node_id is not None:
+                return f"{s.graph_id}:{s.node_id}"
+        return None
 
     def get_slot(self, position: int) -> _Slot | None:
         """Return the slot at position N (0 = latest, 1 = prev_1, …) or
@@ -229,6 +250,8 @@ class LatestTracker:
         for i, slot in enumerate(self._deque):
             if slot is not None and slot.graph_id == graph_id:
                 self._deque[i] = None
+        if self._latest_batch is not None and self._latest_batch[0] == graph_id:
+            self._latest_batch = None
 
     def recent_entries(self) -> list[RecentGraphEntry]:
         """Materialize the deque as a list of RecentGraphEntry for the
@@ -244,6 +267,7 @@ class LatestTracker:
                 id=slot.graph_id,
                 output_node=slot.node_id,
                 alias=alias,
+                batch_size=slot.batch_size,
             ))
         return out
 
@@ -252,6 +276,7 @@ class LatestTracker:
         activation starts with fresh conversational state, and useful in
         tests."""
         self._deque.clear()
+        self._latest_batch = None
 
 
 # ---------------------------------------------------------------------------
@@ -282,7 +307,11 @@ def build_context_block(
         )
 
     recent = latest_tracker.recent_entries()
-    recent_refs = [f"{e.id}:{e.output_node}" for e in recent]
+    # Batch entries (output_node None) contribute no single ref; their
+    # elements are addressed via latest_batch[i].
+    recent_refs = [
+        f"{e.id}:{e.output_node}" for e in recent if e.output_node is not None
+    ]
 
     # Deduplicate while preserving order: input filenames first, then
     # graph refs. set() would lose order; this preserves the natural
@@ -353,15 +382,32 @@ def resolve_target(
         return resolved
 
     if ref == "latest":
-        slot = latest.get_slot(0)
-        if slot is None:
+        canonical = latest.latest  # skips batch entries (rule 6)
+        if canonical is None:
             raise ReferenceResolutionError(
-                "Reference 'latest' has no value yet — no node has succeeded "
-                "in this server session."
+                "Reference 'latest' has no value yet — no single-output "
+                "node has succeeded in this server session. (Batch results "
+                "are addressed via 'latest_batch[i]'.)"
             )
         # Recurse once into the canonical "<graph_id>:<node_id>" form; the
         # ":" branch below handles the actual lookup.
-        return resolve_target(f"{slot.graph_id}:{slot.node_id}", session, latest)
+        return resolve_target(canonical, session, latest)
+
+    batch_match = re.match(r"^latest_batch\[(\d+)\]$", ref)
+    if batch_match:
+        if latest.latest_batch is None:
+            raise ReferenceResolutionError(
+                f"Reference {ref!r}: no batch() has run in this server "
+                "session."
+            )
+        graph_id, node_ids = latest.latest_batch
+        i = int(batch_match.group(1))
+        if i >= len(node_ids):
+            raise ReferenceResolutionError(
+                f"Reference {ref!r}: the last batch has {len(node_ids)} "
+                f"element(s); valid indices are 0..{len(node_ids) - 1}."
+            )
+        return resolve_target(f"{graph_id}:{node_ids[i]}", session, latest)
 
     if ref.startswith("prev_"):
         suffix = ref[len("prev_"):]
@@ -380,6 +426,13 @@ def resolve_target(
                 f"Reference {ref!r} has no value — either fewer than {n + 1} "
                 "successful actions in this session, the slot was removed by "
                 "cleanup(), or this server process just started."
+            )
+        if slot.node_id is None:
+            raise ReferenceResolutionError(
+                f"Reference {ref!r} points at a batch() entry "
+                f"({slot.batch_size} elements) — batch results have no "
+                "single output. Use 'latest_batch[i]' or "
+                f"'{slot.graph_id}:<node_id>'."
             )
         return resolve_target(f"{slot.graph_id}:{slot.node_id}", session, latest)
 
