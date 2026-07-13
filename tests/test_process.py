@@ -625,7 +625,7 @@ async def test_process_envelope_on_watchdog_kill(mcp_with_process, monkeypatch):
     # the source doesn't update its bound copy.
     monkeypatch.setattr("cdp_mcp.limits.OUTPUT_FILE_SIZE_CAP_BYTES", 100)
     monkeypatch.setattr(
-        "cdp_mcp.tools.process.OUTPUT_FILE_SIZE_CAP_BYTES", 100
+        "cdp_mcp.tools.node_execution.OUTPUT_FILE_SIZE_CAP_BYTES", 100
     )
 
     # Wrapper: write the wav immediately (puts the file over the 100-byte

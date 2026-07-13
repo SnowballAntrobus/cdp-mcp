@@ -1,16 +1,21 @@
 """The ``graph()`` MCP tool — declarative multi-node DAGs.
 
-Phase 2 Task 11a ships the ``dry_run=True`` half: structural validation
-(node specs, reference resolution, cycle detection), per-node validation
-through the same :func:`~cdp_mcp.tools.node_validation.validate_node`
-chain that drives ``process()``, and **per-node duration predictions**
-chained through the DAG — one node's predicted output duration feeds the
-next node's pre-flight, so the report says *which* node would exceed the
-cap, not just "somewhere in the graph violates a guardrail."
+Task 11a shipped ``dry_run=True``: structural validation (node specs,
+reference resolution, cycle detection), per-node validation through the
+same :func:`~cdp_mcp.tools.node_validation.validate_node` chain that
+drives ``process()``, and **per-node duration predictions** chained
+through the DAG — one node's predicted output duration feeds the next
+node's pre-flight, so the report says *which* node would exceed the cap.
 
-Full execution is the next Phase 2 task; calling with ``dry_run=False``
-returns a structured ``graph_execution_not_implemented`` error rather
-than raising, so the LLM gets an actionable redirect.
+Task 11b ships full execution: the dry-run pass runs first as execution
+phase 1 (nothing spawns until the whole DAG validates clean), then nodes
+execute in topological order into **one shared graph directory** through
+the same :func:`~cdp_mcp.tools.node_execution.execute_validated_node`
+path ``process()`` uses. A mid-graph runtime failure yields
+``partial_success``: completed nodes stay on disk and addressable via
+``<graph_id>:<node_id>``, downstream nodes are skipped, and ``latest``
+points at the designated output node if it succeeded (else the last
+successful node).
 
 Reference grammar inside a graph (design doc, Graph Execution Semantics):
 
@@ -26,16 +31,18 @@ from __future__ import annotations
 
 from collections import deque
 from collections.abc import Callable
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from mcp.server.fastmcp import Context, FastMCP
 
 from ..config import CDPConfig
-from ..graph import LatestTracker, build_context_block
+from ..graph import GraphDir, LatestTracker, build_context_block
 from ..knowledge.loader import KnowledgeIndex
 from ..schema import ContextBlock, ErrorEntry
 from ..session import SessionManager, SessionNotActiveError
+from .node_execution import execute_validated_node
 from .node_validation import validate_node
 
 _ALLOWED_NODE_KEYS = frozenset({"id", "op", "in", "params", "output_name"})
@@ -48,6 +55,7 @@ async def graph_impl(
     nodes: list[dict[str, Any]],
     output: str | None = None,
     dry_run: bool = False,
+    timeout_seconds: float = 120.0,
     *,
     sessions: SessionManager,
     knowledge_index: KnowledgeIndex,
@@ -73,26 +81,6 @@ async def graph_impl(
                     "Set the CDP_PATH environment variable to the "
                     "directory containing CDP binaries and restart the "
                     "server."
-                ),
-            )],
-        )
-
-    # 2. Task 11a boundary: only dry-run is implemented.
-    if not dry_run:
-        return _failure(
-            session, latest_tracker,
-            [ErrorEntry(
-                type="graph_execution_not_implemented",
-                message=(
-                    "graph() full execution is not implemented yet — "
-                    "Task 11a ships validation and duration prediction "
-                    "only."
-                ),
-                fix=(
-                    "Call graph(..., dry_run=True) to validate the DAG "
-                    "and see per-node duration predictions, then run the "
-                    "nodes as chained process() calls (reference the "
-                    "previous output via 'latest')."
                 ),
             )],
         )
@@ -187,11 +175,108 @@ async def graph_impl(
     if graph_errors:
         return _failure(session, latest_tracker, graph_errors)
 
-    # 6. Per-node dry-run validation in topological order, chaining
-    # predicted durations into downstream pre-flight.
+    # 6. Dry-run pass — per-node validation in topological order,
+    # chaining predicted durations into downstream pre-flight. This is
+    # execution phase 1 too: a full graph() run validates EVERYTHING
+    # before spawning anything, so a mis-parameterized node 3 can't
+    # leave nodes 1–2 half-executed on disk.
+    reports, dead = await _dry_run_pass(
+        ctx=ctx,
+        node_specs=node_specs,
+        topo_order=topo_order,
+        deps=deps,
+        refs=refs,
+        id_set=id_set,
+        inputs_dict=inputs_dict,
+        entries=entries,
+        session=session,
+        cdp=cdp,
+        latest_tracker=latest_tracker,
+        cache_root=cache_root,
+        timeout_seconds=timeout_seconds,
+    )
+
+    if dry_run:
+        return {
+            "status": "ok" if not dead else "failed",
+            "dry_run": True,
+            "topological_order": topo_order,
+            "output": output,
+            "nodes": reports,
+            "errors": [],
+            "warnings": [],
+            "context": build_context_block(
+                session, latest_tracker, active_graph=None
+            ).model_dump(mode="json"),
+        }
+
+    if dead:
+        return {
+            "status": "failed",
+            "dry_run": False,
+            "topological_order": topo_order,
+            "output": output,
+            "nodes": reports,
+            "errors": [ErrorEntry(
+                type="graph_validation_failed",
+                message=(
+                    f"{len(dead)} node(s) failed pre-execution "
+                    f"validation ({sorted(dead)}); nothing was executed."
+                ),
+                fix=(
+                    "Fix the per-node errors reported in 'nodes' and "
+                    "retry. graph() validates the whole DAG before "
+                    "spawning anything."
+                ),
+            ).model_dump()],
+            "warnings": [],
+            "context": build_context_block(
+                session, latest_tracker, active_graph=None
+            ).model_dump(mode="json"),
+        }
+
+    # 7. Execution — one graph directory, nodes in topological order,
+    # through the same execute_validated_node path process() uses.
+    return await _execute_pass(
+        ctx=ctx,
+        inputs_dict=inputs_dict,
+        nodes_raw=nodes,
+        node_specs=node_specs,
+        topo_order=topo_order,
+        deps=deps,
+        refs=refs,
+        id_set=id_set,
+        entries=entries,
+        output=output,
+        session=session,
+        cdp=cdp,
+        latest_tracker=latest_tracker,
+        cache_root=cache_root,
+        timeout_seconds=timeout_seconds,
+    )
+
+
+async def _dry_run_pass(
+    *,
+    ctx: Context,
+    node_specs: list[dict],
+    topo_order: list[str],
+    deps: dict[str, list[str]],
+    refs: dict[str, list[str]],
+    id_set: set[str],
+    inputs_dict: dict[str, str],
+    entries: dict[str, Any],
+    session,
+    cdp: CDPConfig,
+    latest_tracker: LatestTracker,
+    cache_root: Path,
+    timeout_seconds: float,
+) -> tuple[list[dict], set[str]]:
+    """Validate every node without side effects. Returns
+    ``(reports, dead)`` where ``dead`` holds failed/skipped node ids."""
     results: dict[str, Any] = {}
     reports: list[dict] = []
-    dead: set[str] = set()  # failed or skipped — downstream can't validate
+    dead: set[str] = set()
     for nid in topo_order:
         spec = next(s for s in node_specs if s["id"] == nid)
         blocked_by = [d for d in deps[nid] if d in dead]
@@ -229,7 +314,7 @@ async def graph_impl(
             inputs=input_list,
             params=dict(spec.get("params") or {}),
             output_name=spec.get("output_name"),
-            timeout_seconds=120.0,
+            timeout_seconds=timeout_seconds,
             session=session,
             cdp=cdp,
             latest_tracker=latest_tracker,
@@ -251,19 +336,170 @@ async def graph_impl(
             "planned_output": vr.out_filename,
             "predicted_duration_s": vr.predicted_duration_s,
         })
+    return reports, dead
 
-    status = "ok" if not dead else "failed"
+
+async def _execute_pass(
+    *,
+    ctx: Context,
+    inputs_dict: dict[str, str],
+    nodes_raw: list[dict[str, Any]],
+    node_specs: list[dict],
+    topo_order: list[str],
+    deps: dict[str, list[str]],
+    refs: dict[str, list[str]],
+    id_set: set[str],
+    entries: dict[str, Any],
+    output: str | None,
+    session,
+    cdp: CDPConfig,
+    latest_tracker: LatestTracker,
+    cache_root: Path,
+    timeout_seconds: float,
+) -> dict:
+    """Execute a fully-validated DAG into one shared graph directory."""
+    graph_dir = GraphDir(session, "graph")
+    graph_dir.set_graph_definition({
+        "inputs": inputs_dict,
+        "nodes": nodes_raw,
+        "output": output,
+        "issued_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+    executed: dict[str, Path] = {}  # nid → real output path
+    reports: list[dict] = []
+    dead: set[str] = set()
+    last_success: str | None = None
+    for nid in topo_order:
+        spec = next(s for s in node_specs if s["id"] == nid)
+        blocked_by = [d for d in deps[nid] if d in dead]
+        if blocked_by:
+            dead.add(nid)
+            reports.append(_exec_report(
+                nid, spec["op"], "skipped",
+                warnings=[
+                    f"skipped: upstream node(s) {sorted(blocked_by)} failed."
+                ],
+            ))
+            continue
+
+        input_list: list[str | Path] = [
+            executed[ref] if ref in id_set else inputs_dict.get(ref, ref)
+            for ref in refs[nid]
+        ]
+        params = dict(spec.get("params") or {})
+        validation = await validate_node(
+            ctx=ctx,
+            entry=entries[nid],
+            inputs=input_list,
+            params=params,
+            output_name=spec.get("output_name"),
+            timeout_seconds=timeout_seconds,
+            session=session,
+            cdp=cdp,
+            latest_tracker=latest_tracker,
+            cache_root=cache_root,
+            graph_dir=graph_dir,
+            node_id_base=nid,
+        )
+        if validation.errors:
+            # Shouldn't normally happen (the dry-run pass was clean) but
+            # real PVOC runs can fail in ways planning can't predict.
+            dead.add(nid)
+            reports.append(_exec_report(
+                nid, spec["op"], "failed",
+                errors=[e.model_dump() for e in validation.errors],
+                warnings=validation.warnings,
+            ))
+            continue
+
+        outcome = await execute_validated_node(
+            ctx=ctx,
+            validation=validation,
+            program=spec["_program"],
+            mode=spec["_mode"],
+            params=params,
+            timeout_seconds=timeout_seconds,
+            session=session,
+            cdp=cdp,
+        )
+        errors = list(outcome.errors)
+        if outcome.bookkeeping_error is not None:
+            errors.append(outcome.bookkeeping_error)
+        if outcome.success:
+            assert validation.output_path is not None
+            executed[nid] = validation.output_path
+            last_success = nid
+        else:
+            dead.add(nid)
+        reports.append(_exec_report(
+            nid, spec["op"],
+            "ok" if outcome.success else "failed",
+            errors=[e.model_dump() for e in errors],
+            warnings=validation.warnings,
+            output=(
+                str(validation.output_path) if outcome.success else None
+            ),
+            exit_code=outcome.subprocess_result.exit_code,
+            duration_ms=outcome.subprocess_result.duration_ms,
+        ))
+
+    # Status + conversational state. `latest` points at the designated
+    # output node when it succeeded, else the last successful node in
+    # topological order (rule: `latest` only ever names a successfully
+    # produced node).
+    if not dead:
+        status = "ok"
+    elif executed:
+        status = "partial_success"
+    else:
+        status = "failed"
+    latest_node = (
+        output if (output is not None and output in executed)
+        else last_success
+    )
+    if latest_node is not None:
+        latest_tracker.update(graph_dir.id, latest_node)
+
+    output_path = (
+        str(executed[output]) if (output is not None and output in executed)
+        else (str(executed[last_success]) if last_success else None)
+    )
     return {
         "status": status,
-        "dry_run": True,
+        "dry_run": False,
+        "graph_id": graph_dir.id,
         "topological_order": topo_order,
-        "output": output,
+        "output": output_path,
         "nodes": reports,
         "errors": [],
         "warnings": [],
         "context": build_context_block(
-            session, latest_tracker, active_graph=None
+            session, latest_tracker, active_graph=graph_dir.id
         ).model_dump(mode="json"),
+    }
+
+
+def _exec_report(
+    nid: str,
+    op: str,
+    status: str,
+    *,
+    errors: list | None = None,
+    warnings: list | None = None,
+    output: str | None = None,
+    exit_code: int | None = None,
+    duration_ms: int | None = None,
+) -> dict:
+    return {
+        "id": nid,
+        "op": op,
+        "status": status,
+        "errors": errors or [],
+        "warnings": warnings or [],
+        "output": output,
+        "exit_code": exit_code,
+        "duration_ms": duration_ms,
     }
 
 
@@ -507,16 +743,29 @@ def register(
         inputs: dict[str, str] | None = None,
         output: str | None = None,
         dry_run: bool = False,
+        timeout_seconds: float = 120.0,
     ) -> dict:
-        """Validate (and later: execute) a declarative multi-node DAG.
+        """Execute (or dry-run) a declarative multi-node DAG.
 
-        **Currently dry-run only**: call with ``dry_run=True`` to check a
-        whole processing chain before running anything — reference
+        The whole DAG is validated *before anything runs* — reference
         resolution, parameter validation, cycle detection, auto-PVOC
-        planning, and **per-node duration predictions** chained through
-        the DAG (so you see *which* node would exceed the duration cap).
-        Full execution is coming; until then run the validated chain as
-        successive ``process()`` calls using the ``"latest"`` alias.
+        planning, and per-node duration predictions chained through the
+        graph. Only a fully-clean validation proceeds to execution, in
+        topological order, into one shared graph directory; every node
+        (including auto-inserted PVOC conversions) is addressable
+        afterwards as ``<graph_id>:<node_id>``.
+
+        With ``dry_run=True``, validation is the whole job: you get
+        per-node reports with ``planned_argv`` and
+        ``predicted_duration_s`` and nothing touches disk — use this to
+        check an ambitious chain (or see which node would blow the
+        duration cap) before committing.
+
+        If a node fails at runtime, the result is ``partial_success``:
+        upstream results stay on disk and addressable, downstream nodes
+        report ``skipped``, and ``latest`` points at the last
+        successfully produced node. ``timeout_seconds`` applies per
+        node.
 
         ``inputs`` names external sources: ``{"src": "frog.wav"}`` — a
         session input filename, ``<graph_id>:<node_id>`` reference, or
@@ -548,6 +797,7 @@ def register(
             nodes,
             output,
             dry_run,
+            timeout_seconds,
             sessions=sessions,
             knowledge_index=knowledge_index,
             cdp_config_provider=cdp_config_provider,

@@ -10,33 +10,18 @@ lineage in a fresh graph directory.
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Callable
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from mcp.server.fastmcp import Context, FastMCP
 
 from ..config import CDPConfig
-from ..error_parsing import parse_cdp_errors
-from ..graph import (
-    LatestTracker,
-    build_context_block,
-    verify_output,
-)
+from ..graph import LatestTracker, build_context_block
 from ..knowledge.loader import KnowledgeIndex
-from ..limits import OUTPUT_FILE_SIZE_CAP_BYTES
-from ..schema import (
-    ContextBlock,
-    ErrorEntry,
-    InputRecord,
-    NodeLineage,
-    ResultEnvelope,
-)
+from ..schema import ContextBlock, ErrorEntry, ResultEnvelope
 from ..session import SessionManager, SessionNotActiveError
-from ..subprocess_core import run_cdp_command
-from ..utils import sha256_file
+from .node_execution import execute_validated_node
 from .node_validation import validate_node
 
 
@@ -152,190 +137,47 @@ async def process_impl(
             warnings=validation.warnings,
         )
 
-    # validate_node populates all of these on the success path; bind to
-    # local names so the unchanged step 11+ code below reads as before.
+    # validate_node populates all of these on the success path.
     graph_dir = validation.graph_dir
     assert graph_dir is not None  # success path invariant
-    assert validation.planned_argv is not None
     assert validation.output_path is not None
     assert validation.main_node_id is not None
-    assert validation.out_filename is not None
-    assert validation.post_pvoc_paths is not None
-    assert validation.pvoc_source_nodes is not None
-    validated = validation.planned_argv
-    output_path = validation.output_path
-    main_node_id = validation.main_node_id
-    out_filename = validation.out_filename
-    post_pvoc_paths = validation.post_pvoc_paths
-    pvoc_source_nodes = validation.pvoc_source_nodes
-    compiled_breakpoints = validation.compiled_breakpoints
     param_warnings = validation.warnings
 
-    # 11. Run main op.
-    started_at = datetime.now(timezone.utc)
-    sub = await run_cdp_command(
-        validated,
-        cwd=session.root,
-        timeout_seconds=timeout_seconds,
+    # 11–15: subprocess run, verification, lineage, error aggregation —
+    # extracted to execute_validated_node (Task 11b) so graph()/batch()
+    # execute through exactly this code path.
+    outcome = await execute_validated_node(
         ctx=ctx,
-        output_path=output_path,
-        size_cap_bytes=OUTPUT_FILE_SIZE_CAP_BYTES,
-    )
-    finished_at = datetime.now(timezone.utc)
-
-    # 12. Verify output (Task 4). Off the event loop: verification
-    # decodes audio for the RMS/silence check and hashing reads whole
-    # files — both are sync CPU/IO work that must not starve MCP
-    # heartbeats. (Phase 2 hardening, M2.)
-    verification = await asyncio.to_thread(verify_output, output_path)
-
-    # 13. Build main node lineage.
-    def _hash_lineage_files() -> tuple[str | None, list[InputRecord]]:
-        out_sha: str | None = None
-        if verification.exists and verification.size_bytes > 0:
-            try:
-                out_sha = sha256_file(output_path)
-            except OSError:
-                out_sha = None
-        records = [
-            InputRecord(
-                path=str(p),
-                sha256=sha256_file(p) if p.exists() else "",
-                source_node=src,
-            )
-            for p, src in zip(post_pvoc_paths, pvoc_source_nodes, strict=False)
-        ]
-        return out_sha, records
-
-    output_sha, main_inputs = await asyncio.to_thread(_hash_lineage_files)
-    lineage = NodeLineage(
-        argv=validated,
-        inputs=main_inputs,
-        output_path=str(output_path),
-        output_sha256=output_sha,
+        validation=validation,
+        program=program,
+        mode=mode,
         params=params_dict,
-        cdp_version=cdp.version,
-        started_at=started_at,
-        finished_at=finished_at,
-        duration_ms=sub.duration_ms,
-        exit_code=sub.exit_code,
-        compiled_breakpoints=compiled_breakpoints,
+        timeout_seconds=timeout_seconds,
+        session=session,
+        cdp=cdp,
     )
-
-    try:
-        graph_dir.add_node(main_node_id, out_filename, lineage)
-    except OSError as e:
-        # Bookkeeping write failed; surface as a structured error.
+    if outcome.bookkeeping_error is not None:
         return _failed_envelope(
             session,
             latest_tracker,
             active_graph=graph_dir.id,
-            errors=[
-                ErrorEntry(
-                    type="graph_bookkeeping_failed",
-                    message=(
-                        f"Main op ran but lineage write failed: {e}"
-                    ),
-                    fix="Inspect the graph directory on disk for clues.",
-                )
-            ],
+            errors=[outcome.bookkeeping_error],
             warnings=param_warnings,
         )
 
-    # 14 + 15: status, latest, errors aggregation.
-    result_errors: list[ErrorEntry] = []
-    # size_cap_exceeded takes precedence over the generic subprocess_error
-    # that the SIGKILL would otherwise produce — the specific signal is
-    # more actionable than "exited with code <signal>".
-    if sub.size_cap_exceeded:
-        result_errors.append(
-            ErrorEntry(
-                type="size_cap_exceeded",
-                message=(
-                    f"output file exceeded the {sub.triggered_at_bytes:,}-byte "
-                    f"cap (limit: {OUTPUT_FILE_SIZE_CAP_BYTES:,} bytes); "
-                    f"the subprocess was killed and partial output removed."
-                ),
-                fix=(
-                    "Reduce the parameters that drive output size (counts, "
-                    "multipliers, time spans), or use a shorter input. To "
-                    "raise the cap for this work, set "
-                    "CDP_MCP_OUTPUT_SIZE_CAP_BYTES in the environment "
-                    "before starting the server."
-                ),
-            )
-        )
-    elif sub.timed_out:
-        result_errors.append(
-            ErrorEntry(
-                type="timeout",
-                message=(
-                    f"{program} {mode} did not finish within "
-                    f"{timeout_seconds}s."
-                ),
-                fix=(
-                    "Raise timeout_seconds or use a smaller / shorter "
-                    "input."
-                ),
-            )
-        )
-    elif sub.exit_code != 0:
-        result_errors.append(
-            ErrorEntry(
-                type="subprocess_error",
-                message=f"CDP exited with code {sub.exit_code}.",
-                fix=None,
-            )
-        )
-    if (
-        not verification.ok
-        and sub.exit_code == 0
-        and not sub.timed_out
-        and not sub.size_cap_exceeded
-    ):
-        # CDP succeeded but the output doesn't look healthy.
-        result_errors.append(
-            ErrorEntry(
-                type="output_verification_failed",
-                message=(
-                    "Output file did not pass verification: "
-                    + "; ".join(verification.errors)
-                ),
-                fix=(
-                    "Inspect the output file directly; CDP exited 0 "
-                    "but the result is empty, silent, or otherwise "
-                    "unusable."
-                ),
-            )
-        )
-
-    # Pattern-match specific CDP failure modes into structured entries.
-    # Skip on timeout — partial output isn't worth second-guessing.
-    if not sub.timed_out:
-        result_errors.extend(parse_cdp_errors(
-            stdout=sub.stdout,
-            stderr=sub.stderr,
-            exit_code=sub.exit_code,
-            expected_output=output_path,
-            verification=verification,
-        ))
-
-    success = (
-        sub.exit_code == 0 and not sub.timed_out and verification.ok
-    )
-    status: str = "ok" if success else "failed"
-
-    if success:
-        latest_tracker.update(graph_dir.id, main_node_id)
+    sub = outcome.subprocess_result
+    if outcome.success:
+        latest_tracker.update(graph_dir.id, validation.main_node_id)
 
     # 16. Envelope.
     envelope = ResultEnvelope(
-        status=status,  # type: ignore[arg-type]  # Literal narrowed at runtime
-        output=str(output_path) if success else None,
+        status="ok" if outcome.success else "failed",
+        output=str(validation.output_path) if outcome.success else None,
         stdout=sub.stdout,
         stderr=sub.stderr,
         exit_code=sub.exit_code,
-        errors=result_errors,
+        errors=outcome.errors,
         warnings=param_warnings,
         cached=False,
         duration_ms=sub.duration_ms,

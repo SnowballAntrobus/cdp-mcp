@@ -100,8 +100,24 @@ async def validate_node(
     cache_root: Path,
     dry_run: bool = False,
     indur_overrides: list[float | None] | None = None,
+    graph_dir: GraphDir | None = None,
+    node_id_base: str | None = None,
 ) -> ValidationResult:
     """Run pre-subprocess validation and planning for a single node.
+
+    Multi-node extensions (Task 11b, used by ``graph()``/``batch()``):
+
+    - ``graph_dir`` — reuse an existing graph directory instead of
+      creating a fresh one (one directory, many nodes). When supplied,
+      ``graph.json`` is NOT written here (the orchestrator writes its
+      own whole-graph definition once).
+    - ``node_id_base`` — explicit main-node id (the caller's node
+      label). Auto-PVOC nodes derive ``<base>_pvoc1``, ``<base>_pvoc2``
+      … instead of consuming the ``n<counter>`` sequence, so multiple
+      nodes can share one directory without id collisions.
+    - ``inputs`` entries may be :class:`~pathlib.Path` objects in the
+      real path too — pre-resolved upstream outputs from earlier nodes
+      of the same orchestrated graph.
 
     Default (``dry_run=False``): creates the graph directory, writes
     ``graph.json``, runs auto-PVOC where domains don't match, compiles
@@ -183,10 +199,13 @@ async def validate_node(
             warnings=warnings,
         )
 
-    # 5. Resolve inputs.
+    # 5. Resolve inputs. Path entries are pre-resolved upstream outputs
+    # from an orchestrating graph()/batch() call — used as-is.
     try:
         resolved_inputs = [
-            resolve_target(ref, session, latest_tracker) for ref in inputs
+            ref if isinstance(ref, Path)
+            else resolve_target(ref, session, latest_tracker)
+            for ref in inputs
         ]
     except ReferenceResolutionError as e:
         return ValidationResult(
@@ -232,36 +251,43 @@ async def validate_node(
             predicted_duration_s=predicted_duration_s,
         )
 
-    # 7. Create graph dir + write graph.json (user intent).
+    # 7. Create (or reuse) graph dir. graph.json is written only for
+    # self-created dirs — an orchestrator owns its own definition.
     slug = f"{entry.program}-{entry.mode}"
-    graph_dir = GraphDir(session, slug)
-    # ``input`` field of graph.json reflects the original ref(s) the
-    # caller supplied (not the resolved paths). When the caller passed
-    # a single ref, surface it as a string; when multiple, as a list.
-    original_input_ref: str | list[str] = (
-        inputs[0] if len(inputs) == 1 else list(inputs)
-    )
-    graph_dir.set_graph_definition(
-        {
-            "program": entry.program,
-            "mode": entry.mode,
-            "input": original_input_ref,
-            "params": params_dict,
-            "output_name": output_name,
-            "issued_at": datetime.now(timezone.utc).isoformat(),
-        }
-    )
+    if graph_dir is None:
+        graph_dir = GraphDir(session, slug)
+        # ``input`` field of graph.json reflects the original ref(s) the
+        # caller supplied (not the resolved paths). When the caller passed
+        # a single ref, surface it as a string; when multiple, as a list.
+        original_input_ref: str | list[str] = (
+            str(inputs[0]) if len(inputs) == 1 else [str(i) for i in inputs]
+        )
+        graph_dir.set_graph_definition(
+            {
+                "program": entry.program,
+                "mode": entry.mode,
+                "input": original_input_ref,
+                "params": params_dict,
+                "output_name": output_name,
+                "issued_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
     # 8. PVOC auto-insert per input.
     counter = 1
+    pvoc_counter = 1
     post_pvoc_paths: list[Path] = []
     pvoc_source_nodes: list[str | None] = []
     for resolved_path in resolved_inputs:
+        if node_id_base is None:
+            pvoc_node_id = f"n{counter}"
+        else:
+            pvoc_node_id = f"{node_id_base}_pvoc{pvoc_counter}"
         pvoc_result = await maybe_insert_pvoc(
             input_path=resolved_path,
             target_domain=entry.domain,
             graph_dir=graph_dir,
-            node_id=f"n{counter}",
+            node_id=pvoc_node_id,
             cdp_path=cdp.cdp_path,
             session_root=session.root,
             cache_root=cache_root,
@@ -282,7 +308,10 @@ async def validate_node(
         post_pvoc_paths.append(pvoc_result.output_path)
         if pvoc_result.state == "succeeded":
             pvoc_source_nodes.append(pvoc_result.node_id)
-            counter += 1
+            if node_id_base is None:
+                counter += 1
+            else:
+                pvoc_counter += 1
         else:
             pvoc_source_nodes.append(None)
 
@@ -343,7 +372,7 @@ async def validate_node(
         )
 
     # 9. Build main op argv.
-    main_node_id = f"n{counter}"
+    main_node_id = node_id_base if node_id_base is not None else f"n{counter}"
     out_ext = ".ana" if entry.domain == "spectral" else ".wav"
     normalized_name, name_error = _normalize_output_name(
         output_name, out_ext
