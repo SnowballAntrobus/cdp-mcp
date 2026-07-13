@@ -309,9 +309,12 @@ def test_resolve_target_relative_path_not_found(session):
 
 
 def test_resolve_target_absolute_path_exists(session, tmp_path):
-    target = tmp_path / "somewhere_else.wav"
+    # Phase 2 M5 containment: absolute refs resolve only INSIDE the
+    # session tree (previously any existing absolute path was accepted;
+    # see TestResolveTargetContainment for the rejection cases).
+    target = session.root / "tmp" / "somewhere_else.wav"
     target.write_bytes(b"hi")
-    assert resolve_target(str(target), session, LatestTracker()) == target
+    assert resolve_target(str(target), session, LatestTracker()) == target.resolve()
 
 
 def test_resolve_target_absolute_path_missing(session):
@@ -517,3 +520,49 @@ def test_verify_output_ana_file_size_only(tmp_path):
     assert v.size_bytes == 2048
     assert v.rms_dbfs is None
     assert v.errors == []
+
+
+# ---------------------------------------------------------------------------
+# resolve_target containment (Phase 2 hardening, M5)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def tracker() -> LatestTracker:
+    return LatestTracker()
+
+
+class TestResolveTargetContainment:
+    def test_absolute_path_outside_session_rejected(self, session, tracker, tmp_path):
+        outside = tmp_path.parent / "outside.wav"
+        outside.write_bytes(b"x")
+        with pytest.raises(ReferenceResolutionError, match="outside the session tree"):
+            resolve_target(str(outside), session, tracker)
+
+    def test_relative_traversal_outside_session_rejected(
+        self, session, tracker, tmp_path
+    ):
+        outside = tmp_path.parent / "escape.wav"
+        outside.write_bytes(b"x")
+        depth = len(session.inputs_dir.parts)
+        ref = ("../" * depth) + str(outside).lstrip("/")
+        with pytest.raises(ReferenceResolutionError):
+            resolve_target(ref, session, tracker)
+
+    def test_graph_id_traversal_rejected(self, session, tracker):
+        with pytest.raises(ReferenceResolutionError, match="separators or traversal"):
+            resolve_target("../../../etc:n1", session, tracker)
+
+    def test_node_index_filename_escape_rejected(self, session, tracker):
+        graph_root = session.graphs_dir / "20260101T000000-evil"
+        graph_root.mkdir(parents=True)
+        (graph_root / "node_index.json").write_text(
+            '{"n1": "../../../../etc/passwd"}'
+        )
+        with pytest.raises(ReferenceResolutionError, match="escapes the graph"):
+            resolve_target("20260101T000000-evil:n1", session, tracker)
+
+    def test_inputs_path_still_resolves(self, session, tracker):
+        target = session.inputs_dir / "ok.wav"
+        target.write_bytes(b"x")
+        assert resolve_target("ok.wav", session, tracker) == target.resolve()

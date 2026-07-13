@@ -331,13 +331,19 @@ class CompiledBreakpoint(BaseModel):
       reference). Phase 2 Task 2.
     - ``"preexisting_brk"`` — user supplied an existing .brk file by
       path. No compilation happened; ``source_duration_s`` is ``None``.
+    - ``"dry_run_override"`` / ``"dry_run_dummy"`` — Task 11a
+      ``graph(dry_run=True)`` records only: duration came from a
+      caller-supplied upstream prediction, or was unknowable and a
+      placeholder axis was used for structural validation. Never
+      written to ``lineage.json`` (dry-run compiles are discarded).
     """
 
     path: str  # absolute path to the .brk file
     sha256: str  # content hash of the .brk file
     source_duration_s: float | None  # None when path mode (not compiled)
     source_kind: Literal[
-        "input_wav", "pvoc_lineage", "ana_sfprops", "preexisting_brk"
+        "input_wav", "pvoc_lineage", "ana_sfprops", "preexisting_brk",
+        "dry_run_override", "dry_run_dummy",
     ]
 
 

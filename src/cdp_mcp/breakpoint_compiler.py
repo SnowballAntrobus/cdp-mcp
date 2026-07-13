@@ -121,7 +121,10 @@ def compile_breakpoint_value(
     param_spec: ParameterSpec,
     value: Any,
     source_duration_s: float | None,
-    source_kind: Literal["input_wav", "pvoc_lineage", "ana_sfprops"] | None,
+    source_kind: Literal[
+        "input_wav", "pvoc_lineage", "ana_sfprops",
+        "dry_run_override", "dry_run_dummy",
+    ] | None,
     session_root: Path,
     envelopes_dir: Path,
 ) -> BreakpointCompileResult:
@@ -282,7 +285,10 @@ def _compile_list_mode(
     tuples: list,
     mode: Literal["relative", "absolute"],
     source_duration_s: float | None,
-    source_kind: Literal["input_wav", "pvoc_lineage", "ana_sfprops"] | None,
+    source_kind: Literal[
+        "input_wav", "pvoc_lineage", "ana_sfprops",
+        "dry_run_override", "dry_run_dummy",
+    ] | None,
     envelopes_dir: Path,
 ) -> BreakpointCompileResult:
     errors: list[ErrorEntry] = []

@@ -256,7 +256,7 @@ async def test_preflight_passes_when_predicted_under_cap(tmp_path):
         ),
         parameters={"velocity": ParameterSpec(type="float")},
     )
-    errors = await check_duration_preflight(
+    errors, _predicted = await check_duration_preflight(
         entry=entry, params={"velocity": 0.5},
         resolved_inputs=[input_wav],
     )
@@ -273,7 +273,7 @@ async def test_preflight_rejects_when_exceeds_cap(tmp_path):
         parameters={"velocity": ParameterSpec(type="float")},
     )
     # 2.0 / 0.001 = 2000s, way over the 300s cap.
-    errors = await check_duration_preflight(
+    errors, _predicted = await check_duration_preflight(
         entry=entry, params={"velocity": 0.001},
         resolved_inputs=[input_wav],
     )
@@ -292,7 +292,7 @@ async def test_preflight_rejects_when_negative(tmp_path):
         ),
         parameters={"long_offset": ParameterSpec(type="float")},
     )
-    errors = await check_duration_preflight(
+    errors, _predicted = await check_duration_preflight(
         entry=entry, params={"long_offset": 5.0},
         resolved_inputs=[input_wav],
     )
@@ -309,7 +309,7 @@ async def test_preflight_rejects_on_evaluation_failure(tmp_path):
         ),
         parameters={"velocity": ParameterSpec(type="float")},
     )
-    errors = await check_duration_preflight(
+    errors, _predicted = await check_duration_preflight(
         entry=entry, params={"velocity": 0},
         resolved_inputs=[input_wav],
     )
@@ -327,7 +327,7 @@ async def test_preflight_skips_when_static_indur_unknown(tmp_path):
     entry = _make_entry(
         duration_model=DurationModelStatic(kind="static"),
     )
-    errors = await check_duration_preflight(
+    errors, _predicted = await check_duration_preflight(
         entry=entry, params={}, resolved_inputs=[ana_input],
     )
     assert errors == []
@@ -340,7 +340,7 @@ async def test_preflight_can_override_cap(tmp_path):
     entry = _make_entry(
         duration_model=DurationModelStatic(kind="static"),
     )
-    errors = await check_duration_preflight(
+    errors, _predicted = await check_duration_preflight(
         entry=entry, params={}, resolved_inputs=[input_wav],
         duration_cap_s=1.0,  # tighter than the 2-second input
     )
@@ -416,7 +416,7 @@ async def test_preflight_uses_ana_fallback_when_cdp_context_provided(
         duration_model=DurationModelStatic(kind="static"),
     )
     # Static + a single 42-second .ana indur > 300s cap should reject.
-    errors = await check_duration_preflight(
+    errors, _predicted = await check_duration_preflight(
         entry=entry,
         params={},
         resolved_inputs=[ana_input],
@@ -453,7 +453,7 @@ async def test_preflight_ana_fallback_disabled_without_full_cdp_context(
     )
     # Provide three of the four kwargs (omit ana_duration_cache_dir);
     # the fallback must stay off, so duration is None → skip.
-    errors = await check_duration_preflight(
+    errors, _predicted = await check_duration_preflight(
         entry=entry,
         params={},
         resolved_inputs=[ana_input],

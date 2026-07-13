@@ -31,6 +31,7 @@ from .session import SessionManager
 from .tools import analyze as analyze_module
 from .tools import breakpoint as breakpoint_module
 from .tools import execute as execute_module
+from .tools import graph_tool as graph_module
 from .tools import introspection, workspace
 from .tools import process as process_module
 from .tools import visualize as visualize_module
@@ -99,6 +100,15 @@ execute_module.register(
 )
 
 process_module.register(
+    mcp,
+    sessions=_session_manager,
+    knowledge_index=_index,
+    cdp_config_provider=lambda: _cdp_config,
+    latest_tracker=_latest_tracker,
+    cache_root=_cache_root,
+)
+
+graph_module.register(
     mcp,
     sessions=_session_manager,
     knowledge_index=_index,

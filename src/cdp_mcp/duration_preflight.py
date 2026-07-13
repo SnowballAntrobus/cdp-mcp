@@ -245,11 +245,16 @@ async def check_duration_preflight(
     cdp_path: Path | None = None,
     cdp_version: str | None = None,
     ana_duration_cache_dir: Path | None = None,
-) -> list[ErrorEntry]:
+    indur_overrides: list[float | None] | None = None,
+) -> tuple[list[ErrorEntry], float | None]:
     """Pre-flight duration prediction.
 
-    Returns structured errors on rejection, empty list on pass (or
-    skip — when the chain invariant lets us defer to the watchdog).
+    Returns ``(errors, predicted_duration_s)``: structured errors on
+    rejection (empty list on pass), and the predicted output duration
+    in seconds — ``None`` when the chain-invariant skip path engaged
+    (unknowable duration; the watchdog covers reactively). The
+    prediction is returned even alongside errors so ``graph(dry_run)``
+    can report *which* node would exceed the cap and by how much.
 
     Three failure modes:
     - ``predicted_duration_evaluation_failed`` — model couldn't be
@@ -264,17 +269,34 @@ async def check_duration_preflight(
     behavior reduces to Phase 1b: ``.ana`` durations resolve to
     ``None`` and the chain-invariant skip path engages. All four must
     be provided together to activate the fallback.
+
+    ``indur_overrides`` (Phase 2 Task 11a): per-input duration
+    overrides for callers that already *know* an input's duration from
+    somewhere other than the file on disk — ``graph(dry_run=True)``
+    chains one node's predicted duration into the next node's input
+    without any file existing yet. Positionally aligned with
+    ``resolved_inputs``; a ``None`` entry (or a shorter list) means
+    "probe the file as usual".
     """
-    indurs = [
-        await _read_duration_seconds(
-            p,
-            session_root=session_root,
-            cdp_path=cdp_path,
-            cdp_version=cdp_version,
-            ana_duration_cache_dir=ana_duration_cache_dir,
+    indurs: list[float | None] = []
+    for i, p in enumerate(resolved_inputs):
+        override = (
+            indur_overrides[i]
+            if indur_overrides is not None and i < len(indur_overrides)
+            else None
         )
-        for p in resolved_inputs
-    ]
+        if override is not None:
+            indurs.append(override)
+            continue
+        indurs.append(
+            await _read_duration_seconds(
+                p,
+                session_root=session_root,
+                cdp_path=cdp_path,
+                cdp_version=cdp_version,
+                ana_duration_cache_dir=ana_duration_cache_dir,
+            )
+        )
 
     try:
         predicted = _evaluate_duration_model(entry, params, indurs)
@@ -289,10 +311,10 @@ async def check_duration_preflight(
                 "call this via execute() to bypass pre-flight — the "
                 "disk watchdog still protects against runaway output."
             ),
-        )]
+        )], None
 
     if predicted is None:
-        return []  # chain invariant — skip pre-flight
+        return [], None  # chain invariant — skip pre-flight
 
     if predicted <= 0:
         return [ErrorEntry(
@@ -303,7 +325,7 @@ async def check_duration_preflight(
                 "producing a non-positive duration (for example, "
                 "subtracting an offset larger than the input)."
             ),
-        )]
+        )], predicted
 
     if predicted > duration_cap_s:
         return [ErrorEntry(
@@ -317,6 +339,6 @@ async def check_duration_preflight(
                 "(counts, multipliers, time spans), or split the "
                 "operation into multiple shorter calls."
             ),
-        )]
+        )], predicted
 
-    return []
+    return [], predicted

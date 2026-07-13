@@ -319,18 +319,38 @@ def resolve_target(
     - ``"latest"`` — follow :attr:`LatestTracker.latest`.
     - ``"<graph_id>:<node_id>"`` — look up via the graph's
       ``node_index.json``.
-    - absolute path — returned as-is after existence check.
+    - absolute path — must exist AND live inside the session tree.
     - relative path — resolved against ``session.inputs_dir``.
 
-    Phase 1a is permissive about absolute paths (existence check only);
-    tighter constraints (must live inside the session tree or the CDP
-    cache) belong in Task 5's ``execute()`` security boundary.
+    Containment (Phase 2 hardening, M5): every resolved path must live
+    inside the session tree. v9 deferred this to the execute() security
+    boundary, which held only as long as every consumer funneled the
+    result back through ``validate_command`` — ``analyze``/``visualize``
+    read their targets directly, and Phase 2's ``graph()`` resolves
+    references in new places. The resolver is the one chokepoint all of
+    them share, so the check lives here: graph IDs must be bare names
+    (no separators or ``..``), ``node_index.json`` filenames must stay
+    inside their graph directory, and both absolute and relative refs
+    must resolve inside ``session.root``.
 
     Raises:
         ReferenceResolutionError: with a clear message including the ref.
     """
     if not isinstance(ref, str) or not ref:
         raise ReferenceResolutionError(f"Empty or non-string reference: {ref!r}")
+
+    session_root = session.root.resolve()
+
+    def _require_inside(path: Path, what: str) -> Path:
+        resolved = path.resolve()
+        if not resolved.is_relative_to(session_root):
+            raise ReferenceResolutionError(
+                f"Reference {ref!r}: {what} resolves to {resolved}, "
+                f"outside the session tree ({session_root}). Move the "
+                "file into the session's inputs/ directory (or reference "
+                "a graph node) and try again."
+            )
+        return resolved
 
     if ref == "latest":
         slot = latest.get_slot(0)
@@ -369,6 +389,19 @@ def resolve_target(
             raise ReferenceResolutionError(
                 f"Malformed graph reference {ref!r}: expected '<graph_id>:<node_id>'"
             )
+        # Graph IDs are bare directory names minted by _make_graph_id;
+        # anything with separators or dot-traversal is not a graph ID.
+        if (
+            "/" in graph_id
+            or "\\" in graph_id
+            or graph_id in (".", "..")
+            or graph_id.startswith("..")
+        ):
+            raise ReferenceResolutionError(
+                f"Reference {ref!r}: graph id {graph_id!r} contains path "
+                "separators or traversal — graph ids are bare directory "
+                "names under graphs/."
+            )
         graph_root = session.graphs_dir / graph_id
         node_index_path = graph_root / "node_index.json"
         if not node_index_path.exists():
@@ -387,7 +420,14 @@ def resolve_target(
             raise ReferenceResolutionError(
                 f"Reference {ref!r}: graph {graph_id!r} has no node {node_id!r}"
             )
-        path = graph_root / filename
+        # A tampered node_index.json filename must not escape its graph
+        # directory.
+        path = Path(graph_root / filename).resolve()
+        if not path.is_relative_to(graph_root.resolve()):
+            raise ReferenceResolutionError(
+                f"Reference {ref!r}: node_index.json entry {filename!r} "
+                f"escapes the graph directory — refusing to follow it."
+            )
         if not path.exists():
             raise ReferenceResolutionError(
                 f"Reference {ref!r}: indexed file does not exist at {path}"
@@ -400,7 +440,7 @@ def resolve_target(
             raise ReferenceResolutionError(
                 f"Absolute path reference {ref!r} does not exist."
             )
-        return path
+        return _require_inside(path, "absolute path")
 
     # Relative — resolve against session.inputs_dir.
     candidate = session.inputs_dir / ref
@@ -408,7 +448,7 @@ def resolve_target(
         raise ReferenceResolutionError(
             f"Reference {ref!r} not found in session inputs ({session.inputs_dir})"
         )
-    return candidate
+    return _require_inside(candidate, "relative path")
 
 
 # ---------------------------------------------------------------------------

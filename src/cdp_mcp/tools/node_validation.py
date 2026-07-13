@@ -15,6 +15,7 @@ tests are the regression suite for this code path.
 
 from __future__ import annotations
 
+import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,7 +26,7 @@ from mcp.server.fastmcp import Context
 
 from ..breakpoint_compiler import compile_breakpoint_value, is_breakpoint_value
 from ..config import CDPConfig
-from ..duration_preflight import check_duration_preflight
+from ..duration_preflight import _read_duration_seconds, check_duration_preflight
 from ..graph import (
     GraphDir,
     LatestTracker,
@@ -34,7 +35,7 @@ from ..graph import (
     resolve_target,
 )
 from ..processing import build_cdp_argv, validate_params
-from ..pvoc import maybe_insert_pvoc, read_ana_duration
+from ..pvoc import _domain_of, maybe_insert_pvoc, read_ana_duration
 from ..schema import CompiledBreakpoint, ErrorEntry, KnowledgeEntry
 from ..security import SecurityError, validate_command
 from ..session import Session
@@ -89,7 +90,7 @@ async def validate_node(
     *,
     ctx: Context,
     entry: KnowledgeEntry,
-    inputs: list[str],
+    inputs: list[str | Path],
     params: dict[str, Any],
     output_name: str | None,
     timeout_seconds: float,
@@ -98,6 +99,7 @@ async def validate_node(
     latest_tracker: LatestTracker,
     cache_root: Path,
     dry_run: bool = False,
+    indur_overrides: list[float | None] | None = None,
 ) -> ValidationResult:
     """Run pre-subprocess validation and planning for a single node.
 
@@ -108,21 +110,40 @@ async def validate_node(
     :class:`ValidationResult` carrying a planned argv plus all metadata
     the caller needs for subprocess execution and lineage construction.
 
-    ``dry_run=True``: pure validation without side effects (no graph
-    directory, no PVOC subprocesses, no breakpoint files written).
-    Raises :class:`NotImplementedError` in Task 3 — Task 11a implements
-    the dry-run semantics for ``graph()`` pre-execution checks. The
-    parameter is in the signature now so Task 11a lands without forcing
-    a follow-up signature edit at every caller.
+    ``dry_run=True`` (Task 11a): the same validation chain without
+    persistent side effects — no graph directory, no PVOC subprocesses,
+    no surviving breakpoint files (compilation runs against a temporary
+    directory under ``session/tmp/`` for structural validation, then is
+    discarded). Read-only probes (``soundfile.info``, the cached
+    ``sfprops -d`` shell-out for ``.ana`` durations) are permitted.
+    ``params`` is treated as read-only in dry-run (the real path mutates
+    it — callers of the real path depend on that). The success result
+    carries ``planned_argv``, planned ``output_path``, and
+    ``predicted_duration_s``; ``graph_dir`` stays ``None``.
+
+    Dry-run-only extensions for ``graph()``:
+
+    - ``inputs`` entries may be :class:`~pathlib.Path` objects — caller-
+      planned upstream outputs that don't exist yet (bare intra-graph
+      references). Strings still resolve through :func:`resolve_target`.
+    - ``indur_overrides`` feeds known/predicted input durations into the
+      duration pre-flight so one node's prediction chains into the next.
 
     ``latest_tracker`` is taken (not used by validation itself) because
     :func:`resolve_target` consumes it to resolve the ``"latest"``
     reference.
     """
     if dry_run:
-        raise NotImplementedError(
-            "validate_node(dry_run=True) is reserved for Task 11a "
-            "(graph dry-run pre-execution checks)."
+        return await _validate_node_dry_run(
+            entry=entry,
+            inputs=inputs,
+            params=params,
+            output_name=output_name,
+            session=session,
+            cdp=cdp,
+            latest_tracker=latest_tracker,
+            cache_root=cache_root,
+            indur_overrides=indur_overrides,
         )
 
     params_dict = params  # caller-owned; we mutate this in step 8.5
@@ -195,7 +216,7 @@ async def validate_node(
     # 6.5. Pre-flight duration prediction. Catches runaway durations
     # before CDP spawns; the disk watchdog (Task 7) is the reactive
     # complement for cases pre-flight can't predict.
-    preflight_errors = await check_duration_preflight(
+    preflight_errors, predicted_duration_s = await check_duration_preflight(
         entry=entry,
         params=params_dict,
         resolved_inputs=resolved_inputs,
@@ -208,6 +229,7 @@ async def validate_node(
         return ValidationResult(
             errors=preflight_errors,
             warnings=param_warnings,
+            predicted_duration_s=predicted_duration_s,
         )
 
     # 7. Create graph dir + write graph.json (user intent).
@@ -368,7 +390,326 @@ async def validate_node(
         pvoc_source_nodes=pvoc_source_nodes,
         compiled_breakpoints=compiled_breakpoints,
         params_for_lineage=params_dict,
+        predicted_duration_s=predicted_duration_s,
     )
+
+
+# ---------------------------------------------------------------------------
+# Dry-run branch (Task 11a)
+# ---------------------------------------------------------------------------
+
+
+async def _validate_node_dry_run(
+    *,
+    entry: KnowledgeEntry,
+    inputs: list[str | Path],
+    params: dict[str, Any],
+    output_name: str | None,
+    session: Session,
+    cdp: CDPConfig,
+    latest_tracker: LatestTracker,
+    cache_root: Path,
+    indur_overrides: list[float | None] | None,
+) -> ValidationResult:
+    """Side-effect-free mirror of the validate_node step chain.
+
+    Steps 4–6.5 are shared logic verbatim; steps 7–10 swap real
+    artifacts for planned paths under a never-created
+    ``graphs/DRYRUN-<slug>`` root. Breakpoint compilation (8.5) runs
+    for real — same compiler, same errors — but into a temporary
+    directory inside ``session/tmp/`` that is deleted before return
+    (inside the session tree so the security gate's path-scope check
+    sees the same shape it will see at execution time).
+
+    Unlike the real path, breakpoint warnings ARE surfaced (dry-run
+    exists to report; the real path's silent drop is a preserved
+    Phase 1b quirk).
+    """
+    params_dict = dict(params)  # copy — dry run must not mutate caller state
+    warnings: list[str] = []
+
+    # 4. Arity normalize + check.
+    if entry.input_arity in ("N", "variable"):
+        return ValidationResult(
+            errors=[
+                ErrorEntry(
+                    type="unsupported_arity",
+                    message=(
+                        f"Entry {entry.program} {entry.mode} has variable "
+                        f"input arity ({entry.input_arity!r}); not supported "
+                        f"in Phase 1a."
+                    ),
+                    fix="Use execute() for variable-arity CDP commands.",
+                )
+            ],
+            warnings=warnings,
+        )
+    if len(inputs) != entry.input_arity:
+        return ValidationResult(
+            errors=[
+                ErrorEntry(
+                    type="arity_mismatch",
+                    message=(
+                        f"Entry {entry.program} {entry.mode} expects "
+                        f"{entry.input_arity} input(s); got {len(inputs)}."
+                    ),
+                    fix=(
+                        f"Pass exactly {entry.input_arity} input "
+                        "reference(s)."
+                    ),
+                )
+            ],
+            warnings=warnings,
+        )
+
+    # 5. Resolve inputs. Path entries are caller-planned upstream
+    # outputs (graph dry-run) — used as-is, no existence requirement.
+    resolved_inputs: list[Path] = []
+    for ref in inputs:
+        if isinstance(ref, Path):
+            resolved_inputs.append(ref)
+            continue
+        try:
+            resolved_inputs.append(resolve_target(ref, session, latest_tracker))
+        except ReferenceResolutionError as e:
+            return ValidationResult(
+                errors=[
+                    ErrorEntry(
+                        type="reference_resolution",
+                        message=str(e),
+                        fix=(
+                            "Check the reference: 'latest', "
+                            "'<graph_id>:<node_id>', an absolute path, or "
+                            "a filename inside the session's inputs/ "
+                            "directory."
+                        ),
+                    )
+                ],
+                warnings=warnings,
+            )
+
+    # 6. Validate params.
+    param_errors, param_warnings = validate_params(entry, params_dict)
+    if param_errors:
+        return ValidationResult(
+            errors=param_errors,
+            warnings=param_warnings,
+        )
+
+    # 6.5. Pre-flight duration prediction, with caller-known durations
+    # (upstream predictions) taking precedence over file probes.
+    preflight_errors, predicted_duration_s = await check_duration_preflight(
+        entry=entry,
+        params=params_dict,
+        resolved_inputs=resolved_inputs,
+        session_root=session.root,
+        cdp_path=cdp.cdp_path,
+        cdp_version=cdp.version,
+        ana_duration_cache_dir=session.tmp_dir / "ana_durations",
+        indur_overrides=indur_overrides,
+    )
+    if preflight_errors:
+        return ValidationResult(
+            errors=preflight_errors,
+            warnings=param_warnings,
+            predicted_duration_s=predicted_duration_s,
+        )
+
+    # 7. Planned (never-created) graph root.
+    slug = f"{entry.program}-{entry.mode}"
+    planned_root = session.graphs_dir / f"DRYRUN-{slug}"
+
+    # 8. PVOC planning — direction decided per input, no subprocess.
+    counter = 1
+    post_pvoc_paths: list[Path] = []
+    pvoc_source_nodes: list[str | None] = []
+    for resolved_path in resolved_inputs:
+        input_domain = _domain_of(resolved_path)
+        if input_domain == "unknown":
+            return ValidationResult(
+                errors=[
+                    ErrorEntry(
+                        type="unknown_input_domain",
+                        message=(
+                            f"Cannot auto-insert PVOC for "
+                            f"{resolved_path.name}: extension "
+                            f"{resolved_path.suffix!r} is neither a known "
+                            "time-domain nor spectral CDP file type."
+                        ),
+                        fix=(
+                            "Convert the file to .wav / .aif / .aiff / "
+                            ".amb (time) or .ana / .pvx (spectral) before "
+                            "passing it to process(), or use execute() to "
+                            "run CDP directly."
+                        ),
+                    )
+                ],
+                warnings=param_warnings,
+                predicted_duration_s=predicted_duration_s,
+            )
+        if input_domain == entry.domain:
+            post_pvoc_paths.append(resolved_path)
+            pvoc_source_nodes.append(None)
+            continue
+        if entry.domain == "spectral":
+            planned = planned_root / f"n{counter}_pvoc-anal.ana"
+        else:
+            planned = planned_root / f"n{counter}_pvoc-synth.wav"
+        post_pvoc_paths.append(planned)
+        pvoc_source_nodes.append(f"n{counter}")
+        counter += 1
+
+    # 8.5. Breakpoint validation — the real compiler, against a temp
+    # directory inside session/tmp/ (deleted on exit; in-tree so the
+    # security gate sees execution-shaped paths).
+    session.tmp_dir.mkdir(parents=True, exist_ok=True)
+    breakpoint_errors: list[ErrorEntry] = []
+    breakpoint_warnings: list[str] = []
+    compiled_breakpoints: dict[str, CompiledBreakpoint] = {}
+    with tempfile.TemporaryDirectory(
+        dir=session.tmp_dir, prefix="dryrun-envelopes-"
+    ) as tmp_envelopes:
+        tmp_envelopes_dir = Path(tmp_envelopes)
+        src_duration: float | None = None
+        src_kind: str | None = None
+        needs_duration = any(
+            params_dict.get(name) is not None
+            and is_breakpoint_value(params_dict.get(name))
+            for name in entry.parameters
+        )
+        if needs_duration:
+            src_duration, src_kind = await _dry_run_source_duration(
+                resolved_inputs=resolved_inputs,
+                indur_overrides=indur_overrides,
+                session=session,
+                cdp=cdp,
+            )
+            if src_duration is None:
+                # Duration genuinely unknowable pre-execution: validate
+                # structure/ranges against a dummy axis, then warn.
+                src_duration, src_kind = 1.0, "dry_run_dummy"
+                breakpoint_warnings.append(
+                    "breakpoint envelope validated against a placeholder "
+                    "duration (source duration unknown at dry-run); "
+                    "duration-dependent checks re-run at execution."
+                )
+        for param_name, spec in entry.parameters.items():
+            value = params_dict.get(param_name)
+            if value is None or not is_breakpoint_value(value):
+                continue
+            if not spec.breakpoint_capable:
+                breakpoint_errors.append(ErrorEntry(
+                    type="param_breakpoint_not_capable",
+                    message=(
+                        f"Parameter {param_name!r} got a breakpoint value "
+                        f"but its breakpoint_capable flag is false."
+                    ),
+                    fix=(
+                        f"Either pass a constant numeric value, or update "
+                        f"the entry to set "
+                        f"parameters.{param_name}.breakpoint_capable to "
+                        f"true (curation change)."
+                    ),
+                ))
+                continue
+            result = compile_breakpoint_value(
+                param_name=param_name,
+                param_spec=spec,
+                value=value,
+                source_duration_s=src_duration,
+                source_kind=src_kind,  # type: ignore[arg-type]
+                session_root=session.root,
+                envelopes_dir=tmp_envelopes_dir,
+            )
+            breakpoint_errors.extend(result.errors)
+            breakpoint_warnings.extend(result.warnings)
+            if result.record is not None and result.compiled_path is not None:
+                params_dict[param_name] = result.compiled_path
+                compiled_breakpoints[param_name] = result.record
+
+        if breakpoint_errors:
+            return ValidationResult(
+                errors=breakpoint_errors,
+                warnings=param_warnings + breakpoint_warnings,
+                predicted_duration_s=predicted_duration_s,
+            )
+
+        # 9. Build main op argv (planned paths; temp .brk paths render
+        # in-session, matching execution shape).
+        main_node_id = f"n{counter}"
+        out_ext = ".ana" if entry.domain == "spectral" else ".wav"
+        normalized_name, name_error = _normalize_output_name(
+            output_name, out_ext
+        )
+        if name_error is not None:
+            return ValidationResult(
+                errors=[name_error],
+                warnings=param_warnings,
+                predicted_duration_s=predicted_duration_s,
+            )
+        out_filename = normalized_name or f"{main_node_id}_{slug}{out_ext}"
+        output_path = planned_root / out_filename
+        argv = build_cdp_argv(
+            entry, post_pvoc_paths, output_path, params_dict,
+            cwd=session.root,
+        )
+
+        # 10. Security validation (paths need not exist for the gate).
+        try:
+            validated = validate_command(
+                argv, cdp.cdp_path, session.root, cache_root
+            )
+        except SecurityError as e:
+            return ValidationResult(
+                errors=e.errors,
+                warnings=param_warnings,
+                predicted_duration_s=predicted_duration_s,
+            )
+
+    return ValidationResult(
+        errors=[],
+        warnings=param_warnings + breakpoint_warnings,
+        graph_dir=None,
+        planned_argv=validated,
+        output_path=output_path,
+        main_node_id=main_node_id,
+        out_filename=out_filename,
+        post_pvoc_paths=post_pvoc_paths,
+        pvoc_source_nodes=pvoc_source_nodes,
+        compiled_breakpoints=compiled_breakpoints,
+        params_for_lineage=None,  # dry run: nothing will be executed
+        predicted_duration_s=predicted_duration_s,
+    )
+
+
+async def _dry_run_source_duration(
+    *,
+    resolved_inputs: list[Path],
+    indur_overrides: list[float | None] | None,
+    session: Session,
+    cdp: CDPConfig,
+) -> tuple[float | None, str | None]:
+    """Input-1 duration for dry-run breakpoint compilation.
+
+    Mirrors :func:`_resolve_source_duration`'s input-1 convention.
+    Preference order: caller-supplied override (graph dry-run chaining)
+    → read-only probe of the input file (``sf.info`` for wav, cached
+    ``sfprops -d`` for ``.ana``).
+    """
+    if indur_overrides and indur_overrides[0] is not None:
+        return indur_overrides[0], "dry_run_override"
+    if not resolved_inputs:
+        return None, None
+    duration = await _read_duration_seconds(
+        resolved_inputs[0],
+        session_root=session.root,
+        cdp_path=cdp.cdp_path,
+        cdp_version=cdp.version,
+        ana_duration_cache_dir=session.tmp_dir / "ana_durations",
+    )
+    if duration is not None:
+        return duration, "input_wav"
+    return None, None
 
 
 # ---------------------------------------------------------------------------
