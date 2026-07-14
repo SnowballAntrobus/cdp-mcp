@@ -1,0 +1,51 @@
+{
+  "program": "modify",
+  "mode": "speed",
+  "submode": 2,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "expression",
+    "expr": "indur / 2 ** (semitones / 12)"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Varispeed: changes the speed and pitch of the sound together, like re-clocking a tape. Pinned to submode 2 (transposition in fractional semitones — the more musical control surface). Submode 1 is the same process parameterized as a speed ratio; submodes 3/4 only print information; 5 is accel/decel and 6 is vibrato — all can be curated separately later. Duration model verified against the r8 binary to within 0.01% across ±12, +7 and -5 semitones on 1–3 s inputs.",
+  "musical_use": "The tape-speed transposition: pitch and duration move together, preserving the source's internal coherence (unlike independent pitch-shift or time-stretch). -12 doubles the duration an octave down; +12 halves it an octave up. Fractional values give detunings for thickening layers. With a breakpoint file for semitones, you get glissandi and tape-wobble effects — the transposition contour is followed smoothly across the file.",
+  "parameters": {
+    "semitones": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Transposition in (possibly fractional) semitones, relative to the original speed. Positive = higher and faster (shorter output); negative = lower and slower (longer output); 0 = no change. CDP accepts at least ±96 (verified; -96 multiplies duration by 256 — mind the output length). Musically useful range is roughly ±24. May vary over time via a breakpoint file; by default breakpoint times are read as infile times (see known_issues for the -o switch)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Drop the source an octave: half speed, double duration.",
+      "params": {"semitones": -12.0},
+      "expected_use": "Classic octave-down slowdown — darker, heavier version of the source with all internal relationships intact."
+    },
+    {
+      "description": "Detune up a quarter-tone for layering against the original.",
+      "params": {"semitones": 0.5},
+      "expected_use": "Thicken a texture by mixing slightly-transposed copies."
+    }
+  ],
+  "known_issues": [
+    "The -o switch (read breakpoint times as outfile times instead of infile times) is a value-less flag not exposed in the curated parameters (same policy as extend loop's -b). Reach for execute() if you need it.",
+    "With a breakpoint-valued semitones the duration model cannot predict output length (the engine skips pre-flight prediction for breakpoint params); the output ends when the infile is exhausted at the varying speed."
+  ],
+  "references": ["cdp://docs/html/cgromody"]
+}

@@ -1,0 +1,42 @@
+{
+  "program": "focus",
+  "mode": "exag",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Exaggerates the spectral (formant) contour of each analysis window. Values below 1 narrow the formants and widen the troughs — an increasingly tight filter focused on the spectral peaks; values above 1 widen the formants — increasingly fuzzy and diffuse, adding noise elements as partials are moved. Operates on PVOC analysis files (.ana).",
+  "musical_use": "Push a sound toward pitched resonance or toward noise. The manual recommends exaggeration around 0.5 as a balance between original and treated sound; lower values act like ever-tighter bandpass filtering, drawing pitch out of complex material (reminiscent of trace-style thinning at the extreme), while values well above 1 (e.g. 10) diffuse the peaks into a fuzzy, buzzy sheen. Sweeping the value with a breakpoint file travels between the pitched-resonant and noisy states over the course of the file.",
+  "parameters": {
+    "exaggeration": {
+      "type": "float",
+      "min": 0.001,
+      "max": 1000.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Contour exaggeration factor. < 1 narrows formants and widens troughs (focuses on the peaks; tight-filter effect); > 1 widens formants (diffuses the peaks; fuzzy effect). CDP enforces the range 0.001 to 1000 — negative values are refused despite the banner's wording. May vary over time via a breakpoint file."
+    }
+  },
+  "examples": [
+    {
+      "description": "Manual-recommended balance point between original and treated sound.",
+      "params": {"exaggeration": 0.5},
+      "expected_use": "Bring out pitched resonances within a complex source without losing its identity."
+    }
+  ],
+  "known_issues": [
+    "Banner-vs-manual divergence: the banner claims 'exaggeration >0 will widen troughs: <0 will widen peaks', but negative values are refused — probed -0.5 yields 'ERROR: Parameter[1] Value (-0.500000) out of range (0.001000 to 1000.000000)'. The HTML manual's reading is the correct one: < 1 widens troughs / narrows formants, > 1 narrows troughs / widens formants."
+  ],
+  "references": ["cdp://docs/html/cfocus"]
+}

@@ -1,0 +1,29 @@
+{
+  "program": "modify",
+  "mode": "radical",
+  "submode": 1,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Plays the sound backwards. Pinned to submode 1 (REVERSE) of 'modify radical', which bundles seven unrelated transformations (reverse, shred, scrub, lose-resolution, ring-modulate, cross-modulate, quantise); the other submodes can be curated as separate entries later. Takes no parameters — the transformation is a sample-exact reversal (verified: output samples are the input samples in reverse order; duration, channel count and level unchanged).",
+  "musical_use": "Sample-exact reversal of the source. Classic uses: reversed cymbals or breaths as build-ups, swelling pre-attacks before a downbeat, and reverse-process-reverse sandwiches — reverse, apply a time-directional process (reverb, dovetail, accelerando), then reverse again to put the tail before the attack. Also a cheap way to give attack-heavy material an interesting decay before feeding it to stacking or granular processes.",
+  "parameters": {},
+  "examples": [
+    {
+      "description": "Reverse a soundfile end-to-end.",
+      "params": {},
+      "expected_use": "Turn a percussive hit into a swell, or hear a phrase backwards before further processing."
+    }
+  ],
+  "known_issues": [],
+  "references": ["cdp://docs/html/cgromody"]
+}

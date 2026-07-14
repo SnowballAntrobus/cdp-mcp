@@ -57,7 +57,10 @@ async def test_all_three_tools_registered(mcp_with_tools):
 
 async def test_list_categories_returns_sorted_unique(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_categories", {})
-    assert payload == ["extend", "filter", "granular", "morph", "spectral-time"]
+    assert payload == [
+        "distort", "extend", "filter", "granular", "modify",
+        "morph", "spectral-frequency", "spectral-time",
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -67,27 +70,35 @@ async def test_list_categories_returns_sorted_unique(mcp_with_tools):
 
 async def test_list_programs_no_filter_returns_all_curated(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {})
-    assert len(payload) == 6
+    assert len(payload) == 19
     keys = {(e["program"], e["mode"]) for e in payload}
-    assert keys == {
-        ("blur", "blur"),
-        ("modify", "brassage"),
-        ("morph", "morph"),
-        ("extend", "loop"),
-        ("filter", "sweeping"),
-        ("combine", "cross"),
-    }
+    # Spot-check representatives across phases rather than the full set
+    # (the count above pins the total; per-entry presence is pinned by
+    # the loader and breakpoint-curation tables).
+    for expected in (
+        ("blur", "blur"), ("modify", "brassage"), ("morph", "morph"),
+        ("extend", "loop"), ("filter", "sweeping"), ("combine", "cross"),
+        ("modify", "radical"), ("distort", "multiply"), ("blur", "scatter"),
+        ("morph", "glide"),
+    ):
+        assert expected in keys, f"missing {expected}"
 
 
 async def test_list_programs_category_filter(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {"category": "filter"})
-    assert [(e["program"], e["mode"]) for e in payload] == [("filter", "sweeping")]
+    assert [(e["program"], e["mode"]) for e in payload] == [
+        ("filter", "lohi"), ("filter", "sweeping"),
+    ]
 
 
 async def test_list_programs_domain_filter(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {"domain": "spectral"})
     keys = {(e["program"], e["mode"]) for e in payload}
-    assert keys == {("blur", "blur"), ("morph", "morph"), ("combine", "cross")}
+    assert keys == {
+        ("blur", "avrg"), ("blur", "blur"), ("blur", "drunk"),
+        ("blur", "scatter"), ("combine", "cross"), ("combine", "diff"),
+        ("focus", "exag"), ("morph", "glide"), ("morph", "morph"),
+    }
 
 
 async def test_list_programs_combined_filters_compose_and(mcp_with_tools):

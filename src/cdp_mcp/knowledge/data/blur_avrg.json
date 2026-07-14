@@ -1,0 +1,42 @@
+{
+  "program": "blur",
+  "mode": "avrg",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Averages spectral energy over N adjacent analysis channels within each window, broadening and defocusing energy peaks. A frequency-domain blur (in effect a kind of filtering) — the counterpart of blur blur's time-domain smear, which averages across windows instead. Operates on PVOC analysis files (.ana).",
+  "musical_use": "Enriches and roughens timbre without altering pitch content: high-energy data leaks into neighbouring channels, defocusing spectral peaks and reducing frequency definition. Small N adds grit and subtle roughening; large N smears formant detail toward a hazy, filtered character. A time-varying N (breakpoint file) can move a sound gradually from focused to diffuse across its length.",
+  "parameters": {
+    "n": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "channels",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Number of adjacent channels to average over (banner calls it N; the manual, Average-span). The banner asks for an odd value no greater than half the analysis-point count, but CDP r8 accepts even and larger values without complaint — treat that rule as advisory. Accepts a breakpoint file for time-varying averaging."
+    }
+  },
+  "examples": [
+    {
+      "description": "Moderate averaging over 9 adjacent channels.",
+      "params": {"n": 9},
+      "expected_use": "Roughen and enrich a pitched source's timbre while keeping its pitch and duration intact."
+    }
+  ],
+  "known_issues": [
+    "Banner-vs-behavior divergence: the banner demands N be ODD and <= half the analysis -c/points value (the HTML manual omits the odd rule), but CDP r8 accepts even N (probed with 8) and N above the claimed limit (probed with 513 on a 1024-point analysis) with exit 0. Presumably normalised internally; the constraint is not enforced."
+  ],
+  "references": ["cdp://docs/html/cblur"]
+}

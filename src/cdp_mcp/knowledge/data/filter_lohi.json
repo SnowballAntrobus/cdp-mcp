@@ -1,0 +1,94 @@
+{
+  "program": "filter",
+  "mode": "lohi",
+  "submode": 1,
+  "category": "filter",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "expression",
+    "expr": "indur + tail"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Fixed low-pass or high-pass filter. Pinned to submode 1 (pass-band and stop-band given as frequencies in Hz); submode 2 (fractional MIDI note values) can be curated separately. The filter direction is set by the band ordering: stop-band above pass-band = low-pass, stop-band below pass-band = high-pass. Like filter sweeping, the r8 binary has a banner-only -t tail parameter absent from the HTML manual, and omitting it appends a default 1 s decay tail — the entry defaults tail to 1.0 and always emits it so the duration model is deterministic.",
+  "musical_use": "The bread-and-butter corrective and shaping filter. Low-pass: remove hiss above the material, or make a sound deep and rumbling by taking off the top. High-pass: clear bass rumble, or make a sound 'thin' by removing the bottom. The pass-band/stop-band gap sets the transition width — a narrow gap with high attenuation gives a sharp cutoff (higher filter order, slower to compute); a wide gap gives a gentle rolloff. Place the bands against the significant frequencies of the source (a spectral analysis first helps).",
+  "parameters": {
+    "attenuation": {
+      "type": "float",
+      "min": -96.0,
+      "max": 0.0,
+      "unit": "dB",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Gain reduction of the filter in dB (CDP-enforced range -96 to 0; the binary rejects +10 with 'Value (10.000000) out of range (-96.000000 to 0.000000)'). Greater attenuation gives a sharper filter (higher order — observed order 2 at -30, order 4 at -60, order 8 at -96) but takes longer to calculate. Scalar only."
+    },
+    "passband": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Last frequency to be passed by the filter, in Hz (submode 1). Scalar only — this is a fixed filter; for time-varying filtering use filter sweeping or filter vary."
+    },
+    "stopband": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "First frequency to be stopped by the filter, in Hz. Above passband = low-pass; below passband = high-pass. Scalar only."
+    },
+    "tail": {
+      "type": "float",
+      "min": 0.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Decay tail duration appended after the input ends. NOT in CDP's HTML manual (banner-only parameter — the same divergence first caught on filter sweeping); empirically, omitting -t makes the r8 binary append exactly a 1 s tail (verified on 1 s and 2 s inputs). The engine therefore always emits -t explicitly (default 1.0) so the output duration is deterministic and the duration model (indur + tail) matches what CDP produces. Set 0.0 to suppress the tail (a small ring-out remainder still lands — see known_issues).",
+      "default": 1.0
+    },
+    "prescale": {
+      "type": "float",
+      "min": 0.005,
+      "max": 200.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Gain applied to the input before filtering, to avoid overflows (banner range 0.005 to 200.0). Scalar only."
+    }
+  },
+  "examples": [
+    {
+      "description": "Low-pass at 1 kHz: pass up to 1000 Hz, fully stopped by 4000 Hz, -60 dB attenuation.",
+      "params": {"attenuation": -60.0, "passband": 1000.0, "stopband": 4000.0},
+      "expected_use": "Darken a bright source or remove hiss; output is indur + 1.0 s with the default tail."
+    },
+    {
+      "description": "High-pass at 4 kHz (bands reversed), no tail.",
+      "params": {"attenuation": -60.0, "passband": 4000.0, "stopband": 1000.0, "tail": 0.0},
+      "expected_use": "Keep only the top of the spectrum — thin, airy residue, output essentially the input length."
+    }
+  ],
+  "known_issues": [
+    "The -t tail parameter exists only in the binary's usage banner, not the CDP HTML manual (cgrofilt.htm lists only -s prescale for FILTER LOHI). Omitting -t appends exactly +1.00 s (verified on 1 s and 2 s inputs) — the same banner-only default-tail behavior first caught on filter sweeping. The entry pins tail's default at 1.0 and the engine always emits it, keeping 'indur + tail' deterministic.",
+    "With tail = 0 a small filter ring-out remainder is still written after the input end (observed +16 to +22 ms, varying with filter order/attenuation) — negligible except on very short files.",
+    "All five numeric parameters reject breakpoint files ('ERROR: Cannot read parameter N [...]: brkpnt_files not permitted.') — this is a fixed filter by design.",
+    "CDP manual warning: sources with long silent tails filter drastically slower (20x or more) through the silent region; topntail/dovetail long fades before filtering."
+  ],
+  "references": ["cdp://docs/html/cgrofilt"]
+}

@@ -1,0 +1,76 @@
+{
+  "program": "blur",
+  "mode": "drunk",
+  "submode": null,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": "related",
+  "duration_model": {"kind": "set_by", "param": "duration"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Reads analysis windows by a drunken walk: starting at starttime, it jumps randomly forwards or backwards through the file (at most range windows per step), writing windows until the requested output duration is filled. Leaps past either end of the file are reflected back in. Operates on PVOC analysis files (.ana).",
+  "musical_use": "Lurches about in a soundfile, producing a jumbled version of the source to a controllable degree. Small range values linger around the start-point, drifting away only slowly — a mix of time-stretching and slow wandering, much smoother than time-domain scrambling because windows overlap on resynthesis. Large range values leap wildly, scrambling the source. Because the output duration is set independently of the input's, it doubles as an extension tool (a 2 s source stretched to 4 s of wandering, verified). Every run takes a different walk — keep the takes you like (no seed control exists).",
+  "parameters": {
+    "range": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "windows",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Maximum step (in windows) for the drunken walk. Small = linger/stretch near the start-point; large = scramble. Scalar only — CDP refuses breakpoint files here."
+    },
+    "starttime": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time in the input file at which the walk begins. Scalar only — CDP refuses breakpoint files here."
+    },
+    "duration": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Required duration of the output after resynthesis — may exceed the input duration (verified: 2 s input, 4 s output). Directly sets the output length. Scalar only — CDP refuses breakpoint files here."
+    },
+    "nozeros": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-z",
+      "flag_kind": "no_value",
+      "description": "Eliminate zero steps (window-repeats) in the drunken walk."
+    }
+  },
+  "examples": [
+    {
+      "description": "Gentle wander starting 0.5 s into the source, producing 1.5 s of output.",
+      "params": {"range": 5, "starttime": 0.5, "duration": 1.5},
+      "expected_use": "Smeary, semi-stretched rereading of the middle of a sound."
+    },
+    {
+      "description": "Extend a short source to twice its length by wandering.",
+      "params": {"range": 5, "starttime": 0.5, "duration": 4.0},
+      "expected_use": "Spectral-domain extension that stays near the source's character without obvious looping."
+    }
+  ],
+  "known_issues": [
+    "Stochastic with no seed control: identical arguments produce a different walk on every run (verified empirically). No seed flag exists — the banner and manual list only -z, and -s/-r are rejected as unknown flags. Source-level cause: drnk_preprocess() seeds with srand(time(NULL)); a side effect is that two runs launched within the same wall-clock second can silently produce identical output. Results are unreproducible by design.",
+    "Stereo seed-link machinery lands in a later phase, but blur drunk exposes no seed parameter for it to drive: the two channels of a stereo pair processed independently cannot be made to take the same walk. stereo_link_default 'related' records that limitation."
+  ],
+  "references": ["cdp://docs/html/cblur"]
+}

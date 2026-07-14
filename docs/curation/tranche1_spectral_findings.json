@@ -1,0 +1,88 @@
+[
+  {
+    "program": "blur",
+    "mode": "avrg",
+    "breakpoint_capable": {"n": true},
+    "duration_row": ["blur", "avrg", 2.0, {"n": 9}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "Static duration: 2.0 s -> 2.0230 s, 3.0 s -> 3.0215 s (analysis-frame pad only); n=9 vs n=21 identical duration.",
+      "Banner constraints unenforced: even n (8) and n above half the analysis points (513 on a 1024-point analysis) both exit 0.",
+      "Deterministic: identical rerun -> identical decoded sha."
+    ]
+  },
+  {
+    "program": "blur",
+    "mode": "scatter",
+    "breakpoint_capable": {"keep": true, "blocksize": true},
+    "duration_row": ["blur", "scatter", 2.0, {"keep": 8}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "HEADLINE: not stochastic run-to-run despite being a random process. Identical args -> bit-identical output across >=4 runs including >2 s gaps and the -r flag; only the .ana LIST header date differs. Source: scat_preprocess() never calls initrand48(); CDP drand48 shim wraps unseeded rand().",
+      "No seed flag exists in banner or manual; a different scatter requires changing keep/blocksize or the input.",
+      "phase_sensitive shipped as false (design doc's stochastic-candidate flag does not hold on this build; re-verify if a future build seeds the RNG).",
+      "Static duration: 2.0 s -> 2.0056 s, 3.0 s -> 3.0157 s; keep 8 vs 24 both static.",
+      "blocksize breakpoint attached to flag (-bfile.brk) accepted; keep positional breakpoint accepted."
+    ]
+  },
+  {
+    "program": "blur",
+    "mode": "drunk",
+    "breakpoint_capable": {"range": false, "starttime": false, "duration": false},
+    "duration_row": ["blur", "drunk", 2.0, {"range": 5, "starttime": 0.5, "duration": 1.5}, 0.05],
+    "stochastic": true,
+    "seed_param": null,
+    "notes": [
+      "HEADLINE: stochastic with no seed control. Identical argv twice (2.2 s apart) -> different decoded output. -s1/-r1 rejected ('Unknown flag'). Source: drnk_preprocess() calls initrand48() == srand(time(NULL)) — runs within the same wall-clock second would silently repeat.",
+      "phase_sensitive true, stereo_link_default 'related'; known_issues records that the stereo seed-link machinery lands later and blur drunk exposes no seed flag for it to drive.",
+      "duration_model set_by 'duration': 1.0 -> 0.9985, 1.5 -> 1.4977, 2.5 -> 2.4990, 4.0 -> 3.9996 s; independent of indur (2 s and 3 s inputs identical) and may exceed indur.",
+      "Raw refusals: 'ERROR: Cannot read parameter 1 [b_rng.brk]: brkpnt_files not permitted.' (same text for parameters 2 and 3)."
+    ]
+  },
+  {
+    "program": "focus",
+    "mode": "exag",
+    "breakpoint_capable": {"exaggeration": true},
+    "duration_row": ["focus", "exag", 2.0, {"exaggeration": 2.0}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "Static duration: 2.0 s -> 2.0230 s, 3.0 s -> 3.0215 s; exaggeration 2.0 vs 0.5 both static.",
+      "Divergence: banner claims '>0 will widen troughs: <0 will widen peaks' but negative values are refused — 'ERROR: Parameter[1] Value (-0.500000) out of range (0.001000 to 1000.000000)'. Manual is correct (<1 narrows formants, >1 widens). Enforced range 0.001-1000 pinned as min/max.",
+      "Deterministic: identical rerun -> identical decoded sha."
+    ]
+  },
+  {
+    "program": "combine",
+    "mode": "diff",
+    "breakpoint_capable": {"crossover": true, "subzero": false},
+    "duration_row": ["combine", "diff", 2.0, {"crossover": 0.5}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "duration_row's indur is indur1; the second input in the probe was 1.0 s. duration_model expression 'indur1': (2 s, 1 s) -> 2.0230 s; reversed -> 1.0217 s; (2 s, 3 s) -> 2.0230 s. Diverges from combine cross's indur_min — input order changes output length.",
+      "Default crossover empirically = 1.0: omitted -c and -c1 produce bit-identical .ana data chunks.",
+      "crossover breakpoint attached to flag (-cfile.brk) accepted; breakpoint_duration_source 'input1' (input1's duration is the output timeline; matches combine_cross convention).",
+      "subzero (-a) is a no_value switch, verified effective (different output data); not breakpoint-applicable.",
+      "Deterministic: identical rerun -> identical decoded sha."
+    ]
+  },
+  {
+    "program": "morph",
+    "mode": "glide",
+    "breakpoint_capable": {"duration": false},
+    "duration_row": ["morph", "glide", 2.0, {"duration": 1.0}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "duration_row's indur (2.0) is the source wav behind input1; the actual .ana inputs are single windows made with 'spec grab' (spec grab in1.ana g1.ana 0.5 / spec grab in2.ana g2.ana 0.3) and contribute no duration of their own.",
+      "duration_model set_by 'duration': 1.0 -> 0.9985 s, 2.0 -> 1.9969 s.",
+      "Raw refusal on duration breakpoint: 'ERROR: Cannot read parameter 1 [b_gdur.brk]: brkpnt_files not permitted.'",
+      "Divergence: full-length .ana inputs accepted with exit 0; output byte-identical to gliding between each file's first window (spec grab at t=0) — manual's single-window requirement is unenforced.",
+      "No breakpoint-capable params, so no breakpoint_duration_source on this 2-input entry.",
+      "Deterministic: identical rerun -> identical decoded sha."
+    ]
+  }
+]

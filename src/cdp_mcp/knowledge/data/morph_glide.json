@@ -1,0 +1,47 @@
+{
+  "program": "morph",
+  "mode": "glide",
+  "submode": null,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "duration"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Interpolates linearly, channel by channel, between two single analysis windows over a specified duration — a straight-line glide from one frozen spectrum to another. The inputs are meant to be single-window .ana files extracted with spec grab; CDP does not enforce this, and given a full-length .ana it silently uses only the first window (verified byte-identical to grabbing the window at t=0).",
+  "musical_use": "Evolving drones and smooth spectral transitions built from two frozen snapshots. Grab a window from each source at a telling moment (spec grab), then glide between them: widely differing spectra over a short duration give a dramatic, audible redirection of the sound; similar spectra over a long duration (SoundThread's Freeze Morph defaults to 60 s) give slowly evolving drones with shifting spectral content. Two timbrally very different windows produce rich timbral modulations en route. Not as seamless as morph morph's full time-varying interpolation — with glide you hear the sound being steered from one state to the other, and that movement is part of the effect.",
+  "parameters": {
+    "duration": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Duration of the output sound required. Sets the output length outright (verified: 1.0 -> 0.999 s, 2.0 -> 1.997 s after resynthesis). Scalar only — CDP refuses breakpoint files here."
+    }
+  },
+  "examples": [
+    {
+      "description": "Two-second glide between windows grabbed from two different sources.",
+      "params": {"duration": 2.0},
+      "expected_use": "A compact spectral transition: the frozen colour of sound A steered linearly into the frozen colour of sound B."
+    },
+    {
+      "description": "Long-form drone from two snapshots of the same source.",
+      "params": {"duration": 60.0},
+      "expected_use": "Slowly evolving drone whose spectral content drifts imperceptibly between two moments of the original."
+    }
+  ],
+  "known_issues": [
+    "Inputs should be single-window analysis files made with spec grab (spec grab infile outfile time — not yet a curated entry). CDP r8 accepts full-length .ana files without any error but uses only their FIRST analysis window, which is rarely what you want — grab explicitly to choose the freeze points."
+  ],
+  "references": ["cdp://docs/html/cmorph"]
+}

@@ -1,0 +1,44 @@
+{
+  "program": "distort",
+  "mode": "multiply",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Distortion by multiplying 'wavecycle' frequency: each zero-crossing-delimited wavecycle is replaced by N copies squeezed into the same time span, so pitch content rises while the overall duration is preserved (verified static to within ~1 ms — the final partial wavecycle may be dropped). Mono only, like all the wavecycle distort processes.",
+  "musical_use": "A relatively mild, recognisable distortion: the source stays intelligible but the surface becomes textured and the pitch rises with each increase of N. Good for high, modulating, grainy vocal timbres. Because duration is unchanged it layers cleanly against the dry source for parallel-distortion mixes. On noisy material the perceived pitch may stay put while brightness changes instead. Split stereo files into mono channels first.",
+  "parameters": {
+    "multiplier": {
+      "type": "int",
+      "min": 2,
+      "max": 16,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Wavecycle-frequency multiplier N (integer; CDP-enforced range 2–16 — the binary rejects 17 with 'Value (17.000000) out of range (2.000000 to 16.000000)'). Accepts a time-varying breakpoint file even though neither the banner nor the manual mentions it (empirically verified: envelope output differs from both endpoint scalar renders)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Double each wavecycle's frequency — the classic bright, grainy octave-up distortion.",
+      "params": {"multiplier": 2},
+      "expected_use": "Brighten and texture a vocal or instrumental line while keeping it recognisable and in sync with the source."
+    }
+  ],
+  "known_issues": [
+    "The -s smoothing switch (value-less; the banner suggests it 'if glitches appear') is not exposed in the curated parameters — same policy as extend loop's -b. It runs fine as a scalar via execute().",
+    "Banner and HTML manual are silent about time-variability of the multiplier, but the r8 binary accepts a breakpoint file for it — a banner-vs-behavior divergence; SoundThread marks the parameter automatable, matching the observed behavior.",
+    "Mono only: a stereo input is refused with 'Application doesn't work with this type of infile.' (exit 255)."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

@@ -1,0 +1,74 @@
+{
+  "program": "distort",
+  "mode": "repeat",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "expression",
+    "expr": "indur * multiplier"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Timestretch by repeating 'wavecycles': each wavecycle (or group of cyclecnt wavecycles) is played multiplier times in a row, stretching the sound and making it granular. Duration model verified on tone and noise inputs at multipliers 2–4 (worst error 0.23%); the model assumes skipcycles is 0. Mono only.",
+  "musical_use": "Produces long, grainy, audibly stretched sounds — the wavecycle-repetition cousin of granular time-stretch, with a raw, distorted character. The striking trick is crossing the pitch-perception boundary: on noisy sources, raising cyclecnt groups enough identical repetitions together that each group reads as a pitch, turning noise into a string of pitch beads of arbitrary timbre; with cyclecnt around 128 you can get a slowish random melody. Time-varying multiplier (breakpoint file) gives accelerating/decelerating stretch.",
+  "parameters": {
+    "multiplier": {
+      "type": "int",
+      "min": 2,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Number of times each wavecycle (group) repeats (integer; CDP-enforced range 2–32767 — the binary rejects 1 with 'Value (1.000000) out of range (2.000000 to 32767.000000)'). Output duration is roughly indur * multiplier. May vary over time (banner-confirmed, empirically verified)."
+    },
+    "cyclecnt": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Number of wavecycles in each repeated group (integer; CDP-enforced range 1–32767; CDP's internal default is 1). Larger groups increase granularity and, on noisy sources, push the output across the pitch-perception boundary. May vary over time (banner-confirmed, empirically verified). Leaves the duration model essentially unchanged (0.45% error observed at cyclecnt 4)."
+    },
+    "skipcycles": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Number of wavecycles to skip at the start of the file (integer; CDP-enforced range 0–32767; CDP's internal default is 0). Skipped material is dropped from the output entirely, so nonzero values make the duration model over-predict (see known_issues). Scalar only — a breakpoint file is refused."
+    }
+  },
+  "examples": [
+    {
+      "description": "Stretch a source to three times its length with raw wavecycle repetition.",
+      "params": {"multiplier": 3},
+      "expected_use": "Grainy, obviously-stretched version of the source for texture beds."
+    },
+    {
+      "description": "Turn a noisy source into a string of pitch beads.",
+      "params": {"multiplier": 8, "cyclecnt": 64},
+      "expected_use": "Cross the pitch-perception boundary: each repeated group of 64 wavecycles reads as a pitch of arbitrary timbre."
+    }
+  ],
+  "known_issues": [
+    "skipcycles removes the skipped wavecycles from the output rather than passing them through (verified: skipping 100 cycles of a 440 Hz tone shortened the output by ~2 x 100/440 s at multiplier 2). The duration model 'indur * multiplier' therefore over-predicts when skipcycles > 0; the shortfall is content-dependent (cycles, not seconds) and cannot be modelled statically.",
+    "skipcycles rejects breakpoint files: 'ERROR: Cannot read parameter 3 [sk.brk]: brkpnt_files not permitted.'",
+    "Mono only: a stereo input is refused with 'Application doesn't work with this type of infile.' (exit 255)."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

@@ -31,6 +31,66 @@ from cdp_mcp.knowledge.loader import KnowledgeIndex
 # cdpr8/_cdp/_cdprogs). Updating any cell in this table is a curation
 # decision and must pair with an entry in docs/phase-2-breakpoint-review.md.
 _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
+    # --- Phase 3 tranche 1 (sandbox-CDP probed; see docs/curation/) ---
+    ("modify", "radical"): {
+        # no numeric parameters
+    },
+    ("modify", "speed"): {
+        "semitones": True,
+    },
+    ("distort", "multiply"): {
+        "multiplier": True,
+    },
+    ("distort", "repeat"): {
+        "multiplier": True,
+        "cyclecnt": True,
+        "skipcycles": False,
+    },
+    ("extend", "zigzag"): {
+        "start": False,
+        "end": False,
+        "dur": False,
+        "minzig": False,
+        "splicelen": False,
+        "maxzig": False,
+        "seed": False,
+    },
+    ("extend", "scramble"): {
+        "minseglen": False,
+        "maxseglen": False,
+        "outdur": False,
+        "splen": False,
+        "seed": False,
+    },
+    ("filter", "lohi"): {
+        "attenuation": False,
+        "passband": False,
+        "stopband": False,
+        "tail": False,
+        "prescale": False,
+    },
+    ("blur", "avrg"): {
+        "n": True,
+    },
+    ("blur", "scatter"): {
+        "keep": True,
+        "blocksize": True,
+    },
+    ("blur", "drunk"): {
+        "range": False,
+        "starttime": False,
+        "duration": False,
+    },
+    ("focus", "exag"): {
+        "exaggeration": True,
+    },
+    ("combine", "diff"): {
+        "crossover": True,
+        "subzero": False,
+    },
+    ("morph", "glide"): {
+        "duration": False,
+    },
     ("blur", "blur"): {
         "blurring": True,
     },

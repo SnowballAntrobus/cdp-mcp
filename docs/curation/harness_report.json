@@ -1,0 +1,1441 @@
+{
+ "generated_at": "2026-07-14T04:21:59.168382+00:00",
+ "cdp_dir": "/tmp/CDP8/NewRelease",
+ "program_count": 211,
+ "soundthread_process_count": 129,
+ "programs": {
+  "analjoin": {
+   "banner": "CDP Release 7.1 2016\n\nJOIN ANALYSIS FILES TOGeTHER\n\nUSAGE: analjoin join infile1 infile2 [infile3 ....] outfile\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "analjoin_join"
+   ]
+  },
+  "asciiget": {
+   "banner": "USAGE: getascii filename: where file is an ascii textfile\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "blur": {
+   "banner": "CDP Release 7.1 2016\n\nBLURRING OPERATIONS ON A SPECTRAL FILE\n\nUSAGE: blur NAME (mode) infile outfile parameters: \n\nwhere NAME can be any one of\n\navrg      blur      suppress    chorus      drunk\nshuffle   weave     noise       scatter     spread\n\nType 'blur avrg' for more info on blur avrg..ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "blur_avrg",
+    "blur_blur",
+    "blur_chorus_5",
+    "blur_drunk",
+    "blur_noise",
+    "blur_scatter",
+    "blur_spread",
+    "blur_suppress"
+   ]
+  },
+  "bounce": {
+   "banner": "USAGE:\nbounce bounce inf outf count startgap shorten endlevel ewarp [-smin] [-e] [-c]\n\n\"Bounce\" a sound (Accelerating repeats, decaying in level).\n\nCOUNT    Number of bounces.\nSTARTGAP Gap between src start and 1st bounce. (0.04 to 10)\nSHORTEN  Bounce gap reduction (multiplier) from 1 bounce to next.\nENDLEVEL Loudness of last bounce as fraction of src level. (0 to 1)\nEWARP    Decay warp.        Decresc at start : >1.0 greater : < 1.0 less.\n-sMIN    Shrink bounced elements in same proportion as accel. Min = min dur.\n         (Value of zero turns off shrinkage).\n-c       If repeating elements overlap, cut to avoid this overlap.\n-e       Shrink elements by trimming start. (Default, by trimming end).\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "bounce_bounce"
+   ]
+  },
+  "brkdur": {
+   "banner": "ERROR: Bad function call.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "brktopi": {
+   "banner": "CDP Release 7.1 2016\n\n\nUSAGE:     brktopi brktopi pitch-textfile binary-outfile\n\nConverts text pitch data to binary pitch data\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "brownian": {
+   "banner": "USAGE:\nbrownian motion 1 fi fo chans dur att dec plo phi pstart sstart step sstep tick seed\n[-aarange] [-mminamp] [-saslope] [-ddslope] [-l]\nOR\nbrownian motion 2 fi fo chans dur plo phi pstart sstart step sstep tick seed\n[-aarange] [-mminamp] [-l]\n\nGenerate texture of sampled elements following brownian motion in pitch and space.\n\nFI      (Mono) Source to be read at different speeds to generate output events.\n        MODE 1: src must start & end at sampval 0.0 : sampled as a waveform.\n        MODE 2: src can be anything, whole src is transposed for output events..\n                (In mode 2, very int source may take very long time to finish).\nFO      Output file.\nCHANS   Number of channels in output file.\nDUR     (Max) duration of output file.\nATT*    Rise time of events (Mode 1 only).\nDEC*    Decay time of events (Mode 1 only).\nPLO*    Bottom of pitch range (MIDI).\nPHI*    Top of pitch range (MIDI).\nPSTART  Initial pitch (MIDI).\nSSTART  Initial spatial position (numbering chans 1 - N) (ignored if mono output).\nSTEP*   Maximum pitch step between events.\nSSTEP*  Max spatial step between events (fraction of distance between channels).\nTICK*   (Average) Time between events.\nSEED    Seed (initialises random vals. Gives reproducible random sequence).\nARANGE* Max loudness step between events, in dB (default = min = 0: max = 96dB).\nMINAMP* Min loudness (Range  >0 to 96dB). default = 0 = NO minimum.\n        (Only comes into play if \"ARANGE\" is > 0).\n        (If min > 0: if amp falls to -min dB, levels 'bounce' off the min value).\n        (If min = 0: no min set, & if level falls to -96dB, sounds stream halts).\n(Mode 1 only)\nASLOPE* attack slope: < 1 rise fast then slows  : > 1 rise slow then faster.\nDSLOPE* decay slope:  < 1 fall slow then faster : > 1 fall fast then slows.\n        Slope ranges are 0.1 to 10.\n\n-l      loudspeakers arrayed in a line. (Default: arrayed in a \"circle\").\n\nAll items marked with \"*\" can vary though time.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "caltrain": {
+   "banner": "USAGE:\ncaltrain caltrain inanalfile outanalfile blurfact blurabov [-llocut]\n\nBLURFACT Time over which upper part of spectrum is blurred.\nBLURABOV frequency above which spectrum is blurred.\nLOCUT    bass cutoff frequency (defalut: no bass cutoff).\n\nGenerates version of source with upper spectral channels time-blurred.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "cantor": {
+   "banner": "USAGE:\ncantor set infile outfile 1-2 holesize holedig depth-trig splicelen maxdur [-e]\ncantor set infile outfile 3   holelev  holedig layercnt layerdec maxdur\n\nGradually cut hole in central 3rd of input sound.\nCut holes in central 3rd of the remaining segments, and so on.\nOutput is a sequence of sounds with more and more holes cut.\nMode 3 uses superimposed vibrati envelopes\n\nMODES 1 and 2\n\nHOLESIZE   MODE 1: Percentage of current segment-time taken up by hole.\n           Size of hole depends on size of segment being cut.\n           MODE 2: (Fixed) Duration of holes.\nHOLEDIG    Depth of each cut as hole is gradually created (>0-1).\nDEPTH-TRIG Level-Depth of hole triggering next hole-cutting.\nSPLICELEN  Splicelength in mS.\nMAXDUR     Maximum total duration of all the output sound.\n-e         Extend sound beyond splicelen limits.\n\nMODES 3\n\nHOLELEV    Level of signal at base of holes.\nHOLEDIG    How many repets before full-depth reached.\nLAYERCNT   Number of vibrato layers used.\nLAYERDEC   Depth of next vibrato in relation to previous\nMAXDUR     Maximum total duration of all the output sound.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "cascade": {
+   "banner": "USAGE: cascade cascade 1-5  inf outf clipsize  echos clipmax [-eechosmax] \nOR:    cascade cascade 6-10 inf outf cuts echos [-eechosmax]\n\nAND:   [-rrand] [-sseed] [-Nshredno -Cshredcnt -a] [-l] [-n]\n\nSuccessive segments of src are repeat-echoed, and echosets superimposed on src.\n\nModes\n1,6:  N-channels in -> N channels out: Every echo in same N-channels.\n2,7:  Mono (left in output)  ->stereo: Echosets pan to right.\n3,8:  Mono (centre in output)->stereo: Echosets pan alternately to L and R.\n4,9:  Mono (ch1 in output) -> 8chan: Every echo steps R, to next channel.\n5,10: Mono (ch1 in outout) -> 8chan: Echos of 1st echoset step R,next set step L,etc.\n\nCLIPSIZE (Modes 1-5)  Duration of segments to echo. Time-variable.\nor       (Range .005 to 60 secs)\nCUTS     (Modes 6-10) Textfile of (successive) src cut-times, creating segs to echo.\n\nECHOS    Number of echos. Time-variable. (Range 1 to 64)\n\nCLIPMAX  Max duration of clips (time-variable). \"CLIPSIZE\" now read as minimum.\n         Actual clipsize is a random val between \"clipsize\" and \"clipmax\".\n         If \"clipmax\" is set to zero, it is ignored.\n\nECHOSMAX Max number of echos (time-variable). \"ECHOS\" now read as minimum.\n         Actual number of echos is a random val between \"echos\" and \"echosmax\".\n         If \"echosmax\" is set to zero, it is ignored.\n\nRAND     Randomise timesteps between echos in echo-set: Range 0-1, time-variable.\nSEED     With same non-zero value, randomised vals are exactly same on new pass.\n\nSHREDNO  In each echo-stream, cut previous echo into \"shredno\" parts,\n         and random-shuffle parts to make next echo. Range 2-16,time-variable.\nSHREDCNT No of shreds to do, to create next echo element. Range 1-16,time-variable.\n         BOTH \"shredno\" and \"shredcnt\" must be set for shredding to take place.\n-a   Also shred original clip. Only valid if \"shredno\" & \"shredcnt\" set.\n\n-l   Echos decay linearly in level (default, log decay - initial decays faster).\n-n   If output low, normalise it. (high output is normalised by default).\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "cdparams": {
+   "banner": "ERROR: Wrong number of params to cdparams()\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "cdparams_other": {
+   "banner": "ERROR: Wrong number of params to cdparams()\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "cdparse": {
+   "banner": "ERROR: Incorrect call to cdparse()\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "ceracu": {
+   "banner": "USAGE:\nceracu ceracu inf outf cyclcnts mincycdur chans outdur echo echshift [-o] [-l]\n\nRepeat src in several cyclestreams that resynchronise after specified counts.\nOne complete pass is a \"resync-cycle\". e.g. for 10 12 15\nSource repeat 10,12 and 15 times before cyclestreams resynchronise ....\nIF source sound is \"A\", cyclestreams would be ....\nA     A     A     A     A     A     A     A     A     A     A (10 times)\nA    A    A    A    A    A    A    A    A    A    A    A    A (12 times)\nA   A   A   A   A   A   A   A   A   A   A   A   A   A   A   A (15 times)\n|--------------------------Resync cycle --------------------|\n|---| = Mincycdur (see below)\n\nCYCLECNTS A list of integers, being\n          the number of repeats in each cyclestream before the streams resync.\nMINCYCDUR Time before the first repeat in the fastest cyclestream.\n          If set to ZERO, assumed to be the duration of the input sound.\nCHANS:    Number of channels in output. (Not ness same as number of cyclestreams)\nOUTDUR    Duration of output. (If set to ZERO, outputs a single resync-cycle).\n          Process always outputs a WHOLE NUMBER of complete resync-cycles,\n          equal to or greater than the specified output duration.\n          If true duration > 1 hour, sound curtailed, unless \"-o\" flag set.\nECHO      Single-echo-delay of entire output, in secs (Set to zero for no echo).\nECHSHIFT  Spatial offset of echo-delay (an integer value). (Ignored if no echo)\n          1 = 1 chan to right; 2 = 2 chans to right; -1 = 1 channel to left; etc\n-o        Override duration restriction, to produce all resync-cycles (CARE!).\n-l        Output channels arranged linearly (default: arranged in a circle).\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "channelx": {
+   "banner": "\nCDP MCTOOLS: CHANNELX V1.6 (c) RWD, CDP 2010\nExtract all channels from m/c file\nusage: channelx [-oBASENAME] infile chan_no [chan_no...]\n  -oBASENAME = base name (with extension) of outfiles (appended *_cN for ch N)\n(NB: Channels of WAVE-EX files are written as standard soundfiles)\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "chanphase": {
+   "banner": "USAGE:\nchanphase chanphase infile outfile channel\n\nInvert phase of one channel of an input sound.\n\nCHANNEL  Channel to invert.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "chirikov": {
+   "banner": "USAGE:\nchirikov chirikov 1-2 outfile dur frq damping srate dovesplice\nchirikov chirikov 3-4 outfile dur frq damping pmin pmax timestep timerand\n\n\nMODE 1 Synthesize potentially chaotic Chirikov Standard map.\nMODE 2 Synthesize potentially chaotic Circle map.\nMODE 3 Create time MIDIpitch breakpoint file from Chirikov Standard map.\nMODE 4 Create time MIDIpitch breakpoint file from Circle map.\n\nIn modes 3 and 4, soundwave is magnified so each samplestep (at 44.1KHz)\nbecomes one MIDIpitch value at each \"timestep\".\n\nDUR        Duration of synthesized sound, or textfile output.\nFRQ        (Possibly time-varying) driving frequency of output.\nDAMPING    (Possibly time-varying) damping of forced oscillation.\nSRATE      Sample rate of synthesized sound.\nDOVESPLICE Length of splice of start and end of output sound (mS).\nPMIN,PMAX  Bottom and Top of MIDI pitch range.\nTIMESTEP   Timestep between values in output brkpnt file.\nTIMERAND   Randomisation of times in output brkpnt file.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "chorder": {
+   "banner": "insufficient arguments.\n\nCDP MCTOOLS: CHORDER V1.2 (c) RWD,CDP 2009,2010\nReorder soundfile channels.\nUsage:  chorder infile outfile orderstring\n  orderstring = any combination of characters a-z inclusive.\n  Infile channels are mapped in order as a=1,b=2...z=26\n  (For example: channels in a 4-channel file are represented by the\n    characters abcd; any other character is an error).\n  Characters must be lower case, and may be used more than once.\n  Duplicate characters duplicate the corresponding input channel.\n  The zero character (0) may be used to set a silent channel.\n  A maximum of 26 channels is supported for both input and output.\n  NB: infile (WAVEX) speaker positions are discarded.\n  The .amb extension is supported for the outfile.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "chxformat": {
+   "banner": "CDP MCTOOLS: CHXFORMAT v1.0.1beta (c) RWD,CDP 2009\nchange GUID and/or speaker mask in WAVEX header of infile.\nusage: chxformat [-m | [[-t] [-gGUID] [-sMASK]] filename\n -gGUID : change GUID type between PCM and AMB.\n          Plain WAVEX: GUID = 1\n          AMB:         GUID = 2\n -sMASK : change speaker position mask.\n          MASK = 0:  unset channel mask\n             else set to MASK\n          MASK may be given in decimal or hex (prefix '0x').\n -m     : (not in combination with other options)\n NOTE: speaker positions are only supported for WAVEX PCM files.\n       If GUID is set to 2, the -s option should not be used. Any existing\n       speaker positions will be set to zero.\n Type chxformat -m to see list of WAVEX mask values.\n -t     : Test only: do not modify file.\n  If only infile given, program prints current GUID type and speaker mask.\n  In test mode, program checks file, prints current channel mask as binary,\n   and new mask in binary, if -s option set.\n  Otherwise: program modifies infile (\"destructively\") - use with care!\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "clicknew": {
+   "banner": "USAGE: clicknew clicks outfile clicktimes_datafile srate\n\n      make clicktrack using times listed in textfile.\n      LEGAL SRATES are 16000, 22050, 32000, 44100, 88200, 48000, 88200 and 96000\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "clip": {
+   "banner": "USAGE:\nclip clip mode infile outfile params\n\nMode 1: Clip signal at specified level.\nMode 2: Clip half-waveforms at specified fraction.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "clip_clip_2"
+   ]
+  },
+  "columns": {
+   "banner": "\t    ***************************************************\n\t    *           COMPOSERS DESKTOP PROJECT             *\n\t                   COLUMNS $Revision: 1.8 $\n\t    *    Manipulate or Generate columns of numbers    *\n\t    *                by TREVOR WISHART                *\n\t    ***************************************************\n\nUSAGE: columns infile [outfile] -flag[@] [{threshold|}threshold] [--cCOLCNT]\n\n     { = less than:     } = greater than      THRESHOLD is numeric value.\n     threshold can only be used with R,a,m,d,P,c.\n     and specified operation then applies ONLY to vals > OR < threshold value.\n\n     If multicolumn data is being processed\n     COLCNT is the column of the input data to which process is applied.\n     Not all processes work with multicolumn data.\nFOR MORE INFORMATION:\n       columns -f   to see all available flags.\n       columns -g   for generative operations.\n       columns -l   for list manipulation and editing.\n       columns -m   for mathematical operations.\n       columns -M   for musical operations.\n       columns -R   for random operations.\nALSO\ncolumns inoutfile1 infile2 [infile3....] -J      to juxtapose cols in one file\ncolumns infile1 outfiles -SX   to separate cols to X distinct files.\ncolumns infile1 outfiles -NX   to separate vals to X distinct files, in blocks.\ncolumns infile1 outfiles -NrX  to separate vals to X distinct files, in rotation\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "combine": {
+   "banner": "CDP Release 7.1 2016\n\nCOMBINATION OF SPECTRAL FILES\n\nUSAGE: combine NAME (mode) infile (infile2...) outfile parameters: \n\nwhere NAME can be any one of\n\nmake    make2    sum    diff    interleave    max    mean    cross\n\nType 'combine make' for more info on combine make..ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "combine_cross",
+    "combine_diff",
+    "combine_interleave",
+    "combine_max",
+    "combine_mean_1",
+    "combine_mean_3",
+    "combine_sum"
+   ]
+  },
+  "constrict": {
+   "banner": "USAGE:\nconstrict constrict infile outfile constriction\n\nShorten duration of any zero-levels sections in sound.\n\nCONSTRICTION is the percentage deletion of zero-level areas.\n  Values 0 - 100 shorten zero-sections by that percentage.\n  Values > 100 (i.e. shrinking silence by more than 100%)\n  cause sound on either side of silence to be overlapped\n  by \"constriction - 100.0\".\n  Max value 200.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "convert_to_midi": {
+   "banner": "Converts frqequency-brkpnt and peakdata textfiles to a standard midi data file.\n\nUSAGE:\nconvert_to_midi  frqbrkpnt  peakvals  datalen  staccato  outfilename  system\n\nFRQBRKPNT   File of time-frq pairs for note starts and ends.\nPEAKVALS    Levels of each note (Range 0-1).\nDATALEN     Number of peaks (no. of vals in 'frqbrkpnt' should be datalen * 4)\nSTACCATO    Force staccato output.\nOUTFILENAME (File extension will be forced to '.mid' or '.rmi')\nSYSTEM      0 gives Standard Midi File, with extension '.mid'\n            1 gives PC Midi File, with extension '.rmi'\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "copysfx": {
+   "banner": "\n\nCDP MCTOOLS: COPYSFX  (c) RWD,CDP Revision: 2.1.1 2020 \n\tcopy/convert soundfiles\nusage: copysfx [-d][-h][-sN] [-tN] infile outfile\n-d   : apply TPDF dither to 16bit outfile.\n-s   : force output sample type to type N.\n      Available sample types:\n      1  : 16bit integers (shorts)\n      2  : 32bit integer  (longs)\n      3  : 32bit floating-point\n      4  : 24bit integer 'packed' \n      Default: format of infile.\n-h   : write mimimum header (no extra data).\n       Default: include PEAK data.\n-tN  : write outfile format as type N\nPossible formats:\n0   : standard soundfile (.wav, .aif, .afc, .aifc)\n1   : generic WAVE_EX (no speaker assignments)\n2   : WAVE_EX mono/stereo/quad(LF,RF,LR,RR) - infile nchans must match\n3   : WAVE_EX quad surround (L,C,R,S)       - infile must be quad\n4   : WAVE_EX 5.1 format surround           - infile must be 6-channel\n5   : WAVE_EX Ambisonic B-format (W,X,Y,Z...) - file extension .amb supported \n6   : WAVE_EX 5.0 Surround                  - infile must be 5-channel\n7   : WAVE_EX 7.1 Surround                  - infile must be 8-channel\n8   : WAVE_EX Cube Surround                 - infile must be 8-channel\n9   : WAVE_EX 6.1 Surround  (new in v2.1.0) - infile must be 7-channel\ndefault in all cases: outfile has format of infile\nNB: types 1 to 9 are for WAV format only\nSee also CHXFORMAT: destructively change WAVE_EX GUID and/or speaker mask.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "crumble": {
+   "banner": "USAGE: crumble sound 1 inf outf stt dur1 dur2      params\nOR:    crumble sound 2 inf outf stt dur1 dur2 dur3 params\n\nwhere PARAMS are\norient size rand iscat oscat ostrch pscat seed [-ssplice] [-ttail]\n\nProject a MONO source on all channels of multichan output, then segment it,\nand distribute the segments over smaller and smaller groups of channels.\n\nMode 1 gives 8-channel output  (ochans = 8)\nMode 2 gives 16-channel output (ochans = 16)\n\nSTT     Start time of crumbling.\nDUR1    Duration of section where signal split into 2 images.\nDUR2    Duration of section where signal split into 4 images.\nDUR3    (Mode 2) Duration of section where signal split into 8 images.\nORIENT  Input image first splits onto 2 blocks each of ochans/2 adjacent chans.\n        (1) chan \"ori\" with adjacent clockwise channels,\n        (2) remaining channels.\nSIZE*   (Average) duration of cut segments.\nRAND*   Randomisation of segment size. (Range 0 - 1)\n        Max(1) modifies \"siz\" randomly between siz/2 and (3*siz)/2\nISCAT*  Scattering (in source) of start-time of next segment cut. (Range 0 - 1)\n        Cut-time in source always advances.\n        With no scatter, step to next cut-time = length of previous segment cut.\n        With max \"isct\"(1) step  by random time between 0 and previous-seglen.\nOSCAT*  Scattering (in output) of time-placement of segment used.(Range 0 - 1)\n        Time in output always advances.\n        With no scatter, step to next output-time = length of last segment cut.\n        With max \"osct\"(1) step by random time between >0 and previous-seglen.\nOSTRCH* Stretching of time-placement in output. (Range 1 - 64)\n        Step to next sgement-placement in output, is multiplied by ostr.\n        ostr > 1 should generate silent gaps in the output.\nPSCAT*  Pitch variation of output segments (Semitones).\n        for e.g. psct=3, pitch varies at random between +3 and -3 semitones.\nSEED    Same seed value gives identical output on successive process runs.\nSPLICE  Length of splices which cut the segments (in millseconds).\nTAIL*   Length of any exponential tail on segments (in millseconds).\n\nParameters marked with \"*\" can vary over time (i.e. time in the outfile).\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "crystal": {
+   "banner": "crystal rotate 1-10 fi [fi2 fi3..] fo vdat rota rotb twidth tstep dur plo phi\n        [-ppass -sstop] [-afatt] [-Pfpresc] [-Ffslope] [-Ssslope]\n\nGenerate N snd-events based on position of N vertices of a crystal,\nThen rotate crystal in 3-d space, and generate another group of N events, etc.\nX coord -> time &, if stereo, space-position; Y -> pitch; Z -> brightness..i.e.\nZ-far snds lopass-filtrd mixed to orig; Z-close snds, 8va up, stacked on orig.\n\nFI        One Mono infile, multiply-read (with delay), generating out-events.\n          OR N mono infiles, generating different events for N vertices.\nFO        Output file.\nVDAT      Data file contains\n          (1) Triples, being (initial) X,Y,Z, coords of CRYSTAL VERTICES.\n                 Range > -1 to <1. Xsquared + Ysqrd + Zsqrd < 1 for all vertices.\n          (2) Time-val pairs defining envelope imposed on sound events.\n                 Times start at 0 & increase. Final time = duration of events.\n                 Value range 0 to 1. First and last values must be zero.\nROTA,ROTB Rotate speed in xy_plane, & xz_plane, revs per sec (Range -10.00 to 10.00)\nTWIDTH    Max time between onsets of 1st and last event in any N-events group.\nTSTEP     Time-step between each sampling of all N vertices of rotating-crystal.\nDUR       Total duration of output (must be greater than TSTEP and TWIDTH).\nPLO,PHI   Minimum and Maximum (MIDI) pitch of any event.\nPASS,STOP Pass+stop bands (Hz) for lopass filter.(stopfrq - passfrq >= 50 Hz).\nFATT      Max attenuation produced by filter-stop (dB) Range 0 to -96.\nFPRESC    Gain applied to attenuate source before applying filter (0-1).\nFSLOPE    Slope curve mixing filtered to unfilt snd (depth). (Range 0.10 to 10.00).\nSSLOPE    Slope curve mixing transposed snd to orig (close). (Range 0.10 to 10.00).\n          In both cases Linear slope = 1.0\nFOG       Generic name for output files.\nOUTCNT    Number of rotated-sets to output.\nMODES\n1  Mono output\n2  Stereo output\n3  Two chans of 8-chan output, spaced by single channel (here, chans 1 & 3).\n4,5,6  Ditto, chan-pair steps clockwise,anticlock or randomly btwn groups-of-events.\n7,8,9  Ditto, but pair of chans adjacent (e.g. 1,2 or 5,6).\n10     Stereo output: each set-of-vertices output as a separate soundfile.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "cubicspline": {
+   "banner": "USAGE: cubicspline datafile outdatafile pointcnt srate [-s]\n\nGenerate smoothed curve from input data re spectrum.\n\nDATAFILE     textfile of frq/amp pairs.\nOUTDATAFILE  textfile of smoothed data.\nPOINTCNT     no of analysis points required in handling data.\nSRATE        samplerate of eventual sound output.\n-s           if spectral amp falls to zero before the nyquist,\n             keep zeroed end of spectrum at zero.\n.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "dirsf": {
+   "banner": "Sfsys Version 8.01\nBytes\t\tChannel\tSample\tRate\tSeconds\tfmt Name\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "diskspace": {
+   "banner": "ERROR: Cannot run this process.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "distcut": {
+   "banner": "USAGE:\ndistcut distcut 1 infile generic_outfilename cyclecnt exp [-climit]\nOR:\ndistcut distcut 2 infile generic_outfilename cyclecnt cyclestep exp [-climit]\n\nCut sound into elements with falling envelope.\n\nCYCLECNT  number of wavesets in each outfile.\nCYCLESTEP number of wavesets steps from start of one group to start of next.\n          (In mode 1 : cyclestep = cyclecnt : waveset-groups abutted and disjunct).\nEXP       Envelope Decay shape. 1 linear : >1 more rapid decay : < 1 less rapid.\nLIMIT     Minimum level of output events to accept (value 70 = -70dB).\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "distmark": {
+   "banner": "USAGE:\ndistmark distmark 1 infile outfile marklist unitlen [-ststretch] [-rrand] [-f] [-t]\ndistmark distmark 2 infile outfile marklist unitlen [-ststretch] [-rrand] [-f]\n\nInterpolate between waveset-groups at marked points in MONO soundfile.\nIn Mode 2 interpolate within ALTERNATE marked blocks.\n\nMARKLIST List of times within source at which to find waveset-groups.\nUNITLEN  (approx) size of waveset group to find (mS). Can vary over time.\n         Min UNITLEN < 1/2 of min step between Times in MARKLIST.\nTSTRETCH Timestretch distances between marks, in making output.\nRAND     Randomise duration of interpolated wavesets (Range 0 - 1).\n         Randomisation decreases waveset lengths (heard \"pitch\" higher).\n-f   Flip phase of alternate wavesets.\n-t   Add original (remaining) tail of source sound to output.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "distmore": {
+   "banner": "\nUSAGE: distmore NAME (mode) infile outfile (parameters)\n\nMORE WAVESET DISTORTION PROGRAMS\n\nwhere NAME can be any one of\n\nbright   double   segsbkwd   segszig\n\nType 'distmore bright' for more info on distmore bright.. ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "distort": {
+   "banner": "CDP Release 7.1 2016\n\nUSAGE: distort NAME (mode) infile (infile2) outfile parameters: \n\nwhere NAME can be any one of\n\n    DISTORT OPERATIONS ON A SINGLE SOUND FILE\n\naverage   divide    fractal      multiply  repeat    replim     reverse\ncyclecnt  envel     harmonic     omit      replace    shuffle\ndelete    filter    interpolate  pitch     reform     telescope\noverload  pulsed    repeat2\n    DISTORT OPERATIONS ON TWO SOUND FILES\n\ninteract\n\nType 'distort reform' for more info on reform option.. ETC.\n\nDISTORT PROCESSES WORK ONLY ON mono FILES.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "distort_average",
+    "distort_delete_2",
+    "distort_divide",
+    "distort_fractal",
+    "distort_interact_1",
+    "distort_interact_2",
+    "distort_interpolate",
+    "distort_multiply",
+    "distort_omit",
+    "distort_reform_2",
+    "distort_reform_4",
+    "distort_reform_6",
+    "distort_reform_7",
+    "distort_repeat",
+    "distort_replace"
+   ]
+  },
+  "distortt": {
+   "banner": "USAGE:\ndistortt repeat infile outfile gpcnt rpt offset dur [-t]\n\nSkip initial 'offset', then each group of 'gpcnt' wavesets repeats 'rpt' times,\nuntil duration 'dur' is exceeded (or waveset data is exhausted).\n\nGPCNT  Number of wavesets in the group to be repeated.\nRPT    Number of repetitions of each waveset group.\nOFFSET Time, in mS, to skip, before starting waveset process.\n       (sound in offset is suffixed before the output snd).\nDUR    Required duration of output.\n-t     Telescope: skip wavesets so output is similar size to input.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "distrep": {
+   "banner": "USAGE:\ndistrep distrep mode infile outfile multiplier ccyleccnt\n       [-kskipcycles] [-ssplicelen]\n\nMode 1: TIMESTRETCH FILE BY REPEATING 'WAVECYCLES'\nMode 2: REPEAT 'WAVECYCLES' BUT THEN CYCLES SKIP TO AVOID TIMESTRETCH\n\nUses brief splices between repeated blocks.\n\nMULTIPLIER: (integer) is no. of times each wavecycle(grp) repeats.\nCYCLECNT:   (integer) is no. wavecycles in repeated groups.\nSKIPCYCLES: number of cycles to ignore (skip over) at file start.\nSPLICELEN:  mS splices of repeated blocks (default 15).\n\nmultiplier and cyclecnt may vary over time.\n\nWorks on MONO files only\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "distshift": {
+   "banner": "USAGE:\ndistshift distshift 1 infile outfile grpcnt shift\ndistshift distshift 2 infile outfile grpcnt\n\nMode 1: Shift alternate (groups of) half-wavecycles forward in time\n        (wrapping back around zero-time if pushed beyond sound end).\nMode 2: Swap alternate half-wavecycle(group)s.\n\nGRPCNT Size of elements to operate on.\n             1 = single half-wavesets\n             2 = 1 waveset + single half-waveset.\n             3 = 2 wavesets + single half-waveset.\n             etc.\nSHIFT  Move alternate groups forward by \"shift\" waveset(group)s.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "dshift": {
+   "banner": "CDP Release 5 2005\nUSAGE:\tdshift [-dN] infile outfile [distance between speakers]\n\nCalculates Doppler shift for a source moving between two speakers\nthat are 10m apart and a listener that is at rest,\n5m from the line between them.\ninfile is the pan breakpoint file, as used with modify:pan\noutfile is breakpoint file of semitone shifts\nto give to modify:speed, Mode 2(semitones).\n(NB: modify:pan range: -1 = full left, 1 = full right)\n-d is a flag setting the time it takes a sound to change direction.\nN is the time in milliseconds. Default: 10ms\nThis is useful in order to avoid clicks.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "dvdwind": {
+   "banner": "USAGE: dvdwind dvdwind infile outfile contraction clipsize\n\nShorten a sound by read, skip, read, skip procedure. \n\nCONTRACTION  Time-contraction of the input (> 1).\nCLIPSIZE     Duration of each retained clip (mS).\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "envcut": {
+   "banner": "USAGE:\nenvcut envcut 1 infile generic_outfilename attack envlen exp [-climit]\nOR:\nenvcut envcut 2 infile generic_outfilename attack envlen step exp [-climit]\n\nCut sound into elements with falling envelope.\n\nENVLEN    Duration of each outfile.\nSTEP      Timestep between start of each envelope cut.\n          (In mode 1 : envlen = step : cut-segments abutted and disjunct).\nATTACK    Envelope attack duration (mS) : (must be less than half envelope duration).\nEXP       Envelope Decay shape. 1 linear : >1 more rapid decay : < 1 less rapid.\nLIMIT     Minimum level of output events to accept (value 70 = -70dB).\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "envel": {
+   "banner": "CDP Release 7.1 2016\n\nUSAGE: envel NAME (mode) (infile) (infile2) outfile parameters:\n\nwhere NAME can be any one of\n\n    ENVELOPE GENERATION OPERATIONS\ncreate      cyclic\n\n    ENVELOPE OPERATION ON A SNDFILE\nextract     impose      replace      warp\ntremolo     swell       attack       pluck\ndovetail    curtail     scaled       timegrid\n\n    ENVELOPE OPERATION ON AN ENVELOPE-FILE\nreshape\nenvtobrk    envtodb\n\n    ENVELOPE OPERATION ON A BRKPNT (TEXT) FILE\n\nreplot\ndbtogain    gaintodb\nbrktoenv    dbtoenv\n\nType 'envel warp' for more info on envel warp.. ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "envel_replace_1"
+   ]
+  },
+  "envnu": {
+   "banner": "\nNEW ENVELOPING OPERATIONS\n\nUSAGE: envnu NAME (mode) infile outfile parameters: \n\nwhere NAME can be any one of\n\nexpdecay  peakchop\nType 'envnu expdecay' for more info on envnu expdecay..ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "envspeak": {
+   "banner": "USAGE:\nenvspeak envspeak 1,5,6 infile outfile wsize splice offset repet rand\nenvspeak envspeak 2     infile outfile wsize splice offset\nenvspeak envspeak 3-4   infile outfile wsize splice offset attencnt dbatten\nenvspeak envspeak 7     infile outfile wsize splice offset div rand which [-z]\nenvspeak envspeak 8-9   infile outfile wsize splice offset repet rand ratio\nenvspeak envspeak 10    infile outfile wsize splice\nenvspeak envspeak 11    infile outfile wsize splice seed\nenvspeak envspeak 12    infile outfile wsize splice Nwise\nenvspeak envspeak 13-24 AS ABOVE BUT replace \"wsize\" by \"cutsfile\"\nenvspeak envspeak 25    infile outfile timesfile\n        Uses data in \"timesfile\" to remove silent gaps at indicated times.\n\nProcess speech \"syllables\".\n\nMode 1:    Repeat each syllables, \"repet\" times.\nMode 2:    Reverse-repeat each syllable.\nModes 3/4: (3) Attenuate N in N+1 syllabs    (4) Attenuate all except.\nModes 5/6: (5) Repeat each syllab N times, shrinking from end  (6)  from start.\nMode 7:    Divide each syllable into N parts, and repeat one of these N times.\nMode 8:    For each syllab, Repeat, shortening each repetition, lopping-off end.\nMode 9:    ditto, lopping-off start.\nMode 10:   Extract all syllables.\nMode 11:   Randomly reorder syllables.\nMode 12:   Reverse order syllabs N-wise (e.g.for N=3 abc|def|ghi -> cba|fed|ihj).\n\nWSIZE     Size of envelope-search window in mS (default 50).\nCUTSFILE  List of times (apart from 0 & end) where infile cut to create syllables.\nSPLICE    Splice length in mS (default 15) \nOFFSET    Number of initial peaks to output unchanged.\nREPET     Number of repetitions of each syllable (Range 2 upwards).\nATTENCNT  Groupsize (N) of syllabs ...(Mode 3) to attenuate (4) to NOT attenuate.\n          N means N in N+1 : so \"1\" means 1 in 2, \"3\" means 3 in 4 etc \nDBATTEN   Reduce attenuated segments by ATTEN dB: Modes 3-4. (Range -96 to < 0)\nDIV       Keep 1/DIVth part of syllable, to repeat DIV times.\nWHICH     Which syllable-fraction to keep (Range 1 to DIV)\n-z        Repeated elements do NOT grow in size (machine-like quality).\nRATIO     length of repeated elements reduces by RATIO : Range (> 0.0 to 1)\nRAND      Randomisation of lengths of repeated units.\nNWISE     Reverse order in groups of N.\nSEED      Intialisation for random order permutation (Modes 11 only).\n          If Seed > 0, using same seed again, gives IDENTICAL random output.\n\nREPET, ATTENCNT, ATTEN and WHICH may vary over time.\n",
+   "modes_guessed": [
+    "abc",
+    "def",
+    "ghi",
+    "cba",
+    "fed"
+   ],
+   "mode_banners": {
+    "abc": "Unknown option 'abc'\n",
+    "def": "Unknown option 'def'\n",
+    "ghi": "Unknown option 'ghi'\n",
+    "cba": "Unknown option 'cba'\n",
+    "fed": "Unknown option 'fed'\n"
+   },
+   "soundthread_keys": [
+    "envspeak_envspeak_1",
+    "envspeak_envspeak_2",
+    "envspeak_envspeak_5",
+    "envspeak_envspeak_6"
+   ]
+  },
+  "extend": {
+   "banner": "CDP Release 7.1 2016\n\nUSAGE: extend NAME (mode) infile outfile parameters: \n\nwhere NAME can be any one of\n\nzigzag loop iterate freeze scramble drunk sequence sequence2 baktobak doublets\nrepetitions\n\nType 'extend zigzag' for more info on zigzag option.. ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "extend_baktobak",
+    "extend_doublets",
+    "extend_drunk_1",
+    "extend_drunk_2",
+    "extend_loop_1",
+    "extend_scramble_1",
+    "extend_zigzag_1"
+   ]
+  },
+  "features": {
+   "banner": "Use an anlysis file to find the MOST PROMINENT FEATURES in a sound source.\n\nMode 1: Create data to cut best example of each prominent feature from sound source.\n\nMode 2: Create data to cut out all examples of 1 (or more) prominent feature(s).\n        Creates 1 outfile per output feature.\n\nMode 3: Create data-files to envelope the source so only 1 feature remains.\n        Creates 1 envelope file per extracted feature.\n\nMode 4: Output peak data for 1 or more windows at a specified time in file.\n\nMode 5: Output statistics showing most prominent peak frqs in time-slot selected.\n\nMode 6: Output display spectrum + peaks, to check if peaks credible.\n\nType 'features get' for more information.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "filter": {
+   "banner": "CDP Release 7.1 2016\nUSAGE: filter NAME (mode) infile outfile (datafile) parameters\n\nwhere NAME can be any one of\n\nfixed      lohi         variable\nbank       bankfrqs     userbank      varibank      varibank2\niterated   sweeping     phasing\t   vfilters\n\nType 'filter  userbank'  for more info on filter userbank... ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "filter_bank_1",
+    "filter_bank_2",
+    "filter_bank_5",
+    "filter_bank_6",
+    "filter_lohi_1"
+   ]
+  },
+  "filtrage": {
+   "banner": "USAGE:\nfiltrage filtrage 1 outfiltdata dur cnt min max distrib rand ampmin amprand\n           ampdistrib [-sseed]\nOR\nfiltrage filtrage 2 outfiltdata dur cnt min max distrib rand ampmin amprand\n           ampdistrib timestep timerand [-sseed]\n\nGenerate randomised varibank filter files.\nMode 1 generates a fixed filter: Mode 2 generates a time-varying filter.\n\nDUR        Duration spanned by output filter file.\nCNT        Number of parallel filters.\nMIN        Minimum MIDI value for filters.\nMAX        Maximum MIDI value for filters.\nDISTRIB    Distribution of pitch values. 1 = pitch-linear.\n           > 1 squeezed towards low pitches : < 1, squeezed towards high pitches.\nRAND       Randomisation of filter pitches.\nAMPMIN     Minimum filter amplitude (max = 1.0)\nAMPRAND    Randomisation of filter amplitudes.\nAMPDISTRIB Distribution of filter amplitudes.\n           1  Increasing with pitch :  -1  Decreasing with pitch :  0  Random.\n           Intermediate values give decreasing degrees of randomisation.\nTIMESTEP   Timestep between each specified set of filter-pitches.\nTIMERAND   Randomisation of timestep.\nSEED       Non-zero values fix the randomisation so that, on repeating the process,\n           identical random values are reproduced.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "fixgobo": {
+   "banner": "ERROR: Bad call to fixgobo.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "flatten": {
+   "banner": "USAGE:\nflatten flatten infile outfile elementsize shoulder [-ttail]\n\nEqualise level of sound elements in mono src.\n\nELEMENTSIZE Approx size of elements (e.g. syllables) in src.\n            (Range 0.001 to 100).\nSHOULDER    Risetime in segment to changed level (mS).\n            (Range 20 to ELEMENTSIZE/2).\n            Will never be longer than distance from seg edge to peak.\nTAIL        Portion of end of sound to be treated as a whole segment.\n            (Range 0 to < duration).\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "flutter": {
+   "banner": "USAGE: flutter flutter inf outf chanseq freq depth gain [-r]\n\nDistribute a loudness tremulation around a multichannel output\nCHANSEQ  is a textfile containing a list of \"chansets\".\n         A \"chanset\" is a list of any of the channels in the input file.\n         Level of every chan in 1st chanset varies for 1 cycle of flutter frq,\n                 then level of every chan in 2nd chanset varies for next cycle, etc.\n         around the sequence of chansets.\n         When end of chansets list is reached, begins again at start.\n         (but see '-r' flag).\nFREQ     Frequency (in Hz) of the loudness variation (tremulation).\nDEPTH    Depth (0-16) of the loudness variation.\n         As values approach 1, loudness troughs approach zero.\n         Values > 1 produce narrower peaks in the tremulation.\nGAIN     Overall gain (0-1) of the loudness variation.\n\nBoth Freq and Depth may vary over time.\n\n-r       Randomisation of chanset order.\n         Once all the chansets have been used,\n         their order is randomly permuted before they are used again,\n         and once all have been used a 2nd time,\n         their order is permuted again, and so on.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "fmdcode": {
+   "banner": "\nCDP MCTOOLS: FMDCODE v 1.0beta: RWD,CDP 2009\nPlain multi-layout decoder for .amb files.\nRegular layouts use standard Furse-Malham in-phase coefficients.\n5.x surround coefficients (maxre) from David Moore.\nusage: fmdcode [-x][-w] infile outfile layout\n       -w    :   write plain WAVE outfile format\n                (.wav default - use generic wavex format).\n       -x    : write std WAVEX speaker positions to header\n               (applies to compatible layouts only; requires .wav extension).\n   layout    : one of the choices below.\n       Output channel order is anticlockwise from centre front\n            except where indicated.\n   Layouts indicated with * are compatible with WAVEX speaker position order. \n   Available speaker layouts:\n   1    :  *  mono (= W signal only)\n   2    :  *  stereo (quasi mid/side, = W +- Y)\n   3    :     square\n   4    :  *  quad FL,FR,RL,RR order\n   5    :     pentagon\n   6    :  *  5.0 surround (WAVEX order)\n   7    :  *  5.1 surround (WAVEX order, silent LFE)\n   8    :     hexagon\n   9    :     octagon 1 (front pair, 45deg)\n   10   :     octagon 2 (front centre speaker)\n   11   :     cube (as 3, low-high interleaved. Csound-compatible.)\n   12   :  *  cube (as 4, low quad followed by high quad).\n NOTE: no shelf filters or NF compensation used.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "focus": {
+   "banner": "CDP Release 7.1 2016\n\nFOCUSING OPERATIONS ON A SPECTRAL FILE\n\nUSAGE: focus NAME (mode) infile outfile parameters: \n\nwhere NAME can be any one of\n\naccu    exag    focus    fold    freeze    hold     step\n\nType 'focus accu' for more info on focus accu..ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "focus_accu",
+    "focus_exag",
+    "focus_focus",
+    "focus_fold",
+    "focus_step"
+   ]
+  },
+  "fofex": {
+   "banner": "\nOPERATIONS USING PITCH-SYNCHRONOUS GRAINS (FOFS) TO (RE)CONSTRUCT SOUNDFILES\n\nUSAGE: fofex NAME (mode) infile outfile parameters: \n\nwhere NAME can be any one of\n\nextract construct\nType 'fofex extract' for more info on fofex extract..ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "formants": {
+   "banner": "CDP Release 7.1 2016\n\nEXTRACTION AND USE OF FORMANTS FROM SPECTRAL FILES\n\nUSAGE: formants NAME (mode) infile (infile2) outfile parameters: \n\nwhere NAME can be any one of\n\nget     put     vocode     see      getsee\n\nType 'formants get' for more info on formants get..ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "formants_vocode"
+   ]
+  },
+  "fractal": {
+   "banner": "USAGE: fractal NAME (mode) infile outfile parameters\n\nwhere NAME can be any one of\n\nwave  spectrum\n\nType 'fractal wave'  for more info on fractal wave option... ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "fracture": {
+   "banner": "USAGE:fracture fracture 1\ninfil outfil etab chns strms pulse edpth stkint [-hseed] [-mmin] [-imax] [-rrrnd]\n[-pprnd] [-ddisp] [-vlrnd] [-eernd] [-srnd] [-ttrnd] [-y] [-l]\n\nOR\n\nUSAGE:fracture fracture 2\ninfil outfil etab chns strms pulse edpth stkint cntre frnt depth rolloff [-hseed]\n[-mmin] [-imax] [-rrrnd] [-pprnd] [-ddisp] [-vlrnd] [-eernd] [-srnd] [-ttrnd]\n[-aatten] [-zzpoint] [-ccontract] [] [-llopnt] [-ffmix] [-jffrq] [-kup] [-wdn] [-y]\n\nDISPERSE MONO SIGNAL INTO FRAGMENTS SPREAD OVER N-CHANNEL SPACE.\n\nMode 1: Output is N-channel dispersal in N-channel space.\nMode 2: Output is stereo dispersal (posibly moving) in surround space.\n\nPRESS ANY KEY TO CONTINUE\nETAB     Textfile: Each line is a TIME followed by 7 PAIRS of envelope-data.\n         envelope-data represented in form \"etime lev\"\n         where \"etime\" is relative time WITHIN envelope (values between 0 & 1)\n         and \"lev\" is level at etime (values 0-1). In each envelope-data set\n         \"lev\" must start and end at zero and rise to a max value of 1.0\nCHNS     Number of channels in output file (2-16). (Mode 2, multiples of 4 only).\nSTRMS    No. of spatial positions (streams) for resulting fragments ( >=4 ).\nPULSE    Average gap btwn 1 set-of-frags (each in different strm) & next set.\n         Disp = 0: all frags in sync at each (possibly randomised) pulse.\n         Disp > 0: frags time-scattered around pulse centre. (see below).\nEDPTH    Envelope depth. 1: env cuts down to zero, 0.75: cuts 3/4 way to zero,\n(+STACK) 0.1: cuts only 1/10 way to zero,   0: env has no effect on source.\n         Once depth exceeds 1, fragments begin to stack (but NOT before)\n         (i.e. transposed copies added to fragment, synced at envelope peak).\n         Depth 2 -> Stack 1: 1st transposed element added at full level.\n         Depth 1.5 -> Stack 06.5: 1st transpd element added at 1/2 (0.5) level.\n         Depth 2.5 -> Stack 1.5: 1st added at full level, 2nd at 1/2 level etc\nSTKINT   Interval of (upward) transposition in stack, in semitones (0-12).\n         Default(0) is read as octave(12). NO ZEROS in stack brkpoint files.\nSEED     If NOT zero, repeating process with same seed gives identical output.\nMIN/MAX  Minimum/maximum duration of fragments. If zero, no minimum/maximum.\nRRND     Randomisation of read-time in src. Range 0-1.\nPRND     Randomisation of pulse-time in output. Range 0-1.\n         In both cases, Max(1) scatters in range +- half-duration of pulse.\nDISP     Dispersal (scatter) of output timings between different streams.\n         If pulse(+prnd) gives time \"P\", then for disp 0: all frags are at \"P\"\n         for disp 1: frags scattered within max range (+- half-dur of pulse).\nLRND     Randomisation of levels (volume) of fragments. Range  0 - 1.\n         0: All frags full level.  1: Frags at random levels between 0 & full.\nERND     Randomisation of envelope used. A time range (trange).\n         Event at \"now\" reads etable at randtime btwn \"now\" & now-minus-trange.\nSRND     Randomisation of stack. Range 0 - 1 (NB stack value (S) = DEPTH-1)\n         0: Stack value is S.   1: Stack val selected at random between 0 & S.\nTRND     Random tranpose of fragments. Range 0-1200 cents (1 octave upwards).\n         Event pitch randomised between pitch+trnd and pitch-trnd.\n-z       Permit stacking of very short events. Default = forbid, prevent clipping.\n-l       For more than 2 output chans, lspkrs assumed to encircle listeners,\n         with a single lspkr at centre front.\n         Setting -l flag assumes linear array, with leftmost+rightmost lspkrs.\n\nNB: STKINT, MAX, RRND, LRND, SRND and TRND are INACTIVE if depth < 1.\nAll these params can timevary EXCEPT \"chns\", \"strms\" & \"seed\".\n\nPRESS KEY \"2\" TO SEE EXTRA OPTIONS AVAILABLE IN MODE 2\nOR ANY OTHER KEY TO FINISH.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "frame": {
+   "banner": "USAGE:\nframe shift 1 infile outfile snake rotation [-ssmear]\nframe shift 2 infile outfile snake rotation1 rotation2 [-ssmear]\nframe shift 3 infile outfile reorient\nframe shift 4 infile outfile mirrorplane\nframe shift 5 infile outfile [-b]\nframe shift 6 infile outfile swapA swapB\nframe shift 7 infile outfile chaninfo gain\nframe shift 8 infile outfile [-b]\n\nModes 1 & 2 Rotate the entire frame of a multichannel file.\nMode 3 Changes the channel assignment of a multichannel file.\nMode 4 Mirrors the channel output around specified mirrorplane.\nMode 5 Converts between ring-numbered & bilaterally numbered outchans.\nMode 6 Swaps any pair of channels (swapA and swapB).\nMode 7 Allows any channel, or set of channels, to be enveloped,\n       independently of the other channels.\nMode 8 Converts between ring-numbered & BEAST bilateral numbering.\n\nROTATION    rotation-rate in cycles (complete frame-rotations) per sec.\n            Mode 2 (only with files with even number of input channels)\n            rotates odd & even chans independently; has 2 rotation vals.\n            Negative values produce anticlockwise rotation.\n            Rotation rate can vary through time. Range -500 to +500.\nSMEAR       Extent to which channel-signals bleed onto adjacent chans.\n            (range 0 to 0.5 : default 0)\nSNAKE       In clockwise rotation,in (e.g.) 8 chans, input chan-1 follows\n            the route 1->2->3->4->5->6->7->8->1 etc. around lspkrs.\n            Other input chans form a \"snake\" following chan-1 round.\n            To produce rotation (default) set '\"snake\" to ZERO.\n            HOWEVER, channels might snake along a different route,\n            & route (which could vary over time) can be specified\n            in a data file of \"time : snake-list\" values\n            e.g. might specify route at time zero ,for 8-chan file\n            \"0.0 8 6 5 2 7 3 4 1\" & change route at a later time\n            e.g. \"1.378245 4 1 5 2 6 7 8 3\"\n            1st time-val in data must be zero. Times must increase.\n            IN MODE 2, odd & even chans rotate independently.\n            1->3->5->7->1 etc and 2->4->6->8->2 etc\n            Snake data directs motion round a different route.\n            e.g.  the snake \"8 6 5 2 7 3 4 1\" above\n            produces one snake around the odd entries\n            i.e. 8 -> 5 -> 7 -> 4 -> 8 etc\n            and a 2nd snake around the even entries\n            i.e. 6 -> 2 -> 3 -> 1 -> 6 etc\nREORIENT    List of ALL input chans, in new positions they will have.\n            e.g. for 4-chans: Data 4 1 2 3\n            sends Ch1 to 4, Ch2 -> 1, Ch3 -> 2 and Ch4 -> 3\nMIRRORPLANE Line around which frame is (symmetrically) mirrored.\n            Values can be any (integer) outchannel number OR\n            any half-way position between outchans e.g. 1.5, 2.5\n            With N chans, 'N.5' lies between Nth & 1st chan.\n-b (Mode 5) Convert bilateral to ring (Default, ring to bilateral).\n            Numbering of outchans can be ring, or bilateral.\n            e.g. for 7 outchans ...\n                 RING                   BILATERAL\n                   1                        1\n                7     2                  2     3\n               6       3                4       5\n                5     4                  6     7\n            All multichan pan programs assume RING numbering.\n            Use this mode to convert out of and into bilateral format.\n-b (Mode 8) Convert BEAST bilateral to ring (Default, ring to BEAST).\n            BEAST bilateral numbering for 8 outchans ...\n                 RING                     BEAST\n                   1                        7\n                8     2                  1     2\n               7       3                3       4\n                6     4                  5     6\n                   5                        8\nSWAPA,SWAPB The 2 channels that are to be swapped.\nCHANINFO    A single channel number, or a list of channels in a file.\nGAIN        Gain to apply to enveloped channels (can vary over ti",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "freeze": {
+   "banner": "FREEZE A SEGMENT OF A SOUND BY ITERATION IN A FLUID MANNER\n\nUSAGE: freeze freeze 1 infil outfil outduration\n     delay rand pscat ampcut start end adjust [-sseed]\nOR:    freeze freeze 2 infil outfil repetitions\n     delay rand pscat ampcut start end adjust [-sseed]\ndelay   (average) delay between iterations: <= length of frozen segement.\nrand    delaytime-randomisation: Range 0 - 1\npscat   max of random pitchshift of each iter: Range 0 - 12 semitones\n        e.g.  2.5 =  2.5 semitones up or down.\nampcut  max of random amp-reduction on each iter: Range 0-1\nstart   Time where frozen segment begins in original sound.\nend     Time where frozen segment ends in original sound.\nadjust  Adjust gain of frozen segment.\nseed    the same seed-number will produce identical output on rerun,\n        (Default: (0) random sequence is different every time).\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "frfractal": {
+   "banner": "USAGE:\nfractal fractal infile outfile layers [-ssplicelen]\n\nCreate fractalised version of sound.\n\nSPLICELEN Length of splices in mS.\n\nLAYERS    Number of fractal layers in the output sound.\n          Note that the maximum number of layers possible\n          depends on the duration of the input sound\n          and the size of splices used\n          and cannot be easily predicted in advance\n\nWARNINGS\n(1) Specifying many layers will produce very long output sounds.\n(2) Don't use very long input sounds, or you will run out of memory,\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "fturanal": {
+   "banner": "\nUSAGE: fturanal NAME (mode) infile outfile (parameters)\n\nAUTOMATIC FEATURE EXTRACTION\n\nwhere NAME can be any one of\nanal   synth\nType 'fturanal anal' for more info on anal option.. ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "gate": {
+   "banner": "USAGE:\ngate gate mode infile outfile gatelevel\n\nRemove low-level sound from signal.\n\nGATELEVEL  level below which sound is to be removed (Range 0 to -96 dB).\n\nMode 1: low level sound replaced by silence.\n\nMode 2: low level sound edited out (output is shorter)\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "get_partials": {
+   "banner": "USAGE: get_partials harmonic 1-2 inanalfile outfile fundamental threshold [-v]\nOR:    get_partials harmonic 3-4 inanalfile outfile fundamental threshold time [-v]\n\nExtract relative amplitudes of partials in a pitched source.\n\nMODE 1: Convert single analysis window to FRQ and amplitude list\nMODE 2: Convert single analysis window to MIDI and amplitude list\nMODE 3: Convert window at time TIME to FRQ and amplitude list\nMODE 4: Convert window at time TIME to MIDI and amplitude list\n\nINANALFILE    For Modes 1-2, file must have only a single analysis window.\nFUNDAMENTAL   Fundamental frequency of sound.\nTHRESHOLD     (relative) level below which partials are ignored.\nTIME          (multiple window files only) Time of window to use.\n-v    Gives output in format for filter varibank2 file\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "getcol": {
+   "banner": "\t    ***************************************************\n\t    *            COMPOSERS DESKTOP PROJECT            *\n\t                    GETCOL $Revision: 1.2 $\n\t    *                                                 *\n\t    *   get Nth column from a file of columned data   *\n\t    *      (skipping M lines at start of file).       *\n\t    *                                                 *\n\t    *                by TREVOR WISHART                *\n\t    ***************************************************\n\nUSAGE : getcol infile outfile colno [skiplines] [-e]\n\nskiplines  Ignores this number of lines at start of file.\n-e         Ignores lines with a single 'e' or 's' (as in CSound scores)\n           and comment lines starting with ';'\n           (skipped lines should still be counted).\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "glisten": {
+   "banner": "glisten glisten inf outf grpdiv setdur [-ppitchshift] [-ddurrand] [-vdivrand]\n\nRANDOM PARTITION SPECTRUM INTO BINS AND PLAY BACK IN ORDER\n\ninf and outf are input and output analysis files.\n\nAll the channels of the analysis are partitioned into N mutually exclusive sets\nwith channels assigned at random to each set. These sets form a complete group.\nThen channels in the first set are played, for \"setdur\" windows,\nat which point channels in the 2nd set are played for \"setdur\" windows and so on.\n(As this happens, we are progressing through the original files at its original rate\nthe process determining merely which channels are used - the others being zeroed).\nOnce all N sets are exhausted, a new group is made by random partition, and so on.\n\nGRPDIV     Number of sets to divide analysis-channels into\n           (e.g. for grpdiv = 4, process partitions chans randomly\n           among 4 sets with [totalchans/4] channels per set).\n           Must be an exact divisior of the channelcnt.\nSETDUR     Number of windows for which a set-of-channels persists\n           before we switch to next set-of-chans (Range 1-1024)\nPITCHSHIFT Max range of random +- pitch shifting of each chanset (in semitones)\n           (Range 0 to 12.0 : Default 0)\nDURRAND    Randomisation of setdur between 1 and setdur (Range 0 - 1).\nDIVRAND    Randomise number of channels in each set in a group (Range 0 - 1).\n           In the normal case, each set-of-chans has an equal number of chans.\n           With divrand > 0, a group has sets of different sizes.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "gobo": {
+   "banner": "TO TEST THE GOBO SETTING FOR A NEW PROGRAM\n\n1) In the soundloom code, MAIN, set gobo_testing to 1\n2) restart the SOUND LOOM, choose zero or more files, & proceed to process.\n3) When the gobo cmdline is displayed, note it down.\n4) Now run gobo in command.tos, using the same cmdline PLUS\n   THE PROCESS NUMBER, placed at the end of the cmdline.\n   (The process number can be found in the file 'processno.h')\n\n   The GOBO program will report at what stage it decides that\n   the process will not run with the files entered.\n\n   If you are developing a new application, and the process SHOULD run\n   with the entered files, you need to correct the program's gobo settings.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "gobosee": {
+   "banner": "ERROR: Bad call 1 to gobosee\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "grain": {
+   "banner": "CDP Release 7.1 2016\n\nUSAGE: grain NAME (mode) infile (infile2) outfile parameters:\n\nwhere NAME can be any one of\n\n    GRAIN OPERATIONS ON A SINGLE SOUND FILE\n\ncount       omit        repitch     timewarp\nfind        duplicate   rerhythm    reverse\nreposition  reorder     remotif     assess\nr_extend         grev        noise_extend\n\n    GRAIN OPERATIONS ON TWO SOUND FILES\n\nalign\n\nType 'grain count' for more info on count option.. ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "grainex": {
+   "banner": "FIND GRAINS IN A SOUND, AND EXTEND AREA THAT CONTAINS THEM\n\nUSAGE:\ngrainex extend inf outf wsiz trof plus stt end\n\nWSIZ    sizeof window in ms, determines size of grains to find.\nTROF    acceptable trough height, relative to adjacent peaks (range >0 - <1)\nPLUS    how much duration to add to source.\nSTT     Time of start of grain material within source.\nEND     Time of end of grain material within source.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "hfperm": {
+   "banner": "CDP Release 7.1 2016\nUSAGE: hfperm NAME (mode) outfile parameters\n\nwhere NAME can be any one of\n\nhfchords hfchords2 delperm\n\nOR: hfperm NAME (mode) infile outfile parameters\n\nwhere NAME can be any one of\n\ndelperm2\n\nType 'hfperm hfchords'  for more info on hfperm hfchords option... ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "hilite": {
+   "banner": "CDP Release 7.1 2016\n\nHIGHLIGHTING OPERATIONS ON A SPECTRAL FILE\n\nUSAGE: hilite NAME (mode) infile outfile parameters: \n\nwhere NAME can be any one of\n\nfilter   greq    band    arpeg    pluck\ttrace    bltr\n\nvowels\n\nType 'hilite filter' for more info on hilite filter..ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "hilite_trace_1"
+   ]
+  },
+  "histconv": {
+   "banner": "USAGE: histconv infile outfile\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "housekeep": {
+   "banner": "CDP Release 7.1 2016\nUSAGE: housekeep NAME (mode) infile(s) (outfile) (parameters)\n\nwhere NAME can be any one of\n\nextract  copy   remove   chans   respec   bundle   sort   disk\nbakup    gate    batchexpand    endclicks    deglitch\n\nType 'housekeep chans'  for more info on housekeep chans option... ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "housekeep_extract_4"
+   ]
+  },
+  "hover": {
+   "banner": "USAGE:\nhover hover infile outfile frq loc frqrand locrand splice dur\n\nmove through a file, zigzag reading it at a given frequency.\n\nFRQ      rate of reading source-samples (in Hz).\n         determines samplewidth of zigzag-read. e.g. at srate 44100,\n         frq 1 Hz, reads 22050 samps forward, & 22050 samps back.\n         frq 10 Hz, reads 2205 samps forward, & 2205 samps back.\nLOC      Time in sourcefile from which samples are read.\nFRQRAND  Random variation of frequency, (0-1).\nLOCRAND  Random variation of location, (0-1).\nSPLICE   length of splices at zig (zag) ends (in mS).\nDUR      total output duration.\n\nfrq and loc (frqrand and locrand) may vary through time.\ntime in any brkpoint files is time in output-file.\nsplicelen must be less than 1 over twice the max frq used.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "hover2": {
+   "banner": "USAGE:\nhover2 hover2 infile outfile frq loc frqrand locrand dur [-s] [-n]\n\nmove through a file, zigzag reading it at a given frequency,\nreading back and forth from a zero-crossing,\nthen outputting same data inverted,\nto form symmetrical zero-centred waveforms at each read.\n\nFRQ      rate of reading source-samples (in Hz).\n         determines samplewidth of zigzag-read. e.g. at srate 44100,\n         frq 1 Hz, reads 22050 samps forward, & 22050 samps back.\n         frq 10 Hz, reads 2205 samps forward, & 2205 samps back.\nLOC      Time in sourcefile near which samples are read.\nFRQRAND  Random variation of frequency, (0-1).\nLOCRAND  Random variation of location, (0-1).\nDUR      total output duration.\n-s       STEP between locations at times specified in any brkpnt file\n         (rather than interpolating between the locations as time progresses).\n-n       NORMALISE the loudness of all wavecycles generated.\n\nfrq and loc (frqrand and locrand) may vary through time.\ntime in any brkpoint files is time in output-file.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "impulse": {
+   "banner": "USAGE:\nimpulse impulse outfile dur pitch chirp slope pkcnt level [-ggap] [-ssrate] [-cchans]\n\nCreate a stream of impulses.\n\nDUR    Duration of output sound.\n       If set to zero, a single impulse is produced.\nPITCH  Pitch of impulse-stream (MIDI). (Determines stream-frq)\nCHIRP  Glissing of impulse. (Range 0 to 30) (Care, output may clip).\nSLOPE  How quickly impulse rises and falls in level. (Range 1 to 20)\nPKCNT  Number of peaks in impulse. (Range 1 - 200)\n       'Pkcnt' divided by stream-frq -> (unglissed) frq of impulses.\nLEVEL  Impulse level (Range 0-1).\nGAP    Relative size of any silent gap between impulses.\n       If > zero, lowers apparent pitch of stream.\n       IF < zero, chirps overlap, raises apparent pitch of stream.\nSRATE  Sample-rate of output file  (Default 44100).\nCHANS  Number of channels in output file. (Default 1).\n\n\"PITCH\",\"GLIS\",\"SLOPE\",\"CHIRP\",\"LEVEL\" and \"GAP\" can vary through time.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "interlx": {
+   "banner": "interlx: insufficient arguments\n\nCDP MCTOOLS: INTERLX v2.1.0 (c) RWD,CDP 2009,2013\nInterleave mono or stereo files into a multi-channel file\nUsage: interlx [-tN] outfile infile1 infile2 [infile3...]\n       Up to 16 files may be interleaved.\n       Output format is taken from infile1.\n       Files must match sample rate and number of channels,\n          but can have different sample types.\n       To create a silent channel, for infile2 onwards,\n          use 0 (zero) as filename. Infile1 must be a soundfile.\n       NB: Speaker-positions in WAVE_EX infiles are ignored\n       Note that the same infile can be listed multiple times,\n          for example, to write a mono file as stereo, quad, etc.\n       The .amb B-Format extension is supported: \n          the program warns if channel count is anomalous.\n       recognised Bformat channel counts: 3,4,5,6,7,8,9,11,16.\n   -tN  : write outfile format as type N\n    Available formats:\n    0   : (default) standard soundfile (.wav, .aif, .afc, .aifc)\n    1   : generic WAVE_EX (no speaker assignments)\n    2   : WAVE_EX mono/stereo/quad(LF,RF,LR,RR)   - total chans must match.\n    3   : WAVE_EX quad surround (L,C,R,S)         - total chans must be 4.\n    4   : WAVE_EX 5.1 format surround             - total chans must be 6.\n    5   : WAVE_EX Ambisonic B-format (W,X,Y,Z...) - extension .amb recommended.\n    6   : WAVE_EX 5.0 surround                    - total chans must be 5.\n    7   : WAVE_EX 7.1 Surround                    - total chans must be 8.\n    8   : WAVE_EX Cube Surround                   - total chans must be 8.\n    9   : WAVE_EX 6.1 surround (new in v 2.1.0)   - total chans must be 7.\n          in all cases: outfile has sample format of infile1\n          NB: types 1 to 9 are for WAV format only\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "isolate": {
+   "banner": "USAGE:\nisolate isolate 1-2 inf outnam cutsfile [-ssplice] [-x] [-r]\nisolate isolate 3   inf outnam dBon dBoff [-ssplice] [-mmin] [-llen] [-x] [-r]\nisolate isolate 4   inf outnam slicefile [-ssplice] [-x] [-r]\nisolate isolate 5   inf outnam slicefile [-ssplice] [-ddovetail] [-x] [-r]\n\nCut specified segments from input file, but retain silent surrounds\nso chunks occur at same time in the outfiles, as in the input file.\nModes 1, 2 & 3 also generate file of all material left over after the cutting.\nOriginal file reconstructible by mixing all these components.\nINF       Input soundfile\nOUTNAM    Generic outfile name. Outfiles numbered from 0\nCUTSFILE/SLICEFILE  \nMode 1    Creates SEVERAL output files each containing ONE segment of src. \n          Cutsfile is list of time-pairs,(start and end of each segment)\n          in time order, and not time-overlapped.\nMode 2    Can create output files each containing SEVERAL segment of src.\n          If a cutsfile line lists several time-pairs (start+end of segs),\n          ALL segments on that line will be output in a single file.\n          No time-pairs must overlap. Time-pairs on a line must be in time order.\nMode 3    Creates ONE output file consisting of SEVERAL disjunct segments.\n          Segment starts and ends located using threshold-on and -off parameters.\n          if \"len\" set, only start portion of segment (length \"len\") is kept.\n\n          In modes 1-3, an EXTRA FILE OF REMNANTS (if any) is created.\n          Also, if cuts abutt or are so close that end+start splices overlap,\n          end of first cut moved back, and start of 2nd moved forward\n          so that they overlap by a single splicelength.\n\nMode 4    Cuts the ENTIRE file into disjunct segments\n          Creating SEVERAL output files each containing ONE segment of src.\n          Slicefile is list of (increasing) times where sound is to be cut.\nMode 5    As mode 4: segments overlapped slightly (separates speech syllables).\n\nSPLICE    Length of splice in mS (range 0 - 500 default 15)\nDBON      (Mode 3) dB level at which a segment is recognised to begin.\nDBOFF     (Mode 3) dB level where recognised seg triggered to end (less than DBON).\nMIN       (Mode 3) min duration in mS of segs to accept (> 2 * splicelen)\nLEN       (Mode 3) duration in mS of (part-)segment to actually keep (> 0)\n          If \"len\" not set, or set to zero, entire original segments are kept.\nDOVETAIL  (Mode 5) overlap of cut segments in mS (range 0 -20 default 5)\n-x        Add silence to ends of segments files, so they are same length as src\n-r        Reverse all cut-segment files (but not the remnant file)\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "iterfof": {
+   "banner": "USAGE:\niterfof iterfof 1-4 infile outfile linedata outduration\n     [-pprand] [-aampcut] [-ttrimto] [-Ttrimby] [-Etrimslope]\n     [-rrand] [-vvibmin] [-Vvibmax] [-depmin] [-Ddepmax]\n     [-ggainmin] [-Ggainmax] [-Fupfade] [-ffade] [-Sseparation]\n     [-Pportamento] [-iinterval]\n     [-sseed]\n\nITERATE AN INPUT FOF OR SOUND-PACKET, FOLLOWING A DEFINED PITCHLINE.\n\nMODES 1 & 2: linedata is transposition in semitones.\n(Input sound assumed to represent 1 wavelength, at zero transposition.)\nMODES 3 & 4: linedata is MIDI pitch.\n(Input sound can be anything.)\n\nLINEDATA   Modes 1 & 2: semitone-transposition (can vary through time).\n           (varies delay between segments in output)\n           Modes 3 & 4: MIDI-pitch (can vary through time).\nIF \"linedata\" is a breakpoint file\nMODES 1 & 3: interpolate between timed values in the file.\nMODES 2 & 4: step between timed values in the file.\n\nSEED       the same seed-number will produce similar output on rerun.\n\n(FOR MORE INFORMATION ----- hit any key)\n\nParameters of the line-elements\n\nPRAND      randomises pitch of segments (semitones in range +- 2)\nAMPCUT     max of random amp-reduction on each iter: Range 0-1:\n           default 0 (no amp-reduction)\nTRIMTO     Shorten elements to specified duration\nTRIMBY     Fade elements over specified duration\nTRIMSLOPE  Slope of any fades\n\nParameters of the line\n\nRAND       transposition/pitch randomisation: Range 0 - 1: Default 0\n           (randomises delay between segments in output)\nVIBMIN/MAX Min & max vib frequency (frq set rand between these).\nDEPMIN/MAX Min & max vib depth (semitones) (depth set rand between these).\n(Modes 2 and 4 only)\nGAINMIN/MAX min and max level of stable-pitched portions of line.\nUPFADE     duration of fade into stable-pitched portions.\nFADE       duration of fade out of stable-pitched portions.\nSEPARATION end-fraction of any stable-pitched portion which is silent.\nPORTAMENTO type of line-portamento (if any)\n           0 = none : 1 = up : -1 = down : 2 = randomly up/down\nINTERVAL   Portamento interval (semitones : range 0 - 2)\n           Interval attained only by start of next note.\n           (If note fades before next note enters, interval not reached).\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "iterline": {
+   "banner": "USAGE:\niterline iterline mode infile outfile tdata outduration\n     [-ddelay] [-rrand] [-ppshift] [-aampcut] [-ggain] [-sseed] [-n]\n\nITERATE AN INPUT SOUND, FOLLOWING A TRANSPOSITION LINE\n\nMODE 1: interpolate between transpositions.\nMODE 2: step between transpositions.\n\nTDATA   File of time-transposition pairs, transpositions in semitones\nDELAY   (average) delay between iterations.\nRAND    delaytime-randomisation: Range 0 - 1: Default 0\nPSHIFT  max of random pitchshift of each iter: Range 0 - 12 semitones\n        e.g.  2.5 =  2.5 semitones up or down.\nAMPCUT  max of random amp-reduction on each iter: Range 0-1: default 0\nGAIN    Overall Gain: Range 0 - 1:\n        Special val 0, produces maximum acceptable level.\n        (this is overridden by the \"-n\" normalisation flag - see below).\nSEED    the same seed-number will produce identical output on rerun,\n        (Default: (0) random sequence is different every time).\n-n      Normalise output (max out level = max in level)> only with NON-zero seed.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "iterlinef": {
+   "banner": "USAGE:\niterlinef iterlinef mode infile outfile tdata outduration\n     [-ddelay] [-rrand] [-ppshift] [-aampcut] [-ggain] [-sseed] [-n]\n\nITERATE AN INPUT SOUND SET, FOLLOWING A TRANSPOSITION LINE.\nThe input set must consist of 25 transpositions of a source\nat intervals of one semitone, in ascending order.\nInput sounds must be of approx equal duration.\nThe central sound (file 13) is the reference sound for transpositions (see below)\n\nMODE 1: interpolate between transpositions.\nMODE 2: step between transpositions.\n\nTDATA   File of time-transposition pairs, transpositions in semitones.\n        Transpositions are relative to the central sound (file 13) of the set.\nDELAY   (average) delay between iterations.\nRAND    delaytime-randomisation: Range 0 - 1: Default 0\nPSHIFT  max of random pitchshift of each iter: Range 0 - 12 semitones\n        e.g.  2.5 =  2.5 semitones up or down.\nAMPCUT  max of random amp-reduction on each iter: Range 0-1: default 0\nGAIN    Overall Gain: Range 0 - 1:\n        Special val 0, produces maximum acceptable level.\n        (this is overridden by the \"-n\" normalisation flag - see below).\nSEED    the same seed-number will produce identical output on rerun,\n        (Default: (0) random sequence is different every time).\n-n      Normalise output (max out level = max in level)> only with NON-zero seed.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "listdate": {
+   "banner": "Jul13_22-21-59.2026",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "logdate": {
+   "banner": "Jul13_22-21.2026",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "madrid": {
+   "banner": "USAGE:\nmadrid madrid 1 inf [inf2 ...] outf dur ochans strmcnt delfact step rand\n              [-sseed] [-l] [-e] [-r|-R]\nmadrid madrid 2 inf inf2 [inf3...] seqfile outf dur ochans strmcnt delfact step rand\n              [-sseed] [-l] [-e]\n\nSpatially syncopate repetitions of src(s) \nby randomly deleting items from the spatially-separated repetition streams.\n\nFor each output event, source played at 1 or more spatial locations, SYNCHRONOUSLY.\nDepending on which/how many locations are used for an output event,\nthe output appears differently located in space, and differently accented.\n\"DELFACT\" and \"-e\" are hence the crucial rhythmicising parameter here.\n\nSEQFILE   textfile containing list of numbers in range 1 to count-of-infiles.\n          Determines the order in which infiles are used in the output.\n\nDUR       Duration of output sound.\nOCHANS    Number of channels in output sound.\nSTRMCNT   Number of spatially distinct streams.\nDELFACT   Proportion of items to (randomly) delete.\n          Vals from 0 to 1 delete that proportion of events in the various streams.\n          For vals > 1, proportion of events at single locations increases,\n          and, if the \"-e\" flag is set, the proportion of empty events increases.\nSTEP      Time between event repetitions.\nRAND      Randomisation of step size (0-1).\nSEED      Value to initialise the randomisation OF DELETIONS.\n          With a non-zero value, re-running the process with the SAME parameters\n          will produce the same output. Otherwise deletions are always different.\n-e        allow Empty events i.e. sound absent at some of the repeat-steps.\n-l        For OCHANS > 2, lspkr array assumed to be circular.\n          -l flag forces array to be linear (with defined left and right ends).\n-r        Randomly permute the order of input sounds used in the output.\n          (ALL input sounds used ONCE before next order-permutation is generated).\n-R        Randomly select next input sound (selection unrelated to last selection).\n\n-r and -R cannot be used in combination.\nWhen only 1 input sound is used, neither flag has any effect.\n\nDELFACT, STEP and RAND can vary over time.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "manysil": {
+   "banner": "USAGE:\nmanysil manysil infile outfile silencedata splicelen\n\nInsert many silences into a file.\n\nSILENCEDATA  textfile with time-duration pairs.\n             where 'time' is insertion time of silence\n             and 'duration' is duration of inserted silence\nSPLICELEN    length of splices (in mS).\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "matrix": {
+   "banner": "\nMATRIX MANIPULATION OF SPECTRUM OF SOUND\n\nUSAGE: matrix matrix (matrix-data) infile outfile(s).\n\nType 'matrix matrix' for more info\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "maxsamp2": {
+   "banner": "ERROR: wrong number of arguments.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "mchanpan": {
+   "banner": "USAGE: mchanpan mchanpan 1 inf outf panfile outchans [-ffocus]\nUSAGE: mchanpan mchanpan 2 inf outf switchdata outchans [-ffocus -mminsil]\nUSAGE: mchanpan mchanpan 3 inf outf outchans centre spread depth rolloff minsil [-s]\nUSAGE: mchanpan mchanpan 4 inf outf outchans centre spread depth rolloff\nUSAGE: mchanpan mchanpan 5 inf outf antiphon outchans minsil\nUSAGE: mchanpan mchanpan 6 inf1 [inf2 ..] outf antiphon outchans eventdur gap splice\nUSAGE: mchanpan mchanpan 7 inf outf pandata rolloff\nUSAGE: mchanpan mchanpan 9 inf outf outchans startchan speed focus [-a]\nUSAGE: mchanpan mchanpan 10 inf outf outchans [-ffocus -mminsil -ggrouping] [-a] [-r]\n\nMode 1: Move a mono sound file around a multichannel space.\nMode 2: Switch (silence-separated) mono events in file from one chan to another.\nMode 3: Spread (s-s) mono events stepwise from one set of chans, to another set.\nMode 4: Spread source gradually from a centre, across several channels.\nMode 5: Switch events antiphonally between 2 specified sets of channels.\nMode 6: Switch sounds antiphonally between 2 specified sets of channels.\n                  Mode 6 can take 1 or more inputfiles.\nMode 7: Pan from one channel configuration to another, passing through centre.\nMode 9: Rotate a mono sound file around a multichannel space.\nMode 10: Switch (silence-separated) mono events randomly from one chan to another.\n\nPANFILE  Output pan-data in triples: time  pan-position  pantype\n         Pan-position vals lie between (channel) 1 and a max no-of-channels >= 3.\n         positions between 0 and 1 are also possible (see below).\n\n         Pantype values can be\n         0  = direct pan: pan from 1 to 4 goes directly between lspkrs 1->4\n         1  = clockwise rotation: pan 1 to 4 goes around lspkrs 1->2->3->4\n         -1 = anticlock rotation: pan 1 to 4 (with 8 chans) goes 1->8->7->6->5->4\n\n         Direct pans must start at single lspkr:\n         and position vals must be non-zero integers.\n\n         Rotations can start/stop anywhere, so position values can be fractional.\n         Vals between 0 & 1 are positions between max lspkr (e.g. 8) and lspkr 1\n\nSWITCHDATA list of outchans, in a textfile. Sound switches from one outchan to next.\n         If end of list reached, it starts again from its beginning.\n\nPANDATA  Output pan-data in lines, each having: time  pan-positions\n         Pan-positions is a list of ALL the input channels, in any order.\n         Each input channel in turn is mapped to each numbered channel in the list.\n         Passing from one mapping to next, sound in all chans spreads out until it's\n         output equally from all chans, then contracts to its next outchan position.\n         To force this maximal spread elsewehere,\n         enter time & list of zeros (1 for each chan).\n\nANTIPHON two strings of letters, with separator ('-') represents antiphonal chans.\n         e.g. abcd-efgh = antiphon between chans 1,2,3,4 and chans 5,6,7,8.\n\nOUTCHANS number of channels in the output file.\n\nSTARTCHAN mode 8: Channel from which rotation begins.\n\nSPEED    mode 8: Speed of rotation (cycles per sec): can vary through time.\n\nFOCUS    If focus = 1.0, position (e.g.) '2' puts all signal in lspkr 2\n         If focus = 0.9, position '2' puts 0.9 of signal in lspkr 2\n         and the remainder in the 2 adjacent lspkrs (1 and 3).\n\nMINSIL   min duration (mS) of zero-value samps to count as silence between peaks.\nCENTRE   centre of spreading. Time-variable.\nSPREAD   Chan-spread of output (far left to far right of centre). Time-variable.\n         Minimum is 1 in Mode 3 and 0 in Mode 4.\nDEPTH    max no of chans (to left, and to right) utilised, behind leading edges.\n         Signal always reaches maximum spread, but may have hole in middle. \nROLLOFF  level fall as signal spread over several chans. Range 0-1.\n         0 = no fall in level, 1 = level divided by number of chans in use.\nEVENTDUR Time before switching to next outchannel set(can timevary).\nGAP      Time gap between switching events (can t",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "mchanrev": {
+   "banner": "CREATE MULTICHANNEL ECHOS OR REVERB\n\nUSAGE: mchanrev mchanrev infile outfile gain roll_off size count\n             outchans centre spread\n\nGAIN      to apply to input signal: Default is 0.645654\nSIZE      multiplies average time between echoes: (Default time 0.1 secs).\nROLL_OFF  rate of loss of level across stadium (default 1)\nCOUNT     number of stadium echoes: Default (max) is 1000\nOUTCHANS  number of output channels\nCENTRE    centre position of reverbd image, amongst outchans.\n          With N-chan output, range is 1-N. Can be a fractional value. \n          Values below 1 lie between outchan 1 and outchan N.\nSPREAD    Number of output channels over which echoes are spread,\n          (Can be a fractional value).\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "mchiter": {
+   "banner": "ITERATE INPUT SOUND IN A FLUID MANNER, SCATTERING TO MULTICHANNEL SPACE\n\nUSAGE: mchiter iter 1 infil outfil outchans outduration\n     [-ddelay] [-rrand] [-ppshift] [-aampcut] [-ffade] [-ggain] [-sseed]\nOR:    mchiter iter 2 infil outfil outchans repetitions\n     [-ddelay] [-rrand] [-ppshift] [-aampcut] [-ffade] [-ggain] [-sseed]\n\noutduration  duration of output file.\nrepetitions  number of iterations of the source.\ndelay   (average) delay between iterations. Default: infile duration.\nrand    delaytime-randomisation: Range 0 - 1: Default 0\npshift  max of random pitchshift of each iter: Range 0 - 12 semitones\n        e.g.  2.5 =  2.5 semitones up or down.\nampcut  max of random amp-reduction on each iter: Range 0-1: default 0\nfade    (average) amplitude fade beween iters (Range 0 - 1: default 0)\ngain    Overall Gain: Range 0 - 1:\n        special val 0 (default), gives best guess for no distortion.\nseed    the same seed-number will produce identical output on rerun,\n        (Default: (0) random sequence is different every time).\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "mchshred": {
+   "banner": "USAGE:\nmchshred shred 1 infile outfile repeats chunklen scatter outchans \nmchshred shred 2 infile outfile repeats chunklen scatter\n\nSound is cut into random segments, which are then reassembled\nin random order, within the original duration.\nFurther shreds, shred the previously shredded output.\n\nThe shredding process distributes the output segments over\n a randopm permutation of the output channels.\n\nREPEATS   no. of repeats of shredding process.\nCHUNKLEN  average length of chunks to cut & permute.\nSCATTER   randomisation of cuts (0 to K): default 1.\n          where K = total no. of chunks (snd-duration/chunklen).\n          If scatter = 0, reorders without shredding.\nOUTCHAN   Mode 1 shreds a mono input to a multichannel output.\n          with 'outchan' channels.\n          Mode 2 shreds an already multichannel file.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "mchstereo": {
+   "banner": "USAGE:\nmchstereo mchstereo infil1 [infil2 ..] outfile ochandata ochans pregain [-s]\n\nPlace several stereo files in a multichannel output space.\n\nOCHANDATA Position of each stereo input in the outchannel frame.\n          This is a list of output channel-numbers.\n          There must be one number for each input file.\n          e.g. with 3 input stereo sounds to an 8-channel output,\n          '1 3 6' means the 3 input stereo sounds\n          are centred at output channels 1, 3 and 6 respectively.\n          BUT\n-s        Shifts stereo images half-a-channel to right\n          so, in our example\n          1st stereo image is centred BETWEEN channels 1 and 2.\n          2nd stereo image is centred BETWEEN channels 3 and 4.\n          3rd stereo image is centred BETWEEN channels 6 and 7.\n\nOCHANS    Number of channels in the output file (Range 2-16).\nPREGAIN   Gain applied to input sounds. (Range 0-1)\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "mchzig": {
+   "banner": "USAGE: mchzig zag 1 infile outfile start end dur minzig outchans\n     [-ssplicelen] [-mmaxzig] [-rseed] [-a]\nOR:    mchzig zag 2 infile outfile timefile outchans [-ssplicelen] [-a]\n\nREAD SOUNDFILE BACK AND FORTH, PANNING RANDOMLY BETWEEN OUTPUT CHANS\n\nMODES\n1: random zigzags: starts at file start, ends at file end.\n2: zigzagging follows times supplied by user.\n\nPARAMETERS\nstart:     together with...\nend:       define interval in which times zigzag.\ndur:       is total duration of output sound required.\nminzig:    is min acceptable time between successive zigzag timepoints.\noutchans:  number of channels in output file.\nsplicelen: in MILLIsecs (Default 25ms).\nmaxzig:    is max acceptable time between successive zigzag timepoints\nseed:      number to generate a replicable random sequence. (>0)\n           entering same number on next program run, generates same sequence.\n           (Default: (0) random sequence is different every time).\ntimefile:  text file containing sequence of times to zigzag between.\n           Each step-between-times must be > (3 * splicelen).\n           zigsteps moving in the same (time-)direction will be concatenated.\n-a         Avoid zigs between adjacent channels (5 or more outchans only).\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "modify": {
+   "banner": "CDP Release 7.1 2016\nUSAGE: modify NAME (mode) infile outfile (datafile) parameters\n\nwhere NAME can be any one of\n\nloudness   space     speed     revecho\nbrassage     sausage     radical     spaceform\nscaledpan    findpan    convolve    stack       shudder\n\nType 'modify  brassage'  for more info on modify  brassage option... ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "modify_brassage_1",
+    "modify_brassage_2",
+    "modify_brassage_4",
+    "modify_brassage_5",
+    "modify_brassage_6",
+    "modify_loudness_1",
+    "modify_radical_1",
+    "modify_radical_3",
+    "modify_radical_4",
+    "modify_radical_5",
+    "modify_radical_6",
+    "modify_revecho_2",
+    "modify_sausage",
+    "modify_speed_2",
+    "modify_speed_5",
+    "modify_stack"
+   ]
+  },
+  "morph": {
+   "banner": "CDP Release 7.1 2016\n\nMORPHING BETWEEN SPECTRAL FILES\n\nUSAGE: morph NAME (mode) infile infile2 outfile parameters: \n\nwhere NAME can be any one of\n\nglide     bridge     morph\n\nType 'morph glide' for more info on morph glide..ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "morph_bridge_1",
+    "morph_bridge_2",
+    "morph_bridge_3",
+    "morph_glide",
+    "morph_morph_1"
+   ]
+  },
+  "motor": {
+   "banner": "USAGE: motor motor 1,4,7 infile outfile params\nUSAGE: motor motor 2,5,8 infile outfile data params\nOR:    motor motor 3,6,9 inf1 [inf2 inf3 ....] outfile params\nParams are...\ndur freq pulse fratio pratio sym [-ffrand] [-pprand] [-jjitter] [-ttremor]\n[-yshift] [-eedge] [-bbite] [-vvary | -a] [-sseed] [-c]\n\nCreate fast (inner) pulse-stream, within slower (outer) pulsed-enveloping.\nUnder every outer-pulse, set of inner events cut successively from input src(s)\nas the outer-envelope rises, then in reverse order as it falls.\nOuter-pulse, shortened by \"PRATIO\", must hold at least 2 inner-pulses.\n\nMode 1+3:  Typical source(s) short, & widening in frq-range from start to end.\nMode 2:    Cuts segments from single src, at slice-times specified in \"data\".\nModes 4-6: Similar except source-reads only advance.\nModes 7-9: Similar except source-reads either only advance or only regress.\n\nDATA   Textfile of times in infile at which to slice it into separate srcs.\nDUR    Duration of the output file.\nFREQ   Pulse-rate (Hz) of inner-pulses (range 2 to 100).\nPULSE  Pulse-rate (Hz) of outer-pulses. (range 0.1 to 10)\nFRATIO Proportion of on-time to off-time of inner-events. (range 0 to 1)\nPRATIO Proportion of on-time to off-time of outer-events. (range 0 to 1)\nSYM    Symmetry of outer-pulses.  (range 0 to 1)\n       \"sym\" marks peak of rising-falling envelope on range 0 to 1.\n       0.5 gives symmetrical cresc-decresc envelope.\n       1 gives cresc envelope:      0 gives decresc envelope.\n       0.75 gives long cresc and short decresc. etc\nFRAND  Freq(f) randomisation (Range 0-1): max variation from f/2 to 3f/2\nPRAND  Pulse(p) randomisation (Range 0-1): max variation from p/2 to 3p/2\nJITTER Range of any pitch randomisation of inner-pulses (0 - 3 semitones).\nTREMOR Range of any random amplitude attenuation of inner-pulses (0-1).\nSHIFT  Range of any randomisation of outer-pulse symmetry (Range 0 to 1).\nEDGE   Length of decay-tail of inner-pulses (multiple of dur: Range 0 to 20)\nBITE   Shape of outer-pulses. (Range 0.1 to 10: Dflt 3). 1 = Linear rise-fall\n       > 1 slow-fast rise, fast-slow fall: < 1 fast-slow rise, slow-fast fall.\nVARY   Advance-step in src-read rand-varies from 1 outer-pulse to next.(0-1).\n       0 = no variation, 1 = max variation range (from no advance to max-step).\nSEED   Different seed vals gives different randomised outputs.(Range 0 to 256)\n-a     Inner-events under outer-pulse-cresc advance by fixed step.\n       (Default: Inner-events advance to end of source, unless \"vary\" set).\n-c     (Mode 2-3 only) cycle through input srcs.(Default, randomly permute order).\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "mton": {
+   "banner": "USAGE:\nmton mton infile outfile outchans\n\nConvert mono snd to multichan snd with identical signal in all chans.\n\nOUTCHANS   number of output channels.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "multimix": {
+   "banner": "CONVERT LIST OF SNDFILES TO A MULTICHANNEL MIXFILE\n\nUSAGE:\nmultimix create 1-2 infile1 infile2 [infile3..] mixfile\nmultimix create 3 infile1 infile2 [infile3..] mixfile timestep\nmultimix create 4 infile1 infile2 [infile3..] mixfile balance\nmultimix create 5 infile1 infile2 [infile3..] mixfile stage wide rearwide rear\nmultimix create 6 infile1 infile2 [infile3..] mixfile\nmultimix create 7 infile1 infile2 [infile3..] mixfile ochans startch [-sskip -ttimestep]\nmultimix create 8 infile1 infile2 [infile3..] mixfile ochans\n\nANY SOUNDFILES\n\nmode 1 - all files start at time zero.\nmode 2 - each file starts where previous file ends.\nmode 3 - each file starts 'timestep' after previous file-start.\nmode 8 - each file starts at zero, leftmost chan to outchan 1: specify outchan count.\n\nTIMESTEP    time in seconds between entry of each file in mix.\n\nMONO OR STEREO FILES ONLY\n\nmode 4 - Distributes stereo over narrow and wide stereo pairs.\nmode 5 - Distributes stereo over 8 loudspeakers (pair-at-front format).\n\nMono is treated as two identical channels of stereo\n\nBALANCE     proportion of stereo signal assigned to wider stereo pair.\n\nSTAGE       level of signal assigned to front loudspeaker pair.\nWIDE        level of signal assigned to front-wide loudspeaker pair.\nREARWIDE    level of signal assigned to rear-wide loudspeaker pair.\nREAR        level of signal assigned to rear loudspeaker pair.\n\nMONO FILES ONLY\n\nmode 6 - Distributes N mono files, in order, to N successive output channels.\nmode 7 - Distributes mono files, in order, to successive chans of outfile.\n         If more files than ochans, restart again where it began.\n\nOCHANS     Number of channels in output file.\nSTARTCH    Output channel to which first input channel is assigned.\nSKIP       Files can be distributed to each channel in turn (skip 1).\n           to alternate channels (skip 2), etc\n           in reverse chan order (skip -1), etc : Defaults to 1.\nTIMESTEP   Timestep between successive entries (default 0).\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "multiosc": {
+   "banner": "USAGE:\nmultiosc multiosc 1 outfile dur frq1 frq2 amp2 srate dovesplice\nmultiosc multiosc 2 outfile dur frq1 frq2 amp2 frq3 amp3 srate dovesplice\nmultiosc multiosc 3 outfile dur frq1 frq2 amp2 frq3 amp3 frq4 amp4 srate dovesplice\n\n\nMODE 1 Oscillation of oscillation.\nMODE 2 Oscillation of oscillation of oscillation.\nMODE 3 Oscillation of oscillation of oscillation of oscillation.\n\nDUR        Duration of synthesized sound, or textfile output.\nFRQ1       (Possibly time-varying) driving frequency of output.\nFRQ2 etc   Nested (possibly time-varying) oscillations of table read.\nAMP2 etc   Amplitude of suboscillations (Range 0 - 1).\nSRATE      Sample rate of synthesized sound.\nDOVESPLICE Length of splice of start and end of output sound (mS).\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "multiosc_multiosc_3"
+   ]
+  },
+  "multisynth": {
+   "banner": "USAGE:\nmultisynth synth outfile score MM [-jjitter] [-oochans] [-b]\n\nSynthesize several sound-streams from a score.\n\nSCORE  Text file with each line in the form:.\n       \"Insname\" followed by any number of sets-of-4-values representing\n       \"Time\"  \"Pitch\"  \"Loudness\"  and  \"Duration\".\n       e.g.  (with two 4-sets) \"trumpet 0 62 .7 2 8 64 .9 12\"\n\nInsname    name of instrument: one of the following.\n           \"flute\"   \"clarinet\"  \"trumpet\"  \"violin\"  \"cello\"\n           \"pianoRH\" \"pianoLH\" (LH must immediately follow RH in score file).\n\nTime       Note onset time, measured in thirds-of-semiquavers from time 0 (integer).\n           \"Cello\" & \"violin\" & and \"piano\" (LH and RH)\n           may play up to 4 different notes simultaneously,\n           so long as the note-combinations are possible on the real instrument.\n\nPitch      Pitch of the note, as a MIDI value (integer).\nLoudness   A positive number no bigger than 1.\nDuration   Duration of the note, measured in thirds-of-semiquavers (integer).\n           \"Piano\" notes may overlay one another (sustained resonance)\n           but other instruments may not, so their duration values must not\n           create a note sustained beyond the start of the following note.\n           Simultaneously sounding notes must have the same duration.\n\nMM     Metronome mark determining tempo of sound output.\nJITTER Max random divergence from regular note placement in mS (default 15).\nOCHANS Number of output channels (2-8): default stereo.\n       The sounds in successive lines will be spaced in the output-space\n       from line-1, at the far left, to the last-line, at far right.\n       (single-line score output will be placed at front centre).\n\n-b     If \"ochans\" is greater than stereo, lspkr array assumed to be surround.\n       To force a bounded array (with a left extreme and right extreme)\n       use the \"-b\" flag.\n       For surround, outputs numbered in order clockwise from front-centre.\n       For bounded, outputs numbered in order from far-left to far-right.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "newdelay": {
+   "banner": "USAGE: newdelay newdelay infile outfile midipitch mix feedback\n\nMIDIPITCH Pitch of output.\nMIX       amount of delayed signal in final mix: 0 gives 'dry' result.\nFEEDBACK  produces resonance related to delay time (with short times).\n\nDelay may vary over time.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "newdelay_newdelay"
+   ]
+  },
+  "newmix": {
+   "banner": "CDP Release 7.1 2016\nUSAGE:     newmix multichan mixfile outsndfile [-sSTART] [-eEND] [-gATTENUATION]\n\nSTART       gives starttime START (to start mixing later than zero).\nEND         gives output endtime END (to stop mix before its true end).\nNote that the START and END params are intended for mix TESTING purposes only.\nIf you want to keep output from such a testmix, you should TOPNTAIL it.\n\nMixfile for multichannel work is same as standard CDP mixfiles BUT...\n1) There is an extra initial line that states no. of output chans.\n2) On ensuing lines, input and output channels are numbered 1,2,3 etc\n3) Routing of input to output is indicated by inchan, colon, outchan\n   e.g. 1:4 sends input channel 1 to ouptut channel 4\n5) The levels on these channels are in the range -1 to 1\n6) An input channel must be routed to an output channel, with a level\n     e.g. 1:1 1.0 2:4 .5 (input 1 to output 1, input 2 to output 4)\n7) You can route an input to many outs e,g  1:1 .5 1:2 .3 1:4 .7 etc.\n8) You must take care with levels, where more than 1 input goes to same output.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "newmorph": {
+   "banner": "CDP Release 7.1 2016\n\n\n\nNEW TYPES OF SPECTRAL MORPHING\n\nUSAGE: newmorph NAME mode infile1 infile2 outfile parameters: \n\nwhere NAME can be any one of\n\nnewmorph  newmorph2\n\nType 'newmorph newmorph' for more info on newmorph newmorph..ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "newscales": {
+   "banner": "USAGE: newscales outfile datafile spectrumfile [srate]\noutfile      Generic name for output soundfiles (must not end with a number)\ndatafile     Frq-amp pairs defining note-events in output\nspectrumfile Harmonicnumber-amplitude pairs, define spectrum of note.\n             One line for all notes\n             OR\n             One line for each note in the frq-list.\n            (First line corresponds to lowest note, etc.)\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "newsynth": {
+   "banner": "<<harness: failed to run: TimeoutExpired: Command '['/tmp/CDP8/NewRelease/newsynth']' timed out after 10 seconds>>",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "newtex": {
+   "banner": "<<harness: failed to run: TimeoutExpired: Command '['/tmp/CDP8/NewRelease/newtex']' timed out after 10 seconds>>",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "njoin": {
+   "banner": "njoin: insufficient arguemnts\n\nCDP MCTOOLS: NJOIN v1.1.1 (c) RWD,CDP 2006,2010,2013,2021\nconcatenate multiple files into a single file\nUsage: njoin [-sSECS | -SSECS][-cCUEFILE][-x] filelist.txt [outfile] \n       filelist.txt: text file containing list of sfiles\n                     in order. One file per line. \n                     Channel spec (if present) must be the same,\n                     but files with no spec assumed compatible.\n       -cCUEFILE   : if outfile used, generate cue textfile as CUEFILE.\n       -sSECS      : separate files with silence of SECS seconds\n       -SSECS      : as above, but no silence before first file.\n                     Default: files are joined with no gap.\n      -x           : strict: allow only CD-compatible files:\n                     Must use sr=44100, minimum duration 4 secs.\n       NB: Files must match sample rate and number of channels,\n        but can have different sample types.\n       Output sample format taken from file with highest precision.\n       If no outfile given: program scans files and prints report.\n       Unix systems:  ~/ notation for home dir supported for file paths.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "nmix": {
+   "banner": "\nCDP MCTOOLS: NMIX V2.0.1 (c) RWD,CDP 1999,2009\nmix two multi-channel files\nusage:\nnmix [-d][-f][-oOFFSET] infile1 infile2 outfile\n     -d      : apply TPDF dither (16bit format output only).\n     -f      : set output sample type to floats.\n                Default: outfile type is that of infile 1\n     -oOFFSET:  start infile2 at OFFSET seconds.\nFiles must have the same channel count.\nWAVE-EX files must have the same speaker layout\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "notchinvert": {
+   "banner": "USAGE: notchinvert datafile outdatafile srate [minnotch]\n\nInvert notches in a spectrum.\n\nDATAFILE     textfile of frq/amp pairs.\nOUTDATAFILE  inverted notches as frq/amp pairs.\nMINNOTCH     min depth of notch to qualify as true notch (Range 0-1).\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "oneform": {
+   "banner": "\nOPERATIONS WITH SINGLE FORMANTS\n\nUSAGE: oneform name (mode) infile(s) outfile params\n\nwhere NAME can be any one of\n\nget   put   combine\n\nType 'oneform get' for more info on 'oneform get'..ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "onset": {
+   "banner": "USAGE:\nonset onset infile outtextfile\n\nReturn the succession of sound-onsets in each channel of a multichannel file.\n\nONSETLEVEL  level at which sound onset is recognised.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "packet": {
+   "banner": "USAGE:\npacket packet 1 infile outfile times mindur narrowing centring [-n|-f] [-s]\npacket packet 2 infile outfile times dur    narrowing centring [-n|-f] [-s]\n\nIsolate or generate  a sound packet.\n\nMode 1:    Found packet:  Looks for signal minima as edges of wave-packet.\nMode 2:   Forced packet: Creates packet at specified time.\n\nTIMES     Time (or textfile of times) at which packet is extracted/created.\n\nMINDUR    Min duration of (found) packet (in mS) (less than half src duration).\nDUR       Duration of (forced) packet (in mS)  (less than half src duration).\n\nNARROWING Narrowing of packet envelope (0 - 1000).\n          Values below 1.0 broaden the packet.\n          Values very close to zero may produce clicks (square-wave envelope).\n          Very high vals with very short packets may produce\n          click-impulses or silence.\n\nCENTRING  Centring of peak of packet envelope.\n          0  peak at centre: -1 peak at start: 1 peak at end.\n          If packet content has varying level, true peak position may not\n          correspond to envelope peak position, unless \"-f\" flag used.\n\n-n        Normalise packet level.\n\n-f        Packet wave maxima and minima forced up(down)to packet contour.\n          (default, packet envelope simply imposed on existing signal).\n          (normalisatiojn flag ignored if \"-f\" flag used\n\n-s        Shave off leading or trailing silence.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "pagrab": {
+   "banner": "ERROR: Wrong number of arguments.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "pairex": {
+   "banner": "USAGE:\npairex pairex infile outfile pair\n\nExtract any pair of channels from a multichannel sound.\n\nPAIR : the channel numbers of the 2 channels to be extracted as a stereo pair.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "panorama": {
+   "banner": "USAGE: panorama panorama 1 infile infile2 [infile3.....] outmixfile\n           lspk_cnt lspk_aw sounds_aw sounds_ao config [-rrand] [-p] [-q]\nOR:    panorama panorama 2 infile infile2 [infile3.....] outmixfile\n           lspk_positions   sounds_aw sounds_ao config [-rrand] [-p] [-q]\n\nDistribute (>1) mono files in spatial panorama, in multichannel mixfile.\nLspkrs assumed to surround listening area from front outwards.\nInput sounds distributed in order from leftmost to rightmost position.\n\nLSPK_CNT  Number of lspkrs (mode 1 equally spaced: not ness so in mode 2).\nLSPK_AW   Angular width of loudspeaker array (190 - 360), front centre at 0.\n          Loudspeaker array assumed symmetrical around a centre-line\n          running through front-centre of lspkr array and centre of auditorium.\n          Thus, if front centre is at 0 then \n          190 spread is from -95 to (+)95; 360 spread is from -180 to (+)180.\n\nSOUNDS_AW angular width of output sounds (equal to or less than LSPK_AW).\n\nSOUNDS_AO angular offset of output snds. (Only possible if SOUNDS_AW < LSPK_AW)\n          (angle between centre-line of snds and centre-line of lspkrs)\n\nCONFIG   Distribution of output sounds within output angle\n         config = 1: sounds equally spaced\n         config = 2: 2 sounds equally spaced, followed by gap, etc.\n         config = 3: 3 sounds equally spaced, followed by gap\n         and so on. CONFIG must be a divisor of the number of input sounds.\n\nRAND     Randomisation of sound positions (0-1).\n\nLSPK_POSITIONS (Mode 2) Textfile list of angular positions of (3-16) lspkrs.\n          Positions specified by +ve values from 0 (front centre) clockwise, so\n          vals to right of centre lie between 0 (front)and 180 (rear)\n          vals to left of centre lie between >180 (rear) and 360(=0) (front)\n\n-p       If angular width of lspkrs (LSPK_AW) < 360 :\n         Odd number of lspkrs gives 1 lspkr at centre front.\n         Even number of lspkrs gives pair of lspkrs centred on front.\n         If LSP_AW = 360, speaker orientation is ambiguous.\n         Default is 1 lspkr at centre front.\n         \"-p\" flag give PAIR of lspkrs at front (IGNORED if LSP_AW < 360 )\n-q       Same logic for SOUND positions ( ignored if SOUNDS_AW < 360 )\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "partition": {
+   "banner": "USAGE:\npartition partition 1 infile outnam outcnt groupcnt\n\nPartition mono sound file into disjunct files\nin blocks defined by groups of wavesets.\n\nOR\npartition partition 2 infile outnam outcnt dur [-rrand] [-ssplice]\n\nPartition mono sound file into disjunct files\nin blocks defined by duration.\n\nFor input file \"abcdefghijklmno....\" and 3 output files\n(where \"a\",\"b\" etc are successive blocks), we produce\n\nOutfile1 \"a--d--g--j--m--...\nOutfile2 \"-b--e--h--k--n-...\nOutfile3 \"--c--f--i--l--o...\n\nwhere \"-\" is silence replacing the missing blocks.\n\nOUTNAM   is generic name of the output files.\nOUTCNT   is the number of output files.\n\nThe duration of the blocks sent to the outfiles is either\n\nGROUPCNT Number of wavesets per block, OR\nDUR      Duration, in seconds, per block, where\n         block-duration must be short enough to allow\n         at least 1 block to be sent to every output file.\n         (if too large, dur will be reduced appropriately).\n\nRAND     is randomsation of durations (only) (range 0-1).\nSPLICE   Splice length in mS: default 3mS.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "paudition": {
+   "banner": "ERROR: Incorrect call to program which writes the sound.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "paview": {
+   "banner": "ERROR: Wrong number of arguments.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "pdisplay": {
+   "banner": "ERROR: Wrong number of arguments: pdisplay sndfilename.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "peak": {
+   "banner": "USAGE: peak extract\n1   analfile outf winsiz peak floor lo hi [-htune] [-a] [-m] [-q] [-z]\n2-4 analfile outf winsiz peak floor lo hi [-htune] [-a] [-m] [-q] [-z] [-f]\n\nMODE 1 Output time and frq:amp for peaks in each window.\n          Number of peaks may vary from window to window.\nMODE 2 Assign peaks to max number of pitch-streams.\n          Number of streams = max number of peaks found in any of windows.\n          Where windows have too few peaks to fit all these streams,\n          frq vals (at zero amplitude) at the (current) best-fit frq \n          are set in the stream. All peaks will lie in some stream.\nMODE 3 Assign peaks to most prominent pitch-streams.\n          This mode assumes spectrum is relatively constant.\n          It parses entire file, counting peaks in every semitone interval.\n          Then uses most visited semitones as stream centres.\n          Time-varying pitch(amp) data then assigned to those streams.\n          Peaks may be discarded where insufficient streams available.\nMODE 4 Find streams as mode 3, then get average pitch + relative amp\n          of each stream. Output does not vary through time.\n\nwinsiz semitone width of window used to search for peaks in spectrum.\n       (Range 1 - 96)\npeak   To retain as peak, channel amp must be 'peak' times louder than\n       median amp of all channels in window (Range 1 - 1000)\nfloor  Peaks must exceed a floor amplitude to be retained (Range 0.0001 - 1).\n       Entered val is multiplied by max channel amp found anywhere in file.\nlo     Minimum frq to accept as a peak (Range analchanwidth - nyquist)\nhi     Maximum frq to accept as a peak (Range analchanwidth - nyquist)\ntune   If non-zero, any peak which is a harmonic of another peak\n       (to within 'tune' semitones accuracy) is discarded (Range 0 - 6).\n       If set to zero, all peaks are retained.\n-a  Lose the amplitude information:\n       If set, amps information discarded.\n-m  Output frq information as midi:\n-q  Output frq quantised to tempered scale (in quarter-tones):\n-z  Mark peak-free segments:\n       start/end of peak-free areas marked by (timed) zeros in output.\n-f  Output in filter varibank format: This flag cancels the -z flag.\n       If -a flag also set, all outputs amps are set to 1.0.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "peakfind": {
+   "banner": "USAGE:\npeakfind peakfind infile outfile windowsize [-tthreshold]\n\nFind times of peaks in a sound. Output as a textfile list if times.\n\nWINDOWSIZE windowsize in mS for locating succesive peaks.\nTHRESHOLD  level (range 0-1) below which peaks are ignored in any window.\n\nIf threshold is not set (or is set to zero)\npeak windows below 1/5 of the local maximum are ignored,\nwhere local max is measured over 10 windows.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "peakiso": {
+   "banner": "USAGE: peakiso datafile outdatafile srate [minnotch]\n\nIsolate peaks in a spectrum.\n\nDATAFILE     textfile of frq/amp pairs.\nOUTDATAFILE  isolated peaks as frq/amp pairs.\nMINNOTCH     min depth of notch to qualify as peak-separator (Range 0-1).\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "phase": {
+   "banner": "USAGE:\nphase phase 1 infile outfile\nphase phase 2 infile outfile [-ttransfer]\n\nMode 1: Invert phase of a sound.\nMode 2: Enhance stereo separation by phase shifting. Input file must be stereo.\n\nTRANSFER Amount of signal to be used in phase-cancellation (0-1: default 1 = all).\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "phase_phase_1"
+   ]
+  },
+  "phasor": {
+   "banner": "USAGE:\nphasor phasor infile outfile streams phasfrq shift ochans [-ooffset] [-s] [-e]\n\nIntroduce phasing into signal : Takes a MONO input file.\n\nSTREAMS  Number of output streams that phase-interact (Range 2 - 8)\nPHASFRQ  Frequency of packets (phase shifts forward then back in a single packet).\nSHIFT    Maximum phaseshift with packet: (Range 0 - 12 semitones).\nOCHANS   Number of output channels (not greater than number of streams).\nOFFSET   The streams may be time-offset from one another..\n        \"Offset\" is time-offset of the most-offset stream (Range 0 - 500 mS).\n         The other streams are offset by intermediate amounts.\n\n-s       Output chans (lspkrs) encircle audience : only with more than 2 ochans.\n-e       Prints warnings re rounding-errors in calculating time-shifted streams.\n\n\"shift\" and \"phasfrq\" can vary through time,\nbut extreme phasfrq changes or reversals will produce anomalous output.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "pitch": {
+   "banner": "CDP Release 7.1 2016\n\nPITCH OPERATIONS ON A SPECTRAL FILE\n\nUSAGE: pitch NAME (mode) infile outfile parameters: \n\nwhere NAME can be any one of\n\naltharms    octmove    transp    tune    pick    chordf    chord\n\nType 'pitch altharms' for more info on pitch altharms..ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "pitch_tune_1"
+   ]
+  },
+  "pitchinfo": {
+   "banner": "CDP Release 7.1 2016\n\nINFORMATION ON A BINARY PITCH FILE\n\nUSAGE: pitchinfo NAME infile (outfile) parameters: \n\nwhere NAME can be any one of\n\ninfo     zeros     see      hear      convert\n\nType 'pitchinfo info' for more info on pitchinfo info..ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "pmodify": {
+   "banner": "ERROR: Incorrect call to program which writes the pitch data.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "prefix": {
+   "banner": "USAGE:\nprefix silence infile outfile dur\n\nAdd silence to start of sound.\n\nDUR     duration of silence to add.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "progmach": {
+   "banner": "ERROR: Bad number of arguments to progmach.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "psow": {
+   "banner": "\nOPERATIONS ON PITCH-SYNCHRONOUS GRAINS (FOFS)\n\nUSAGE: psow NAME (mode) infile(s) outfile parameters: \n\nwhere NAME can be any one of\n\nstretch    dupl    delete    strtrans    features   grab    sustain   sustain2\nchop   interp    synth   impose    split    space    interleave   replace\nlocate   cutatgrain   reinforce\n\nType 'psow stretch' for more info on psow stretch..ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "ptobrk": {
+   "banner": "CDP Release 7.1 2016\n\n\nUSAGE:     ptobrk withzeros binary-pitchfile outtextfile min-pitch-dur\n\nConverts binary pitch data to time-frq pairs in a breakpoint textfile.\n\nThis process should be used instead of 'repitch pchtotext'\nfor files containing no-pitch and no-sound markers.\n\nMIN-PITCH-DUR    gives minimum time (in milliseconds) any stretch of pitchdata\n                 must persist to be regarded as valid data.\n                 (range 1 ms to 1000 ms: suggest 20 ms).\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "pulser": {
+   "banner": "\nGENERATE STREAMS OF PULSES\n\nUSAGE: pulser NAME (mode) [infile] outfile parameters: \n\nwhere NAME can be any one of\n\npulser     multi     synth\n\nType 'pulser pulser' for more info on pulser pulser..ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "putcol": {
+   "banner": "\t    ***************************************************\n\t    *           COMPOSERS DESKTOP PROJECT             *\n\t                    PUTCOL $Revision: 1.3 $       \n\t    *                                                 *\n\t    *    Insert a column of figures, in a textfile,   *\n\t    *              into an existing file.             *\n\t    *                                                 *\n\t    *                by TREVOR WISHART                *\n\t    ***************************************************\n\nUSAGE : putcol columnfile intofile outfile colno -r|-i [[-]skiplines] [-e]\n\nCOLUMNFILE  File with NEW column.\nINTOFILE    File INTO which the new column goes.\nOUTFILE     Resultant file.\nCOLNO       POSITION of the column to be added.\n-r          REPLACE original column.\n-i          INSERT new column amongst original columns.\nSKIPLINES   SKIP OVER skiplines before inserting column.\n-SKIPLINES  THROW AWAY skiplines: then insert column.\n-e          Ignore lines which contain only 'e' or 's'.\n            and comment lines starting with ';'\n            (skipped lines should still be counted).\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "pview": {
+   "banner": "ERROR: Wrong number of arguments.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "pvoc": {
+   "banner": "CDP Release 7.1 2016\nUSAGE: pvoc NAME (mode) infile outfile (parameters)\n\nwhere NAME can be any one of\n\nanal   synth \textract\n\nType 'pvoc anal'  for more info on pvoc anal option... ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "pvoc_anal_1",
+    "pvoc_synth"
+   ]
+  },
+  "quirk": {
+   "banner": "USAGE:\nquirk quirk 1-2 infile outfile powfac\n\nDistort signal by raising sample values to a power.\n\nPOWFAC  Range 0.01 to 100.\n             < 1: exaggerates signal contour.\n             > 1: smooths signal contour.\n\nMODE 1  Applies power factor over amplitude range of individual half-wavesets.\nMODE 2  Applies power factor over amplitude range of entire signal.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "quirk_quirk_1"
+   ]
+  },
+  "refocus": {
+   "banner": "USAGE: refocus refocus 1-5 outname dur bandcnt focratio tstep trand\n[-ooffset] [-eend] [-nnot] [-sseed]\n\nFor a set of sounds to be mixed, generate corresponding set of envelopes\nwhich bring each sound in turn into focus (louder than others)\nat a specified timestep.\nThese envelopes can them be applied to the sounds before the final mix is made.\n\nOUTNAME   Generic name for output envelope textfiles.\nDUR       Duration of output envelopes.\nBANDCNT   Number of envelopes to generate.\nFOCRATIO  How much louder then the others is the in-focus sound.\nTSTEP     Time step between refocusings.\nTRAND     Randomisation of time steps (Range 0 - 1);\nOFFSET    Time at start before envelopes begin to change levels.\nEND       Time after which envelopes no longer change levels.\nNOT       No focus on upper (1), or lower (-1) band.\nSEED      Random seed: same (non-zero) value produces identical random-outputs.\n\nMODES\n1  Streams Refocus in a randomly permuted order.\n2  Ordered Refocus, from lowest to highest band.\n3  Ordered Refocus, from highest to lowest band.\n4  Ordered Refocus, cycling lowest to highest to lowest etc.\n5  Ordered Refocus, cycling highest to lowest to highest etc.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "rejoin": {
+   "banner": "USAGE:\nrejoin rejoin 1-2 infile infile2 [infile3 ....] [-ggain] [-r]\n\nRemix segment-files originating in \"isolate\" process.\nMode 1: Remix segment files only.\nMode 2: Remix segment files and remnant file.\n        NB Remnant file must be LAST infile in list of input files.\n\nGAIN   Change output level (Range 0 - 1).\n       Note that output level is automatically turned down if output clips.\n\n-r     Reverse the segment-files before mixing with remnant file.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "repair": {
+   "banner": "USAGE:\nrepair repair infiles generic-outfilename channels\n\nJoin a list of mono sounds into stereo, 4-channel or etc outputs.\n\nCHANNELS   No of channels in output files.\n\nInput files must be listed with all channel 1 sources in order, first,\nthen all channel 2 sources in order, etc.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "repeater": {
+   "banner": "USAGE: repeater repeater\n1-2 infile outfile datafile                 [-rrand] [-prand] [-sseed]\n3   infile outfile datafile accel warp fade [-rrand] [-prand] [-sseed]\n\nPlay source, with specified elements repeating.\nMODE 3 produces dimming, accelerating output, like bouncing object.\n\nMODES 1 & 3 DATAFILE has sets of 4-values, being....\n       \"Start-time\"   \"End-time\"   \"Repeat-cnt\"   \"Delay\"\n       with one set-of-values for each element to be repeated.\n       Elements can overlap, or baktrak in src, & must be at >= 0.010 secs.\n       \"Delay\", is time between start of 1 repeated element & start of next.\n       Delay zero will produce a delay equal to the segment length.\n       Otherwise, delays < 0.05 secs may produce output like oscillator.\n\nMODE 2 DATAFILE has sets of 4-values, being....\n       \"Start-time\"   \"End-time\"   \"Repeat-cnt\"   \"Offset\"\n       Similar to MODE 1 but using \"Offset\" instead of \"Delay\".\n       \"Offset\", for any repeating segment,\n       is the gap between end of one repeated element and start of next.\n\nRAND   Randomise delay:\n       Mode 1&3: Extend each delay-time by a random multiple.\n                 Multiplier generated in range you specify (between 1 & 2).\n       Mode 2:   Extend each offset-time by a random multiple.\n                 Multiplier generated in range you specify (between 1 & 8).\n       Value 1 gives NO randomisation. \"RAND\" may vary through time.\n\nPRAND  Randomise pitch of repeats within given semitone range (between 0 & 12)\n       \"PRAND\" may vary through time.\n\nSEED   An integer value. repeated runs of process with same input\n       and same seed value will give identical output.\n\nACCEL  Delay (& segment) shortening by end of repeats\n       e.g. accel = 2 gradually shortens delay to 1/2 its duration.\nWARP   Warps delay change. 1 no warp. > 1 shortens less initially, more later.\nFADE   Decay curve. 1 linear, >1 fast then slow decay, <1 slow then fast.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "repitch": {
+   "banner": "CDP Release 7.1 2016\n\nREPITCHING OPERATIONS ON SPECTRAL AND PITCH FILES\n\nUSAGE: repitch NAME (mode) infile (infile2) outfile parameters: \n\nwhere NAME can be any one of\n\ngetpitch\napprox      exag     invert    quantise    randomise    smooth\nvibrato     cut      fix       combine     combineb\nsynth    vowels   insertzeros   insertsil   pitchtosil    noisetosil   analenv\ngenerate interp   pchtotext\npchshift   transpose   transposef\n\nType 'repitch getpitch' for more info on repitch getpitch..ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "repitch_transpose_3",
+    "repitch_transposef_3"
+   ]
+  },
+  "retime": {
+   "banner": "USAGE:\nretime retime modenumber parameters.....\n\nMODE 1  Output user-specified peaks at regular pulse at given tempo.\nMODE 3  Shorten existing (silence-separated) events.\nMODE 4  Find existing (silence-separated) events and output at regular MM.\nMODE 5  Find existing (silence-separated) events and change speed by factor.\nMODE 6  Find existing (silence-separated) events: position at specified beats.\nMODE 7  Find existing (silence-separated) events: position at specified times.\nMODE 8  Mark (silence-separated) event within sound & repeat at specified tempo.\nMODE 9  Replace by silence (silence-separated) events in specified pattern.\nMODE 10 Adjusts levels (silence-separated) events, so more equal, or accented.\nMODE 11 Finds durations of shortest and longest (silence-separated) event.\nMODE 12 Find start of sound in file (1st non-zero sample).\nMODE 13 Find peak and move all data so peak goes to specified time.\nMODE 14 Mark peak, then move all data so peak goes to specified time.\n\nRetime works by editing existing files (removing sound or adding silence)\nand is best suited to making small changes to rhythmic placement.\n\nType \"retime retime modenumber\" for more details\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "rotor": {
+   "banner": "USAGE:\nrotor rotor 1   fi fo env cnt minp maxp step prot trot phas dur gstp [-ddove] [-s]\nrotor rotor 2-3 fi fo env cnt minp maxp step prot trot phas dur [-ddove] [-s]\n\nGenerate note-sets that grow and shrink in pitch-range and speed (and spatial-width).\n\nMode 1: Note-set start-times determined by param \"gstp\".\nMode 2: Next Note-set start-time, depends on spacings WITHIN current set.\nMode 3: First event of next note-set overlaid on last event of previous set.\n\nFI     File to be read at different speeds to generate output events.\n       (should start and end at sample value 0.0, OR use \"dove\")\nFO     Output file(can be mono or stereo).\nENV    Envelope to be imposed over output events.\n       Envelope duration determines duration of all events.\nCNT    Number of events in each (changing) set (Range 3 to 127).\nMINP   Minimum (MIDI) pitch of events (Range 0 to 127).\nMAXP   Maximum (MIDI) pitch of events (Range 0 to 127).\nSTEP   Maximum timestep between event-onsets (Range 0 to 4 secs).\nPROT   Number of notesets before pitch-sequence returns to orig (Range 4 to 256).\nTROT   Number of speeds, before speed returns to original (Range 4 to 256).\nPHAS   Initial phase difference between prot and trot (range 0 - 1).\nDUR    Duration of output to generate (Range 1 to 32767).\nGSTP   (Mode 1 only) timestep between each note-group (Range 1 to 60).\nDOVE   Size (mS) of start/end dovetails of insound  (Range 0 to 5).\n\n-s     Stereo output: output grows and shrinks in spatial width.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "scramble": {
+   "banner": "USAGE:\nscramble scramble 1-2   infile outfile dur  seed [-ccnt] [-ttrns] [-aatten]\nscramble scramble 3-4   infile outfile      seed [-ccnt] [-ttrns] [-aatten]\nscramble scramble 5-8   infile outfile cuts seed [-ccnt] [-ttrns] [-aatten]\nscramble scramble 9-10  infile outfile      seed [-ccnt] [-ttrns] [-aatten]\nscramble scramble 11-14 infile outfile cuts seed [-ccnt] [-ttrns] [-aatten]\n\nScramble order of waveset in src.\n\nDUR   Duration of output file.\nSEED  Random seed (0-256). Same seed with same rand-params gives same output.\nCNT   Number of wavesets in waveset-groups to be scrambled. (Range 1 to 256)\nTRNS  Range of any random transposition of wavesets (semitones) (Range 0 to 12).\nATTEN Range of any random attenuation of wavesets (Range 0 to 1).\nCUTS  Textfile of (increasing) times in src: process in each separate segment.\n\n\"TRNS\" and \"ATTEN\" can vary through (output) time.\n\nReassembly is ....\nMode 1:  in random order.\nMode 2:  in permuted random order (all wavesets used before any reused).\nMode 3:  in order of increasing size (falling pitch).\nMode 4:  in order of decreasing size (rising pitch).\nMode 5:  in order of increasing size, in each segment.\nMode 6:  in order of decreasing size, in each segment.\nMode 7:  in order of increasing then decreasing size.\nMode 8:  in order of decreasing then increasing size.\nMode 9:  in order of increasing level.\nMode 10: in order of decreasing level.\nMode 11: in order of increasing level, in each segment.\nMode 12: in order of decreasing level, in each segment.\nMode 13: in order of increasing then decreasing level.\nMode 14: in order of decreasing then increasing level.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "scramble_scramble_10",
+    "scramble_scramble_9"
+   ]
+  },
+  "search": {
+   "banner": "USAGE:\nsearch sigstart infile1 [infile2 infile3 .....]\n\nFind earlist time at which there is signal in any of the infiles.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "selfsim": {
+   "banner": "\nINCREASE SPECTRAL SELF-SIMILARITY\n\nUSAGE: selfsim selfsim inanalfile outanalfile param\n\nType 'selfsim selfsim' for more info.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "sfecho": {
+   "banner": "USAGE:\nsfecho echo infile outfile delay attenuation totaldur [-rrand] [-ccutoff]\n\nDELAY        Time between echo repeats.\nATTENUATION  Relative level of each repeat (0 - 1).\nTOTALDUR     Maximum output duration (duration may be less).\nRAND         Randomisation of echo times.\nCUTOFF       dB Level at which decaying echoes cut off (default -96dB).\n\nDelay, attenuation and randomisation may vary over time.\nDelay cannot be less than duration.\n (use \"MODIFY REVECHO DELAY\" process if overlapping delays required)\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "sfedit": {
+   "banner": "CDP Release 7.1 2016\nUSAGE: sfedit NAME (mode) infile(s) outfile (parameters)\n\nwhere NAME can be any one of\n\ncut    cutend   zcut   zcuts   excise   excises   insert   replace\ninsil  join     masks     randcuts   randchunks    cutmany\nnoisecut   syllables   joinseq    joindyn  twixt  sphinx  noisecut\n\nType 'sfedit excise'  for more info on sfedit excise option... ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "sfedit_cut_1",
+    "sfedit_excise_1",
+    "sfedit_join"
+   ]
+  },
+  "sfprops": {
+   "banner": "CDP MCTOOLS: SFPROPS v2.2.1 (c) RWD,CDP,1999,2009,2010,2013,2023\nDisplay soundfile details, with WAVE-EX speaker positions\n\n\tusage: sfprops [-c | -d | -r] infile\n\tflag options for single data report\n\t-c: print number of channels in file\n\t-d: print duration (secs) of file\n\t-r: print sample rate of file\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "shifter": {
+   "banner": "USAGE: shifter shifter \n1 inf out cycles cycdur dur ochans subdiv linger transit boost [-z|-r] [-l]\n2 inf1 inf2 [inf3 ....] cycles cycdur dur ochans subdiv linger transit boost\n          [-z|-r] [-l]\n\nGenerate simultaneous repetition cycles, shifting focus from one to another.\n\nMode 1: Uses the same input sound for all cycles.\nMode 2: In this mode the number of input files must equal the number of cycles.\n        Assigns the input files, in order, to the cycles, in order.\nCYCLES  Textfile listing the number of beats in each cycle.\nCYCDUR  Duration of 1 complete cycle.\nDUR     Required duration of the output sound.\nOCHANS  Number of channels in output.\nSUBDIV  Minimum division of the beat: > 4 and a multiple of 2 and or 3\nLINGER  Number of cycles to remain in a fixed focus.\nTRANSIT Number of cycles to make transition to next focus.\n        The sum of LINGER  & TRANSIT must be >= 1.\nBOOST   With standard stream level \"L\", add \"boost * L\" to focus stream level.\n\n        Normal procedure is to move focus through the list of cycles.\n        e.g. with cycles 11,12,13 focus moves 11,12,13,11,12,13,etc\n\n-z      Flag causes focus to ZIGZAG through the cycles.\n        e.g. with cycles 11,12,13 focus moves 11,12,13,12,11,12,13,12,etc\n\n-r      Flag causes focus to select a RANDOM order of the cycles\n        e.g. 12,11,13, move through those, then select another random order etc.\n\n        If number of output channels > 2, lspkr array assumed sound-surround.\n-l      Flag changes to a linear array, with a leftmost and rightmost lspkr.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "shrink": {
+   "banner": "USAGE: shrink shrink 1-3 infile outfile shrinkage\ngap contract dur spl [-ssmall] [-mmin] [-rrnd] [-n] [-i]\nUSAGE: shrink shrink 4   infile outfile time shrinkage\ngap contract dur spl [-ssmall] [-mmin] [-rrnd] [-n] [-i]\nUSAGE: shrink shrink 5 infil generic-outfile-name shrinkage\nwsiz contract aft spl [-ssmall] [-mmin] [-rrnd] [-llen] [-ggate] [-qskew]\n                                               [-n] [-i] [-e] [-o]\nUSAGE: shrink shrink 6 infil generic-outfile-name peaktimes shrinkage\nwsiz contract aft spl [-ssmall] [-mmin] [-rrnd] [-llen] [-ggate]\n                                               [-n] [-i] [-e] [-o]\nREPEAT SOUND, shortening it on each repetition.\nMode 1: Shrink from end.            Mode 2: Shrink around midpoint.\nMode 3: Shrink from start.          Mode 4: Shrink around specified time.\nOR, ISOLATE EVENTS IN SOUND, and shorten as we proceed from one to next.\nMode 5: Shrink around found peaks and output each segment + mixfile.\nMode 6: Shrink around specified peaks and output each segment + mixfile.\nTIME      Time around which shrinkage takes place.\nSHRINKAGE Shortening factor of sound from one repeat to next.\n          Shrinkage stops once events too short for splices.\nGAP       Initial timestep between output events (>= sound duration).\nCONTRACT  Shortening of gaps between output events.\n          1.0 = events equally spaced, < 1.0 events become closer\n          Events can't overlap, so minimum \"contraction\" = \"shrinkage\".\nDUR       (Minimum) duration of output.\nAFT       Time after which shrinkage begins.\nSPL       Splice length in mS.\nSMALL     Minimum sound length (after which sounds are of equal length).\nMIN       Minimum event separation (after which events are regular in time).\nRND       Randomisation of timings AFTER min event separation reached.\nPEAKTIMES Textfile list of times of peaks in sound.\nWSIZ      Windowsize (in mS) for extracting envelope (1-100 dflt 100)\nLEN       Minimum segment length before sound squeezing can begin (for -e flag)\nGATE      Level (relative to max) below which found peaks ignored (0-1 dflt 0)\nSKEW      How envelope centred on segment (0 to 1: dflt 0.25). 0.5 = central.\n          Zero value switches the flag off.\n-n        Equalise maximum level of output events (if possible).\n-i        Inverse: Reverse each segment in output.\n          Reversing outfile creates stream of unreversed segments\n          where segments expand/accelerate (rather than shrink/contract).\n-e        Even Squeeze: Sounds shorten in regular manner, from 1st squeezed segment.\n          (squeezed snd lengths not dependent on length of input segments).\n-o        Omit any too-quiet events once a fixed end tempo has been reached.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "silend": {
+   "banner": "USAGE:\nsilend silend 1 infile outfile sildur\nsilend silend 2 infile outfile outdur\n\nAdd silence to end of file.\n\nSILDUR   Duration of silence to add.\nOUTDUR   Total Duration of output after silence added.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "silend_silend_1"
+   ]
+  },
+  "smooth": {
+   "banner": "USAGE: smooth datafile outdatafile pointcnt srate [-s]\n\nGenerate smoothed curve from input data re spectrum.\n\nDATAFILE     textfile of frq/amp pairs.\nOUTDATAFILE  textfile of smoothed data.\nPOINTCNT     no of analysis points required in handling data.\nSRATE        samplerate of eventual sound output.\n-s           if spectral amp falls to zero before the nyquist,\n             keep zeroed end of spectrum at zero.\n.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "sndinfo": {
+   "banner": "CDP Release 7.1 2016\nUSAGE: sndreport NAME (mode) infile(s) (outfile) (parameters)\n\nwhere NAME can be any one of\n\nprops     len        lens      sumlen      timediff\nsmptime   timesmp    maxsamp   maxsamp2    loudchan    findhole\ndiff      chandiff   prntsnd   units       maxi        zcross\n\nType 'sndreport timediff'  for more info on info timediff option... ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "sorter": {
+   "banner": "USAGE:\nsorter sorter 1-4 inf outf esiz [-ssmooth] [-oopch] [-ppch] [-mmeta] [-f]\nsorter sorter 5   inf outf esiz seed [-ssmooth] [-oopch] [-ppch] [-mmeta] [-f]\n\nChops mono source into elements then reorganises by loudness, or duration.\n\nESIZ    Approximate size of elements to sort, in seconds.\n        If set to zero, individual wavesets are chosen as elements.\nSMOOTH  Fade in (and out) each segment, with a \"SMOOTH\" mS splice.\n        (If elementsize is zero, this is ignored).\nSEED    Mode 5 (\"Order at Random\"): Rerun with same non-zero seed value\n        outputs the SAME random ordering of elements.\n        (Zero seed-value gives different random ordering on each run).\nOPCH    Output elements with separation equivalent to MIDI pitch,\"OPCH\".\n        If \"-f\" flag used, value can be set to 128 to specify\n        the median pitch of the source.\n        If value is set to zero, parameter is ignored.\n\n-f      Elementsize read as frq value (= 1.0/duration)\n        and could be a frequency-trace of the pitch of the source.\n\nThe following parameters can only be used if \"-f\" flag is set.\n\nPCH     Transpose input elements to MIDI pitch specified.\n        If value set to 128, the median pitch of the source is used.\n        If value is set to zero, parameter is ignored.\n\nThe following parameter is only useful if \"PCH\" is set.\n\nMETAGRP Size of meta-grouping, in seconds.\n        Allows larger units to be (approx) pitch-correlated.\n        Src 1st cut to pitch-wavelen-scale elements & transpositions calcd.\n        These elements are then further grouped to (approx) \"METAGRP\" size.\n        Must be larger than largest element (1/frq) from frq trace.\n        If \"METAGRP\" set to zero, it is ignored.\n\nIf \"PCH\" is NOT set, larger groupings obtained by larger value of \"ESIZ\".\n\nMode 1: Sort to Crescendo.\nMode 2: Sort to Decrescendo.\nMode 3: Sort to Accelerando. (With very small elements, may rise in pitch).\nMode 4: Sort to Ritardando.  (With very small elements, may fall in pitch).\nMode 5: Order at Random.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "spacedesign": {
+   "banner": "ERROR: USAGE: spacedesign mode outfile params\n\nMODE     stom, mtos, rotate\nSTOM     collapses stereo image to mono, gradually\nMTOS     spreads from mono image to stereo\nROTATE   rotates the source\n\nOutputs are various control files for enveloping or mixing the source.\n\nThis program is usually accessed through an interface on the Sound Loom.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "spec": {
+   "banner": "CDP Release 7.1 2016\n\nSIMPLE OPERATIONS ON A SPECTRAL FILE\n\nUSAGE: spec NAME (mode) infile(s) outfile parameters: \n\nwhere NAME can be any one of\n\ngain   gate    bare    clean    cut    grab    magnify\n\nType 'spec gain' for more info on spec gain.. ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "spec_cut",
+    "spec_gain",
+    "spec_magnify"
+   ]
+  },
+  "specanal": {
+   "banner": "Generate various types of analysis data, or filter data from sound.\n\nUSAGE:\nspecanal specanal 1  inf analofil chs ovlp\nspecanal specanal 2,4,5 inf txtofils chs ovlp [-n]\nspecanal specanal 3  inf txtofils chs ovlp [-n] [-f]\nspecanal specanal 6  inf txtofils chs ovlp fbands [-n]\nspecanal specanal 7  inf txtofil  chs ovlp\nspecanal specanal 8  inf txtofil  chs ovlp pkcnt [-a] [-h] [-c] [-m] [-d|-D]\nspecanal specanal 9  inf txtofil  chs ovlp       tstep [-bbot] [-ttop] [-ggate]\nspecanal specanal 10 inf txtofil  chs ovlp pkcnt tstep [-bbot] [-ttop] [-ggate] [-d|-D]\n\nINF         A Mono soundfile.\nTXTOFIL(S)  (Generic) name for text output file(s).\nANALOFIL    Analysis output file.\nCHS         Number of analysis points : a multiple of 4 (4 - 32768).\nOVLP        analysis window overlap (1-4), for PVOC analysis.\nFBANDS      Number of formant peaks to find.\n-n          Normalise output display.\n-f          Force frequencies into ascending order.\n\nMode 1:  PVOC anal output as analfile.\n\nModes 2-6 generate sets of text outfiles, 1 for each analysis window from input\n          (except first - zeroed - window).\n          These can be used to run a \"movie\" of the data in Soundloom.\n\nMode 2:  FFT data as magnitude and channel centre frequency.\nMode 3:  PVOC data as amplitude and frequency.\nMode 4:  LOG of FFT magnitudes (output always noremalised).\nMode 5:  Cepstrum (FFT of log FFT) (output always normalised).\nMode 6:  Generate Formant Envelope.\n\nModes 7-10 generate 1 textfile, a MIDI list, or a MIDI varibank filterdata file.\n\nMode 7:  Signal level, at each semitone bin, averaged over entire sound.\nMode 8:  Derived Harmonic Field (HF) of entire sound\n         converted to varibank-filter data, or a list of MIDI values.\nMode 9:  (Changing) Pitch, in tempered scale: output as MIDI-type varibank file.\n             NB Pitch of most prominent partial, not necessarily of fundamental.\nMode 10: (Changing) HF in tempered scale: output as MIDI-type varibank file.\n\nPKCNT   Number of peaks to use as filter frequencies.\n        (Run Mode 7 first to view the spectral envelope as a brkfile).\nTSTEP   Time step, in mS, between pitch-assessments.\nBOT     Minimum acceptable pitch (MIDI).\nTOP     Maximum acceptable pitch (MIDI).\nGATE    Level (relative to max) at which signal ignored (no pitch assigned).\n-a      Ignore relative amp of peaks (dflt, use relative amps) in filter definition.\n-h      Eliminate any peaks which are harmonics of others.\n-c      Dechromaticise: remove quieter pitch of any pair at semitone interval.\n-m      Outputs list of MIDI values (default: MIDI-type varibank filter file).\n-d      Transpose entire filter down by an octave.\n-D      Transpose entire filter down by two octaves.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "specav": {
+   "banner": "CDP Release 7.1 2016\nUSAGE: specav specav 1 inafil outfil starttime endtime [-n]\nOR:    \nspecav specav 2 inafil1 inafil2 [inafil3 ....] outfil starttime endtime [-n]\nOR:    \nspecav specav 3 inafil generic_outfilname [-ggroupcnt] [-n]\n\nFIND AVERAGE SPECTRUM OF A SOUND OR OF SEVERAL SOUNDS\nOR\nEXTRACT CHANGING SPECTRUM OF SINGLE ANALYSIS FILE AS LIST OF TEXTFILES\n\nINAFIL    Inputs are analysis files (of the same type).\nOUTFIL    Output is a textfile, or a set of textfiles.\nSTARTTIME Start time of section to be averaged.\nENDTIME   End time of section to be averaged.\nGROUPCNT  Number of windows averaged in each output textfile (default = 1).\n-n        Normalise the output data, to peak at 1.0\n(Useful to display formant contour of source).\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "specenv": {
+   "banner": "USAGE:\nspecenv specenv inanalfil1 inanalfil2 outanalfil windowsize [-bbal] [-p] [-i] [-k]\n\nGet the spectral envelope of file 2 and apply it to file 1.\n(File 2 must be at least as long as file 1).\n\nBAL  proportion of original files in output.\n     bal > 1 : balance of shaped-file to infile1 = (1-bal) : bal\n               (Higher balance keeps more of the original file1)\n     bal < 1 : balance of shaped-file to infile2 = (1+bal) : -bal\n               (Lower balance keeps more of the imposed file2)\n     default 0.0 (none of the original files in the output).\n\n-p : windowsize counted in octave steps.\n     Default: counted in analysis-channel-widths (srate/anal-chans).\n\n-i : IMPOSE spectral envelope (default, REPLACE spectral envelope)\n\n-k : KEEP the loudness contour of the imposed file.\n     Default: keep the loudness contour of the original file.\n\nProcess equivalent to format extraction + formant impose/replace\nbut allows for larger spectral windows.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "specfnu": {
+   "banner": "\nUSAGE: specfnu specfnu 1-23 inanalfile outfile [params]\n\nModify spectral shape in relation to formant peaks, or show formant data.\n\nMODE 1:  NARROW FORMANTS:     Steepen skirts of formant peaks by power factor.\nMODE 2:  SQUEEZE SPECTRUM:    Squeeze the spectrum around specified formant.\nMODE 3:  INVERT FORMANTS:     Formant peaks become troughs, and troughs peaks.\nMODE 4:  ROTATE FORMANTS:     Formant peaks & frqs move up (or down) spectrum\n                              reappearing at foot(top) on reaching fmnts edge.\nMODE 5:  SPECTRAL NEGATIVE:   Spectral values inverted for each channel.\nMODE 6:  SUPPRESS FORMANTS:   Suppresses the selected formant(s).\nMODE 7:  GENERATE FILTER:     Output Varibank filtdata based on formant peaks.\nMODE 8:  MOVE FORMANTS BY:    Displace individual formants by a Hz value.\nMODE 9:  MOVE FORMANTS TO:    Displace individual formants to specified frqs.\nMODE 10: ARPEGGIATE:          Arppegiate partials of sound, under formants.\nMODE 11: OCTAVE-SHIFT:        Octave-shift pitch of sound, under formants.\nMODE 12: TRANSPOSE:           Transpose pitch of sound, under formants.\nMODE 13: FREQ-SHIFT:          Frequency shift partials of src, under formants.\nMODE 14: RESPACE PARTIALS:    Respace partials of sound, under formants.\nMODE 15: PITCH-INVERT:        Invert pitch of sound, under formants.\nMODE 16: PITCH-EXAGG/SMOOTH:  Exaggerate/Smooth pitchline, under formants.\nMODE 17: PITCH-QUANTISE:      Force pitch onto pitch field, under formants.\nMODE 18: PITCH-RANDOMISE:     Randomise pitch of src, under formants.\nMODE 19: RANDOMISE PARTIALS:  Random shift partials of sound, under formants.\nMODE 20: SEE SPEC ENVELOPES:  Outputs viewable (not playable) sndfile.\nMODE 21: SEE SPEC PEAKS/TROFS:Print textfile of frqs of peaks+trofs per window.\nMODE 22: GET LOUDNESS TROFS:  Print textfile of times-of-trofs between syllabs.\nMODE 23: SINE SPEECH:         Single sine wave repesenting each formant.\n\nType \"specfnu specfnu 1\" for more info on NARROW FORMANTS.... etc.\n\nSpectral window-size: Small window or Large window ???\n\nIf process uses \"Force fundamental\" flag, Large window will find fundamental\nwhereas Small window may not.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "specfnu_specfnu_1",
+    "specfnu_specfnu_19",
+    "specfnu_specfnu_2",
+    "specfnu_specfnu_3",
+    "specfnu_specfnu_4",
+    "specfnu_specfnu_5",
+    "specfnu_specfnu_8",
+    "specfnu_specfnu_9"
+   ]
+  },
+  "specfold": {
+   "banner": "USAGE: specfold specfold 1 inanalfile outanalfile stt len cnt  [-a]\nUSAGE: specfold specfold 2 inanalfile outanalfile stt len      [-a]\nUSAGE: specfold specfold 3 inanalfile outanalfile stt len seed [-a]\n\nMODE 1 : Fold the spectrum.\n\nChannels in fold group are split into 2 equal sets of consective channels.\nValues in first set are moved from channel N to channel 2N\nValues in 2nd set are assigned to remaining channels, in descending order.\n\nMODE 2 : Invert the spectrum.\nMODE 2 : Randomise the spectrum.\n\nSTT   Lowest spectrum channel to process.\nLEN   Number of channels to process (>= 4)\n      For Folding (Mode 1) this must be an even number.\nCNT   (Mode 1) Number of folds (less than \"len\").\nSEED  (Mode 3) Seed value sets a specific random perm of channels.\n-a    Process the amplitudes only.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "specfold_specfold_3"
+   ]
+  },
+  "specgrids": {
+   "banner": "CDP Release 7.1 2016\nPARTITION SPECTRUM INTO PARTS, OVER A GRID\nUSAGE: specgrids specgrids analfile1 outanalfilesname outfilecnt changrouping\n\nType \"specgrids specgrids\" for more information\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "specinfo": {
+   "banner": "CDP Release 7.1 2016\n\nINFORMATION ON A SPECTRAL FILE\n\nUSAGE: specinfo NAME (mode) infile outfile parameters: \n\nwhere NAME can be any one of\n\nwindowcnt  channel  frequency  level   octvu   peak   report   print\n\nType 'specinfo windowcnt' for more info on specinfo windowcnt..ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "speclean": {
+   "banner": "\nFURTHER OPERATIONS ON ANALYSIS FILES\n\nUSAGE: speclean NAME infile(s) outfile parameters: \n\nwhere NAME can be any one of\n\nclean\n\nType 'speclean clean' for more info on speclean clean..ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "specnu": {
+   "banner": "\nFURTHER OPERATIONS ON ANALYSIS FILES\n\nUSAGE: specnu NAME (mode) infile(s) outfile parameters: \n\nwhere NAME can be any one of\n\nremove    clean    subtract    slice    rand    squeeze\n\nType 'specnu remove' for more info on specnu remove..ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "specross": {
+   "banner": "CDP Release 7.1 2016\nINTERPOLATE PARTIALS OF PITCHED SRC1 TOWARDS THOSE OF PITCHED SRC 2\nUSAGE: specross partials analfile1 analfile2 outanalfile\n       tuning minwin signois harmcnt lo ho thresh level interp\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "specsphinx": {
+   "banner": "CDP Release 7.1 2016\nUSAGE: specsphinx specsphinx 1 analfile1 analfile2 outanalfile\n       [-aampbalance] [-ffrqbalance]\n\nIMPOSE CHANNEL AMPLITUDES OF FILE2 ON CHANNEL FRQS OF FILE 1\n\nAMPBALANCE  Proportion of File1 amps retained (Default 0)\nFRQBALANCE  Proportion of File2 frqs injected into output spectrum\n(Default 0)\n\nUSAGE: specsphinx specsphinx 2 analfile1 analfile2 outanalfile\n       [-bbias] [-ggain]\n\nMULTIPLY THE SPECTRA\n\nBIAS    When non-zero, adds proportion of original files to output.\n\n      < 1 : add analfile1 to outanalfile in proportion (-bias)/(1+bias)\n      > 1 : add analfile2 to outanalfile in proportion (bias/(1-bias)\nGAIN   Overall gain on output.\n\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "spectrum": {
+   "banner": "\nCREATE SPECTRA FROM TEXT DATA\n\nUSAGE: spectrum NAME outanalfile datafile pointcnt srate dur parameters\n\nwhere NAME can be any one of\n\nformat  fixed   varying  lines\n\nType 'spectrum format' for more info on spectrum format..ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "spectstr": {
+   "banner": "spectstr stretch time infile outfile timestretch d-ratio di-rand\n\nTIME-STRETCHING OF INFILE, SUPPRESSING ARTEFACTS WHEN STRETCH IS > 1.0\n\nTIMESTRETCH may itself vary over time.\nD-RATIO     proportion of channels to discohere.\nD-RAND      Frequency randomisation of discohered channels.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "spectstr_stretch"
+   ]
+  },
+  "spectune": {
+   "banner": "\nFURTHER OPERATIONS ON ANALYSIS FILES\n\nUSAGE: spectune tune mode infile (outfile) parameters: \n\nType 'spectune tune' for more info.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "spectwin": {
+   "banner": "USAGE: spectwin spectwin\n       1-4 inanal1 inanal2 outanal [-ffrqint] [-eenvint] [-ddupl -sstep -rdec]\n\nFRQINT   Dominance of spectral freqs of infile2 (range  0-1: dflt 1.0).\nENVINT   Dominance of spectral envelope of infile2 (range  0-1: dflt 1.0).\nDUPL     Duplicate original sound-1 \"dupl\" times, at higher pitches.\nSTEP     pitchstep (semitones) at each duplication.\nDEC      Level multiplier from one transposition to next, in duplications.\n\nMODE 1  Formant envelope of file 1 v Formant envelope of file 2.\nMODE 2  Formant envelope of file 1 v Total envelope of file 2.\nMODE 3  Total envelope of file 1 v Formant envelope of file 2.\nMODE 4  Total envelope of file 1 v total envelope of file 2.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "speculate": {
+   "banner": "\nPERMUTATIONS ON ANALYSIS FILE SPECTRA\n\nUSAGE: speculate NAME (mode) infile(s) outfile parameters: \n\nwhere NAME can be any one of\n\nspeculation\n\nType 'speculate speculate' for more info on speculate speculate..ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "specvu": {
+   "banner": "USAGE:\nspecvu specvu 1 inanalfile outtextfile windowno\nspecvu specvu 2 inanalfile outtextfile\n\nMODE 1: Extracts the data in a specified spectral window as a textfile.\nMODE 2: Finds (abs) min & max frq, and min & max amp of spectral data.\n        and outputs to a textfile.\n\nWINDOWNO Number of the window to extract\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "spike": {
+   "banner": "USAGE:\nspike spike infile outfile peak(s) upslope downslope [-mmaxup] [-dmaxdown] [-n]\n\nEnvelope the input sound to spike at the peak.\n\nPEAKS(S)  Is either a single time (single peak) or a list of trof-peak-trof triplets,\n          Adjacent trofs may be at the same time, but other times must advance.\n\nUPSLOPE   Power-value for slope of envelope before peak(s) Range (1 to 100).\nDOWNSLOPE Power-value for slope of envelope after peak(s) Range (1 to 100).\n\nMAXUP     Maximum duration of upward approach: Range (0 to 1 secs).\nMAXDOWN   Maximum duration of downward approach: Range (0 to 1 secs).\n          (In both cases ZERO implies NO maximum)\n\n-n        Raise all peaks to that of maximum.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "spin": {
+   "banner": "USAGE: spin NAME mode infile outfile (parameters)\n\nwhere NAME can be any one of\n\nstereo  quad\n\nType 'spin stereo'  for more info on spin stereo option... ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "splinter": {
+   "banner": "USAGE:\nsplinter splinter 1-4 infile outfile target wcnt shrcnt ocnt p1 p2\n        [-eecnt] [-sscv] [-ppcv] [-ffrq | -ddur] [-rrand] [-vshrand] [-i] [-I]\n\nCreates splinters by repeating & shrinking selected waveset-group in sound.\nEither splinters repeat before merging with orig snd at time-in-src specified.\nOR original sound plays up to selected time, then splinters,\n\nMode 1+3: Splinters lead into original sound.    Mode 1 splinters change pitch.\nMode 2+4: Splinters emerge from original sound.  Mode 2 splinters change pitch.\n\nTARGET Time in src immediately before desired waveset-group.\n       Waveset group selected should not be longer than 1 minute.\nWCNT   Number of wavesets to use to create splinter group.\nSHRCNT Number of waveset-group repets over which shrinkage takes place.\nOCNT   Number of max-shrunken splinters beyond shrink.\nP1     Pulse-speed of waveset repetitions (Hz) at originating waveset.\nP2     Pulse-speed of shrunken wavesets (Hz) SHRCNT+OCNT splinters away.\nECNT   Number of additional regular pulses beyond SHRCNT+OCNT.\n\nSCV    Shrinkage curve: 1 = linear:\n       >1 contracts more rapidly near originating waveset; <1 less rapidly.\nPCV    Pulse-speed curve: 1 = linear:\n       >1 accels more rapidly near originating waveset; <1 less rapidly.\n\nFRQ    Modes1+2: approx Frq (1/wavelen) of max-shrunk splinters (dflt c6000Hz).\n       Resultant wavelen must be > average wavesetlen in wavesets chosen\n       and less than nyquist/2.\nDUR    Modes3+4: approx Duration (mS) of max-shrunk splinters.\n\nRAND   Randomisation of pulse timing. Time-variable parameter.\nSHRAND Randomisation of pulse shrinkage. Time-variable parameter.\n-i     Mix all source into output. (Default: use source only where no splinters)\n-I     Mix none of source into output.\n\nIf P1 set to zero, Pulse-speed 1 determined by duration of selected waveset-group.\nIf P2 set to zero, Pulse-speed 2 same as Pulse-speed 1.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "strands": {
+   "banner": "USAGE: strands strands 1 generic_outdatafilename ...\nOR:    strands strands 2 outsndfilename ...\ndur bands threads tstep bot top twist rand scat vamp vmin vmax turb seed\n[-ggap] [-mminband] [-f3d] [-s]\n\nOR:    strands strands 3 generic_outdatafilename ...\nthrdsfile dur bands tstep bot top twist rand scat vamp vmin vmax turb seed\n[-ggap] [-mminband] [-f3d] [-s]\n\nGenerate pitch-data for several streams (or the combined sound itself)\nwhere total pitch-tessitura divided into equal-sized pitch-BANDS\nand each band made of pitch-line THREADS, cycling around one-another\npitchwise, within the band, IF twist strays from zero.\nStrands in adjacent bands spiral in opposite directions.\n\nDUR       Duration of output data or sound.\nBANDS     Number of bands in the output.\nTHREADS   Number of sounds in a band.\nTHRDSFILE Textfile listing number of sounds in EACH band.\nTSTEP     Timestep (in mS) between pitch-data vals in output.\nBOT       Lowest pitch of all output.\nTOP       Highest pitch of all output.\nTWIST     Rate of cycling of output pitches in bands (Hz).\nRAND      Random variation of twist frq from band to band.\nSCAT      Random-warp of cycles of threads in same band.\nVORTEX WAVINESS\nVAMP      ammount band-boundaries wander from fixed frqs.\nVMIN      min rate of oscillation of band boundaries.\nVMAX      max rate of oscillation of band boundaries.\nTURBULENCE\nTURB      0  none: >0-to-1 turbulence in bands: >1-to-2 gobal turbulence.\nSEED      Seed value for randomisation settings.\nGAP       Minimum pitch-gap between bands.\nMINBAND   Minimum pitchwidth of any band.\n3D        Motion in 3D:  0 = none: 1 = bottom band up at front: -1 = down.\n\n-s        (Mode 2 only) - outputs each band in succesion.\n\nPress any key to see further information.\n\nTWIST &   With twist ZERO, streams do not cycle round one another\nLAMINAR   but stay at steady(ish) pitches .. (\"laminar flow\").\nFLOW      To force laminar flow, use 2 adjacent brkpnt vals of zero\n          (laminar flow is forced between the associated times).\n          To move to twisted flow, follow a zero val by a non-zero val.\n          To maintain twisted flow, follow non-zero val by non-zero val.\n          To untwist the flow, follow a non-zero val by a zero val.\n          \n          During laminar flow,\n          \"RAND\" controls pitch-jitter of laminae.\n          \"SCAT\" controls level-jitter of laminae.\n          \n3D        Outputs 2 extra param sets for each stream.\n          1st set can control loudness, or synth partial-cnt\n          in creation of a synthesized output.\n          2nd set can control a mix with reverb (etc) version,\n          (parameter is level of modified source in that mix)\n          both to simulate distance from the listener.\n          In modes 1 & 3, this extra data is output in separate files\n          AFTER all the pitchdata files have been output.\n          The output order is ...\n          all pitch data, all 1st controlfiles, all 2nd controlfiles.\n\nTURBULENT This can only happen (turb > 0.0) when twist > 0.0\nFLOW      (i.e. there can be no turbulence during laminar flow\n          or in the transitions to and from twisted flow).\n\nMODE 2 SOUND OUTPUT\n          Intended only as sound-test for the data output in mode 1.\n          Bands are output, equally spaced, across the stereo stage.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "strange": {
+   "banner": "CDP Release 7.1 2016\n\nSTRANGE OPERATIONS ON A SPECTRAL FILE\n\nUSAGE: strange NAME (mode) infile outfile parameters: \n\nwhere NAME can be any one of\n\nshift    glis    waver    invert\n\nType 'strange shift' for more info on strange shift..ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "strange_glis_1",
+    "strange_glis_2",
+    "strange_glis_3",
+    "strange_invert_1",
+    "strange_shift_4",
+    "strange_waver_1"
+   ]
+  },
+  "strans": {
+   "banner": "CHANGE SPEED & PITCH OF (MULTICHANNEL) SRC SOUND, OR ADD VIBRATO.\n\nUSAGE: strans multi 1 infile outfile     speed             [-o]\nOR:    strans multi 2 infile outfile     semitone-transpos [-o]\nOR:    strans multi 3 infile outfile accel goaltime [-sstarttime]\nOR:    strans multi 4 infile outfile vibfrq vibdepth\n\nSPEED             is a speed-multiplier\nSEMITONE-TRANSPOS is transposition in semitones\n    -o  brkpnt times read as outfile times (default: as infile times).\n\nACCEL     (a speed multiplier) is the speed reached at the goaltime.\nGOALTIME  is the time at which the full acceleration is achieved.\nSTARTTIME is the time at which acceleration begins (default 0.0).\n\nVIBFRQ    is the vibrato frequency in Hz (can vary over time).\nVIBDEPTH  is pitch-depth of vibrato (in semitones) (can vary over time).\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "stretch": {
+   "banner": "CDP Release 7.1 2016\n\nSTRETCHING A SPECTRAL FILE\n\nUSAGE: stretch NAME (mode) infile outfile parameters: \n\nwhere NAME can be any one of\nspectrum      time\n\nType 'stretch spectrum' for more info on stretch spectrum..ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "stretch_spectrum_1",
+    "stretch_spectrum_2"
+   ]
+  },
+  "stretcha": {
+   "banner": "\t    ***************************************************\n\t    *           COMPOSERS DESKTOP PROJECT             *\n\t                    STRETCHA $Revision: 6.0.0 $\n\t    *                                                 *\n\t    *       Calculate required time-stretches.        *\n\t    *                                                 *\n\t    *                by TREVOR WISHART                *\n\t    ***************************************************\n\nUSAGES:\nstretcha -c -ddur|-fsndfile|(-bbeats -ttempo) -Touttempo\nstretcha -s -ddur|-fsndfile|(-bbeats -ttempo) -Doutdur|(-Boutbeats -Touttempo)\nstretcha -s             -tintempo             -Touttempo\n\n-----------for more information, type 'stretcha -h' -------------\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "stutter": {
+   "banner": "USAGE:\nstutter stutter infile outfile datafile dur segjoins silprop\nsilmin silmax seed [-ttrans] [-aatten] [-bbias] [-mmindur] [-p]\n\nSlice src (e.g. speech) into elements (e.g. words or syllables).\nCut segments from elements, always cutting from element start.\nPlay these in a random order (with possible intervening silence).\n\nDATAFILE List of times at which to slice src into elements.\n         Minimum timestep between times (MT) = 0.016 secs.\n         Times range: MT secs to (duration - MT).\nDUR      Duration of output.\nSEGJOINS Value 1: uses the specified elements as srcs to cut.\n         Value 2: also use pairs-of-segments as srcs.\n         Value N: also use 2,3,....N joined-segments as srcs.\n         Where joined segs used, cuts end in the last seg joined.\n         Range 1 to 8.\nSILPROP  Silence may be inserted at joins between cut-segments.\n         \"silprop\" is proportion of joins to have inserted silence.\n         (Range 0 - 1). (Apart from none, minimum is 1 in 20)\nSILMIN   Minimum duration of any silences at joins.\nSILMAX   Maximum duration of any silences at joins.\nSEED     Same seed value (with all other params same)\n         produces identical output from any random-varying processes.\nTRANS    Range (semitones) of any random transposition of segments.\nATTEN    Range of any random attenuation of segment level (Range 0-1).\nBIAS     Bias size of segments cut (Range -1 to 1). 0 = no bias.\n         -ve vals bias towards smaller segs: +ve vals towards larger segs.\nMINDUR   Minimum duration of cut segments, in mS ( >8 mS ).\n-p       Permute elements (all elements used before any used again).\n         i.e.randomly order elements, cut segs from each and play.\n         Then permute order, cut new segs and play, etc.\n         (Default: segs cut from elements taken entirely at random).\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "submix": {
+   "banner": "CDP Release 7.1 2016\nUSAGE: submix NAME (mode) infiles     outfile(s) [parameters]:\nOR:    submix NAME (mode) mixdatafile outfile    [parameters]:\n\nwhere NAME can be any one of\n\nmerge      balance     crossfade   interleave   inbetween   inbetween2\nmix        getlevel      attenuate\nshuffle    timewarp      spacewarp      sync       syncattack\ntest       fileformat    dummy     addtomix     atstep\nongrid     faders      mergemany   pan          model\n\nType 'submix  mix'  for more info on submix  mix.\nType 'submix  fileformat'  for more info on mixfile fileformat... ETC\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "subtract": {
+   "banner": "USAGE:\nsubtract subtract infile1 infile2 outfile [-cchan]\n\nSubtract file2 (which must be mono) from file1 (channel \"chan\").\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "superaccu": {
+   "banner": "superaccu superaccu 1 inanalfile outanalfile [-ddecay] [-gglis] [-r]\nsuperaccu superaccu 2 inanalfile outanalfile [-ddecay] [-gglis] [-r]\nsuperaccu superaccu 3 inanalfile outanalfile tuning [-ddecay] [-gglis] [-r]\nsuperaccu superaccu 4 inanalfile outanalfile tuning [-ddecay] [-gglis] [-r]\n\nSUSTAIN EACH SPECTRAL BAND, UNTIL LOUDER DATA APPEARS IN THAT BAND\n\nMODE 2 forces (start of) resonances to tempered scale.\n\nFor modes 3 and 4 (start of ) resonances are forced to ...\n\nMODE 3 frqs specified in \"tuning\" (harmonic set).\nMODE 4 frqs and their 8vas, specified in \"tuning\" (harmonic field).\n\n\nTUNING Set of frequencies for tuning the resonance (starts)\n-DECAY sutained channel data attenuates by factor DECAY per sec.\n      (Possible Range : >0.0 to 0.9 : Default 1.0 (no attenuation))\n-GLIS  sutained channel data glisses at GLIS 8vas per sec.\n      (Approx Range : -11.7 to 11.7 : Default 0)\n-r     reassign the glissing pitches to appropriate channels.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "suppress": {
+   "banner": "USAGE: suppress partials inanal outanal timeslots lofrq hifrq chancnt\n\nSUPPRESS THE MOST PROMINENT PARTIALS IN THE FRQ BAND INDICATED\n\nTIMESLOTS File with time-pairs between which bands are suppressed.\nLOFRQ     Low frequency limit of band where partials to be suppressed.\nHIFRQ     High frequency limit of band where partials to be suppressed.\nCHANCNT   Number of most prominent channels in band, to be suppressed.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "synfilt": {
+   "banner": "NOISE FILTERED BY TIME_VARYING FILTERBANK,WITH TIME-VARIABLE Q\n\nUSAGE: synfilt synfilt\nmode outfile data dur srate chans Q gain hcnt rolloff seed [-d] [-o] [-n]\n\n\nMODES ARE...\n1)  Single (varying) pitch : Enter filter-pitch as time MIDI-value pairs.\n2)  Simultaneous pitches : Enter filter-pitches as varibank style datafile.\n\n          Datafile has lines of data for filter bands at successive times.\n          Each line contains the following items\n                Time:   MIDIPitch1 Amp1   [MIDIPitch2 Amp2    etc....].\n          Pitch and Amp values must be paired:\n          any number of pairs can be used in a line,\n          BUT each line must have SAME number of pairs on it.\n          (To eliminate a band in any line(s), set its amplitude to 0.0).\n          Time values (in secs) must be in ascending order (and >=0.0)\n          and the MAXIMUM TIME must be greater than 0.03 secs (30mS).\n          Amp values may be numeric, or dB values (e.g. -4.1dB).\n          Comment-lines may be used: start these with ';'.\n\n          Im both modes, duration of output set by last entry in datafile.\n\nQ         Q (tightness) of filter : Range(0.001000 to 10000.0).\nSRATE     Sample rate of output file.\nCHANS     Output mono (1) or stereo (2).\nHCNT      No of harmonics of each pitch to use: Default 1.\n          High harmonics of high pitches may be beyond nyquist.\n          (No-of-pitches times no-of-harmonics determines program speed).\nROLLOFF   Level drop (in dB) from one harmonic to next. Range(0 to -96.0)\nSEED      Initialises random-noise generation.\n-d        double filtering.\n-o        Drop out if filter overflows.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "synspline": {
+   "banner": "USAGE: synspline synspline outfile srate dur frq splinecnt interpval seed\n       [-smaxspline] [-imaxinterp] [-dpdrift -vdriftrate] [-n]\n\nSynthesis from waveforms made by smoothly joining randomly generated points.\n\nSRATE     Sample rate of synthesized sound.\nDUR       Duration of synthesized sound.\nFRQ       Fundamental frq of output (Range 0.001 to 10000 Hz) (PTR).\nSPLINECNT No. of rand vals (to smooth between) per half-wavecycle (0-64) (PTR).\nINTERPVAL No. of wavecycles over which 1 waveshape morphs to next (0 - 4096) (PTR).\nSEED      Same seed value produces identical output with same parameters.\nMAXSPLINE Max splinecnt: (PTR) Causes random vals of \"splinecnt\" to be generated,\n          in range \"SPLINECNT\" to \"MAXSPLINE\" (Ignored if set to zero).\nMAXINTERP Max interpval: (PTR) Causes random vals of \"interpval\" to be generated,\n          in range \"INTERPVAL\" to \"MAXINTERP\" (Ignored if set to zero).\nPDRIFT    Semitone (half)range of random drift in frequency. (0 - 12).\nDRIFTRATE Average time (mS) to next drift offset (True time 1/2 to 3/2 of this) (1-1000).\n-n        Normalise every cycle (default: cycles retain random valued amplitudes).\n\n(PTR = possibly time-varying).\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "synspline_synspline"
+   ]
+  },
+  "synth": {
+   "banner": "CDP Release 7.1 2016\nUSAGE: synth NAME (mode) outfile parameters\n\nwhere NAME can be any one of\n\nwave    noise   silence    spectra    clicks    chord\n\nType 'synth wave'  for more info on synth wave option... ETC.\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": [
+    "synth_noise",
+    "synth_wave_1",
+    "synth_wave_2",
+    "synth_wave_3",
+    "synth_wave_4"
+   ]
+  },
+  "tangent": {
+   "banner": "\nCREATE TANGENT MOTION TO OR FROM 8-CHANNEL RING\n\nUSAGE: tangent NAME mode infile(s) outfile parameters: \n\nwhere NAME can be any one of\n\nonefile    twofiles    sequence    list\n\nType 'tangent onefile' for more info on tangent onefile..ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "tesselate": {
+   "banner": "USAGE:\ntesselate tesselate inf [inf2 ...] outf datafile chans cycledur outdur type [-ffrom]\n\nCreate repeating-pattern-with-shift in space and time.\nEach (mono) source repeated on pair(s) of channels,\nBut with slightly different delay in the paired channels.\nShortest repeat-time (without the extra delay) = \"cycledur\".\n\nCHANS     Number of output channels (>= 2) and an even number.\nCYCLEDUR  The delay between repetitions (same for every source)\n          (Sources can have staggered entry, so they form a rhythmic phrase)\n          see \"datafile\", line 2.\n          Increase in delay on paired-channel(s) determined by \"datafile\" - line 2.\nOUTDUR    Duration of output sound.\nTYPE      0: Delay drift between odd and even channels (e.g. 1357-v-2468).\n          1: Delay drift between adjacent channels  (1-v-2, 2-v-3, 3-v-4 etc).\n          2: Delay drift between alternate channels (1-v-3, 2-v-4, 3-v-5 etc).\n          3 :Delay drift between every 3rd channel  (1-v-4, 2-v-5, 3-v-6 etc).\n          and so on.\nFROM      Pattern normally starts with all chans in sync at time zero.\n          To start later in pattern, specify an integer number of cycles\n          from which to start outputting sound.\n\nDATAFILE  textfile containing two lines, with the same number of entries per line,\n          and the number of entries corresponds to the number of input files..\n          Line 1 - Lists number of repeats before time-delayed repeat-cycle\n                   resychronises with the \"cycledur\"-delayed src.\n                   e.g.  with value 5 \n                   \"cycledur\"-delayed src x    x    x    x    x    x    x\n                   timedelayed src        x     x     x     x     x     x\n          Line 2 - Time delay of initial entry of each src.\n                   Allows sources to be arranged in some initial rhythmic order.\n                   e.g.  0.0  0.1  0.2   0.3   0.4   0.45  0.55  0.7\n                   Maximum time-delay must be less than \"cycledur\".\n                   All vals must be different.\n                   (With same value, 2 sources would collapse into one double-src).\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "texmchan": {
+   "banner": "USAGE:\ntexmchan texmchan mode infile [infile2...] outfile notedata outdur packing scatter\n  tgrid sndfirst sndlast  mingain maxgain  mindur maxdur  minpich maxpich outchans\n [-aatten] [-pposition] [-sspread] [-rseed] [-w -c -p -f]\nMODES:-\n1)  ON A GIVEN HARMONIC-FIELD        3)  ON A GIVEN HARMONIC-SET\n2)  ON CHANGING HARMONIC-FIELDS      4)  ON CHANGING HARMONIC-SETS\n5)  NONE\nnotedata: infofile, insnd 'pitches',harmonic fields pitches etc.\noutdur:           (min) duration of outfile\npacking:          (average) time between event onsets.\nscatter:          randomisation of event-onsets (0 - 10)\ntgrid:            minstep(MS) quantised timegrid(for grp starttimes)(default 0)\nsndfirst,sndlast: 1st,last snd to use,from list of insnds(range:1 - no.of snds)\nmingain,maxgain:  minimum & maximum level of input events (1-127:default 64,64)\nmindur,maxdur:    minimum & maximum duration of events in texture\nminpich,maxpich:  minimum & maximum pitch (MIDI VALUE):\noutchans:         number of output channels\natten:            overall attenuation of the output\nposition:         centre of output sound-image (from 1 to outchans)\nspread:           spatial-spread of texture events (1 - outchans)\nseed:             same seed-no: same output on rerun(dflt 0: differs each time)\n-w:               always play whole input-sound (ignoring duration values).\n-c:               Choose files cyclically in listed order (ignore 'sndfirst','last').\n-p:               Random permute each cycle (only when -c flag set).\n-f:               Fixes positions around space in order of files in command list.\n                  in this case, \"spread\" is degree of randomisation of these positions\n                  and values can range from 0 to 1 (values above 1 will be truncated)\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "texture": {
+   "banner": "CDP Release 7.1 2016\n\nUSAGE:\ntexture NAME (mode) infile (infile2..etc) outfile notedata params:\n\n\nwhere NAME can be any one of\n\n\tTEXTURE MADE FROM ONE OR SEVERAL SOUND FILES\n\nsimple   grouped    decorated    ornate       motifs\n                    predecor     preornate    motifsin\n                    postdecor    postornate\n\n\tTIMED TEXTURES MADE FROM ONE OR SEVERAL SOUND FILES\n\ntimed     tmotifs   tmotifsin   tgrouped\n\nORNAMENTS & MOTIFS   have user-specified pitch-shapes.\nDECORATIONS & GROUPS have random pitch-shapes.\n\nType 'texture simple' for more info on simple texture option.... etc.\n\n\n\n*********************************************************************\nSOME SPECIAL PARAMETER VALUES\n*********************************************************************\nGPSPACE: spatialisation of event-groups\n\n     0:still            1:scattered(default) 2:towards-texture-centre\n     3:away-from-centre 4:follow-texmotion   5:contrary-to-motion\n     4 & 5 only function if spatial position varies in time..\n*********************************************************************\nCONTOUR: amplitude contour of groups\n\n     0:mixed(default) 1:cresc     2:flat   3:decresc    4:c_or_fl\n     5:c_or_d         6:d_or_fl  [7:directed_to_event   8:dir_or_flat]\n*********************************************************************\nCENTRING: how decoration pitches centre on decorated line pitches\n\n     0: centred(default) 1: above       2: below\n     3: c_and_a          4: c_and_b     5: a_and_b     6: c_and_a_and_b\n     In all cases except 0, pitchrange shifted to tally with line pitch\n\n\n*********************************************************************\n       ALL OTHER PARAMS, except outdur, MAY VARY IN TIME.\n*********************************************************************\n\n\n\n*********************************************************************\nHARMONIC SETS   use only the pitches specified.\n\nHARMONIC FIELDS duplicate the specified pitches in all 8vas.\n*********************************************************************\nNOTEDATA is in a textfile containing.....\n*********************************************************************\n     assumed MIDI 'pitch' of each input snd, specified on 1st line.\n\n   FOLLOWED BY, where ness,  NOTELIST(S), SPECIFIED THUS:-\n\n     #N (where N = no. of notes in notelist: follows by N lines of...)\n     time(SECS)   infile_no    pitch(MIDI)    amp(MIDI)   dur(SECS)\n\nwhere times within motif must increase (or remain same, during chords)\n*********************************************************************\nNOTELISTS REPRESENT: IN THIS ORDER..\n*********************************************************************\nNotelist of notes in any timed, ornamented or decorated line in texture.\nNotelist of notes in any harmonic field(s) or set(s) specified.\n      (For more than one  hfield(hset),\n      data should specify chords, placed at appropriae times.)\nNotelist(s) of notes in any ornament(s) or motif(s) specified.\n*********************************************************************\n\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "tkusage": {
+   "banner": "ERROR: Error in usage program tkusage\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "tkusage_other": {
+   "banner": "ERROR: Error in usage program tkusage_other\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "topantail2": {
+   "banner": "USAGE:\ntopantail2 topantail infile outfile startgate endgate [-ssplicelen] [-bbacktrack]\n\nSTARTGATE  level at start before which sound is to be removed (0-1).\nENDGATE    level at end after which sound is to be removed (0-1).\nSPLICELEN  splicelen in mS.\nBACKTRACK  backtrack from initial gate point to an earlier splice point, in mS.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "tostereo": {
+   "banner": "USAGE:\ntostereo tostereo infil outfil start end [-oochans -lleftchan -rrightchan -mmixlev]\n\nCause stereo file to start mixed-to-mono and then diverge to real stereo.\n\nSTART  Start time of divergence to stereo.\nEND    Time of complete stereo.\n\nIf \"END\" time is before \"START\", file goes FROM stereo TO mono.\n\nOCHANS Output channel count (default stereo).\nLEFT   Output left channel (default 1).\nRIGHT  Output right channel (default 2).\nMIXLEV Level of each chan when mixed to mono (Set to ZERO for good default level).\n       (Range 0.5 to 1.0 OR  zero: values above 0.707 are not recommended)\n\nIn multichannel, if Leftchan is selected but RIGHT is set to zero,\nsignal will FORK from the indicated channel to the channels on either side.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "transit": {
+   "banner": "\nCREATE MOTION CROSSING AN 8-CHANNEL RING\n\nUSAGE: transit NAME mode infile(s) outfile parameters: \n\nwhere NAME can be any one of\n\nsimple    filtered    doppler    doplfilt    sequence    list\n\nType 'transit simple' for more info on transit simple..ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "tremenv": {
+   "banner": "TREMOLO A SOUND, WIDTH NARROWED, AFTER PEAK\n\nUSAGE: tremenv tremenv infile outfile frq depth winsize fineness\n\nFRQ          frequency of tremenv (0 - 500) \nDEPTH        depth of tremenv: Range(0 to 1: default 1)\nWINSIZE      Size of window for envelope extraction (mS) (Range 1 - 40)\nFINENESS     Squeeze width of tremenv (integer value >= 1).\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "tremolo": {
+   "banner": "TREMOLO A SOUND, WITH WIDTH NARROWING\n\nUSAGE: tremolo tremolo mode infile outfile frq depth gain fineness\n\nMODES:\n1) Interpolate linearly between frqs in any frq brktable (default).\n2) Interpolate logarithmically (like pitch). (Care with zero frqs).\n\nFRQ          frequency of tremolo (0 - 500) \nDEPTH        depth of tremolo: Range(0 to 1: default 1)\nGAIN         Overall signal gain, or envelope: Range(0 to 1: default 1)\nFINENESS     Squeeze width of tremolo (integer value >= 1).\n\nFrq, Depth and Gain may vary over time.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "ts": {
+   "banner": "\nCREATE SOUND FROM TIME-SERIES TEXT DATA\n\nUSAGE: ts NAME parameters\n\nwhere NAME can be any one of\n\noscil trace\n\nType 'ts oscil' for more info on ts oscil..ETC.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "tsconvert": {
+   "banner": "USAGE: tsconvert indata outdata min max [-cminstep|-r|-q|-Q] [-ddur [-ftimes]] [-mmaxoutdur] [-l]\n\nConvert input data to specified range and format.\n\nINDATA  Text data as a list of numerical values.\nMIN     Minimum value in output data values.\nMAX     Maximum value in output data values.\n        In minimum > maximum, data contour is inverted in output.\n-d      Generate brkpnt file of time-val pairs, duration 'dur'\n        thus determining the timestep between output values,\n-m      Curtail total outlength to maximum of 'outdur'.\n        With brkpnt outputs, values generated beyond maxoutdur are ignored.\n        with '-c' flag, absolute size of values are summed.\n-c      compact data, so no (absolute)value is less than minstep,\n        and steps in same direction are joined into same step\n-r      Rectify the data around the mean.\n        Mean value = minimum: other vals become deviations from mean.\n-q      Quantise the data to whole-number values only.\n-Q      Quantise the data and suppress adjacent equal-values.\n-f      Output (untimed) vals at times specified in 'times' file (needs -d)\n-l      Output values vary as log of input values.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "tunevary": {
+   "banner": "tunevary tunevary infile outfile pitch_template\n               [-ffocus] [-cclarity] [-ttrace] [-bbcut] \n\nREPLACE SPECTRAL FRQS BY HARMONICS OF SPECIFIED PITCH(ES)\n\nenter pitch_template data as a list of lines, each line having\na time followed by (possibly fractional) MIDI values.\n\nTimes must start at zero and increase from line to line.\nLines must have equal numbers of entries, but entries can be duplicated.\n\n-f  FOCUS determines degree of focusing of partial pitches onto template.\n    (range 0-1: val or brkpnt file: default 1).\n-c  CLARITY determines degree to which non-template partials are suppressed.\n    (range 0-1: val or brkpnt file: default 0).\n-t  TRACE specifies no. of (window_by_window) most prominent channels\n    to be replaced by template frqs.\n-b  Ignore frqs below BCUT, Bass cutoff frq.\n\nAll parameters may vary over time.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "tweet": {
+   "banner": "USAGE:\ntweet tweet 1 infile outfile exclude pitchdata minlevel pkcnt chirp [-w]\ntweet tweet 2 infile outfile exclude pitchdata minlevel frq chirp [-w]\ntweet tweet 3 infile outfile exclude pitchdata minlevel [-w]\n\nReplace FOFs in vocal sound by synthetic tweets or (mode 3) noise.\n\nPITCHDATA   A breakpoint file with time and frq information.\n            (Use \"repitch getpitch 2\").\n            May contain zeros (indicating moments of no-signal)\n            but it must contain SOME significant frequency information.\nEXCLUDE     Areas in src from which FOFs will NOT be extracted.\n            If not wanted, enter \"0\". Otherwise pairs of times in textfile.\nMINLEVEL    A level in dBs below level of loudest FOF found,\n            FOFs below this level rejected. NB Zero = NO FOFS rejected.\nPKCNT       Number of peaks in impulse. (1-200) (frq changes with FOF size)\nFRQ         Freq of peaks in impulse.   (1-200) (frq fixed).\nCHIRP       Glissing of impulse. (Range 0 to 30) (Care, output may clip).\n\n-w    FOFs are windowed (cosine smooth of edges)\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "unknot": {
+   "banner": "USAGE: unknot unknot 1-2 inf1 inf2 [inf3 ...]    outfile combos r_pats r_combos r_all r_unknots r_goal spacetyp cha chb ....\nOR:    unknot unknot 3 inf1 inf2 [inf3 ...] ....\n [-mmin] [-cclip] [-e] [-t]\n\nTakes set of textfiles, representing rhythmic patterns, creating combined pattern,\nrepeating this, gradually unknotting it to regular timepulse & spatial distribution.\nMODES:\n1) Unknots (Events gradually moved, in turn, to be time & space equidistant).\n2) Knots   (Runs process in reverse).\n3) Counts unknotting steps (No output).\nThere are 5 (possible) stages to the unknotting process....\n(1)  Repeat (each) original pattern (optional).\n(2)  Repeat (each) specified combination of patterns (optional).\n(3)  Repeat the combination of all patterns (optional).\n(4)  Unknot the combined pattern.\n(5)  Repeat the unknotted pattern (optional).\nInput patterns have lines each with 4 entries \"time  MIDI  level  pos\"\ntime :     must start at zero and not decrease.\nMIDI :     vals between 0 & 127, where convention is 0 indicates a silent file.\nlevel:     lies between >0 and 1.\npos  :     position in an 8-channel space, range 0 to 8 (fractional values OK).\nPARAMETERS:\nCOMBOS    Textfile List of pattern combos to use. (or zero, if no combos used)\n          Each line lists 2 or more patterns to combine.\nNumber of repetitions of......\nR_PATS    each original pattern    (Unknot, placed at start : Knot, placed at end).\nR_COMBOS  each pattern combination.(Unknot, placed next : Knot, placed penultimate).\nR_ALL     combined initial pattern.\nR_UNKNOTS each unknotting/knotting step.\nR_GOAL    goal pattern.\nSPACETYP  Type of spatial distribution for unknotted pattern.\n  0  No spatial redistribution.        3  Rotate anticlock between channels.\n  1  Alternating between channels.     4  Rotate clock-anticlock between channels.\n  2  Rotate clockwise between chans.   5  Rotate anticlock-clock between channels.\n(Redistributions to mono, tutti etc, can be made by a mix to mono, & crossfading).\nCHA       First channel for spacetyp redistribution.\nCHB       Second channel for spacetyp redistribution.\nMIN       Event-Duration-differences read as \"zero\" (pulse \"regular\" = unknotted).\nCLIP      Number of events to reposition at each (un)knotting step (default 1).\n-e        Spatial redistribution starts at (un)knotting end.\n          (default: ....starts at (un)knotting start.)\n-t        Output data with titles and spacing to identify patterns being output.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "vectors": {
+   "banner": "ERROR: Invalid command\n\t    ***************************************************\n\t    *           COMPOSERS DESKTOP PROJECT             *\n\t                   VECTORS $Revision: 1.1 $\n\t    *                                                 *\n\t    *     Manipulate 2 columns of numbers (vectors)   *\n\t    *                                                 *\n\t    *                by TREVOR WISHART                *\n\t    ***************************************************\n\nUSAGE: vectors column1 column2 [outfile] -flag [-eERROR]\n\n\tcolumnN  textfile containing list of numbers.\n\toutfile  receives output as text (Default: screen)\n\tflag     determines operation.\n\t         use 'vectors -h' to see flags.\n\t-e       ERROR is acceptable error in checking equality of numbers.\n\t         (Default: 0.000002).\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "verges": {
+   "banner": "USAGE:\nverges verges inf outf times [-ttransp] [-eexp] [-ddur] [-n] [-b|-s]\n\nPlay source, with specified brief moments glissing up or down.\n\nTIMES  Textfile listing times of verge-attacks.\n\nTRANS  Semitone transposition at start of verge. (Defuault 5).\nEXP    slope of glissi (1(dflt) to 8) : higher vals gliss faster.\nDUR    duration of glissi, in mS. (default 100)\n\n-n     Use times given (default looks for peak closest to time in src).\n-b     Boost the level of the verges.\n-s     Suppress all input except verges. (Boost verges)\n\n\"TRANSP\", \"EXP\" and \"DUR\" can vary through time.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "vuform": {
+   "banner": "ERROR: Insufficient params:: vuform formantfile.\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "waveform": {
+   "banner": "USAGE: waveform make 1 infile outfile time cnt.\nOR:    waveform make 2 infile outfile time dur.\nOR:    waveform make 3 infile outfile time dur balance.\n\nGenerate a wavetable from existing sound.\n\nInput file must be MONO.\n\nMode 1 extracts a group of half-wavesets at specified time in infile.\nMode 2 extracts given duration of source, cutting at zero-crossing.\nMode 3 combines specified duration-segment of infile with a sinusoid.\n\nCNT     Number of half-wavesets to extract.\nDUR     Duration, in mS, of sound-clip to extract.\nTIME    Time in infile where data is extracted.\nBALANCE Level of extracted material relative to imposed sinusoid.\n\nIn each case, the cut segment is abutted to its inversion,\nmaking a symmetric wavecycle (and doubling its duration).\nIn Modes 1 & 2 this forms the output.\nIn Mode 3 this is superimposed on a sinusoid of wavelength DUR * 2.\n\n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  },
+  "wrappage": {
+   "banner": "GRANULAR RECONSTITUTION OF ONE OR MORE SOUNDFILES OVER MULTICHANNEL SPACE.\n\nUSAGE       (name of outfile must NOT end with a '1')\nwrappage wrappage infile [infile2 ...] outfile centre outchans spread depth\nveloc hveloc dens hdens gsize hgsize pshift hpshift amp hamp bsplice hbsplice\nesplice hesplice  range jitter outlength [-bmult] [-e] [-o]\n\nCENTRE:    central position of output image in outputfile. (Range 0-outchans).\n           Centre values below 1 are positions between last chan and 1st chan.\n           Numeric, or a file of triples \"time   centre   direction\". Direction \n           (1 clockwise, -1 anticlock) is of centre's move from previous position.\nOUTCHANS:  Number of channels in output file.\nSPREAD:    Width (from far left to far right) of spatialisation around centre.\nDEPTH:     No of channels with sound, behind leading edges of spread.\n           (Will always be forced to <= half the spread value).\nVELOC:     speed of advance in infiles, relative to outfile. (>=0)\n           inverse of timestretch, (permits infinite timestretch).\nDENS:      grain overlap (>0 : <1 leaves intergrain silence)\n           Extremely small values don't perform predictably.\nGSIZE:     grainsize in MS (must be > 2 * splicelen) (Default 50)\nPSHIFT:    pitchshift in +|- (fractions of) semitones.\nAMP:       gain on grains (range 0-1) (Default 1.0)\n           use if amp variation required (over a range &/or in time)\nBSPLICE:   grain-startsplice length,in MS (Default 5)\nESPLICE:   grain-endsplice length,in MS (Default 5)\nRANGE:     of search for nextgrain (in mS), before infile 'now'  (Default 0).\nJITTER:    Randomisation of grain position (Range 0-1) Default (0.50).\nOUTLENGTH: max outfile length (if end of data not reached).\n           Set to zero (Default) to ignore.\n           BUT if VELOCITY is ANYWHERE 0: OUTLENGTH must be given.\n\nHVELOC,HDENS,HGSIZE,HPSHIFT,HAMP,HBSPLICE,HESPLICE\nallow a range of values to be specified for any of these params. e.g. With\nPSHIFT & HPSHIFT set, random pitchshift chosen between these limits.\nAND NB PSHIFT & HPSHIFT can both vary through time.\n\nAll params, except OUTLENGTH, OUTCHANS, can vary through time.\n\nMULT      Long silences in output may require larger buffers to be used\n          \"Mult\" enlarges output buffers \"mult\" times. \n-e        Use exponential splices. Default, linear.\n-o        Velocity params ALWAYS read relative to time in INPUT file.\n          Other params normally read relative to time in INPUT file.\n          Flag forces them to be read relative to time in OUTPUT file.\n          \n",
+   "modes_guessed": [],
+   "mode_banners": {},
+   "soundthread_keys": []
+  }
+ }
+}

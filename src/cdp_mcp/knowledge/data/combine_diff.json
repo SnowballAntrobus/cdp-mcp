@@ -1,0 +1,51 @@
+{
+  "program": "combine",
+  "mode": "diff",
+  "submode": null,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur1"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "combine diff subtracts the spectral amplitudes of the second PVOC file from the first, channel by channel, weighted by crossover. Channels driven below zero are clamped to zero by default (the -a flag retains negative amplitudes instead). The output rides input1's timeline: its duration equals input1's, whichever input is longer.",
+  "musical_use": "Spectral residue: energy the two sounds share is cancelled, leaving what is unique to the first sound — a shadow of input1 hollowed out by input2. Subtracting a filtered or processed copy from its original isolates what the processing removed. Partial crossover values give a lighter thinning; a time-varying crossover envelope can sweep from intact to fully hollowed-out across the file. The manual flags this as an experimental combiner — results depend heavily on how the two spectra overlap. Input order matters: output duration follows input1 (unlike combine cross, which truncates to the shorter input).",
+  "parameters": {
+    "crossover": {
+      "type": "float",
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 1.0,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "input1",
+      "description": "Amount of the 2nd spectrum subtracted from the 1st. 0 = input1 unchanged; 1 = full subtraction, and is the default when -c is omitted (verified: omitted and -c1 outputs are bit-identical). May vary over time (breakpoint envelope scales to input1's duration, which is also the output duration)."
+    },
+    "subzero": {
+      "type": "bool",
+      "flag": "-a",
+      "flag_kind": "no_value",
+      "default": false,
+      "breakpoint_capable": false,
+      "description": "Retain any subzero amplitudes produced (default: clamp them to zero, protecting against negative overflow)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Half-strength spectral subtraction of input2 from input1.",
+      "params": {"crossover": 0.5},
+      "expected_use": "Thin one sound by the spectrum of another without fully hollowing it out — e.g. subtract a processed copy to hear half of what the processing removed."
+    }
+  ],
+  "known_issues": [
+    "Output duration equals input1's duration, not the shorter input's: 2 s + 1 s inputs -> 2.02 s out; the same pair in reversed order -> 1.02 s out (verified). This diverges from combine cross's shorter-input rule — with combine diff, swapping the input order changes the output length."
+  ],
+  "references": ["cdp://docs/html/ccombine"]
+}

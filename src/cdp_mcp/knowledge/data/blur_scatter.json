@@ -1,0 +1,75 @@
+{
+  "program": "blur",
+  "mode": "scatter",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Randomly thins out the spectrum: analysis channels are gathered into blocks of adjacent channels, and only keep randomly-chosen blocks are retained in each spectral window — the rest are discarded. Operates on PVOC analysis files (.ana).",
+  "musical_use": "A random sieve for the spectrum. Unlike trace-style thinning (which always keeps the loudest channels), scatter's random choice may or may not retain the audibly prominent data — results flicker unpredictably between recognisable and ghostly. Low keep values leave a sparse, unstable skeleton of the source; a larger blocksize keeps wider contiguous bands for a more band-filtered character. Time-varying keep and/or blocksize envelopes let a sound disintegrate or re-materialise across its length. Note: re-running with identical arguments reproduces the exact same 'random' selection on this build (see known_issues) — to get a different scatter, change keep, blocksize, or the input.",
+  "parameters": {
+    "keep": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "blocks",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Number of randomly-chosen blocks to keep in each spectral window (range: 1 to the analysis channel count, e.g. 513 for a 1024-point analysis). May vary over time via a breakpoint file."
+    },
+    "blocksize": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Frequency span of each block (default: the width of one analysis channel, ~43 Hz for a 1024-point analysis at 44.1 kHz). Rounded internally to a multiple of the channel width. May vary over time via a breakpoint file attached to the flag (-b<file>)."
+    },
+    "randcnt": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-r",
+      "flag_kind": "no_value",
+      "description": "Randomise the number of blocks actually kept per window between 1 and keep, instead of always keeping exactly keep."
+    },
+    "no_norm": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "Turn OFF normalisation of the resulting sound."
+    }
+  },
+  "examples": [
+    {
+      "description": "Keep 8 random single-channel blocks per window.",
+      "params": {"keep": 8},
+      "expected_use": "Reduce a rich spectral source to a sparse, flickering subset of itself."
+    },
+    {
+      "description": "Keep 8 random 300 Hz-wide bands per window.",
+      "params": {"keep": 8, "blocksize": 300.0},
+      "expected_use": "A chunkier random thinning — wider contiguous bands survive, closer to unstable bandpass filtering."
+    }
+  ],
+  "known_issues": [
+    "Deterministic 'randomness' (headline finding): despite being a random process, blur scatter never seeds its RNG — identical arguments produce bit-identical output on every run. Verified empirically on the Linux source build (runs > 2 s apart, with and without -r: .ana data chunks and resynthesised audio identical; only the header date stamp differs) and confirmed in source (scat_preprocess() lacks the initrand48() call that blur drunk has, and CDP's drand48 shim wraps unseeded rand()). No seed flag exists in banner or manual, so a different scatter requires changing keep/blocksize or the input.",
+    "The Phase 2 design doc flagged this mode as a stochastic/phase-sensitive candidate; empirically it is not stochastic run-to-run on this build. If a future CDP build seeds the RNG, phase_sensitive and the determinism notes here must be re-verified."
+  ],
+  "references": ["cdp://docs/html/cblur"]
+}

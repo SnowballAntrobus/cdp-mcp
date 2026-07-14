@@ -1,0 +1,113 @@
+{
+  "program": "extend",
+  "mode": "zigzag",
+  "submode": 1,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": "related",
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Reads back and forth inside the soundfile at random zigzag timepoints, playing the source backwards whenever it moves from a later to an earlier time. Pinned to submode 1 (random zigzags between 'start' and 'end', beginning at file start and ending at file end); submode 2 (user-supplied timefile) can be curated separately. Stochastic: unseeded runs differ; the -r seed gives exact reproducibility (verified byte-identical decoded samples for seed 1 run twice). IMPORTANT: 'dur' is a floor, not a target — see known_issues.",
+  "musical_use": "Extends material by slipping and sliding through it, with genuine backwards playback on every reverse leg — which transmutes the source much more than scramble-style concatenation. Long zigs create a powerful warping, tape-hand-winding effect; short zigs (small minzig/maxzig) give stuttering, repeated-note figures. A good first step for pushing recognisable material toward the abstract while keeping its continuity, since legs are spliced smoothly rather than cut.",
+  "parameters": {
+    "start": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Together with 'end', defines the time interval of the infile within which the zigzag timepoints fall."
+    },
+    "end": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "End of the zigzag interval in the infile (must be greater than 'start' and no more than the infile duration)."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Total output duration requested. Empirically a minimum: CDP keeps zigzagging until it can finish at the file end, overshooting by a stochastic amount (observed +5% to +53% for dur=5 on a 2 s input). Treat the duration-model prediction as a lower bound."
+    },
+    "minzig": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Minimum acceptable time between successive zigzag timepoints. Small values (e.g. 0.05-0.2) give stuttering textures; larger values give sweeping warps."
+    },
+    "splicelen": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 25.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Length of the splice slope in milliseconds (CDP default 25 ms; the engine emits it explicitly). Scalar only."
+    },
+    "maxzig": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-m",
+      "flag_kind": "attached_value",
+      "description": "Maximum acceptable time between successive zigzag timepoints. Scalar only."
+    },
+    "seed": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Seed (> 0) for a replicable random sequence — the same seed reproduces the output exactly (verified). Omitted (CDP default 0): a different random sequence every run, seeded from the clock."
+    }
+  },
+  "examples": [
+    {
+      "description": "Extend a 2 s source to roughly 6 s of sliding, warping motion over its full span.",
+      "params": {"start": 0.0, "end": 2.0, "dur": 6.0, "minzig": 0.2, "seed": 1},
+      "expected_use": "Warped, back-and-forth extension of the whole file; seeded so the result is reproducible."
+    },
+    {
+      "description": "Stuttering repeated-note figure from a narrow region.",
+      "params": {"start": 0.5, "end": 1.0, "dur": 4.0, "minzig": 0.06, "maxzig": 0.15},
+      "expected_use": "Rapid short zigzags inside half a second of material — a stutter/tremolo gesture."
+    }
+  ],
+  "known_issues": [
+    "'dur' is a floor, not a target: mode 1 must end at the file end, so CDP keeps zigzagging past 'dur' until a final leg can land there. Observed outputs for dur=5 on a 2 s input: 5.25-7.64 s across seeds (up to +53%, and more than dur + indur is possible). The set_by duration model is deliberately retained as the best available lower-bound predictor — 'static' (= indur) would be far worse for an extend process — but no duration row is pinned in the shared formula table because the prediction is not within 5%.",
+    "Stochastic, and unseeded runs take their seed from the clock: two runs launched within the same second return byte-identical audio; runs a second apart differ. Pass 'seed' for reproducibility. Stereo seed-linking machinery (linking separate mono runs by seed) lands later; channels within a single multi-channel file already share one zigzag path.",
+    "Some (params, seed) combinations abort with 'ERROR: Final zig too short for splicelen.' (observed with seed 7 on a 2 s input) — retry with a different seed or a shorter splicelen.",
+    "All six numeric parameters reject breakpoint files ('ERROR: Cannot read parameter N [...]: brkpnt_files not permitted.')."
+  ],
+  "references": ["cdp://docs/html/cgroextd"]
+}

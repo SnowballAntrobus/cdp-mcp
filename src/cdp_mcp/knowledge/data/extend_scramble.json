@@ -1,0 +1,93 @@
+{
+  "program": "extend",
+  "mode": "scramble",
+  "submode": 1,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": "related",
+  "duration_model": {"kind": "set_by", "param": "outdur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Cuts random chunks from anywhere in the file (possibly overlapping, some material repeated, some never used) and splices them end to end until the requested output duration is reached. Pinned to submode 1 (fully random chunk lengths between minseglen and maxseglen); submode 2 (average length + scatter, whole file used exactly once per pass) can be curated separately. Stochastic: unseeded runs differ; the -s seed reproduces output exactly (verified byte-identical decoded samples). Output overruns outdur by up to about one chunk — keep maxseglen small relative to outdur (see known_issues).",
+  "musical_use": "The workhorse for scrambled extension: with small chunks (tens of ms) it behaves like granular resynthesis, smearing the source into a texture; with large chunks (0.5 s+) it recomposes the material into new phrases. Because chunks are drawn from the whole file at random, the output is a statistical portrait of the source rather than a rearrangement — good for turning short recordings into arbitrarily long beds. Use the seed for takes you can reproduce, and -b/-e (via execute()) to anchor the original beginning or ending.",
+  "parameters": {
+    "minseglen": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Minimum chunk size to cut. CDP enforces input- and splice-dependent bounds at runtime (observed '(0.031000 to 1.985000)' for a 2 s input at the default 25 ms splice); roughly, it must exceed the splice overhead and fit inside the file."
+    },
+    "maxseglen": {
+      "type": "float",
+      "min": 0.045,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Maximum chunk size to cut (manual range: 0.045 s up to the infile length; must be greater than minseglen). Also bounds the stochastic overrun past outdur, so keep it small relative to outdur when output length matters."
+    },
+    "outdur": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Duration of output required (must be greater than maxseglen). CDP finishes the chunk in progress, so actual output lands between outdur and roughly outdur + maxseglen (max observed +3.6% with maxseglen 0.2 and outdur 5 across 8 seeds)."
+    },
+    "splen": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 25.0,
+      "flag": "-w",
+      "flag_kind": "attached_value",
+      "description": "Splice (crossfade) length in milliseconds (CDP default 25 ms; the engine emits it explicitly). Scalar only."
+    },
+    "seed": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Seed for a replicable random sequence — the same seed reproduces the output exactly (verified). Omitted (CDP default 0): a different random sequence every run, seeded from the clock."
+    }
+  },
+  "examples": [
+    {
+      "description": "Extend a 2 s source into 5 s of scrambled texture from 0.1-0.2 s chunks.",
+      "params": {"minseglen": 0.1, "maxseglen": 0.2, "outdur": 5.0, "seed": 5},
+      "expected_use": "Granular-like scrambled bed whose length is predictable to within ~4%; seeded for reproducibility."
+    },
+    {
+      "description": "Recompose phrases with big chunks.",
+      "params": {"minseglen": 0.5, "maxseglen": 1.0, "outdur": 12.0},
+      "expected_use": "New phrase-level arrangements of the source material, different on every run."
+    }
+  ],
+  "known_issues": [
+    "Output overruns outdur by up to about one chunk (< maxseglen) as CDP completes the final chunk: max observed +3.6% over 8 seeds with maxseglen 0.2 / outdur 5, but +5.9% with maxseglen 0.3 / outdur 4. The set_by model predicts within 5% only when maxseglen is small relative to outdur (maxseglen/outdur <= ~0.04 is safe); the pinned duration row uses such params.",
+    "Stochastic, and unseeded runs take their seed from the clock: two runs launched within the same second return byte-identical audio; runs a second apart differ. Pass 'seed' for reproducibility. Stereo seed-linking machinery (linking separate mono runs by seed) lands later; channels within a single multi-channel file already share one cut sequence.",
+    "The -b (force output to start at the infile beginning) and -e (force it to end at the infile end) value-less flags are not exposed in the curated parameters — same policy as extend loop's -b. Reach for execute() if you need them.",
+    "All four numeric parameters reject breakpoint files ('ERROR: Cannot read parameter N [...]: brkpnt_files not permitted.').",
+    "minseglen/maxseglen bounds are input- and splice-dependent, enforced by CDP at runtime rather than fixed constants (e.g. maxseglen upper bound shrinks with the splice: '(0.031000 to 1.985000)' observed for minseglen on a 2 s file)."
+  ],
+  "references": ["cdp://docs/html/cgroextd"]
+}

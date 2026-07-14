@@ -103,6 +103,20 @@ async def _run(env, *, program, mode, input_name, params):
         ("filter", "sweeping", 3.0,
          {"acuity": 0.1, "gain": 0.5, "lofrq": 200.0, "hifrq": 4000.0,
           "sweepfrq": 1.0, "tail": 0.5}, 0.05),
+        # --- Phase 3 tranche 1 (single-input entries; multi-input rows
+        # excluded — this fixture writes one in.wav) ---
+        ("modify", "radical", 2.0, {}, 0.05),
+        ("modify", "speed", 2.0, {"semitones": -12.0}, 0.05),
+        ("distort", "multiply", 2.0, {"multiplier": 2}, 0.05),
+        ("distort", "repeat", 2.0, {"multiplier": 3}, 0.05),
+        ("extend", "scramble", 2.0,
+         {"minseglen": 0.1, "maxseglen": 0.2, "outdur": 5.0}, 0.05),
+        ("filter", "lohi", 2.0,
+         {"attenuation": -60.0, "passband": 1000.0, "stopband": 4000.0}, 0.05),
+        ("blur", "avrg", 2.0, {"n": 9}, 0.05),
+        ("blur", "scatter", 2.0, {"keep": 8}, 0.05),
+        ("blur", "drunk", 2.0, {"range": 5, "starttime": 0.5, "duration": 1.5}, 0.05),
+        ("focus", "exag", 2.0, {"exaggeration": 2.0}, 0.05),
     ],
 )
 async def test_duration_model_matches_cdp(
