@@ -31,12 +31,16 @@ from .session import SessionManager
 from .tools import analyze as analyze_module
 from .tools import batch as batch_module
 from .tools import breakpoint as breakpoint_module
+from .tools import cluster as cluster_module
 from .tools import compare as compare_module
+from .tools import data_files as data_files_module
+from .tools import docs as docs_module
 from .tools import execute as execute_module
 from .tools import graph_tool as graph_module
 from .tools import introspection, workspace
 from .tools import process as process_module
 from .tools import progression as progression_module
+from .tools import provenance as provenance_module
 from .tools import segments as segments_module
 from .tools import visualize as visualize_module
 
@@ -147,8 +151,10 @@ analyze_module.register(
 )
 
 # Observation track (Phase 2): segments / compare / progression share
-# visualize's dependency shape.
-for _obs_module in (segments_module, compare_module, progression_module):
+# visualize's dependency shape; cluster (Phase 3) joins them.
+for _obs_module in (
+    segments_module, compare_module, progression_module, cluster_module,
+):
     _obs_module.register(
         mcp,
         sessions=_session_manager,
@@ -156,6 +162,27 @@ for _obs_module in (segments_module, compare_module, progression_module):
         latest_tracker=_latest_tracker,
         cache_root=_cache_root,
     )
+
+# Phase 3: docs search, provenance, data files.
+docs_module.register(
+    mcp,
+    docs_root_provider=lambda: docs_module.derive_docs_root(
+        _cdp_config.cdp_path if _cdp_config else None
+    ),
+    index_path=_cache_root.parent / "docs_index.sqlite",
+    cdp_config_provider=lambda: _cdp_config,
+)
+
+provenance_module.register(
+    mcp,
+    sessions=_session_manager,
+    latest_tracker=_latest_tracker,
+)
+
+data_files_module.register(
+    mcp,
+    sessions=_session_manager,
+)
 
 
 def create_server() -> FastMCP:
