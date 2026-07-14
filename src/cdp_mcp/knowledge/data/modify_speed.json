@@ -18,7 +18,7 @@
   "curated": true,
   "version_sensitive": false,
   "description": "Varispeed: changes the speed and pitch of the sound together, like re-clocking a tape. Pinned to submode 2 (transposition in fractional semitones — the more musical control surface). Submode 1 is the same process parameterized as a speed ratio; submodes 3/4 only print information; 5 is accel/decel and 6 is vibrato — all can be curated separately later. Duration model verified against the r8 binary to within 0.01% across ±12, +7 and -5 semitones on 1–3 s inputs.",
-  "musical_use": "The tape-speed transposition: pitch and duration move together, preserving the source's internal coherence (unlike independent pitch-shift or time-stretch). -12 doubles the duration an octave down; +12 halves it an octave up. Fractional values give detunings for thickening layers. With a breakpoint file for semitones, you get glissandi and tape-wobble effects — the transposition contour is followed smoothly across the file.",
+  "musical_use": "The tape-speed transposition: pitch and duration move together, preserving the source's internal coherence (unlike independent pitch-shift or time-stretch). -12 doubles the duration an octave down; +12 halves it an octave up. Fractional values give detunings for thickening layers. With a breakpoint file for semitones, you get glissandi and tape-wobble effects — the transposition contour is followed smoothly across the file. Deep drops of 1-3 octaves are a classic move, turning ordinary sources into deep, rich tones; ramp the contour and those tones slowly rise or descend (the airplane-takeoff effect).",
   "parameters": {
     "semitones": {
       "type": "float",
@@ -28,7 +28,7 @@
       "breakpoint_capable": true,
       "default": null,
       "flag": null,
-      "description": "Transposition in (possibly fractional) semitones, relative to the original speed. Positive = higher and faster (shorter output); negative = lower and slower (longer output); 0 = no change. CDP accepts at least ±96 (verified; -96 multiplies duration by 256 — mind the output length). Musically useful range is roughly ±24. May vary over time via a breakpoint file; by default breakpoint times are read as infile times (see known_issues for the -o switch)."
+      "description": "Transposition in (possibly fractional) semitones, relative to the original speed. Positive = higher and faster (shorter output); negative = lower and slower (longer output); 0 = no change. CDP accepts at least ±96 (verified; -96 multiplies duration by 256 — mind the output length). Musically useful range is roughly ±24. May vary over time via a breakpoint file (near-identical times give near-instant transposition steps, spread times give glissandi, repeated values hold a constant transposition); by default breakpoint times are read as infile times (see known_issues for the -o switch)."
     }
   },
   "examples": [

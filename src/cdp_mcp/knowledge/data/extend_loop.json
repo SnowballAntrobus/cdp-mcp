@@ -15,7 +15,7 @@
   "curated": true,
   "version_sensitive": false,
   "description": "Loops a segment of a soundfile a specified number of times. Pinned to submode 3 (explicit repeat count). 'extend loop' has three sub-modes; submode 3 is the one with a determinate output duration linear in the repeat count, which makes it the cleanest fit for dry-run duration prediction. Duration model is `cnt * len / 1000` — `len` is in milliseconds, so divide by 1000 to get seconds.",
-  "musical_use": "Build longer textures from short source fragments. Common pattern for the frog workflow: pick a short region with 'start' and 'len', repeat it 'cnt' times to extend the material, then optionally feed the result into a spectral process. The 'step' flag lets the loop point advance through the infile rather than locking on one segment.",
+  "musical_use": "Build longer textures from short source fragments. Common pattern for the frog workflow: pick a short region with 'start' and 'len', repeat it 'cnt' times to extend the material, then optionally feed the result into a spectral process. The 'step' flag lets the loop point advance through the infile rather than locking on one segment. Expect some degree of regular pulsation: the equal-length repeated segments read as a pulse — a perceptual effect of the repetition itself, not of the splices (which are there to prevent clicks).",
   "parameters": {
     "cnt": {
       "type": "int",

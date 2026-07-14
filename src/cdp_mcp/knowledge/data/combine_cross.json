@@ -13,7 +13,7 @@
   "curated": true,
   "version_sensitive": false,
   "description": "combine cross (formerly SPECCROS) makes a weighted substitution of the spectral amplitudes of the first PVOC file with those of the second — a timbral crossover, not a full morph. Single-degree control via interp.",
-  "musical_use": "Impose the spectral-amplitude character of one sound onto another by a controllable amount. Lighter than a morph (weighted, not full substitution); good as a standalone timbral blend or as preparation that moves one sound toward another's timbral field before morphing. With a time-varying interp envelope, the crossover can sweep from none to full across the file. On inputs of differing length, CDP produces output the duration of the shorter input (order-independent).",
+  "musical_use": "Impose the spectral-amplitude character of one sound onto another by a controllable amount. Lighter than a morph (weighted, not full substitution); good as a standalone timbral blend or as preparation that moves one sound toward another's timbral field before morphing — most worthwhile when the two timbres differ considerably, where the pre-blend buys a smoother morph transition. With a time-varying interp envelope, the crossover can sweep from none to full across the file. On inputs of differing length, CDP produces output the duration of the shorter input (order-independent).",
   "parameters": {
     "interp": {
       "type": "float",

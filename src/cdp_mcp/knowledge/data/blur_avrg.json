@@ -15,7 +15,7 @@
   "curated": true,
   "version_sensitive": false,
   "description": "Averages spectral energy over N adjacent analysis channels within each window, broadening and defocusing energy peaks. A frequency-domain blur (in effect a kind of filtering) — the counterpart of blur blur's time-domain smear, which averages across windows instead. Operates on PVOC analysis files (.ana).",
-  "musical_use": "Enriches and roughens timbre without altering pitch content: high-energy data leaks into neighbouring channels, defocusing spectral peaks and reducing frequency definition. Small N adds grit and subtle roughening; large N smears formant detail toward a hazy, filtered character. A time-varying N (breakpoint file) can move a sound gradually from focused to diffuse across its length.",
+  "musical_use": "Enriches and roughens timbre without altering pitch content: high-energy data leaks into neighbouring channels, defocusing spectral peaks and reducing frequency definition. Small N adds grit and subtle roughening; large N smears formant detail toward a hazy, filtered character — but the roughening stops short of outright distortion, so the source stays recognisable. A time-varying N (breakpoint file) can move a sound gradually from focused to diffuse across its length.",
   "parameters": {
     "n": {
       "type": "int",
@@ -38,5 +38,5 @@
   "known_issues": [
     "Banner-vs-behavior divergence: the banner demands N be ODD and <= half the analysis -c/points value (the HTML manual omits the odd rule), but CDP r8 accepts even N (probed with 8) and N above the claimed limit (probed with 513 on a 1024-point analysis) with exit 0. Presumably normalised internally; the constraint is not enforced."
   ],
-  "references": ["cdp://docs/html/cblur"]
+  "references": ["cdp://docs/html/cblur", "http://www.ensemble-software.net/CDPDocs/html/cblur.htm#AVRG"]
 }

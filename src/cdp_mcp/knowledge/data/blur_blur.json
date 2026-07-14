@@ -15,7 +15,7 @@
   "curated": true,
   "version_sensitive": false,
   "description": "Time-averages the spectrum over a window of analysis frames, smearing spectral content across time. Operates on PVOC analysis files (.ana).",
-  "musical_use": "Softens transients, washes out spectral detail, produces hazy or fogged-out versions of the source. Good for turning percussive material into spectral pads, or for blending a sound with itself over time.",
+  "musical_use": "Softens transients, washes out spectral detail, produces hazy or fogged-out versions of the source. Good for turning percussive material into spectral pads, or for blending a sound with itself over time. It needs internal change to bite: plucked and percussive attacks soften dramatically, while near-static sounds barely alter (each blur group only interpolates between its start and end windows, so similar windows mean little audible difference). A breakpoint file ramping blurring from low at the start to high at the end lets a sound dissolve gradually into its own ambience — a simple, powerful route to ambient washes.",
   "parameters": {
     "blurring": {
       "type": "float",
@@ -36,5 +36,5 @@
     }
   ],
   "known_issues": [],
-  "references": ["cdp://docs/blur/blur"]
+  "references": ["cdp://docs/blur/blur", "http://www.ensemble-software.net/CDPDocs/html/cblur.htm#BLUR"]
 }

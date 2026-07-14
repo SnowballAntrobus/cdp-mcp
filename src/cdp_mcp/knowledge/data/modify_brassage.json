@@ -15,7 +15,7 @@
   "curated": true,
   "version_sensitive": false,
   "description": "Granular reconstitution of a soundfile, pinned to submode 2 (TIMESTRETCH). Reads the input at a velocity (re)scaled relative to the output, producing time-stretching or compression with a granular character. The program 'modify brassage' has seven internal sub-modes — this entry curates submode 2 only. Other sub-modes (PITCHSHIFT, REVERB, SCRAMBLE, GRANULATE, BRASSAGE proper, FULL MONTY) can be added as separate curated entries post-Phase 1a.",
-  "musical_use": "Time-stretch source material while imparting a granular grain. velocity < 1 stretches (slows down), velocity > 1 compresses (speeds up). velocity = 0 is a special 'infinite stretch' case that requires the -loutlength flag (not exposed in this entry).",
+  "musical_use": "Time-stretch or compress source material at its original pitch — pitch is retained throughout, unlike modify speed — while imparting a granular grain. velocity < 1 stretches (slows down), velocity > 1 compresses (speeds up). velocity = 0 is a special 'infinite stretch' case that requires the -loutlength flag (not exposed in this entry).",
   "parameters": {
     "velocity": {
       "type": "float",

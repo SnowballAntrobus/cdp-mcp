@@ -15,7 +15,7 @@
   "curated": true,
   "version_sensitive": false,
   "description": "Randomly thins out the spectrum: analysis channels are gathered into blocks of adjacent channels, and only keep randomly-chosen blocks are retained in each spectral window — the rest are discarded. Operates on PVOC analysis files (.ana).",
-  "musical_use": "A random sieve for the spectrum. Unlike trace-style thinning (which always keeps the loudest channels), scatter's random choice may or may not retain the audibly prominent data — results flicker unpredictably between recognisable and ghostly. Low keep values leave a sparse, unstable skeleton of the source; a larger blocksize keeps wider contiguous bands for a more band-filtered character. Time-varying keep and/or blocksize envelopes let a sound disintegrate or re-materialise across its length. Note: re-running with identical arguments reproduces the exact same 'random' selection on this build (see known_issues) — to get a different scatter, change keep, blocksize, or the input.",
+  "musical_use": "A random sieve for the spectrum. Unlike trace-style thinning (which always keeps the loudest channels), scatter's random choice may or may not retain the audibly prominent data — results flicker unpredictably between recognisable and ghostly. Low keep values leave a sparse, unstable skeleton of the source; a larger blocksize keeps wider contiguous bands for a more band-filtered character. Work keep and blocksize out against the analysis channel count (a 1024-point analysis has 513 channels; e.g. keep = 10 with a block ~6 channels wide retains about 60 of them). Time-varying keep and/or blocksize envelopes let a sound disintegrate or re-materialise across its length. Note: re-running with identical arguments reproduces the exact same 'random' selection on this build (see known_issues) — to get a different scatter, change keep, blocksize, or the input.",
   "parameters": {
     "keep": {
       "type": "int",
@@ -71,5 +71,5 @@
     "Deterministic 'randomness' (headline finding): despite being a random process, blur scatter never seeds its RNG — identical arguments produce bit-identical output on every run. Verified empirically on the Linux source build (runs > 2 s apart, with and without -r: .ana data chunks and resynthesised audio identical; only the header date stamp differs) and confirmed in source (scat_preprocess() lacks the initrand48() call that blur drunk has, and CDP's drand48 shim wraps unseeded rand()). No seed flag exists in banner or manual, so a different scatter requires changing keep/blocksize or the input.",
     "The Phase 2 design doc flagged this mode as a stochastic/phase-sensitive candidate; empirically it is not stochastic run-to-run on this build. If a future CDP build seeds the RNG, phase_sensitive and the determinism notes here must be re-verified."
   ],
-  "references": ["cdp://docs/html/cblur"]
+  "references": ["cdp://docs/html/cblur", "http://www.ensemble-software.net/CDPDocs/html/cblur.htm#SCATTER"]
 }

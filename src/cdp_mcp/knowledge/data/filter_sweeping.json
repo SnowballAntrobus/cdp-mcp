@@ -18,7 +18,7 @@
   "curated": true,
   "version_sensitive": false,
   "description": "Filter whose focus frequency sweeps cyclically over a range. Pinned to submode 2 (BAND-PASS) — most musically useful sweep behavior for textured source material. 'filter sweeping' has four filter-shape sub-modes (notch, bandpass, lowpass, highpass); other shapes can be added as separate curated entries later.",
-  "musical_use": "Time-varying bandpass that sweeps between lofrq and hifrq at sweepfrq Hz. Classic wah/sweep effects, automatic spectral animation, vowel-formant-like motion. The 'phase' parameter controls where in the sweep cycle playback starts, useful for stylistic choices (rising vs falling at the entry).",
+  "musical_use": "Time-varying bandpass that sweeps between lofrq and hifrq at sweepfrq Hz. Classic wah/sweep effects, automatic spectral animation, vowel-formant-like motion. The 'phase' parameter controls where in the sweep cycle playback starts, useful for stylistic choices (rising vs falling at the entry). Give it something to work with: a fairly long file and a broad lofrq-hifrq range. A tight filter (low acuity) makes the sweep more audible, but too tight and the output collapses to a thin sine-like resonance that no longer connects with the source. Watch output levels and pull gain down if it overflows.",
   "parameters": {
     "acuity": {
       "type": "float",
@@ -28,7 +28,7 @@
       "breakpoint_capable": true,
       "default": null,
       "flag": null,
-      "description": "Filter acuity. Smaller values give a tighter (narrower) filter. Rule of thumb from CDP docs: if acuity = (1/3)^n, gain = (2/3)^n."
+      "description": "Filter acuity. Smaller values give a tighter (narrower) filter — tighter makes the sweep more audible, but too tight yields a thin sine-like resonance detached from the source. Rule of thumb from CDP docs: if acuity = (1/3)^n, gain = (2/3)^n."
     },
     "gain": {
       "type": "float",
@@ -38,7 +38,7 @@
       "breakpoint_capable": false,
       "default": null,
       "flag": null,
-      "description": "Overall gain on output. See the acuity rule-of-thumb above."
+      "description": "Overall gain on output. See the acuity rule-of-thumb above. Watch for overflows and reduce gain as necessary."
     },
     "lofrq": {
       "type": "float",
@@ -106,7 +106,8 @@
     }
   ],
   "known_issues": [
-    "The -t tail parameter exists only in the binary's usage banner, not the CDP HTML manual. With -t omitted the r8 binary appends a default tail (observed: exactly +1.00 s on a 4.00 s input, 2026-07-14 manual QA), which made the previous 'static' duration model under-predict. Pinned by the CDP-gated regression in test_curation_formulas.py."
+    "The -t tail parameter exists only in the binary's usage banner, not the CDP HTML manual. With -t omitted the r8 binary appends a default tail (observed: exactly +1.00 s on a 4.00 s input, 2026-07-14 manual QA), which made the previous 'static' duration model under-predict. Pinned by the CDP-gated regression in test_curation_formulas.py.",
+    "Submode-numbering discrepancy (afta8's Renoise CDP Interface, definitions.lua): afta8 labels the sweeping shapes 1 = high-pass, 2 = low-pass, 3 = band-pass, 4 = notch, whereas this entry pins submode 2 as BAND-PASS. The submode field is kept as curated; if a render sounds low-pass rather than band-pass, re-verify the shape mapping against the binary (afta8 also notes the high-pass shape rarely yields a usable result)."
   ],
   "references": [
     "cdp://docs/filter/sweeping"

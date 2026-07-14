@@ -18,7 +18,7 @@
   "curated": true,
   "version_sensitive": false,
   "description": "morph morph is the IRCAM-era VOCINTE, written by Trevor Wishart during the composition of VOX-5. Morphs one PVOC spectrum into another, with amplitude and frequency interpolation start/end times controlled independently. This curated entry pins submode 1 (linear/exponential interpolation, shaped by expa/expf exponents); submode 2 (cosinusoidal spline) can be added as a separate curated entry later if needed.",
-  "musical_use": "Smooth or staged crossfade between two timbres at the spectral level. Independent control of amplitude and frequency morphing lets you have one parameter lead the other — e.g. amplitude morphs early while frequency holds, then frequency catches up. Classic application: morph between two pitched sources, or between a pitched source and a noise-like one.",
+  "musical_use": "Smooth or staged crossfade between two timbres at the spectral level. Independent control of amplitude and frequency morphing lets you have one parameter lead the other — e.g. amplitude morphs early while frequency holds, then frequency catches up. Classic application: morph between two pitched sources, or between a pitched source and a noise-like one. Both inputs keep unfolding in time during the interpolation — each window of file 1 is interpolated with the simultaneous window of file 2 — so the morph rides two evolving sounds rather than two freezes. Best results come from sources that are already fairly similar; for distant timbres, pre-process one toward the other first (e.g. combine cross) for a more psycho-acoustically convincing transition.",
   "parameters": {
     "as": {
       "type": "float",

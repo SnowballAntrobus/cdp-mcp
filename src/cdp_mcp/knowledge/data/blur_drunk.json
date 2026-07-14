@@ -72,5 +72,5 @@
     "Stochastic with no seed control: identical arguments produce a different walk on every run (verified empirically). No seed flag exists — the banner and manual list only -z, and -s/-r are rejected as unknown flags. Source-level cause: drnk_preprocess() seeds with srand(time(NULL)); a side effect is that two runs launched within the same wall-clock second can silently produce identical output. Results are unreproducible by design.",
     "Stereo seed-link machinery lands in a later phase, but blur drunk exposes no seed parameter for it to drive: the two channels of a stereo pair processed independently cannot be made to take the same walk. stereo_link_default 'related' records that limitation."
   ],
-  "references": ["cdp://docs/html/cblur"]
+  "references": ["cdp://docs/html/cblur", "http://www.ensemble-software.net/CDPDocs/html/cblur.htm#DRUNK"]
 }

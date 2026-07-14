@@ -15,7 +15,7 @@
   "curated": true,
   "version_sensitive": false,
   "description": "Exaggerates the spectral (formant) contour of each analysis window. Values below 1 narrow the formants and widen the troughs — an increasingly tight filter focused on the spectral peaks; values above 1 widen the formants — increasingly fuzzy and diffuse, adding noise elements as partials are moved. Operates on PVOC analysis files (.ana).",
-  "musical_use": "Push a sound toward pitched resonance or toward noise. The manual recommends exaggeration around 0.5 as a balance between original and treated sound; lower values act like ever-tighter bandpass filtering, drawing pitch out of complex material (reminiscent of trace-style thinning at the extreme), while values well above 1 (e.g. 10) diffuse the peaks into a fuzzy, buzzy sheen. Sweeping the value with a breakpoint file travels between the pitched-resonant and noisy states over the course of the file.",
+  "musical_use": "Push a sound toward pitched resonance or toward noise. The manual recommends exaggeration around 0.5 as a balance between original and treated sound; lower values act like ever-tighter bandpass filtering, drawing pitch out of complex material (reminiscent of trace-style thinning at the extreme), while values above 1 diffuse the peaks — around 5 a pitched source picks up a light buzzy sheen, and by 10 a complex source turns distinctly fuzzy and noisy (widening actually moves partials, so noise elements are added, not just softened). Sweeping the value with a breakpoint file travels between the pitched-resonant and noisy states over the course of the file. Also usable on an extracted spectral envelope to reshape its contour.",
   "parameters": {
     "exaggeration": {
       "type": "float",
