@@ -1,0 +1,95 @@
+[
+  {
+    "program": "stretch",
+    "mode": "time",
+    "breakpoint_capable": {"timestretch": true},
+    "duration_row": ["stretch", "time", 2.0, {"timestretch": 2.0}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "Entry pinned to submode 1. duration_model expression 'indur * timestretch': 2.0x2 -> 4.0490 s (+1.2%), 3.0x2 -> 6.0459 s (+0.77%), 2.0x3.5 -> 7.0879 s (+1.26%), 2.0x0.5 -> 1.0101 s (+1.0%).",
+      "Banner states no range; enforced 0.0001-10000 from refusal text 'ERROR: Parameter[1] Value (0.000000) out of range (0.000100 to 10000.000000)'. afta8 max 10 / SoundThread 0.1-100 are UI ceilings.",
+      "Submode 2 is an information-only mode (no outfile): prints 'INFO: Length of output file will be 4.052 secs.', matching the measured 4.0490 s within 0.1% — usable as a duration preflight.",
+      "timestretch breakpoint accepted (ramp 1->3 over a 2 s input -> 3.1289 s, between the endpoint durations).",
+      "Deterministic: identical rerun (x3, incl. sleep 1.1) -> identical decoded sha."
+    ]
+  },
+  {
+    "program": "strange",
+    "mode": "glis",
+    "breakpoint_capable": {"fchans": false, "pbands": false, "glisrate": true, "topfrq": false},
+    "duration_row": ["strange", "glis", 2.0, {"pbands": 8, "glisrate": 2.0}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "Entry pinned to submode 1 (Shepard tones); submode 2 adds an hzstep positional not curated here.",
+      "Static duration: 2.0 s -> 2.0230 s, 3.0 s -> 3.0215 s; glisrate 2 vs 12 identical duration.",
+      "Exactly one of -f/-p is required: neither -> 'Formant parameter missing on cmdline.' (exit 255); both -> 'ERROR: Cannot read parameter 1 [-p8]' (the second flag is mis-parsed as the glisrate positional).",
+      "Raw brk refusals: -p file -> 'Cannot read count of formant_bands.' (non-standard text); -t file -> 'ERROR: Cannot read parameter 3 [b_tf.brk]: brkpnt_files not permitted.'",
+      "-p0 accepted (exit 0) despite afta8/SoundThread floors of 1; afta8's topfrq def 1000 Hz is a UI seed value (banner/manual default: Nyquist).",
+      "Deterministic: identical rerun (sleep 1.1) -> identical decoded sha."
+    ]
+  },
+  {
+    "program": "strange",
+    "mode": "invert",
+    "breakpoint_capable": {},
+    "duration_row": ["strange", "invert", 2.0, {}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "Entry pinned to submode 1 (normal inversion); submode 2 retains the source amplitude envelope and produces different output (decoded sha differs).",
+      "No numeric parameters exist — argv is just 'strange invert 1 infile outfile'; nothing to breakpoint-probe.",
+      "Static duration: 2.0 s -> 2.0230 s, 3.0 s -> 3.0215 s.",
+      "afta8 warns the function 'is not working properly'; every mechanical probe on this build is clean (exit 0, deterministic, non-silent output at -13.6 dBFS vs -12.1 dBFS source round-trip, distinct from submode 2). Warning shipped as advisory in known_issues only.",
+      "Deterministic: identical rerun (sleep 1.1) -> identical decoded sha."
+    ]
+  },
+  {
+    "program": "hilite",
+    "mode": "trace",
+    "breakpoint_capable": {"n": true},
+    "duration_row": ["hilite", "trace", 2.0, {"n": 10}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "Entry pinned to submode 1 (whole-spectrum selection); submodes 2-4 add lofrq/hifrq and -r.",
+      "Static duration: 2.0 s -> 2.0230 s, 3.0 s -> 3.0215 s; n=10 vs n=50 identical duration.",
+      "n breakpoint accepted (0 4 / 1.9 40 -> exit 0, resynthesises).",
+      "Enforced range is 1 to the analysis channel count: 'ERROR: Parameter[1] Value (0.000000) out of range (1.000000 to 513.000000)' on a 1024-point analysis (same text at 40000). afta8's 0-32768 is a UI ceiling and its 'default 2' a UI seed value — n is a required positional with no CDP default.",
+      "Deterministic: identical rerun (sleep 1.1) -> identical decoded sha."
+    ]
+  },
+  {
+    "program": "spec",
+    "mode": "magnify",
+    "breakpoint_capable": {"time": false, "dur": false},
+    "duration_row": ["spec", "magnify", 2.0, {"time": 0.5, "dur": 2.0}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "duration_model set_by 'dur': 1.0 -> 0.9985 s, 2.0 -> 1.9969 s, 2.5 -> 2.4961 s, 40 -> 39.9964 s; independent of indur — 2 s and 3 s inputs sharing window content give bit-identical output.",
+      "Raw refusals: 'ERROR: Cannot read parameter 1 [b_time.brk]: brkpnt_files not permitted.' / 'ERROR: Cannot read parameter 2 [b_dur.brk]: brkpnt_files not permitted.'",
+      "time is range-enforced to the input's analysed duration: 'ERROR: Parameter[1] Value (5.000000) out of range (0.000000 to 2.025941)' on a 2 s input.",
+      "Divergence: banner/manual say dur MUST exceed the analysis window length, but dur=0.01 exits 0 and silently produces a .ana that resynthesises to ZERO frames (empty data chunk). Pinned in known_issues.",
+      "afta8's dur max 30 / SoundThread's 480 are UI ranges (40 s verified clean).",
+      "Deterministic: identical rerun (sleep 1.1) -> identical decoded sha."
+    ]
+  },
+  {
+    "program": "focus",
+    "mode": "accu",
+    "breakpoint_capable": {"decay": true, "glis": true},
+    "duration_row": ["focus", "accu", 2.0, {"decay": 0.5, "glis": 0.5}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "Static duration: 2.0 s -> 2.0230 s, 3.0 s -> 3.0215 s; (-d0.5 -g0.5) vs (-d0.1 -g2) both static.",
+      "Defaults empirically pinned: flag-less, -d1 and -g0 runs are bit-identical (.ana fmt+data chunks and decoded sha) -> decay default 1.0 (no decay), glis default 0. afta8's def 0.5 / SoundThread's -0.5 are UI seed values.",
+      "Divergence (manual wrong, banner right): manual's 'Suggested effective Range: 0.000001 to 0.5' for decay dips below the enforced floor — -d0.000001 refused (exit 255); enforced 0.001-1.0 ('ERROR: Parameter[1] Value (0.000000) out of range (0.001000 to 1.000000)'). afta8's min 1e-06 repeats the manual's error.",
+      "Divergence (banner approximate): glis enforced at +/-21.533204 on this analysis, not +/-11.7 — -g20 accepted, -g100 refused. Source: MAXGLISRATE = 0.0625 oct/window (dev/include/speccon.h:182); bound = +/-0.0625/frametime, scales with analysis frame rate. JSON leaves min/max null and documents the formula.",
+      "decay and glis breakpoints attached to flags (-dfile.brk / -gfile.brk) both accepted.",
+      "Deterministic: identical rerun (sleep 1.1) -> identical decoded sha."
+    ]
+  }
+]

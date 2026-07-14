@@ -1,0 +1,48 @@
+{
+  "program": "hilite",
+  "mode": "trace",
+  "submode": 1,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Retains only the n loudest spectral components in each analysis window, discarding the rest — an aural 'trace' of the original sound. Pinned to submode 1 (select from the whole spectrum); submodes 2-4 add lofrq/hifrq bounds and an -r retain-outside flag. Note it deals in analysis channels, not tracked partials: which partial a kept channel contains changes from window to window. Operates on PVOC analysis files (.ana).",
+  "musical_use": "The reference spectral thinner. Two regimes: at n around 50-100 it works as a cleaner, stripping ambient noise while keeping the source intact (accepting some data loss); pushing down through 40, 30, 20, 10, 5 less and less remains — it is surprising how low n must go before the result turns properly ghostly, since even the 10 loudest channels retain much of a non-noisy source. At the bottom of the range the source becomes mere raw material for a new, skeletal sound; strongly and rapidly changing sources produce a burbling effect. A time-varying n envelope lets the sound thin out or re-condense across its length. Pairs well with blur blur downstream for a smeared, simplified version of the sound. Sizing guide: channel width = samplerate / analysis points (~43 Hz at 1024/44.1k), and low sounds pack more partials per channel than high ones. Unlike blur scatter's random sieve, trace always keeps the perceptually dominant data.",
+  "parameters": {
+    "n": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "channels",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "The trace index: number of spectral components (analysis channels) to retain per window. CDP enforces 1 to the analysis channel count (refusal probed at 0 and 40000: 'out of range (1.000000 to 513.000000)' on a 1024-point analysis). May vary over time via a breakpoint file (verified)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Gentle clean-up: keep the 100 loudest channels.",
+      "params": {"n": 100},
+      "expected_use": "Strip ambient noise from a source while keeping it recognisable."
+    },
+    {
+      "description": "Ghostly skeleton: keep only the 6 loudest channels.",
+      "params": {"n": 6},
+      "expected_use": "Reduce a rich source to a sparse, flickering trace of its loudest moments."
+    }
+  ],
+  "known_issues": [
+    "The enforced maximum for n is dynamic — the analysis channel count (points/2 + 1; 513 for a 1024-point analysis), taken from the refusal text. afta8's 0-32768 range is a UI ceiling and its 'default 2' is a UI seed value: n is a required positional with no CDP default.",
+    "SoundThread expresses this parameter as a percentage of the window size (0.1-50%, default 15%) rather than a channel count — a UI convenience, not a CDP argument shape."
+  ],
+  "references": ["cdp://docs/html/chilite"]
+}

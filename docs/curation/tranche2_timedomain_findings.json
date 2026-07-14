@@ -1,0 +1,123 @@
+{
+  "generated_at": "2026-07-14",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build, banner 'CDP Release 7.1 2016')",
+    "os": "Linux x86_64 sandbox",
+    "note": "To be re-verified on macOS r8 by the CDP-gated suite after integration."
+  },
+  "entries": [
+    {
+      "program": "modify",
+      "mode": "revecho",
+      "submode": 2,
+      "breakpoint_capable": {
+        "delay": false,
+        "mix": false,
+        "feedback": false,
+        "lfomod": false,
+        "lfofreq": false,
+        "lfophase": false,
+        "lfodelay": false,
+        "tail": false,
+        "prescale": false,
+        "seed": false
+      },
+      "duration_row": ["modify", "revecho", 2.0, {"delay": 250.0, "mix": 0.5, "feedback": 0.5, "lfomod": 0.3, "lfofreq": 1.0, "lfophase": 0.0, "lfodelay": 0.0, "tail": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model expression 'indur + tail' exact on 1 s and 2 s inputs across tail 0/0.5/1.0, delay 250/500 ms, feedback up to 0.9.",
+        "Raw refusals: 'ERROR: Cannot read parameter 1 [b_delay.brk]: brkpnt_files not permitted.' (params 1-8 positional in banner order; 9 = -p prescale). seed (-s) not brk-probed (semantically meaningless); false.",
+        "HEADLINE DIVERGENCE: -s seed is a NO-OP and the negative-lfofreq 'random oscillation' path is fully deterministic in this build. Seeds 1/3/5/9/77/99/200 and unseeded runs 1.1 s apart all produce identical decoded samples; the random path IS active (pos vs neg lfofreq differ, lfophase changes the neg-freq output). Mechanism from source: newsfsys/osbind.c defines drand48() as rand()/RAND_MAX (nm shows 'T drand48' in the modify binary), overriding libc, while modify/delay.c seeds glibc srand48(seed) on non-Windows - the wrong generator. On _WIN32 the code path calls srand(seed), which does feed the shim, so seed presumably works there. Entry: stochastic false, version_sensitive true, seed exposed with the no-op documented.",
+        "DIVERGENCE: cgromody.htm documents tail range '-1.0 to 1.0'; binary enforces 'out of range (0.000000 to 30.000000)' (refuses -0.5, accepts 2.0).",
+        "CDP-enforced ranges: delay 0.022676-10000 ms (min = one sample period, srate-dependent); mix 0-1; feedback -1-1; lfomod 0-1; lfofreq -50-50; lfophase 0-1; lfodelay 0-indur (runtime, input-dependent); tail 0-30; prescale 0.000031-1.0; seed 0-256.",
+        "Stereo accepted (3.0 s, 2 ch) -> 'any'."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "average",
+      "submode": null,
+      "breakpoint_capable": {"cyclecnt": true, "maxwavelen": false, "skipcycles": false},
+      "duration_row": ["distort", "average", 2.0, {"cyclecnt": 5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model static; noise inputs drift 0.1-1.2% across cyclecnt 5-100 (can be slightly LONGER, +0.83% observed - averaged wavelengths re-quantised); strongly periodic material at high cyclecnt drops the final partial group: -9.3% at cyclecnt 100 on a 2 s 440 Hz tone, -2.5% at 20. Row pinned on noise/cyclecnt 5 (-0.11%); tone caveat in known_issues.",
+        "DIVERGENCE: banner says nothing about time-varying cyclecnt; cdistort.htm confirms 'cyclecnt may vary over time' and the binary accepts a brk (exit 0, render differs from both endpoint scalars) - banner-silent, manual+binary agree (cf. distort multiply where the manual was silent too).",
+        "Raw refusals: maxwavelen 'ERROR: Cannot read parameter 2 [b_mw.brk]: brkpnt_files not permitted.'; skipcycles 'ERROR: Cannot read parameter 3 [b_sk.brk]: brkpnt_files not permitted.'",
+        "skipcycles DROPS the skipped wavecycles from the output (verified -s100 on 440 Hz tone: -0.227 s), same as distort repeat - documented, excluded from the row.",
+        "CDP-enforced ranges: cyclecnt 2-32767 (afta8's 2-6000 advisory); maxwavelen 0.000363-1.0 s (lower bound srate-dependent; internal default 0.50); skipcycles 0-32767. Content limit: cyclecnt 6001 on 2 s tone -> 'ERROR: source sound too short to attempt this process.'",
+        "Mono only: stereo refused with 'Application doesn't work with this type of infile.' (exit 255)."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "fractal",
+      "submode": null,
+      "breakpoint_capable": {"scaling": true, "loudness": true, "pre_attenuation": false},
+      "duration_row": ["distort", "fractal", 2.0, {"scaling": 4, "loudness": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model static, SAMPLE-EXACT: output frame counts equal input on all six probe runs (tone and noise, scaling 4-64, loudness 0.5-1.0).",
+        "scaling and loudness both breakpoint-capable (banner-confirmed 'scaling and loudness may vary over time'; probes exit 0 and each brk render differs from both endpoint scalar renders).",
+        "pre_attenuation refusal: 'ERROR: Cannot read parameter 3 [b_pa.brk]: brkpnt_files not permitted.'",
+        "CDP-enforced ranges: scaling 2 to srate/2 ('out of range (2.000000 to 22050.000000)' at 44.1 kHz - max input-dependent, left null); loudness 0.000031-32767 (afta8's 0-10 advisory; 11 accepted, >1 amplifies); pre_attenuation 0.000031-32767 (values >1 accepted despite the name).",
+        "Mono only: stereo refused with 'Application doesn't work with this type of infile.' (exit 255)."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "interpolate",
+      "submode": null,
+      "breakpoint_capable": {"multiplier": true, "skipcycles": false},
+      "duration_row": ["distort", "interpolate", 2.0, {"multiplier": 3}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model expression 'indur * multiplier'; worst error 0.34% (tone), 0.01% (noise), multipliers 2-8 on 1-2 s inputs.",
+        "BANNER BUG (first-class finding): banner ends 'multiplier and cyclecnt may vary over time.' but INTERPOLATE has no cyclecnt parameter - copy-paste from distort repeat. cdistort.htm correctly lists only multiplier as time-variable.",
+        "multiplier brk verified: exit 0, 9.975 s from a 2->8 envelope on 2 s (mean stretch x5), differs from both endpoint renders.",
+        "skipcycles refusal: 'ERROR: Cannot read parameter 2 [b_sk2.brk]: brkpnt_files not permitted.'; drops skipped wavecycles from the output (verified -s100 on 440 Hz tone at mult 2: 3.5386 s vs 3.545 expected) - documented, excluded from the row.",
+        "CDP-enforced ranges: multiplier 2-32767 (afta8's 0-50/def 10 advisory - 60 accepted, 119.73 s output from 2 s); skipcycles 0-32767.",
+        "Mono only: stereo refused with 'Application doesn't work with this type of infile.' (exit 255)."
+      ]
+    },
+    {
+      "program": "envel",
+      "mode": "dovetail",
+      "submode": 1,
+      "breakpoint_capable": {
+        "infadedur": false,
+        "outfadedur": false,
+        "intype": false,
+        "outtype": false,
+        "times": false
+      },
+      "duration_row": ["envel", "dovetail", 2.0, {"infadedur": 0.3, "outfadedur": 0.5, "intype": 1, "outtype": 1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model static, exact on 1 s and 2 s inputs, all shape combinations and all -t unit modes. Fades verified applied in place (edge RMS 1-3% of source, middle untouched).",
+        "UNDOCUMENTED SHAPE VALUES (first-class finding): intype/outtype accept 0-3, not the documented 0/1. Source-confirmed enum (envlcon.h ENVTYPE_LIN/EXP/STEEP/DBL); 'dovetail 1 ... 3 3' is byte-identical to 'dovetail 2' with the same fades, so submode 2 is a special case of submode 1. Out-of-enum values are NOT range-checked: intype 5/-1 -> 'ERROR: Unknown case in create_envelope()'; intype 4 -> 'ERROR: INTERNAL ERROR: (Bug?)'. Entry pins min 0 / max 3 with defaults 1 (the documented default, engine-emitted).",
+        "Raw refusals: 'ERROR: Cannot read parameter 1 [b_if.brk]: brkpnt_files not permitted.' (params 1-4 positional; 5 = -t times).",
+        "Runtime constraint: infadedur + outfadedur > indur -> 'ERROR: Start and End Trims overlap: cannot proceed.'. Negative infadedur -> misleading 'ERROR: INSUFFICIENT MEMORY to reallocate level array.' (no range check).",
+        "times flag: -t0/-t1/-t2 (seconds/samples/grouped-samples) all verified; -t3 -> 'ERROR: Unknown case: ENV_DOVETAILING: envelope_preprocess()'.",
+        "Stereo accepted -> 'any'."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "cut",
+      "submode": 1,
+      "breakpoint_capable": {"start": false, "end": false, "splice": false},
+      "duration_row": ["sfedit", "cut", 2.0, {"start": 0.5, "end": 1.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model expression 'end - start' SAMPLE-EXACT (44100/66150/30870/88200 frames across four start/end pairs, two input durations, splice 0/15/100 ms); the splice window fades edges inside the block and never changes the duration.",
+        "Content verified: splice 0 output is a sample-exact copy of input[start:end] (atol 1e-7); default splice leaves the interior bit-identical, edges faded (first sample 0).",
+        "SILENT SWAP (first-class finding): start > end is accepted and swapped - '1.5 0.5' produces a byte-identical file to '0.5 1.5'. No error is raised for reversed bounds.",
+        "Raw refusals: 'ERROR: Cannot read parameter 1 [b_st.brk]: brkpnt_files not permitted.' (start=1, end=2; 3 = -w splice).",
+        "CDP-enforced/runtime ranges: start/end 0 to input duration ('out of range (0.000000 to 2.000000)' on a 2 s file; values past EOF refused, not clamped); splice 0-5000 ms (afta8's 0-1000 advisory; internal default 15); splice must fit twice in the block or 'ERROR: Edited portion is too short for specified splicelen.'",
+        "Stereo accepted -> 'any'."
+      ]
+    }
+  ],
+  "dropped": []
+}

@@ -1,0 +1,49 @@
+{
+  "program": "stretch",
+  "mode": "time",
+  "submode": 1,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur * timestretch"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "The canonical spectral timestretch: stretches or compresses a sound in time without changing its pitch, by prolonging (or thinning) the analysis-window sequence. Pinned to submode 1 (produce an output file); submode 2 is an information-only mode that takes no outfile and just prints the predicted output length. Output duration is indur * timestretch (verified within 1.3% across two input durations and three stretch values). Operates on PVOC analysis files (.ana).",
+  "musical_use": "Lengthen or compress a sound while its pitch stays put. Strong beat patterns make the effect vivid — as the stretch grows you literally hear the pulse slow down. The time-varying breakpoint form is the compositionally important one: keep timestretch at 1 through the attack transient so the source stays recognisable, then ramp it up for the body of the sound (recognisability lives in the attack). Values below 1 compress instead. Very long stretches are best staged — stretch by 5-10x, cut out the portion you want with spec cut, and restretch that, rather than paying for an enormous intermediate file. Following focus accu with a timestretch produces nicely slow-moving timbral and pitch changes.",
+  "parameters": {
+    "timestretch": {
+      "type": "float",
+      "min": 0.0001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Stretch multiple applied to the time-base: > 1 lengthens, < 1 compresses. CDP enforces 0.0001 to 10000 (from the refusal text; the banner states no range). May vary over time via a breakpoint file — interpolation between points is gradual, and two stretch values cannot share the same time (offset them by e.g. 0.01 s for near-instant changes)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Double the length of a sound without changing pitch.",
+      "params": {"timestretch": 2.0},
+      "expected_use": "Slow a gesture down to half speed while keeping its pitch and spectral character."
+    },
+    {
+      "description": "Keep the attack, stretch the tail — supply timestretch as a breakpoint file holding 1.0 through the attack, then ramping up (e.g. '0 1 / 0.3 1 / 2.0 4').",
+      "params": {"timestretch": 4.0},
+      "expected_use": "Retain the recognisable attack transient, then let the body of the sound expand."
+    }
+  ],
+  "known_issues": [
+    "Submode 2 takes no outfile and only prints the predicted length (probed: 'INFO: Length of output file will be 4.052 secs.', matching the measured 4.0490 s within 0.1%) — a useful preflight for long stretches, but not a processing mode; this entry is pinned to submode 1.",
+    "The banner states no range for timestretch; the enforced range 0.0001-10000 is taken from the refusal text ('ERROR: Parameter[1] Value (0.000000) out of range (0.000100 to 10000.000000)'). afta8's max of 10 and SoundThread's 0.1-100 slider are UI ceilings, not CDP limits.",
+    "The manual flags SPECTSTR as a newer version of this process (same time-stretching plus channel-discohere/randomise parameters); stretch time remains the canonical, simpler form."
+  ],
+  "references": ["cdp://docs/html/cstretch"]
+}

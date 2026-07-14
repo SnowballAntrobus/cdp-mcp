@@ -1,0 +1,74 @@
+{
+  "program": "distort",
+  "mode": "average",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "static"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Averages the waveshape over groups of cyclecnt 'wavecycles' (zero-crossing-delimited segments), replacing each group with repetitions of its mathematical average. The effect is a loss of resolution rather than a blur; large counts approach a sample-hold character. Duration is essentially unchanged (0.1-1.2% drift on noise) but strongly periodic material at high cyclecnt loses the final partial group - see known_issues. Mono only.",
+  "musical_use": "Mushy, watery degradation and discrete sample-hold effects. Values below 10 keep some semblance of the original with a smeared, underwater cast; around 100 the sound freezes into stepped 'sample hold' blocks. For modest distortion stay at 5 or less. A time-varying cyclecnt (breakpoint file) can slide a sound from intact to frozen across its length - the binary accepts this even though its own usage banner is silent about it.",
+  "parameters": {
+    "cyclecnt": {
+      "type": "int",
+      "min": 2,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Number of wavecycles over which to average (integer; CDP-enforced range 2-32767 - the binary rejects 1 with 'Value (1.000000) out of range (2.000000 to 32767.000000)'). Values <10 retain the source's character, ~100 gives sample-hold; 5 or less for modest distortion. Runtime-limited by content: a value exceeding the file's wavecycle count aborts with 'source sound too short to attempt this process.'. May vary over time (manual-confirmed; probe verified - a 3->40 breakpoint render differs from both endpoint scalar renders)."
+    },
+    "maxwavelen": {
+      "type": "float",
+      "min": null,
+      "max": 1.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-m",
+      "flag_kind": "attached_value",
+      "description": "Maximum permissible wavelength in seconds (CDP's internal default is 0.50; enforced range at 44.1 kHz was 0.000363 to 1.0 - the lower bound is sample-rate-dependent). Segments longer than this (e.g. long near-silences between zero crossings) are not treated as wavecycles. Scalar only - a breakpoint file is refused."
+    },
+    "skipcycles": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Number of wavecycles to skip at the start of the file (integer; CDP-enforced range 0-32767; internal default 0). As with distort repeat, skipped material is dropped from the output entirely (verified: -s100 on a 440 Hz tone shortened the output by ~100/440 s), so nonzero values make the static duration model over-predict. Scalar only - a breakpoint file is refused."
+    }
+  },
+  "examples": [
+    {
+      "description": "Modest waveshape smearing.",
+      "params": {"cyclecnt": 5},
+      "expected_use": "Watery, slightly degraded version of the source; duration unchanged."
+    },
+    {
+      "description": "Sample-hold freeze.",
+      "params": {"cyclecnt": 100},
+      "expected_use": "Stepped, frozen blocks of waveshape; on strongly pitched sources expect the output a few percent shorter (final partial group dropped)."
+    }
+  ],
+  "known_issues": [
+    "DIVERGENCE: the usage banner says nothing about time-varying cyclecnt, but the HTML manual states 'cyclecnt may vary over time' and the binary accepts a breakpoint file (exit 0; output differs from both endpoint scalar renders). Same banner-silent/breakpoint-capable pattern as distort multiply, with manual and binary agreeing this time.",
+    "The static duration model degrades on strongly periodic material at high cyclecnt: the final partial group (up to cyclecnt wavecycles) is dropped, e.g. -9.3% at cyclecnt 100 on a 2 s 440 Hz tone (1.8141 s), -2.5% at cyclecnt 20. On noise inputs drift stayed within 0.1-1.2% (cyclecnt 5-100), and output can come out slightly LONGER (+0.57% observed) because averaged wavelengths are re-quantised.",
+    "skipcycles drops the skipped wavecycles from the output rather than passing them through; the shortfall is content-dependent (cycles, not seconds) and is excluded from the duration model.",
+    "Mono only: a stereo input is refused with 'Application doesn't work with this type of infile.' (exit 255)."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

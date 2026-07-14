@@ -1,0 +1,145 @@
+{
+  "program": "modify",
+  "mode": "revecho",
+  "submode": 2,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "expression",
+    "expr": "indur + tail"
+  },
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Delay line whose delay time is swept by a low-frequency oscillator (VARYING DELAY). Pinned to submode 2; submodes 1 (fixed delay) and 3 (stadium echo) can be curated separately. Positive lfofreq sweeps the delay sinusoidally; negative lfofreq replaces the sine with a random (1/f-style) drift. Output duration is exactly indur + tail (verified on 1 s and 2 s inputs across tail 0/0.5/1.0, delay 250/500 ms, feedback up to 0.9). Works on mono and stereo input.",
+  "musical_use": "The classic CDP modulated delay, spanning chorus to pitch-wobble to FM-like colouration depending on where the parameters sit. Short delays (under ~40 ms) with feedback create pitched resonances (roughly 1000/delay-ms Hz); small lfomod depth and slow lfofreq on a short delay gives chorus- and flanger-like motion. Longer delays with more depth and a slow sweep produce audible pitch bends; fast sweep rates (tens of Hz) frequency-modulate the delay line, adding new upper harmonics. Negative lfofreq turns the sweep into random drift - a wobblier, tape-like instability. Keep mix low for smooth reverberant colouring; push feedback toward +/-1 for strong resonance (negative feedback inverts the fed-back phase). Lengthen tail to let long delays ring out fully.",
+  "parameters": {
+    "delay": {
+      "type": "float",
+      "min": null,
+      "max": 10000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Delay time before modulation, in milliseconds (CDP-enforced max 10000; the lower bound is one sample period and is sample-rate-dependent - 0.02 ms at 44.1 kHz was refused with 'Value (0.020000) out of range (0.022676 to 10000.000000)'). Under ~40 ms with feedback the delay reads as a pitched resonance; beyond ~200 ms as discrete echoes. Scalar only."
+    },
+    "mix": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Amount of delayed signal in the final mix: 0 gives a dry result, 1 fully wet (CDP-enforced range 0-1). Keep low for subtle reverberant colouring. Scalar only."
+    },
+    "feedback": {
+      "type": "float",
+      "min": -1.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Amount of output fed back into the delay line (CDP-enforced range -1 to 1). Higher magnitude gives more repetitions; with short delay times it produces resonances related to the delay time. Negative values invert the phase of the feedback. Scalar only."
+    },
+    "lfomod": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Depth of the delay-variation sweep as a fraction of the delay time (CDP-enforced range 0-1; internally the modulation range is delay * lfomod, capped just below 100%). Small values chorus; large values produce obvious pitch bends. Scalar only."
+    },
+    "lfofreq": {
+      "type": "float",
+      "min": -50.0,
+      "max": 50.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Frequency of the delay-variation sweep in Hz (CDP-enforced range -50 to 50). Positive values give a sinusoidal sweep; negative values give random oscillation at that rate. Low rates read as wave motion, high rates as FM-like sidebands. Scalar only."
+    },
+    "lfophase": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Start phase of the delay-variation sweep (CDP-enforced range 0-1). Also audibly affects the negative-lfofreq (random) path, where it seeds the sweep's starting value. Scalar only."
+    },
+    "lfodelay": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time in seconds before the delay-variation sweep begins (runtime-enforced maximum is the input duration: 3.0 on a 2 s file was refused with 'Value (3.000000) out of range (0.000000 to 2.000000)'). Scalar only."
+    },
+    "tail": {
+      "type": "float",
+      "min": 0.0,
+      "max": 30.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time appended after the input ends for the delayed signal to decay to zero. Output duration is exactly indur + tail. CDP-enforced range 0-30 s - the HTML manual's stated range of -1.0 to 1.0 is wrong (the binary refuses -0.5 with 'Value (-0.500000) out of range (0.000000 to 30.000000)' and accepts 2.0). Match the tail to the delay time and feedback so echoes are not cut off. Scalar only."
+    },
+    "prescale": {
+      "type": "float",
+      "min": 3.1e-05,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Gain applied to the input before the delay, to avoid overload with high feedback/mix settings (CDP-enforced range 0.000031-1.0). Scalar only."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 256,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Documented as making random oscillations (negative lfofreq) reproducible (CDP-enforced range 0-256). In the Linux/mac source build this flag is a NO-OP: the binary links a local drand48() shim backed by rand() while the seed is fed to glibc's srand48(), so every run - seeded or not - produces the identical 'random' sweep (see known_issues). Kept exposed because on Windows builds the seed path seeds rand() and should work as documented."
+    }
+  },
+  "examples": [
+    {
+      "description": "Chorus-like motion: short delay, shallow slow sweep.",
+      "params": {"delay": 30.0, "mix": 0.4, "feedback": 0.3, "lfomod": 0.1, "lfofreq": 0.5, "lfophase": 0.0, "lfodelay": 0.0, "tail": 0.5},
+      "expected_use": "Gentle thickening/detuning of the source; output is indur + 0.5 s."
+    },
+    {
+      "description": "Random tape-wobble echo: quarter-second delay, deep random drift.",
+      "params": {"delay": 250.0, "mix": 0.5, "feedback": 0.5, "lfomod": 0.5, "lfofreq": -2.0, "lfophase": 0.0, "lfodelay": 0.0, "tail": 1.0},
+      "expected_use": "Unstable, pitch-bending echoes; negative lfofreq makes the sweep a random walk instead of a sine."
+    }
+  ],
+  "known_issues": [
+    "HEADLINE DIVERGENCE (build-dependent, hence version_sensitive): the -s seed is a no-op and the negative-lfofreq 'random' path is fully deterministic in the CDP8 source build on Linux (expected on mac too). Mechanism, from source: newsfsys/osbind.c defines its own drand48() as rand()/RAND_MAX 'for both WIN32 and unix', overriding libc's drand48, while modify/delay.c seeds via glibc srand48(seed) on non-Windows - the seed goes to a generator that is never read. Verified: seeds 1/3/9/77/99/200 and unseeded runs 1.1 s apart are all decoded-sample identical; the random path itself IS active (negative vs positive lfofreq differ, lfophase changes the random output). On _WIN32 the code calls srand(seed), which DOES seed the rand() behind the shim, so seed likely works there as documented.",
+    "The HTML manual (cgromody.htm) gives tail's range as -1.0 to 1.0; the binary enforces 0 to 30 seconds. The manual range appears to be a documentation error.",
+    "All nine numeric parameters reject breakpoint files ('ERROR: Cannot read parameter N [...]: brkpnt_files not permitted.', N = 1-9) - the sweep itself is the only time-variation on offer.",
+    "lfodelay's maximum is the input duration and delay's minimum is one sample period - both runtime/input-dependent, so out-of-range refusals vary with the file."
+  ],
+  "references": ["cdp://docs/html/cgromody"]
+}

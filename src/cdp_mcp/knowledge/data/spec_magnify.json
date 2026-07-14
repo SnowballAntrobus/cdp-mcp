@@ -1,0 +1,54 @@
+{
+  "program": "spec",
+  "mode": "magnify",
+  "submode": null,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Magnifies a single analysis window: synthesizes a steady sound of duration dur from the analysis data at the one window nearest time. The output duration is set entirely by dur, independent of the input's length (verified: identical output from a 2 s and a 3 s input sharing the same window content). Formerly named SPECWEXP. Operates on PVOC analysis files (.ana).",
+  "musical_use": "Draw a single moment of timbral interest out into a steady, examinable sound — a spectral magnifying glass. Listen through the source for windows worth dwelling on: a wide spread of frequencies and rapidly changing timbral content are the two things to hunt for; the resulting drone can then stand alone or become source material for further processing. Compare spec grab, which extracts the window as a single-window .ana for freezing or morph work — magnify instead renders the moment at a chosen duration in one step. The output is a static spectrum, so expect a synthetic, organ-pipe steadiness; the resynthesized sound will need topping and tailing (the attack and ending are abrupt-cut analysis data, not shaped).",
+  "parameters": {
+    "time": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time in the input file of the window to magnify. CDP enforces 0 to the input's analysed duration (refusal probed: 'out of range (0.000000 to 2.025941)' on a 2 s input). Scalar only — a breakpoint file is refused ('brkpnt_files not permitted')."
+    },
+    "dur": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Required output duration; directly sets the output length (verified within 0.2% at 1.0, 2.0 and 2.5 s, and at 40 s). The banner says it MUST exceed the analysis window length, but CDP does not enforce this — see known_issues. Scalar only — a breakpoint file is refused."
+    }
+  },
+  "examples": [
+    {
+      "description": "Magnify the window at 0.5 s into a 6-second steady sound.",
+      "params": {"time": 0.5, "dur": 6.0},
+      "expected_use": "Turn a fleeting timbral moment into a drone long enough to hear inside."
+    }
+  ],
+  "known_issues": [
+    "Banner requirement unenforced (divergence): dur 'MUST BE > the analysis window length', but a probe at dur=0.01 exits 0 and silently produces a .ana that resynthesizes to ZERO frames of audio. Keep dur comfortably above the window length (> ~0.03 s at default analysis settings) or the output is empty with no error raised.",
+    "afta8's max of 30 s and SoundThread's 480 s ceiling are UI ranges only — a 40 s output was verified clean (39.9964 s measured).",
+    "Both parameters are scalar-only; raw refusals: 'ERROR: Cannot read parameter 1 [b_time.brk]: brkpnt_files not permitted.' / 'ERROR: Cannot read parameter 2 [b_dur.brk]: brkpnt_files not permitted.'"
+  ],
+  "references": ["cdp://docs/html/cspecedi"]
+}

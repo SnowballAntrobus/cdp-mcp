@@ -35,6 +35,8 @@ def test_all_curated_entries_present(real_index):
 def test_categories_sorted_and_unique(real_index):
     assert real_index.categories() == [
         "distort",
+        "edit",
+        "envelope",
         "extend",
         "filter",
         "granular",
@@ -58,7 +60,9 @@ def test_list_entries_by_domain_spectral(real_index):
     assert keys == {
         ("blur", "avrg"), ("blur", "blur"), ("blur", "drunk"),
         ("blur", "scatter"), ("combine", "cross"), ("combine", "diff"),
-        ("focus", "exag"), ("morph", "glide"), ("morph", "morph"),
+        ("focus", "accu"), ("focus", "exag"), ("hilite", "trace"),
+        ("morph", "glide"), ("morph", "morph"), ("spec", "magnify"),
+        ("strange", "glis"), ("strange", "invert"), ("stretch", "time"),
     }
 
 
@@ -71,8 +75,8 @@ def test_curated_only_passthrough_includes_all(real_index):
     # All curated entries are curated, so curated_only=False just returns the
     # same set. The flag's behavior is exercised; the data doesn't (yet)
     # contain uncurated entries to filter out.
-    assert len(real_index.list_entries(curated_only=False)) == 19
-    assert len(real_index.list_entries(curated_only=True)) == 19
+    assert len(real_index.list_entries(curated_only=False)) == 31
+    assert len(real_index.list_entries(curated_only=True)) == 31
 
 
 def test_get_returns_none_for_missing(real_index):

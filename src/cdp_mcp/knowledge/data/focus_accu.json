@@ -1,0 +1,61 @@
+{
+  "program": "focus",
+  "mode": "accu",
+  "submode": null,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Sustains (accumulates) each spectral band until louder data appears in that band: frequencies are carried forward into subsequent windows, optionally decaying in amplitude and/or glissing in pitch as they sustain. The overall effect is one of sustaining that also makes the spectrum more complex. Superseded and extended by SUPERACCU, but remains the simple canonical form. Operates on PVOC analysis files (.ana).",
+  "musical_use": "Creates a supple, internally modulating sustain — a churning resonance that moves slowly at the low end of the glis range and ever faster toward the top. glis changes the result the most: near 0 (say -0.9 or 0.1) it yields very effective slow glissandos inside the spectrum; at 0.5 several glissandos emerge; at 1 they are fairly fast; by 10 the result is a wash. At -5 and below the sound settles onto a steady sustained pitch after a short initial gliss; the recommended effective range is -0.5 to 10. decay governs how long sustained bands ring: near the floor (0.1) the result is very dry, while ~0.75 brings the glissandos out nicely with a kind of reverberant aura (the default 1.0 means no decay at all — sustained bands ring until displaced). Clearly pitched inputs give aurally clearer results. Following the output with stretch time produces beautifully slow-moving timbral and pitch changes; the manual also points to blur scatter (high keep) and hilite trace (low n) for related churning, bubbly textures.",
+  "parameters": {
+    "decay": {
+      "type": "float",
+      "min": 0.001,
+      "max": 1.0,
+      "unit": "factor/sec",
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Sustained channel data decays by this factor per second. Default 1.0 = no decay (verified: omitted -d, -d1 and -g0 runs are bit-identical). CDP enforces 0.001 to 1.0; the banner suggests 0.001-0.5 as the effective range. May vary over time via a breakpoint file attached to the flag (-d<file>, verified)."
+    },
+    "glis": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "octaves/sec",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Sustained channel data glisses at this many octaves per second (negative = downward). Default 0 (no gliss). The enforced bound is analysis-dependent: +/-(0.0625/frametime) octaves/sec — +/-21.53 for a default 1024-point overlap-3 analysis at 44.1 kHz (probed; the banner's '+/-11.7' is only approximate). May vary over time via a breakpoint file attached to the flag (-g<file>, verified)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Manual's typical command line: reverberant sustain with slow downward glissandos.",
+      "params": {"decay": 0.75, "glis": -0.9},
+      "expected_use": "Turn a textured source into a supple, slowly modulating resonance with a reverberant aura."
+    },
+    {
+      "description": "Fast churning wash.",
+      "params": {"decay": 0.5, "glis": 10.0},
+      "expected_use": "Dissolve the source into a dense glissando wash."
+    }
+  ],
+  "known_issues": [
+    "Manual-vs-binary divergence: the manual's 'Suggested effective Range: 0.000001 to 0.5' for decay dips below the enforced floor — -d0.000001 is refused (exit 255) along with -d0 and -d2 ('out of range (0.001000 to 1.000000)'). The banner's suggested range (0.001-0.5) is the consistent one. afta8's min of 1e-06 repeats the manual's error, and its default of 0.5 is a UI seed value; the true CDP default is 1.0 (no decay), verified bit-identical to an argument-less run.",
+    "The glis bound is not the banner's +/-11.7: -g20 is accepted and -g100 refused with 'out of range (-21.533204 to 21.533204)' on a default analysis. Source: MAXGLISRATE = 0.0625 octaves per window (dev/include/speccon.h:182), so the enforced limit is +/-0.0625/frametime and scales with the analysis frame rate.",
+    "The manual/afta8 tip text calls decay 'the delay parameter' in one passage — same parameter, typo preserved in the sources."
+  ],
+  "references": ["cdp://docs/html/cfocus"]
+}

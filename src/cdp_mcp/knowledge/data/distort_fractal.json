@@ -1,0 +1,73 @@
+{
+  "program": "distort",
+  "mode": "fractal",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "static"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Superimposes miniature copies of each source 'wavecycle' onto itself: every wavecycle is shrunk by the integer scaling divisor and the shorter, higher copies are layered over the original. Duration model static and sample-exact (frame counts identical to the input on 1 s and 2 s tone and noise probes). Mono only.",
+  "musical_use": "A powerful and somewhat wild distortion tool. Because scaling is a divisor, higher values make the superimposed copies shorter and higher - heard as a sheen of distortion floating above the original sound; low values (2-4) add gritty octave-up-like artefacts fused with the source. loudness balances input against the processed component: 1.0 keeps the original at full level with the superimpositions on top; below 1 recedes the fractal layer into a halo; above 1 lets it dominate (be careful - it can grow well past clipping). Both scaling and loudness take breakpoint files, so the sheen can sweep upward or fade in across the sound.",
+  "parameters": {
+    "scaling": {
+      "type": "int",
+      "min": 2,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Integer division of the scale of the source wave (range 2 to sample_rate/2 - CDP-enforced, so the maximum is input-dependent: at 44.1 kHz the binary rejects 30000 with 'Value (30000.000000) out of range (2.000000 to 22050.000000)'). Higher values give shorter, higher-pitched superimposed copies - more of a 'sheen'. May vary over time (banner-confirmed; probe verified - a 2->64 breakpoint render differs from both endpoint scalar renders)."
+    },
+    "loudness": {
+      "type": "float",
+      "min": 3.1e-05,
+      "max": 32767.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Loudness of the scaled component relative to the source, whose loudness is reckoned as 1.0 (CDP-enforced range 0.000031-32767; the documented working range is 0-10 and values above 1 amplify the fractal layer - use with care). May vary over time (banner-confirmed; probe verified against both endpoint renders)."
+    },
+    "pre_attenuation": {
+      "type": "float",
+      "min": 3.1e-05,
+      "max": 32767.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Gain multiplier applied to the input before processing, to make headroom for the superimposed copies (CDP-enforced range 0.000031-32767 - despite the name, values above 1 are accepted and amplify). Scalar only - a breakpoint file is refused."
+    }
+  },
+  "examples": [
+    {
+      "description": "Fused low-order fractal grit.",
+      "params": {"scaling": 4, "loudness": 1.0},
+      "expected_use": "Original clearly audible with a gritty, higher partial layer welded on; duration unchanged."
+    },
+    {
+      "description": "High sheen fading in over the sound.",
+      "params": {"scaling": 64, "loudness": [[0.0, 0.1], [2.0, 1.0]]},
+      "expected_use": "A high distortion sheen that rises from nearly inaudible to source level across a 2 s file (loudness as a breakpoint envelope)."
+    }
+  ],
+  "known_issues": [
+    "loudness and pre_attenuation accept values far beyond the documented 0-10 / attenuation-only ranges (CDP enforces 0.000031-32767 for both); large values can push the output well past full scale.",
+    "scaling's maximum is sample_rate/2, so the enforced range varies with the input file's sample rate.",
+    "pre_attenuation rejects breakpoint files: 'ERROR: Cannot read parameter 3 [...]: brkpnt_files not permitted.'",
+    "Mono only: a stereo input is refused with 'Application doesn't work with this type of infile.' (exit 255)."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

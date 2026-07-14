@@ -1,0 +1,90 @@
+{
+  "program": "strange",
+  "mode": "glis",
+  "submode": 1,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Extracts the time-changing spectral contour (formant trajectory) of the sound and replaces the signal underneath it with an endlessly rising or falling Shepard tone. Pinned to submode 1 (Shepard tones); submodes 2 (inharmonic glide, adds an hzstep parameter) and 3 (self-glissando) are separate entries if curated later. Exactly one of the two formant-extraction flags (-f or -p) is required. Operates on PVOC analysis files (.ana).",
+  "musical_use": "The original sound is replaced by an endlessly glissandoing tone, but its articulations survive — rhythm, attack transients and speech-like patterning of the spectral envelope remain recognisably the same while the tone itself is transformed. glisrate is the key parameter: a low value such as 0.3 gives a twangy, vibrating sound; high values (around +/-50) push noise into the result. Positive glisses rise forever, negative fall. Because formants drive the process, sources with strong resonance features work best — voice, and lower drums especially (one trial turned a low drum into something not unlike a didgeridoo). The band-count (-f/-p) mostly affects analysis resolution rather than the character of the effect, while lowering topfrq offers a degree of filtering control.",
+  "parameters": {
+    "fchans": {
+      "type": "int",
+      "min": null,
+      "max": null,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-f",
+      "flag_kind": "attached_value",
+      "description": "Extract the formant envelope linear frequency-wise, using 1 point for every N equally-spaced frequency channels. Mutually exclusive with pbands — supply exactly one of the two. Scalar only (a breakpoint file is refused: 'Cannot read count of formant_bands.')."
+    },
+    "pbands": {
+      "type": "int",
+      "min": null,
+      "max": null,
+      "unit": "bands/octave",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Extract the formant envelope linear pitchwise, using N equally-spaced pitch-bands per octave. Mutually exclusive with fchans — supply exactly one of the two. afta8/SoundThread suggest 1-12 (SoundThread default 8), but CDP accepts 0 without complaint. Scalar only (a breakpoint file is refused)."
+    },
+    "quicksearch": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-i",
+      "flag_kind": "no_value",
+      "description": "Quicksearch for formants (faster, less accurate)."
+    },
+    "glisrate": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "semitones/sec",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Rate of glissing in semitones per second; negative values gliss downward. Low values (~0.3) are twangy and vibrating, high magnitudes (~50) noisy. SoundThread's musical slider spans -20 to 20 (default 1); afta8 allows -100 to 100. May vary over time via a breakpoint file (verified)."
+    },
+    "topfrq": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Top of the spectrum; must exceed 2x the analysis channel width (~86 Hz for a 1024-point analysis at 44.1 kHz). Default: Nyquist. Lowering it acts as a crude filter. Scalar only — a breakpoint file is refused ('brkpnt_files not permitted')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Slow rising Shepard tone under the source's formant contour, 8 pitch-bands per octave.",
+      "params": {"pbands": 8, "glisrate": 2.0},
+      "expected_use": "Replace a vocal or drum sound's tone with an ever-rising gliss while keeping its rhythm and articulation."
+    },
+    {
+      "description": "Fast falling gliss with a capped spectrum.",
+      "params": {"pbands": 8, "glisrate": -12.0, "topfrq": 4000.0},
+      "expected_use": "Darker, band-limited falling Shepard texture from the same articulations."
+    }
+  ],
+  "known_issues": [
+    "Exactly one of fchans (-f) or pbands (-p) must be supplied: with neither, CDP refuses with 'Formant parameter missing on cmdline.' (exit 255); with both, the second flag is mis-parsed as the glisrate positional and the run fails ('ERROR: Cannot read parameter 1 [-p8]').",
+    "pbands=0 is accepted with exit 0 despite afta8/SoundThread floors of 1 — the banner's 'N equally-spaced pitch-bands' is not range-enforced on this build.",
+    "The banner's 'default: nyquist' for topfrq is trusted from the banner/manual; afta8's def of 1000 Hz is a UI seed value, not the CDP default."
+  ],
+  "references": ["cdp://docs/html/cstrange"]
+}

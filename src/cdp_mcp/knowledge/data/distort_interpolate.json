@@ -1,0 +1,64 @@
+{
+  "program": "distort",
+  "mode": "interpolate",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "expression",
+    "expr": "indur * multiplier"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Time-stretches by repeating each 'wavecycle' multiplier times while morphing its shape (and length) step by step into the next wavecycle - waveshape interpolation, not spectral interpolation. The transformation is drastic and strongly granular. Duration model 'indur * multiplier' verified to within 0.35% on tone and noise inputs at multipliers 2-8 (assumes skipcycles is 0). Mono only.",
+  "musical_use": "The smoother, stranger sibling of distort repeat: instead of stamping identical copies, successive wavecycles gliss and bend as they flow into one another, adding a modulatory, vocal quality to the stretch. Low multipliers (2-4) give a granular slow-down with audible internal glissandi; as multiplier rises the perception of separate grains increases and the apparent pitchiness grows - by 32 the sound becomes a strange stream of modulating tones. A time-varying multiplier (breakpoint file) gives accelerating/decelerating stretch.",
+  "parameters": {
+    "multiplier": {
+      "type": "int",
+      "min": 2,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Number of times each wavecycle repeats while morphing into the next (integer; CDP-enforced range 2-32767 - the binary rejects 1 with 'Value (1.000000) out of range (2.000000 to 32767.000000)'). Output duration is roughly indur * multiplier, so large values on long files produce very long outputs (60 on a 2 s file gave 119.7 s). May vary over time (banner-confirmed; probe verified - a 2->8 breakpoint render differs from both endpoint scalar renders and lands at the envelope's mean stretch)."
+    },
+    "skipcycles": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Number of wavecycles to skip at the start of the file (integer; CDP-enforced range 0-32767; internal default 0). Skipped material is dropped from the output entirely (verified: -s100 on a 440 Hz tone at multiplier 2 shortened the output by ~2 x 100/440 s), so nonzero values make the duration model over-predict. Scalar only - a breakpoint file is refused."
+    }
+  },
+  "examples": [
+    {
+      "description": "Double-length morphing stretch.",
+      "params": {"multiplier": 2},
+      "expected_use": "Granular octave-down-feeling slow-down with internal glissandi; output about twice the input length."
+    },
+    {
+      "description": "Stream of modulating tones.",
+      "params": {"multiplier": 32},
+      "expected_use": "The source dissolves into a long, strange stream of gliding tones (output ~32x input length - keep the input short)."
+    }
+  ],
+  "known_issues": [
+    "BANNER BUG: the usage banner ends 'multiplier and cyclecnt may vary over time.' but distort interpolate has no cyclecnt parameter - the line is copy-pasted from distort repeat. Only multiplier is breakpoint-capable (verified); the HTML manual correctly says 'multiplier may vary over time'.",
+    "skipcycles drops the skipped wavecycles from the output rather than passing them through; the shortfall is content-dependent (cycles, not seconds) and cannot be modelled statically - excluded from the duration model.",
+    "skipcycles rejects breakpoint files: 'ERROR: Cannot read parameter 2 [...]: brkpnt_files not permitted.'",
+    "Mono only: a stereo input is refused with 'Application doesn't work with this type of infile.' (exit 255)."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

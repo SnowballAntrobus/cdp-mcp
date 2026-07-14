@@ -1,0 +1,32 @@
+{
+  "program": "strange",
+  "mode": "invert",
+  "submode": 1,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Inverts the spectral envelope relative to the overall spectral envelope: energy associated with the highest frequency bands is transferred to the lowest and vice versa. It does NOT invert the frequencies themselves (see specnu slice mode 5 for that). Pinned to submode 1 (normal inversion); submode 2 additionally retains the source's amplitude envelope. Takes no parameters. Operates on PVOC analysis files (.ana).",
+  "musical_use": "A parameterless timbral flip. Because the lowest partials of most sounds carry the greatest amplitude and the highest the least, swapping the envelope typically yields a much brighter timbre — or, depending on the source, one deeper and richer in character, as previously quiet regions become prominent. Derived from an idea by Allen Strange. A SPEC BARE pass (zeroing channels that don't contain harmonics) is built in, so distinctly pitched sources come out with a more 'harmonic' quality than amorphous ones. Worth feeding a range of material, from strong focused pitches to noisy textures — results vary widely with the source. If the result feels dynamically flattened, submode 2 keeps the original amplitude envelope for a closer-to-source version with just the timbral change.",
+  "parameters": {},
+  "examples": [
+    {
+      "description": "Invert the spectral envelope of a pitched source.",
+      "params": {},
+      "expected_use": "Brighten or hollow out a sound by exchanging the energy of its high and low bands."
+    }
+  ],
+  "known_issues": [
+    "afta8's definitions carry a warning that 'at the time of last update, it has been found that this function is not working properly'. On this build it is mechanically sound: exit 0, deterministic, static duration, output non-silent (-13.6 dBFS vs -12.1 dBFS for the source round-trip) and distinct from submode 2's output. Whether the inversion is perceptually 'correct' on all material could not be adjudicated by probe; the warning is preserved here as advisory.",
+    "No numeric parameters exist, so there is nothing to breakpoint; the only choices are the submode and the source material."
+  ],
+  "references": ["cdp://docs/html/cstrange"]
+}

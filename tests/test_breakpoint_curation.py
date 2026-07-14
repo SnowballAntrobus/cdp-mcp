@@ -31,6 +31,68 @@ from cdp_mcp.knowledge.loader import KnowledgeIndex
 # cdpr8/_cdp/_cdprogs). Updating any cell in this table is a curation
 # decision and must pair with an entry in docs/phase-2-breakpoint-review.md.
 _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
+    # --- Phase 3 tranche 2 (sandbox-CDP probed; see docs/curation/) ---
+    ("modify", "revecho"): {
+        "delay": False,
+        "mix": False,
+        "feedback": False,
+        "lfomod": False,
+        "lfofreq": False,
+        "lfophase": False,
+        "lfodelay": False,
+        "tail": False,
+        "prescale": False,
+        "seed": False,
+    },
+    ("distort", "average"): {
+        "cyclecnt": True,
+        "maxwavelen": False,
+        "skipcycles": False,
+    },
+    ("distort", "fractal"): {
+        "scaling": True,
+        "loudness": True,
+        "pre_attenuation": False,
+    },
+    ("distort", "interpolate"): {
+        "multiplier": True,
+        "skipcycles": False,
+    },
+    ("envel", "dovetail"): {
+        "infadedur": False,
+        "outfadedur": False,
+        "intype": False,
+        "outtype": False,
+        "times": False,
+    },
+    ("sfedit", "cut"): {
+        "start": False,
+        "end": False,
+        "splice": False,
+    },
+    ("stretch", "time"): {
+        "timestretch": True,
+    },
+    ("strange", "glis"): {
+        "fchans": False,
+        "pbands": False,
+        "glisrate": True,
+        "topfrq": False,
+    },
+    ("strange", "invert"): {
+        # no numeric parameters
+    },
+    ("hilite", "trace"): {
+        "n": True,
+    },
+    ("spec", "magnify"): {
+        "time": False,
+        "dur": False,
+    },
+    ("focus", "accu"): {
+        "decay": True,
+        "glis": True,
+    },
     # --- Phase 3 tranche 1 (sandbox-CDP probed; see docs/curation/) ---
     ("modify", "radical"): {
         # no numeric parameters
