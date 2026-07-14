@@ -130,3 +130,43 @@ def test_no_figure_leak_across_calls(tmp_path):
         f"matplotlib leaked {after - before} figure(s); plt.close() not "
         "called somewhere"
     )
+
+
+# ---------------------------------------------------------------------------
+# shrink_png_under_cap (2026-07-14 QA: 1 MB tool-result cap)
+# ---------------------------------------------------------------------------
+
+
+def test_shrink_png_under_cap_reduces_oversized_png(tmp_path):
+    """A PNG over the cap is downscaled in place until it fits, keeping
+    aspect ratio; an already-small PNG is untouched."""
+    import numpy as np
+    from PIL import Image as PILImage
+
+    from cdp_mcp.visualization import shrink_png_under_cap
+
+    # Random noise compresses terribly — a 2000×1500 RGB noise PNG is
+    # several MB, a reliable over-cap fixture.
+    rng = np.random.default_rng(42)
+    big = tmp_path / "big.png"
+    PILImage.fromarray(
+        rng.integers(0, 255, (1500, 2000, 3), dtype=np.uint8)
+    ).save(big)
+    assert big.stat().st_size > 700_000
+
+    size, shrunk = shrink_png_under_cap(big)
+    assert shrunk is True
+    assert size <= 700_000
+    assert big.stat().st_size == size
+    with PILImage.open(big) as im:
+        # Aspect preserved (2000:1500 = 4:3) within rounding.
+        assert abs(im.width / im.height - 4 / 3) < 0.02
+        assert im.width >= 256 and im.height >= 256
+
+    # Small file: untouched.
+    small = tmp_path / "small.png"
+    PILImage.new("RGB", (100, 80), "white").save(small)
+    before = small.stat().st_size
+    size, shrunk = shrink_png_under_cap(small)
+    assert shrunk is False
+    assert size == before

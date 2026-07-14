@@ -164,7 +164,18 @@ def _evaluate_duration_model(
                 if name in model.expr:
                     return None
 
-        names: dict[str, Any] = dict(params)
+        # Seed names with curated numeric defaults, then overlay the
+        # user's params. A duration_model may reference a parameter the
+        # user didn't pass (e.g. filter sweeping's "indur + tail" with
+        # tail defaulted) — the argv builder emits the same default, so
+        # the prediction must see it too.
+        names: dict[str, Any] = {
+            pname: spec.default
+            for pname, spec in entry.parameters.items()
+            if isinstance(spec.default, (int, float))
+            and not isinstance(spec.default, bool)
+        }
+        names.update(params)
         # Single-input convenience: indur is the lone input duration.
         if len(indurs) == 1 and indurs[0] is not None:
             names["indur"] = indurs[0]

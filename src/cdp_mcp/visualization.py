@@ -226,3 +226,54 @@ def _apply_window(
     start_sample = int(round(start * sr))
     # Channels-first or mono — slice the last axis either way.
     return y[..., start_sample:end_sample]
+
+
+# ---------------------------------------------------------------------------
+# Tool-result size cap (Phase 2 QA finding, 2026-07-14)
+# ---------------------------------------------------------------------------
+
+# Claude Desktop rejects tool results over ~1 MB; the PNG travels
+# base64-encoded (×4/3), so the on-disk file must stay under ~750 KB.
+# 700 KB leaves margin for the JSON envelope sharing the result.
+# Empirically discovered when a 3-panel progression() composite blew the
+# cap — resolving the design doc's "MCP image-per-turn limits" open
+# question.
+_TOOL_RESULT_PNG_CAP_BYTES = 700_000
+
+
+def shrink_png_under_cap(
+    png_path: Path,
+    max_bytes: int = _TOOL_RESULT_PNG_CAP_BYTES,
+) -> tuple[int, bool]:
+    """Downscale ``png_path`` in place until it fits under ``max_bytes``.
+
+    Iterative proportional resize (LANCZOS): each pass scales both
+    dimensions by ``sqrt(max_bytes / current_size)`` with a 0.9 safety
+    factor — PNG size tracks pixel count roughly linearly for
+    spectrogram-like content, so this converges in 1–2 passes. Floor at
+    256 px on the shorter side: below that the image is unreadable and
+    the caller should be sending the file path, not pixels.
+
+    Returns ``(final_size_bytes, was_shrunk)``. The full-resolution
+    original is NOT preserved — the on-disk file in ``visualizations/``
+    is the one the tool result inlines, and callers report its path for
+    external viewing either way.
+    """
+    size = png_path.stat().st_size
+    if size <= max_bytes:
+        return size, False
+    shrunk = False
+    for _ in range(4):
+        with PILImage.open(png_path) as im:
+            scale = (max_bytes / size) ** 0.5 * 0.9
+            new_w = max(int(im.width * scale), 256)
+            new_h = max(int(im.height * scale), 256)
+            if (new_w, new_h) == im.size:
+                break
+            resized = im.resize((new_w, new_h), PILImage.LANCZOS)
+        resized.save(png_path, optimize=True)
+        shrunk = True
+        size = png_path.stat().st_size
+        if size <= max_bytes or min(new_w, new_h) <= 256:
+            break
+    return size, shrunk

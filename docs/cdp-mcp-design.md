@@ -645,7 +645,7 @@ Scoped to **~30 programs initially** (frog/IDM workflow + most common CDP operat
 
 Substantially reduced after Phase 1b and the Phase 2 preconditions above. Remaining:
 
-- **MCP image-per-turn limits.** Empirical; surfaces when `compare` and `progression` introduce composite PNGs.
+- **MCP image-per-turn limits.** ~~Empirical; surfaces when `compare` and `progression` introduce composite PNGs.~~ **Resolved (2026-07-14 manual QA):** Claude Desktop rejects tool results over ~1 MB; a 3-panel `progression()` composite blew it. Composite tools now downscale in place to ≤700 KB on disk (base64 ×4/3 + envelope margin) via `visualization.shrink_png_under_cap`; the full path is always reported for external viewing.
 - **Ableton MCP manifest consumption.** Confirm with the `ahujasid/ableton-mcp` maintainer; the manifest format we're producing may need negotiation.
 - **Apple Silicon arch wrapping unexercised in CI.** All Phase 1b runs have been on developer machines. A CI matrix on intel macOS would surface any auto-detection regression.
 - **Determinism of Phase 1a entries beyond PVOC.** PVOC anal/synth verified. `blur blur`, `modify brassage`, `extend loop`, `filter sweeping`, `morph morph` are presumed deterministic but not byte-compared. Phase 2 sweeps these.

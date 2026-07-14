@@ -55,7 +55,15 @@ from ..session import Session, SessionManager, SessionNotActiveError
 # Importing visualization locks in matplotlib's Agg backend before
 # anything in the import graph pulls in pyplot, and keeps the mel render
 # parameters identical to visualize()'s.
-from ..visualization import _CMAP, _DB_VMAX, _DB_VMIN, _HOP_LENGTH, _N_FFT, _WINDOW
+from ..visualization import (
+    _CMAP,
+    _DB_VMAX,
+    _DB_VMIN,
+    _HOP_LENGTH,
+    _N_FFT,
+    _WINDOW,
+    shrink_png_under_cap,
+)
 
 _SPECTRAL_SUFFIXES = frozenset({".ana", ".pvx"})
 
@@ -462,7 +470,12 @@ def _render_progression(
         canvas.paste(panel, (0, y))
         y += panel.height + _GUTTER_PX
     canvas.save(output_path)
-    return canvas.width, canvas.height
+    # Tool results over ~1 MB are rejected by Claude Desktop (empirical,
+    # 2026-07-14 QA: a 3-panel composite blew the cap). Downscale in
+    # place until the inline image fits.
+    shrink_png_under_cap(output_path)
+    with PILImage.open(output_path) as final:
+        return final.width, final.height
 
 
 def _render_panel(ref: str, audio_path: Path) -> PILImage.Image:

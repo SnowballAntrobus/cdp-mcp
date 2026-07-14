@@ -53,7 +53,7 @@ from ..session import SessionManager, SessionNotActiveError
 # before any test or tool imports librosa.display (which transitively
 # imports pyplot). visualization.py is the only module in the project
 # allowed to import pyplot; this module only touches PIL.
-from ..visualization import render_spectrogram
+from ..visualization import render_spectrogram, shrink_png_under_cap
 from .visualize import _normalize_target_id
 
 _SPECTRAL_SUFFIXES = frozenset({".ana", ".pvx"})
@@ -615,7 +615,11 @@ def _stitch_panels(
             canvas.paste(im.convert("RGB"), (0, y + _LABEL_STRIP_PX))
             y += _LABEL_STRIP_PX + im.height + _GUTTER_PX
         canvas.save(out_path)
-        return canvas.size
+        # Keep the inline tool-result under Claude Desktop's ~1 MB cap
+        # (empirical, 2026-07-14 QA — see shrink_png_under_cap).
+        shrink_png_under_cap(out_path)
+        with PILImage.open(out_path) as final:
+            return final.size
 
 
 # ---------------------------------------------------------------------------

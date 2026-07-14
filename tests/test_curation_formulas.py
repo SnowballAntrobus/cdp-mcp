@@ -91,6 +91,18 @@ async def _run(env, *, program, mode, input_name, params):
         # overhead → a few % slack).
         ("modify", "brassage", 2.0, {"velocity": 0.5}, 0.05),
         ("modify", "brassage", 2.0, {"velocity": 2.0}, 0.05),
+        # filter sweeping: duration_model "indur + tail". The -t tail
+        # exists only in the binary's banner (not the HTML manual) and
+        # omitting it appends a default tail anyway (observed +1.00 s,
+        # manual QA 2026-07-14) — so the engine always emits -t
+        # explicitly and the model adds it. Default (1.0) and explicit
+        # cases both pinned.
+        ("filter", "sweeping", 3.0,
+         {"acuity": 0.1, "gain": 0.5, "lofrq": 200.0, "hifrq": 4000.0,
+          "sweepfrq": 1.0}, 0.05),
+        ("filter", "sweeping", 3.0,
+         {"acuity": 0.1, "gain": 0.5, "lofrq": 200.0, "hifrq": 4000.0,
+          "sweepfrq": 1.0, "tail": 0.5}, 0.05),
     ],
 )
 async def test_duration_model_matches_cdp(

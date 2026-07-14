@@ -516,3 +516,24 @@ def test_expression_indur_min_skips_when_any_duration_unknown():
         arity=2,
     )
     assert _evaluate_duration_model(entry, {}, [3.0, None]) is None
+
+
+def test_expression_uses_curated_defaults_for_missing_params():
+    """filter sweeping's model 'indur + tail' must evaluate when the
+    user omits tail — the evaluator seeds names with curated numeric
+    defaults before overlaying params (the argv builder emits the same
+    default, so prediction and emission agree)."""
+    entry = _make_entry(
+        duration_model=DurationModelExpression(
+            kind="expression", expr="indur + tail",
+        ),
+        parameters={
+            "tail": ParameterSpec(
+                type="float", flag="-t", flag_kind="attached_value",
+                default=1.0,
+            ),
+        },
+    )
+    assert _evaluate_duration_model(entry, {}, [4.0]) == pytest.approx(5.0)
+    # Explicit user value overrides the default.
+    assert _evaluate_duration_model(entry, {"tail": 0.25}, [4.0]) == pytest.approx(4.25)

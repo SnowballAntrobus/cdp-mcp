@@ -11,7 +11,10 @@
   "stability": "stable",
   "phase_sensitive": false,
   "stereo_link_default": null,
-  "duration_model": {"kind": "static"},
+  "duration_model": {
+    "kind": "expression",
+    "expr": "indur + tail"
+  },
   "curated": true,
   "version_sensitive": false,
   "description": "Filter whose focus frequency sweeps cyclically over a range. Pinned to submode 2 (BAND-PASS) — most musically useful sweep behavior for textured source material. 'filter sweeping' has four filter-shape sub-modes (notch, bandpass, lowpass, highpass); other shapes can be added as separate curated entries later.",
@@ -74,7 +77,8 @@
       "breakpoint_capable": false,
       "flag": "-t",
       "flag_kind": "attached_value",
-      "description": "Decay tail duration appended after the input ends."
+      "description": "Decay tail duration appended after the input ends. NOT in CDP's HTML manual (banner-only parameter); empirically, omitting -t makes the r8 binary append a ~1 s tail anyway. The engine therefore always emits -t explicitly (default 1.0) so the output duration is deterministic and the duration model (indur + tail) matches what CDP produces. Set 0.0 to suppress the tail.",
+      "default": 1.0
     },
     "phase": {
       "type": "float",
@@ -101,6 +105,10 @@
       "expected_use": "Animate a sustained or looped texture with a slow, audible spectral sweep."
     }
   ],
-  "known_issues": [],
-  "references": ["cdp://docs/filter/sweeping"]
+  "known_issues": [
+    "The -t tail parameter exists only in the binary's usage banner, not the CDP HTML manual. With -t omitted the r8 binary appends a default tail (observed: exactly +1.00 s on a 4.00 s input, 2026-07-14 manual QA), which made the previous 'static' duration model under-predict. Pinned by the CDP-gated regression in test_curation_formulas.py."
+  ],
+  "references": [
+    "cdp://docs/filter/sweeping"
+  ]
 }
