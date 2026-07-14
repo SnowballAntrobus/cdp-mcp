@@ -1,0 +1,48 @@
+{
+  "program": "blur",
+  "mode": "suppress",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Suppresses the n loudest spectral components in each analysis window, keeping everything else — the exact opposite of hilite trace, which retains them. What survives is the quiet residue of the sound: minor partials, noise constituents, reverberant tails. Like trace it deals in analysis channels, not tracked partials, and the selection is re-made window by window. Operates on PVOC analysis files (.ana).",
+  "musical_use": "Where trace needs many components removed before a sound is seriously affected, suppress bites immediately at small n — the loudest components are, by definition, most of what you hear. The loudest partials are not necessarily the highest or lowest; they are simply whatever is most prominent, often the fundamental of a pitched sound, so suppress is a way of revealing the strictly timbral aspects hiding underneath. The manual's practical tip: use it to prepare a sound for another process that keeps reinforcing a feature you want gone (e.g. a stubborn fundamental that trace-like processes kept bringing out). Expect drastic level loss on clean material — on a simple 4-partial harmonic probe, n=10 left a residue at -42 dBFS and n=100 was practically silence (-77 dBFS); rich, noisy, reverberant sources leave far more behind and are where this process earns its keep. A time-varying n envelope hollows the sound out progressively, leaving more ghost as it goes.",
+  "parameters": {
+    "n": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "channels",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Number of spectral components (analysis channels) to reject per window, loudest first. CDP enforces 1 to the analysis channel count (refusals probed at 0 and 40000: 'out of range (1.000000 to 513.000000)' on a 1024-point analysis) — the same dynamic ceiling as hilite trace's n. May vary over time via a breakpoint file (verified: ramp 2 -> 100 runs and resynthesises)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Remove the dominant handful of components.",
+      "params": {"n": 10},
+      "expected_use": "Strip a sound's most audible features to expose the timbral residue underneath."
+    },
+    {
+      "description": "Progressive hollowing — supply n as a breakpoint file (e.g. '0 2 / 2.0 100').",
+      "params": {"n": 40},
+      "expected_use": "The source fades from nearly itself into a quiet spectral ghost as more and more of its loudest data is removed."
+    }
+  ],
+  "known_issues": [
+    "The enforced maximum for n is dynamic — the analysis channel count (points/2 + 1; 513 for a 1024-point analysis), taken from the refusal text. afta8's 'default 2' is a UI seed value: n is a required positional with no CDP default. SoundThread expresses n as a percentage of the window size (0.1-50%, default 15%) — a UI reshaping, not a CDP argument shape.",
+    "Output level drops fast on spectrally simple sources (probed: -42.5 dBFS at n=10, -76.9 dBFS at n=100 from a 4-partial harmonic gliss whose plain round-trip sits at about -12 dBFS). Not a bug — the loudest channels ARE the sound on such material — but plan gain staging, and prefer complex sources."
+  ],
+  "references": ["cdp://docs/html/cblur"]
+}

@@ -1,0 +1,81 @@
+{
+  "program": "stretch",
+  "mode": "spectrum",
+  "submode": 1,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Warps the frequency axis of the spectrum: every component above frq_divide is moved by a stretch factor that scales from 1 (no movement, at the divide) up to maxstretch at the top of the spectrum, with exponent shaping the curve between. Because the frequency RATIOS between partials are not preserved, a harmonic sound becomes inharmonic in a controllable way — stretching, as opposed to shifting, the spectrum (derived from CDP's former SPECE). Pinned to submode 1 (stretch above the frq_divide); submode 2 stretches below it instead. Operates on PVOC analysis files (.ana).",
+  "musical_use": "The classic route from harmonic to inharmonic: partials at 100/200/300/400 Hz become e.g. 110/213/316/419 — no common factor, so the sound acquires bell- or gong-like multiple pitches, or with small stretches just a strong spectral colouration. The manual's rubber-sheet image is apt: the whole spectrum above the divide is warped as one surface. frq_divide is the single most important parameter — place it where the sound's pitched anchor should stop being touched. maxstretch > 1 pushes the top upward (components stretched past Nyquist silently disappear, so extreme values thin the spectrum), while values < 1 bunch the highs downward and darken the tone. exponent < 1 makes the stretch rise quickly then even out; > 1 starts slowly and accelerates toward the top. depth is a true dry/wet for the warp and is the one time-varying parameter: a breakpoint ramp from 0 to 1 lets a sound slide from its harmonic self into its inharmonic double as it plays. Harmonic, clearly pitched sources (voice especially) reveal the process most plainly.",
+  "parameters": {
+    "frq_divide": {
+      "type": "float",
+      "min": 5.0,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Frequency above which spectral stretching takes place. Enforced 5 Hz to the Nyquist frequency ('out of range (5.000000 to 22050.000000)' probed at -100 and 30000 on a 44.1 kHz analysis; source: lo = PITCHZERO (5.0), hi = nyquist, cdp2k/tklib1.c). Scalar only — a breakpoint file is refused ('brkpnt_files not permitted')."
+    },
+    "maxstretch": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "ratio",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Transposition ratio of the topmost spectral component: > 1 stretches the top upward, < 1 compresses it downward (0.5 verified clean). The enforced bound is analysis-dependent: SPEC_MINFRQ/nyquist to nyquist/SPEC_MINFRQ with SPEC_MINFRQ = 10.0 (cdp2k/tklib1.c, speccon.h:29) — 0.000454 to 2205 on a 44.1 kHz analysis, from the refusal text at 0. Scalar only — a breakpoint file is refused."
+    },
+    "exponent": {
+      "type": "float",
+      "min": 0.02,
+      "max": 50.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Shape of the stretch curve across the spectrum: < 1 rises quickly then evens out, 1 is linear, > 1 starts slowly and rises faster toward the top. The banner only says '> 0'; enforced 0.02 to 50 from the refusal text at 0 (source: STR_MIN_EXP/STR_MAX_EXP, speccon.h:242-243). Scalar only — a breakpoint file is refused."
+    },
+    "depth": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Stretch effect on the source, 0 (no effect) to 1 (full effect) — a dry/wet control. Default 1.0 verified: flag-less and -d1 runs are bit-identical. May vary over time via a breakpoint file attached to the flag (-d<file>, verified with a 0 -> 1 ramp). A CONSTANT 0 is refused ('A non-varying depth value of zero will not change your source file.'), but 0 is legal inside a time-varying file."
+    }
+  },
+  "examples": [
+    {
+      "description": "Moderate inharmonic warp above the pitch anchor.",
+      "params": {"frq_divide": 1000.0, "maxstretch": 2.0, "exponent": 1.0},
+      "expected_use": "Turn a harmonic source bell-like: keep everything below 1 kHz intact, stretch the top an octave out of tune with itself."
+    },
+    {
+      "description": "Fade the warp in over the sound — supply depth as a breakpoint file (e.g. '0 0 / 2.0 1').",
+      "params": {"frq_divide": 500.0, "maxstretch": 1.5, "exponent": 3.0, "depth": 1.0},
+      "expected_use": "A sound that starts as itself and slides into its inharmonic double, the stretch arriving mostly in the highs."
+    }
+  ],
+  "known_issues": [
+    "A constant depth of 0 is refused with the semantic error 'A non-varying depth value of zero will not change your source file.' (exit 255, INVALID DATA) even though 0 is inside the enforced 0-1 range — supply 0 only inside a breakpoint file (verified accepted).",
+    "The banner's 'exponent (> 0)' is enforced as 0.02-50, and maxstretch's real bound is the analysis-dependent 0.000454-2205 (nyquist/10 rule), not afta8's 0-100. SoundThread's 0.3-4 sliders for maxstretch/exponent are UI ceilings. afta8's depth default of 0.5 is a UI seed value — the true CDP default is 1.0 (full effect), verified bit-identical to a flag-less run.",
+    "Components stretched beyond the Nyquist frequency silently disappear (manual), so large maxstretch values progressively thin the top of the spectrum rather than adding range.",
+    "The manual lists SPECTSTR next to the STRETCH family, but that is a newer version of stretch time (time-stretching), unrelated to this frequency-domain warp."
+  ],
+  "references": ["cdp://docs/html/cstretch"]
+}

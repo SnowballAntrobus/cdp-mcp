@@ -1,0 +1,100 @@
+[
+  {
+    "program": "specfnu",
+    "mode": "specfnu",
+    "breakpoint_capable": {"narrow": true, "gain": false},
+    "duration_row": ["specfnu", "specfnu", 2.0, {"narrow": 4.0}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "Entry pinned to submode 1 (NARROW FORMANTS) of 23; KnowledgeIndex keys by (program, mode) = ('specfnu', 'specfnu'), so one specfnu submode at a time. Mode survey of all eight SoundThread-covered modes: 1/2/3/4/5/8/9 exit 0 with non-silent resynthesised output; mode 19 crashes at teardown ('double free or corruption (out)', exit 134/SIGABRT) after writing a resynthesisable .ana. Mode 1 chosen: flagship mode, single time-variable core parameter, formant-aware complement of the curated focus exag.",
+      "Static duration: 2.0 s -> 2.0230 s, 3.0 s -> 3.0215 s; narrow 4 vs 100 identical duration.",
+      "narrow breakpoint accepted (0 2 / 1.9 400 -> exit 0, resynthesises); gain brk refused: 'ERROR: Cannot read parameter 3 [b_gain.brk]: brkpnt_files not permitted.'",
+      "Enforced ranges match the banner exactly: narrow 1-1000 ('out of range (1.000000 to 1000.000000)' at 0.5 and 2000), gain 0.01-10 (at 0 and 100). Default gain 1.0 pinned: flag-less and -g1 .ana data chunks bit-identical.",
+      "-x with -k refused: 'ERROR: SUPPRESS NON-HARMONICS WITH SUPPRESS-HARMONICS WILL PRODUCE ZERO SIGNAL LEVEL.' All six switches accepted individually; -f output bit-identical to base on this probe (fundamental already the lowest formant peak); -o13 accepted (str-typed off list).",
+      "Every run (successes included) prints 'WARNING: failed to write PEAK data' on this build; outputs complete and resynthesise. afta8 has no specfnu entries.",
+      "Deterministic: identical rerun (x3, incl. sleep 1.1) -> identical decoded sha."
+    ]
+  },
+  {
+    "program": "stretch",
+    "mode": "spectrum",
+    "breakpoint_capable": {"frq_divide": false, "maxstretch": false, "exponent": false, "depth": true},
+    "duration_row": ["stretch", "spectrum", 2.0, {"frq_divide": 1000.0, "maxstretch": 2.0, "exponent": 1.0}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "Entry pinned to submode 1 (stretch above the frq_divide); submode 2 stretches below it.",
+      "Static duration: 2.0 s -> 2.0230 s, 3.0 s -> 3.0215 s; (1000,2,1) vs (500,3,2) identical duration.",
+      "depth breakpoint accepted attached to the flag (-db_dep.brk, ramp 0 -> 1); frq_divide/maxstretch/exponent brks all refused ('brkpnt_files not permitted', parameters 1/2/3).",
+      "Constant -d0 refused with a semantic error distinct from the range check: 'ERROR: A non-varying depth value of zero will not change your source file.' (INVALID DATA); 0 is legal inside a breakpoint file (verified). -d2 refused 'out of range (0.000000 to 1.000000)'.",
+      "Default depth 1.0 pinned: flag-less and -d1 .ana data chunks bit-identical (source agrees: default_val[STR_DEPTH]=1.0, dev/cdp2k/tklib1.c:1471). afta8's 0.5 is a UI seed value.",
+      "Enforced bounds from refusal text + source (case(STRETCH), dev/cdp2k/tklib1.c): frq_divide 5-22050 (PITCHZERO to nyquist), exponent 0.02-50 (STR_MIN_EXP/STR_MAX_EXP, speccon.h:242-243; banner only says '> 0'), maxstretch 0.000454-2205 = SPEC_MINFRQ/nyquist to nyquist/SPEC_MINFRQ with SPEC_MINFRQ=10.0 (speccon.h:29) — analysis-dependent, JSON leaves min/max null and documents the formula. maxstretch 0.5 (compression) accepted.",
+      "Deterministic: identical rerun (sleep 1.1) -> identical decoded sha."
+    ]
+  },
+  {
+    "program": "focus",
+    "mode": "fold",
+    "breakpoint_capable": {"lofrq": true, "hifrq": true},
+    "duration_row": ["focus", "fold", 2.0, {"lofrq": 500.0, "hifrq": 1000.0}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "Static duration: 2.0 s -> 2.0230 s, 3.0 s -> 3.0215 s; (500,1000) vs (1800,3200) identical duration.",
+      "lofrq and hifrq breakpoints both accepted at their argv positions (verified with resynthesised output). -x (fuller spectrum) accepted, output differs.",
+      "Enforced range 5 Hz to nyquist for both bounds: 'ERROR: Parameter[1] Value (0.000000) out of range (5.000000 to 22050.000000)' (lofrq 0), same as Parameter[2] at 30000. afta8's 0-22050 is a UI range and its 500/14000 defaults are UI seed values (both params are required positionals).",
+      "Divergence (silent bound-swap): lofrq > hifrq (1000 500) exits 0 with output bit-identical to (500 1000) — source: if(hifrq_limit < lofrq_limit) swap(...), dev/focus/focus.c:158.",
+      "Divergence (silent-success edge): lofrq == hifrq (500 500) exits 0 but resynthesises to pure silence (-inf dBFS, 1.9998 s vs 2.0230 s round-trip). Pinned in known_issues.",
+      "Probe-hygiene note: two edge probes first reported exit 255 because output files from an earlier batch already existed (CDP refuses to overwrite); re-probed with fresh names -> exit 0.",
+      "Deterministic: identical rerun (sleep 1.1) -> identical decoded sha."
+    ]
+  },
+  {
+    "program": "focus",
+    "mode": "step",
+    "breakpoint_capable": {"timestep": false},
+    "duration_row": ["focus", "step", 2.0, {"timestep": 0.25}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "Static duration (banner states output = input duration): 2.0 s -> 2.0230 s, 3.0 s -> 3.0215 s; timestep 0.25 vs 0.05 identical duration.",
+      "timestep brk refused: 'ERROR: Cannot read parameter 1 [b_st.brk]: brkpnt_files not permitted.' (banner never claimed time-variability — consistent).",
+      "Both range ends dynamic: 'out of range (0.005805 to 2.025941)' on the 2 s input and '(0.005805 to 3.024399)' on the 3 s input -> min = 2 analysis frames (2x128/44100), max = input's analysed duration. Source: lo = 2.0*frametime, hi = wlength*frametime (case(STEP), dev/cdp2k/tklib1.c:3845-3846). JSON leaves min/max null and documents the rule.",
+      "Internal frame-time rounding verified: 0.25 and 0.2501 produce bit-identical .ana data chunks — nearby timestep values can be exactly equivalent.",
+      "SoundThread's 0.01-1.0 slider is a UI range; afta8's max expression (length/1000) approximates the input-duration cap.",
+      "Deterministic: identical rerun (sleep 1.1) -> identical decoded sha."
+    ]
+  },
+  {
+    "program": "blur",
+    "mode": "spread",
+    "breakpoint_capable": {"fchans": false, "pbands": false, "spread": true},
+    "duration_row": ["blur", "spread", 2.0, {"pbands": 8, "spread": 1.0}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "Static duration: 2.0 s -> 2.0230 s, 3.0 s -> 3.0215 s; -s1 vs -s0.3 identical duration.",
+      "spread breakpoint accepted attached to the flag (-sb_sp.brk, ramp 0 -> 1); -p brk refused with the non-standard text 'Cannot read count of formant_bands.' (same as strange glis).",
+      "Default spread 1.0 pinned (the MAXIMUM effect): flag-less and -s1 .ana data chunks bit-identical. spread enforced 0-1 ('out of range (0.000000 to 1.000000)' at 2 and -1).",
+      "Exactly one of -f/-p required: neither -> 'Formant flag missing on cmdline.' (differs from strange glis's 'Formant parameter missing'); both -> 'Unknown flag -p on command line.'",
+      "Band-count ceilings are per-file (dev/cdp2k/formantsg.c:171): -p13 -> 'Too many formant_bands requested: max for this file is 12'; -f300 -> 'max for this file is 256'; -f0 -> 'ERROR: INTERNAL ERROR: (Bug?)' / 'Formant array too small: set_specenv_frqs()'. -p0/-p1/-f1 all accepted (exit 0, non-silent) despite afta8's -p floor of 2; afta8's -p default 12 is a UI seed value.",
+      "Deterministic despite the 'controlled noisiness' framing: identical rerun (sleep 1.1) -> identical decoded sha — the noise is shaped from the spectral envelope, not a RNG."
+    ]
+  },
+  {
+    "program": "blur",
+    "mode": "suppress",
+    "breakpoint_capable": {"n": true},
+    "duration_row": ["blur", "suppress", 2.0, {"n": 10}, 0.05],
+    "stochastic": false,
+    "seed_param": null,
+    "notes": [
+      "Static duration: 2.0 s -> 2.0230 s, 3.0 s -> 3.0215 s; n=10 vs n=100 identical duration.",
+      "n breakpoint accepted (0 2 / 1.9 100 -> exit 0, resynthesises).",
+      "Enforced range is 1 to the analysis channel count, exactly like hilite trace: 'ERROR: Parameter[1] Value (0.000000) out of range (1.000000 to 513.000000)' on a 1024-point analysis (same text at 40000). afta8's 'default 2' is a UI seed value (n is a required positional); SoundThread's percent-of-window slider is a UI reshaping.",
+      "Gain-staging observation: on the clean 4-partial harmonic probe (round-trip ~-12 dBFS) n=10 leaves -42.5 dBFS and n=100 leaves -76.9 dBFS — suppress collapses spectrally simple sources toward silence fast; expected behaviour, pinned in musical_use/known_issues rather than as a bug.",
+      "Deterministic: identical rerun (sleep 1.1) -> identical decoded sha."
+    ]
+  }
+]

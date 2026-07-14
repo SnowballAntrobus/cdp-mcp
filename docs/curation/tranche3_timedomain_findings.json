@@ -1,0 +1,127 @@
+{
+  "generated_at": "2026-07-14",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build, Groucho programs banner 'CDP Release 7.1 2016'; bounce prints no version banner)",
+    "os": "Linux x86_64 sandbox",
+    "note": "To be re-verified on macOS r8 by the CDP-gated suite after integration."
+  },
+  "entries": [
+    {
+      "program": "modify",
+      "mode": "stack",
+      "submode": null,
+      "breakpoint_capable": {
+        "transpos": false,
+        "count": false,
+        "lean": false,
+        "atk_offset": false,
+        "gain": false,
+        "dur": false,
+        "normalise": false
+      },
+      "duration_row": ["modify", "stack", 2.0, {"transpos": -12.0, "count": 3, "lean": 1.0, "atk_offset": 0.0, "gain": 1.0, "dur": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model expression 'dur * indur * (2 ** (-transpos * (count - 1) / 12) if transpos < 0 else 1)' - worst error 0.0023% (one extra frame) across transpos -12/-6/0/+12, count 2-4, dur 0.5/1.0, atk_offset 0/0.5 on 1 s and 2 s inputs. Ternary + ** verified to evaluate under the repo's simpleeval with functions={}. atk_offset verified duration-neutral.",
+        "TRANSPOS FILE TRAP (first-class finding): the transpos argv slot also accepts a text file of per-layer transposition values (verified: '0 -12 -24' with count 3 is byte-identical to scalar -12). A time/value brk file there is consumed as a FLAT VALUE LIST, not a time envelope ('0.0 0 / 2.0 -12' with count 4 ran as layers 0/0/2/-12, exit 0, no warning); a value-count/count mismatch prints a WARNING and silently overrides count. transpos curated breakpoint_capable false; the file form is inexpressible under the current schema (same aux_file gap as texture simple).",
+        "Raw refusals number the params WITHOUT transpos: count 'ERROR: Cannot read parameter 1 [b3_cnt.brk]: brkpnt_files not permitted.' then lean 2, atk_offset 3, gain 4, dur 5.",
+        "Flags: -s ('see relative levels') is a NO-OP in this build (byte-identical output, nothing printed) - left unexposed. -n (Normalise) works and is banner-only - DIVERGENCE: cgromody.htm usage lists only [-s].",
+        "CDP-enforced ranges: transpos -60 to 60 ('ERROR: INVALID DATA / ERROR: Transposition value (100.000000) out of range (-60.000000 to 60.000000)' - INVALID DATA, file-or-number path); count 2-32; lean 0.01-100 (afta8's 0-10 advisory); atk_offset 0-indur (runtime, input-dependent); gain 0.1-10; dur 0-1 with dur=0 aborting at runtime: 'ERROR: You have asked to make NONE of the output!!'.",
+        "Stereo accepted (st2 -12/3 -> 8.0 s 2 ch, model holds) -> 'any'."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "divide",
+      "submode": null,
+      "breakpoint_capable": {"divider": true, "interpolate": false},
+      "duration_row": ["distort", "divide", 2.0, {"divider": 2}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model static; drift -0.003% (noise) to -0.34% (2 s tone with breakpointed divider) - always marginally shorter (wavecycle re-quantisation).",
+        "DIVERGENCE: divider is breakpoint-capable but BOTH the banner and cdistort.htm are silent about time-variability (cf. distort multiply). Verified: brk 2->8 exits 0, 87900 frames (between the endpoint scalars' 88100/87800), render differs from both endpoint renders.",
+        "Banner's 'integer only' not enforced: divider 2.5 accepted and rounded to NEAREST (byte-identical to divider 3, not 2).",
+        "CDP-enforced range: divider 1/17 -> 'ERROR: Parameter[1] Value (...) out of range (2.000000 to 16.000000)'. -i interpolation flag: exit 0, same duration, different render.",
+        "Methodology trap recorded: CDP refuses to overwrite an existing output ('ERROR: INVALID DATA / ERROR: Cannot open output file t3_x.wav') - the first divider-brk probe was masked by this and re-run against a fresh output name.",
+        "Mono only: stereo refused with 'Application doesn't work with this type of infile.' (exit 255)."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "omit",
+      "submode": null,
+      "breakpoint_capable": {"omit": true, "group": false},
+      "duration_row": ["distort", "omit", 2.0, {"omit": 2, "group": 5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model static, SAMPLE-EXACT: frame counts equal input in all seven runs (tone and noise, omit/group 2/5, 4/5, 10/16, 1/2, and a breakpointed omit) - omitted wavecycles are replaced by silence, never removed.",
+        "omit (A) breakpoint-capable, banner-confirmed ('A may vary over time'): brk 1->7 against group 8 exits 0, stays sample-exact and differs from both endpoint scalar renders. group (B) refusal: 'ERROR: Cannot read parameter 2 [b3_b.brk]: brkpnt_files not permitted.'",
+        "Runtime cross-parameter constraint: A >= B aborts with 'ERROR: A > or = B: can't proceed.' (5/5 and 6/5 both refused) - applies to every breakpoint value too; not expressible in the schema, documented in the entry.",
+        "CDP-enforced ranges: A 1-32767 ('Parameter[1] Value (0.000000) out of range (1.000000 to 32767.000000)'); B 2-32768 ('Parameter[2] Value (40000.000000) out of range (2.000000 to 32768.000000)') - asymmetric maxima consistent with A < B. afta8/SoundThread's 1-63 / 2-64 are advisory subsets.",
+        "Mono only: stereo refused with 'Application doesn't work with this type of infile.' (exit 255)."
+      ]
+    },
+    {
+      "program": "extend",
+      "mode": "doublets",
+      "submode": null,
+      "breakpoint_capable": {"segdur": true, "repets": false, "sync": false},
+      "duration_row": ["extend", "doublets", 2.0, {"segdur": 0.25, "repets": 3}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model expression 'repets * (segdur - 0.005) * ((indur - 0.0001) // segdur)' - sample-exact modulo splice quantisation on all seven probe runs (worst 0.012%; segdur 0.1-0.5, repets 2-4, 1 s and 2 s inputs). '//' verified under the repo's simpleeval.",
+        "Mechanism source-confirmed (dev/extend/iterate.c do_doubling, extdcon.h SPLICEDUR = 5 ms): each written repetition is round(segdur*srate) - 221 frames at 44.1 kHz, and the FINAL segment - partial or exactly boundary-aligned - is silently dropped.",
+        "ZERO-LENGTH OUTPUT (first-class finding): segdur == input duration (the allowed max) -> exit 0, 0-frame output, plus 'WARNING: Can't close output sf-soundfile : can't truncate SFfile'.",
+        "Model edge: the (indur - 0.0001) guard under-predicts by one segment block if the input exceeds an exact segdur multiple by < 0.1 ms - documented in known_issues.",
+        "segdur brk (0.1->0.4) exits 0 (5.7862 s), differs from both endpoint renders - capable, banner-confirmed; the brk time axis advances by (segdur - 0.005) per consumed segment (approximately input time). repets refusal: 'ERROR: Cannot read parameter 2 [b3_rp.brk]: brkpnt_files not permitted.'",
+        "-s sync flag: output 2.2049 s from a 2 s input at 0.25/3 - near (not exactly) the input length; model assumes -s off. CDP-enforced ranges: segdur 0.01-indur (input-dependent max: 'out of range (0.010000 to 2.000000)' on a 2 s file); repets 2-32.",
+        "Stereo accepted (same frame count as mono, 2 ch) -> 'any'."
+      ]
+    },
+    {
+      "program": "bounce",
+      "mode": "bounce",
+      "submode": null,
+      "breakpoint_capable": {
+        "count": false,
+        "startgap": false,
+        "shorten": false,
+        "endlevel": false,
+        "ewarp": false,
+        "shrink": false,
+        "cut_overlap": false,
+        "trim_start": false
+      },
+      "duration_row": ["bounce", "bounce", 2.0, {"count": 3, "startgap": 0.5, "shorten": 0.8, "endlevel": 0.5, "ewarp": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model expression 'startgap * count + indur if shorten == 1 else startgap * (1 - shorten ** count) / (1 - shorten) + indur * shorten ** count' - worst error 0.004% across count 3-8, startgap 0.25-1.0, shorten 0.5-1.0 on 1 s and 2 s noise. Ternary verified under simpleeval; the shorten==1 branch avoids the closed form's division by zero. ewarp and endlevel verified duration-neutral.",
+        "Element shrinkage is ON by default: repeat k lasts indur * shorten^k, so the file ends when the last, shortest bounce ends - this is what the model encodes. -s0 turns shrinkage OFF and LENGTHENS output to gap-sum + indur (2.22 s vs modelled 1.732); -s0.2 with the floor never reached is byte-identical to the unflagged run; -c (cut overlap) shortens output (1.476 s vs 2.244 on a 2 s source). All flag divergences measured and documented in the entry.",
+        "Manual's 'WARNING: do not set both -c and -e flags' is not enforced: the combination runs (exit 0) with a render distinct from -c alone.",
+        "DIVERGENCE: cgroextd.htm gives ewarp's range as 0.1-100; the binary enforces 0.01-100 (0.05 accepted, refusal quotes '(0.010000 to 100.000000)').",
+        "Raw refusals: 'ERROR: Cannot read parameter 1 [b3_ct.brk]: brkpnt_files not permitted.' (params 1-5 positional in banner order; 6 = -s shrink min). CDP-enforced ranges: count 1-100 (count 1 works); startgap 0.04-10; shorten 0.1-1; endlevel 0-1; shrink 0-1.",
+        "bounce prints no 'CDP Release' banner line (CDP8-era addition); manual page lives in the EXTEND chapter (cgroextd.htm) - curated category 'extend'.",
+        "Stereo accepted (st2 -> 2.2440 s 2 ch, model holds) -> 'any'."
+      ]
+    }
+  ],
+  "dropped": [
+    {
+      "program": "texture",
+      "mode": "simple",
+      "submode": 5,
+      "reason": "schema_gap_aux_file",
+      "breakpoint_capable_probed": {"outdur": false, "packing": true},
+      "stochastic": true,
+      "notes": [
+        "DROPPED, fully probed: the required notedata argv slot (between outfile and outdur) is an auxiliary TEXT file - in mode 5 ('NONE') a single line with each input sound's assumed MIDI pitch; modes 1-4 additionally need a harmonic field/set NOTELIST. The current schema cannot express it: validate_params rejects str values not ending in .brk, and a .brk-named notedata file would be routed through the breakpoint compiler and validated as time/value pairs (which notedata is not).",
+        "RECOMMENDATION: add an 'aux_file' ParameterSpec type - a str path parameter that validate_params accepts as-is, build_cdp_argv renders at its positional slot (cwd-relativised like input/output paths), and lineage records by content hash. The engine's write_data_file tool already produces exactly these files. Unblocks the whole TEXTURE suite and modify stack's per-layer transposition file form.",
+        "Working argv (probed): 'texture simple 5 n2.wav out.wav nd.txt 5 0.25 0.3 0 1 1 64 64 0.2 0.5 60 60 0' with nd.txt = '60', exit 0.",
+        "GENUINELY STOCHASTIC with a WORKING -r seed (contrast modify revecho's no-op): unseeded runs 1.1 s apart differ in decoded samples AND frame count (224103 vs 224582); -r5 twice 1.1 s apart identical; -r5 vs -r9 differ; seeded != unseeded.",
+        "Duration (had it shipped): set_by outdur, honestly bounded -0.7% to +16.7% (overshoot grows with maxdur; duration itself varies run-to-run unseeded). DIVERGENCE: banner calls outdur the '(min) duration of outfile' but an unseeded render came in BELOW it (7.9443 s from outdur 8).",
+        "Mono input -> STEREO output on every run; stereo input refused ('Application doesn't work with this type of infile.').",
+        "Spot probes: packing brk capable (exit 0 at seed 5, differs from both endpoint renders at the same seed); outdur brk refused 'ERROR: Cannot read parameter 1 [b3_od.brk]: brkpnt_files not permitted.' (manual: all params except notedata, outdur and seed may vary over time). Ranges: packing 'out of range (0.000023 to 60.000000)'; omit (param 14) 'out of range (0.000000 to 64.000000)'."
+      ]
+    }
+  ]
+}

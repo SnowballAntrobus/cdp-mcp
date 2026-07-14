@@ -1,0 +1,49 @@
+{
+  "program": "focus",
+  "mode": "step",
+  "submode": null,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Steps through the sound freezing the spectrum at regular intervals: once a freeze window is reached, all following windows are given that window's spectrum until the next step begins — an automatic, strictly regular sample-and-hold on the spectrum. The output is the same duration as the input; only the rate of spectral change is quantised. timestep is rounded internally to a multiple of the analysis-frame time. Operates on PVOC analysis files (.ana).",
+  "musical_use": "A spectral sample-hold whose character flips with the clock speed. Very small timesteps (start there, the manual advises) produce a granulation-like effect — but with no enveloped grains as in modify brassage, since it works directly on the spectrum: around 0.05-0.1 s complex sources develop a regular 'jangling' while clearly pitched sources merely change tone. At 0.25 s the sample-hold becomes quite noticeable, 0.5 s is rather slow, and 1.0 s is probably too slow as an effect — though those long frozen plateaus make good steady-state material to cut out and use elsewhere. As timestep grows, timbral alteration increases. SoundThread's tip: follow with blur blur to smooth the boundaries between steps. timestep cannot vary over time (verified refusal), so for an accelerating or decelerating clock, cut the sound into sections and step each at a different rate. Sizing guide: one analysis frame is 1/frame-rate seconds (~2.9 ms at a default 1024-point overlap-3 analysis of 44.1 kHz audio), and every timestep is quantised to that grid.",
+  "parameters": {
+    "timestep": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Duration of each freeze step. The enforced range is analysis-dependent at both ends: two analysis frames up to the input's analysed duration ('out of range (0.005805 to 2.025941)' on a 2 s input, '(0.005805 to 3.024399)' on a 3 s input; source: lo = 2.0*frametime, hi = wlength*frametime, cdp2k/tklib1.c). Rounded internally to a multiple of the frame time — verified: 0.25 and 0.2501 give bit-identical output. Scalar only — a breakpoint file is refused ('brkpnt_files not permitted')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Noticeable spectral sample-hold.",
+      "params": {"timestep": 0.25},
+      "expected_use": "Quantise a continuously evolving texture into audible spectral plateaus."
+    },
+    {
+      "description": "Fast stepping at the jangling threshold.",
+      "params": {"timestep": 0.05},
+      "expected_use": "Granulation-like regular jangling from a complex source, without grain envelopes."
+    }
+  ],
+  "known_issues": [
+    "Both range ends are dynamic: the minimum is two analysis frames (0.005805 s at a default 1024-point overlap-3 analysis of 44.1 kHz audio) and the maximum is the input's analysed duration — the JSON leaves min/max null and documents the rule. afta8's max expression (input length / 1000) approximates the same input-duration cap; SoundThread's 0.01-1.0 slider is a UI range.",
+    "timestep is rounded internally to a multiple of the analysis-frame time (banner statement, verified empirically: 0.25 vs 0.2501 bit-identical), so nearby values can be exactly equivalent — don't expect fine sweeps of timestep to produce distinct outputs.",
+    "The banner confirms the output is the same duration as the input (verified: 2.0 s -> 2.0230 s, 3.0 s -> 3.0215 s, the usual analysis-frame pad)."
+  ],
+  "references": ["cdp://docs/html/cfocus"]
+}

@@ -1,0 +1,116 @@
+{
+  "program": "modify",
+  "mode": "stack",
+  "submode": null,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "expression",
+    "expr": "dur * indur * (2 ** (-transpos * (count - 1) / 12) if transpos < 0 else 1)"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Stacks count transposed copies of the source on top of one another: copy k plays at k * transpos semitones (copy 0 is the untransposed original), with start times adjusted so every copy's perceived attack coincides at the same output time. Transposition is by resampling, so downward copies are proportionally longer and upward copies shorter. Output duration is dur * indur * 2^(-transpos*(count-1)/12) for downward stacks and dur * indur for upward (or zero) stacks - verified to within 0.003% on 1 s and 2 s inputs across transpos -12/-6/0/+12, count 2-4, dur 0.5/1.0, atk_offset 0/0.5 (atk_offset does not change the output duration, only where the attacks line up inside it). Works on mono and stereo input.",
+  "musical_use": "The classic CDP 'doubling' tool: build larger, orchestrated versions of a sound by superimposing transposed copies whose attacks are synchronised so they fuse psycho-acoustically into a single event with new harmonic content, rather than a chord of separate sounds. Works best on sources with a clearly defined attack that then dies away. Downward octave or fifth stacks (transpos -12 or -7) give massive, slowed halos under the original; upward stacks add shimmer without lengthening the sound. Set atk_offset to the time of the source's real attack for maximum fusion - a deliberately slightly-wrong value produces rapid pitch-slide attacks instead. Use lean to tilt the balance toward the highest copy, gain (below 1) to prevent overload when many copies coincide, and dur to keep only the front proportion of a long downward stack.",
+  "parameters": {
+    "transpos": {
+      "type": "float",
+      "min": -60.0,
+      "max": 60.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Transposition in semitones between successive copies: copy k sits at k * transpos, so -12 stacks octaves downward (each copy twice as long) and +12 octaves upward. CDP-enforced range -60 to 60 ('Transposition value (100.000000) out of range (-60.000000 to 60.000000)'); afta8's 0-12 is an advisory subset, and values beyond +/-24 get extreme fast. CDP also accepts a text FILE of per-layer transposition values in this argv slot (verified: a file '0 -12 -24' with count 3 is byte-identical to scalar -12) - this entry cannot express that form, and a time/value breakpoint file placed here is silently consumed as a flat per-layer value list, NOT a time envelope (see known_issues). Scalar only."
+    },
+    "count": {
+      "type": "int",
+      "min": 2,
+      "max": 32,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Number of copies in the stack, including the untransposed original (CDP-enforced range 2-32). Each extra copy multiplies a downward stack's length by another 2^(-transpos/12). Scalar only - a breakpoint file is refused."
+    },
+    "lean": {
+      "type": "float",
+      "min": 0.01,
+      "max": 100.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Loudness of the highest stack component relative to the lowest (CDP-enforced range 0.01-100; values above 1 make the top copy dominate). 1 gives equal weighting. Scalar only."
+    },
+    "atk_offset": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time in the SOURCE where its perceived attack occurs; all transposed copies are shifted so their (time-scaled) attacks coincide in the output. Runtime-enforced 0 to the input duration (2.0 on a 1 s file refused with 'Value (2.000000) out of range (0.000000 to 1.000000)'; 1.5 accepted on a 2 s file). Verified not to change the output duration - only the internal alignment. Give the true attack time for full fusion; small deliberate errors give pitch-slide attacks. Scalar only."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Overall amplifying factor on the output (CDP-enforced range 0.1-10). Reduce below 1 when many copies coincide at the attack to avoid overload, or use the normalise flag. Scalar only."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Proportion of the full stacked output to render, 0-1 (CDP-enforced; the output duration scales linearly with it - verified dur 0.5 exactly halves a 4 s stack). dur = 0 passes the range check but aborts at runtime with 'ERROR: You have asked to make NONE of the output!!'. Useful for trimming the long tail of a downward stack. Scalar only."
+    },
+    "normalise": {
+      "type": "bool",
+      "min": null,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "Normalise the output (verified: same duration, different sample content). Banner-only flag - the HTML manual's usage line omits it. Engine limitation: validate_params rejects bool true/false values, so pass the number 1 to enable; omit the parameter entirely to disable (any supplied value, even 0, switches the flag on)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Massive downward octave stack: three copies at 0/-12/-24 semitones, attacks fused at the file start.",
+      "params": {"transpos": -12.0, "count": 3, "lean": 1.0, "atk_offset": 0.0, "gain": 0.7, "dur": 1.0},
+      "expected_use": "Output is 4x the input duration (slowest copy at quarter speed); a huge slowed halo under the original."
+    },
+    {
+      "description": "Upward quint shimmer, same length as the source.",
+      "params": {"transpos": 7.0, "count": 4, "lean": 0.5, "atk_offset": 0.0, "gain": 0.8, "dur": 1.0},
+      "expected_use": "Copies at 0/+7/+14/+21 semitones; upward copies are shorter than the source, so the output duration equals the input duration."
+    }
+  ],
+  "known_issues": [
+    "TRANSPOS FILE TRAP (first-class finding): the transpos argv slot accepts a text file of per-layer transposition values. A time/value breakpoint file placed there is NOT read as a time envelope - its numbers are consumed as a flat value list ('0.0 0 / 2.0 -12' with count 4 ran as layers at 0, 0, 2 and -12 semitones, exit 0, no warning). If the file's value count disagrees with count, CDP prints 'WARNING: Count of transposition values in file (N) does not correspond to number of stack components entered as parameter (M), Using N as number of transpositions' and silently overrides count. transpos is therefore curated breakpoint_capable false.",
+    "The -s ('see the relative levels of the layers') flag is a no-op in this build: output byte-identical to the unflagged run and nothing extra printed to stdout/stderr. Left unexposed.",
+    "Banner/manual divergence: the binary's usage shows both -s and -n (Normalise); the HTML manual (cgromody.htm) usage line lists only -s.",
+    "Breakpoint refusals number the parameters WITHOUT transpos: count is 'Cannot read parameter 1', lean 2, atk_offset 3, gain 4, dur 5 (transpos has its own file-reading path, see the trap above).",
+    "Outputs carry one extra frame over the exact prediction (e.g. 176401 frames for a predicted 4.0 s) - under 0.003%, ignorable.",
+    "dur = 0 is inside the checked range but aborts at runtime with 'ERROR: You have asked to make NONE of the output!!'."
+  ],
+  "references": ["cdp://docs/html/cgromody"]
+}

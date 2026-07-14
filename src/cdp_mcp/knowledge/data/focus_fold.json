@@ -1,0 +1,68 @@
+{
+  "program": "focus",
+  "mode": "fold",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Octave-transposes every spectral component into the lofrq-hifrq range: anything below is shifted up by octaves until it lands at the bottom of the range, anything above is shifted down until it lands at the top. When more than two transposed components compete for one analysis channel, the lowest-amplitude data is discarded. Because the transposition is by octaves, pitch class is retained while all the sound's energy is focused into one band. Superseded and extended by SPECFOLD; this remains the simple canonical form. Operates on PVOC analysis files (.ana).",
+  "musical_use": "A way to intensify a sound: its whole spectrum is compressed into one register while the octave-transpose keeps its pitch identity. The band is everything — fairly narrow ranges are the most useful (wide ones let too much of the original through unchanged). A low-placed range such as 100-900 Hz gives a deep, muffled sound whose internal modulation tracks how much the source spectrum moves — the manual got an 'eerie wind, such as one might imagine a passing spaceship to sound like' from a rasping spring. A high-placed range such as 1800-3200 Hz yields a thin, slightly ringing, ethereal sound with little of the input remaining. On pitched sources expect a double pitch: the original plus its folded copy (probe agrees: a 220 Hz harmonic gliss folded to 1800-3200 lost ~13 dB and kept only its upper partials). The fuller-spectrum switch (-x) strengthens the effect and brings a little more of the original through. Both edges take breakpoint files, so the folding band can sweep or breathe across the sound. Most effective on sources with many, complex partials.",
+  "parameters": {
+    "lofrq": {
+      "type": "float",
+      "min": 5.0,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Lowest frequency of the range into which the spectrum is folded. Enforced 5 Hz to the Nyquist frequency ('out of range (5.000000 to 22050.000000)' probed at 0 on a 44.1 kHz analysis; source: PITCHZERO to nyquist, cdp2k/tklib1.c). May vary over time via a breakpoint file (verified). afta8's 0-22050 range is a UI range, not the enforced one."
+    },
+    "hifrq": {
+      "type": "float",
+      "min": 5.0,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Highest frequency of the range into which the spectrum is folded. Enforced 5 Hz to the Nyquist frequency (probed at 30000). May vary over time via a breakpoint file (verified). Must differ from lofrq — see known_issues for the equal and reversed cases."
+    },
+    "fuller": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "Fuller spectrum: strengthens the effect and appears to bring a little more of the original sound through (manual). Verified accepted (exit 0, output differs from the flag-less run). Not currently settable through process() (the engine rejects bool values); use execute()."
+    }
+  },
+  "examples": [
+    {
+      "description": "Manual's typical command line: fold everything into a low band.",
+      "params": {"lofrq": 100.0, "hifrq": 900.0},
+      "expected_use": "Deep, muffled, internally modulating version of the source — the 'eerie wind' treatment."
+    },
+    {
+      "description": "High, thin, ringing fold.",
+      "params": {"lofrq": 1800.0, "hifrq": 3200.0},
+      "expected_use": "Ethereal, glassy remnant of the source, its energy packed into a high register."
+    }
+  ],
+  "known_issues": [
+    "Reversed bounds are silently swapped, not refused: 'focus fold in out 1000 500' exits 0 and its output is bit-identical to '500 1000' (source: if(hifrq_limit < lofrq_limit) swap(...), dev/focus/focus.c:158). Don't rely on argument order to catch band mistakes.",
+    "lofrq == hifrq (probed at 500 500) exits 0 but the output resynthesises to PURE SILENCE (-inf dBFS, and slightly shorter: 1.9998 s vs 2.0230 s from a 2 s input). No error is raised — a zero-width band is a silent success.",
+    "CDP refuses to overwrite an existing output file (exit 255) — during probing this masqueraded as a parameter refusal until fresh output names were used; the engine always generates fresh node outputs so this only matters for manual execute() calls.",
+    "The manual flags SPECFOLD ('specfold specfold 1|2|3 ...') as the newer version of this process, adding time-windowed fold/invert/randomise variants; focus fold remains the simple whole-file form."
+  ],
+  "references": ["cdp://docs/html/cfocus"]
+}

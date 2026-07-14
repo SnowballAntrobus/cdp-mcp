@@ -1,0 +1,117 @@
+{
+  "program": "specfnu",
+  "mode": "specfnu",
+  "submode": 1,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Mode 1 (NARROW FORMANTS) of the SPECFNU formant toolkit: steepens the skirts of the (up to four) formant peaks by a power factor, so energy focuses onto the spectral peaks — an increasingly tight filter whose passbands are the sound's own formants. The material between the peaks diminishes and eventually disappears, while the formant structure itself is retained. Pinned to submode 1 of 23: it is the flagship mode, has a single time-variable core parameter, and probed clean on this build where mode 19 (RANDOMISE PARTIALS) crashes at teardown; SPECFNU shares one (program, mode) key, so other submodes would be separate re-pins. Operates on PVOC analysis files (.ana).",
+  "musical_use": "A formant-aware cousin of focus exag: instead of exaggerating an extracted spectral contour, it tightens the sound around its own resonances. Low narrow values (2-8) give a subtle vowel-like focusing; pushed into the tens and hundreds (the manual notes narrow 'can normally be set quite high (in 100s)') the inter-formant material vanishes and the sound reduces to a set of ringing resonant bands. The time-varying breakpoint form is the musically interesting one — ramping narrow from near 1 to several hundred progressively dissolves a source into its formant skeleton as it plays. Because overall level drops as material is stripped, compensate with gain. Designed for vocal sounds (well-defined formants) but works on any resonant source; the -o list drops chosen formants entirely, and the -x/-k pair splits the sound into its harmonic or inharmonic constituents before narrowing (killing harmonics leaves a much quieter breathy residue).",
+  "parameters": {
+    "narrow": {
+      "type": "float",
+      "min": 1.0,
+      "max": 1000.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Power factor steepening the skirts of individual formant peaks. CDP enforces 1 to 1000 (refusals probed at 0.5 and 2000: 'out of range (1.000000 to 1000.000000)'). May vary over time via a breakpoint file (verified: ramp 2 -> 400 runs and resynthesises)."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.01,
+      "max": 10.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Output gain or attenuation, useful to compensate for the level lost as inter-formant material is stripped. CDP enforces 0.01 to 10 (refusals probed at 0 and 100). Default 1.0 verified: flag-less and -g1 runs are bit-identical. Scalar only — a breakpoint file is refused ('brkpnt_files not permitted')."
+    },
+    "off": {
+      "type": "str",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-o",
+      "flag_kind": "attached_value",
+      "description": "Text list of formants to suppress entirely: any combination of the digits 1-4 with no repetitions, but not all four (e.g. '1' or '134'). Verified: -o13 runs clean. Note: the engine currently rejects plain-string parameter values in process(); reach for execute() to use this switch."
+    },
+    "zero_top": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "no_value",
+      "description": "Zero the top of the spectrum (above the fourth formant). Verified accepted (exit 0, output differs from the base run)."
+    },
+    "force_fundamental": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-f",
+      "flag_kind": "no_value",
+      "description": "Force the lowest formant to use the fundamental frequency as its peak. Verified accepted; on the harmonic probe source the output was bit-identical to the base run — the flag only changes anything when the fundamental is not already the lowest formant peak. Banner: with this flag, the default large analysis window will find the fundamental where the short window (-s) may not."
+    },
+    "short_window": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "no_value",
+      "description": "Use a short window for extracting the spectral envelope (default is the large window). Verified accepted (output differs)."
+    },
+    "exclude_nonharmonic": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "Exclude non-harmonic partials before narrowing. Verified accepted (output differs). Mutually exclusive with kill_harmonic."
+    },
+    "kill_harmonic": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-k",
+      "flag_kind": "no_value",
+      "description": "Kill harmonic partials, leaving the inharmonic residue (much quieter on harmonic sources: -26.6 dBFS vs -15.7 dBFS base on the probe). Mutually exclusive with exclude_nonharmonic."
+    },
+    "silence_unpitched": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-r",
+      "flag_kind": "no_value",
+      "description": "Replace unpitched (or extremely quiet) windows by silence. Verified accepted (output differs)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Gentle formant focusing with level compensation.",
+      "params": {"narrow": 4.0, "gain": 1.5},
+      "expected_use": "Tighten a vocal or resonant source around its own formants while keeping it recognisable."
+    },
+    {
+      "description": "Progressive dissolve — supply narrow as a breakpoint file ramping from 2 to 400 (e.g. '0 2 / 2.0 400').",
+      "params": {"narrow": 400.0, "gain": 3.0},
+      "expected_use": "Let the source strip itself down to a set of ringing formant bands as it plays."
+    }
+  ],
+  "known_issues": [
+    "Supplying -x and -k together is refused with 'ERROR: SUPPRESS NON-HARMONICS WITH SUPPRESS-HARMONICS WILL PRODUCE ZERO SIGNAL LEVEL.' (exit 255) — the two switches are mutually exclusive.",
+    "SPECFNU is platform-fragile as a family: the manual warns mode 10 (ARPEGGIATE) 'may give a silent output' on some PCs, and on this Linux build mode 19 (RANDOMISE PARTIALS) crashes at teardown ('double free or corruption', exit 134) even though its output data was already written. Mode 1 probed clean (exit 0, deterministic, non-silent at -15.7 dBFS); always check output non-silence when straying to other submodes.",
+    "Every specfnu run on this build — successful ones included — prints 'WARNING: failed to write PEAK data' to stderr; the .ana output is complete and resynthesises normally. Do not treat that warning as failure.",
+    "Bool switch and string (off) parameters are not currently settable through process() (the engine rejects bool and plain-string values); they are documented here for execute() use and forward compatibility."
+  ],
+  "references": ["cdp://docs/html/cspecfnu"]
+}

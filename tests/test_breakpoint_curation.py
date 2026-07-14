@@ -31,6 +31,64 @@ from cdp_mcp.knowledge.loader import KnowledgeIndex
 # cdpr8/_cdp/_cdprogs). Updating any cell in this table is a curation
 # decision and must pair with an entry in docs/phase-2-breakpoint-review.md.
 _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
+    # --- Phase 3 tranche 3 (sandbox-CDP probed; see docs/curation/) ---
+    ("modify", "stack"): {
+        "transpos": False,
+        "count": False,
+        "lean": False,
+        "atk_offset": False,
+        "gain": False,
+        "dur": False,
+        "normalise": False,
+    },
+    ("distort", "divide"): {
+        "divider": True,
+        "interpolate": False,
+    },
+    ("distort", "omit"): {
+        "omit": True,
+        "group": False,
+    },
+    ("extend", "doublets"): {
+        "segdur": True,
+        "repets": False,
+        "sync": False,
+    },
+    ("bounce", "bounce"): {
+        "count": False,
+        "startgap": False,
+        "shorten": False,
+        "endlevel": False,
+        "ewarp": False,
+        "shrink": False,
+        "cut_overlap": False,
+        "trim_start": False,
+    },
+    ("specfnu", "specfnu"): {
+        "narrow": True,
+        "gain": False,
+    },
+    ("stretch", "spectrum"): {
+        "frq_divide": False,
+        "maxstretch": False,
+        "exponent": False,
+        "depth": True,
+    },
+    ("focus", "fold"): {
+        "lofrq": True,
+        "hifrq": True,
+    },
+    ("focus", "step"): {
+        "timestep": False,
+    },
+    ("blur", "spread"): {
+        "fchans": False,
+        "pbands": False,
+        "spread": True,
+    },
+    ("blur", "suppress"): {
+        "n": True,
+    },
     # --- Phase 3 tranche 2 (sandbox-CDP probed; see docs/curation/) ---
     ("modify", "revecho"): {
         "delay": False,

@@ -1,0 +1,81 @@
+{
+  "program": "blur",
+  "mode": "spread",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Spreads the peaks of the spectrum, introducing controlled noisiness that stays coherent with the spectral envelope: the formants of each window are retained, and the level in every channel is pulled toward that average spectral contour to the degree set by spread. The effect exaggerates the less prominent (noise) constituents of the spectrum while keeping its overall shape. Exactly one of the two formant-extraction flags (-f or -p) is required. Despite the 'noise' framing the process is fully deterministic. Operates on PVOC analysis files (.ana).",
+  "musical_use": "A distortion technique that can be handled very sensitively, because spread is finely adjustable and time-variable: at the default 1.0 every channel is filled out to the formant contour (a breathy, airy wash of the source), while small values leave the original nearly intact — a breakpoint ramp on spread fades noisiness in or out across the sound. Applied to speech the added noise lends a certain edginess; if a proper unvoiced-speech effect is the goal, the manual points to FORMANTS VOCODE instead, which allows filtering. The band-count flag mostly sets the resolution of the formant contour the noise is poured into: pitchwise bands (-p, up to 12 per octave on a default analysis) track the envelope musically, frequency-wise points (-f) track it linearly. Works well as a spectral 'air' stage before blur or accumulation processes downstream.",
+  "parameters": {
+    "fchans": {
+      "type": "int",
+      "min": null,
+      "max": null,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-f",
+      "flag_kind": "attached_value",
+      "description": "Extract the formant envelope linear frequency-wise, using 1 point for every N equally-spaced frequency channels. Mutually exclusive with pbands — supply exactly one of the two. Enforced ceiling is per-file ('Too many formant_bands requested: max for this file is 256' probed at 300; source: cdp2k/formantsg.c); -f1 runs clean but -f0 fails with an internal error (see known_issues). Scalar only (a breakpoint file is refused: 'Cannot read count of formant_bands.')."
+    },
+    "pbands": {
+      "type": "int",
+      "min": null,
+      "max": null,
+      "unit": "bands/octave",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Extract the formant envelope linear pitchwise, using N equally-spaced pitch-bands per octave. Mutually exclusive with fchans — supply exactly one of the two. Enforced ceiling is per-file ('Too many formant_bands requested: max for this file is 12' probed at 13 on a default analysis); -p0 and -p1 are accepted (exit 0, non-silent) despite afta8's floor of 2. Scalar only (a breakpoint file is refused)."
+    },
+    "quicksearch": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-i",
+      "flag_kind": "no_value",
+      "description": "Quicksearch for formants (faster, less accurate). Verified accepted (exit 0). Not currently settable through process() (the engine rejects bool values); use execute()."
+    },
+    "spread": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Degree of spreading of the spectrum, 0 (none) to 1 (full). CDP enforces 0 to 1 (refusals probed at 2 and -1). Default 1.0 verified: flag-less and -s1 runs are bit-identical — note the DEFAULT IS THE MAXIMUM effect; set spread explicitly for subtlety. May vary over time via a breakpoint file attached to the flag (-s<file>, verified with a 0 -> 1 ramp)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Full enveloped-noise wash over 8 pitch-bands per octave.",
+      "params": {"pbands": 8, "spread": 1.0},
+      "expected_use": "Replace the source's tone with breathy noise that still carries its formant shape and articulation."
+    },
+    {
+      "description": "Noise fading in across the sound — supply spread as a breakpoint file (e.g. '0 0 / 2.0 1').",
+      "params": {"pbands": 8, "spread": 0.5},
+      "expected_use": "A source that gradually loses its focus and dissolves into enveloped noise."
+    }
+  ],
+  "known_issues": [
+    "Exactly one of fchans (-f) or pbands (-p) must be supplied: with neither, CDP refuses with 'Formant flag missing on cmdline.' (exit 255; note this differs from strange glis's 'Formant parameter missing'); with both, it fails with 'Unknown flag -p on command line.'",
+    "-f0 is not range-checked cleanly: it fails with 'ERROR: INTERNAL ERROR: (Bug?)' / 'Formant array too small: set_specenv_frqs()' (exit 255) rather than a range refusal. The band-count ceilings are per-file (12 pitchwise, 256 frequency-wise on a default 1024-point analysis) and come from the 'Too many formant_bands' refusal, not the banner.",
+    "afta8's -p default of 12 and range 2-12 are UI values: the flag is a required-choice argument with no CDP default, and -p0/-p1 are accepted on this build.",
+    "Deterministic despite introducing 'noisiness' (identical rerun with a 1.1 s gap gives identical decoded sha) — the noise is derived from the spectral envelope, not a random generator."
+  ],
+  "references": ["cdp://docs/html/cblur"]
+}

@@ -1,0 +1,76 @@
+{
+  "program": "extend",
+  "mode": "doublets",
+  "submode": null,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "expression",
+    "expr": "repets * (segdur - 0.005) * ((indur - 0.0001) // segdur)"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Slices the source into segments of segdur seconds and plays each segment repets times before moving on - the stuck-vinyl / skipped-CD effect. Source-verified mechanics (extend/iterate.c do_doubling): each written repetition is segdur minus a fixed 5 ms crossfade splice, and the FINAL segment - partial or even exactly full - is silently dropped, so the output is repets * (segdur - 0.005) * floor-count-of-full-segments. The duration model reproduces this sample-exactly on all seven probe runs (segdur 0.1-0.5, repets 2-4, 1 s and 2 s inputs; worst error 0.012%). Works on mono and stereo input.",
+  "musical_use": "The needle stuck in the groove: with speech or conventional music a short passage repeats for emphasis; with complex material it becomes a pulsing, mechanical throb. Long segments (0.5 s+) read as clear loops; short segments (tens of ms) give sputtering, glitchy, locked-groove repetition. segdur takes a breakpoint file, so the slice length can evolve over the file - sweep from micro-stutter up to phrase-length loops in one pass, a classic gesture. Also useful simply to extend material before further transformation. Each repetition loses 5 ms to the splice, so very short segdur values shrink the output audibly and soften transients; the sync flag instead skips ahead in the source so the output tracks the input timeline (approximately) rather than multiplying it.",
+  "parameters": {
+    "segdur": {
+      "type": "float",
+      "min": 0.01,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Duration of each slice (CDP-enforced 0.01 s to the input duration: 3.0 on a 2 s file refused with 'Value (3.000000) out of range (0.010000 to 2.000000)' - the maximum is input-dependent). Each written repetition is segdur minus the fixed 5 ms splice. Breakpoint-capable, banner-confirmed ('can vary through time'): a 0.1-to-0.4 envelope exits 0 and differs from both endpoint scalar renders; the envelope's time axis tracks the INPUT approximately (it advances by segdur - 0.005 per consumed segment). WARNING: segdur equal to the full input duration is accepted but produces a ZERO-frame output (see known_issues)."
+    },
+    "repets": {
+      "type": "int",
+      "min": 2,
+      "max": 32,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Number of times each segment is played, including the first pass (CDP-enforced range 2-32: 1 refused with 'Parameter[2] Value (1.000000) out of range (2.000000 to 32.000000)'); the output is roughly repets times the input length. Scalar only - a breakpoint file is refused."
+    },
+    "sync": {
+      "type": "bool",
+      "min": null,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "no_value",
+      "description": "Outfile tries to stay synchronised to the infile: after writing the repeats, reading skips ahead in the source, so the output no longer multiplies the duration (verified 2.2049 s from a 2 s input at segdur 0.25 / repets 3 - near the input length, not exactly it). The duration model above assumes this flag is OFF and will over-predict when it is on. Engine limitation: validate_params rejects bool true/false values, so pass the number 1 to enable; omit the parameter entirely to disable (any supplied value, even 0, switches the flag on)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Locked-groove loop: quarter-second slices, each played three times.",
+      "params": {"segdur": 0.25, "repets": 3},
+      "expected_use": "A 2 s source yields 21 x 0.245 s = 5.145 s (sample-exact); vinyl-stuck repetition of each quarter second."
+    },
+    {
+      "description": "Stutter-to-loop sweep: slice length grows from 50 ms to 0.5 s across the source.",
+      "params": {"segdur": [[0.0, 0.05], [2.0, 0.5]], "repets": 4},
+      "expected_use": "Glitchy micro-repeats opening out into phrase loops; duration not pre-predictable with a breakpointed segdur (pre-flight skips)."
+    }
+  ],
+  "known_issues": [
+    "FINAL SEGMENT SILENTLY DROPPED (source-confirmed): the last segment - including the boundary case where the input is an exact multiple of segdur - is never written. Extreme case: segdur equal to the input duration (the allowed maximum) exits 0 with a ZERO-frame output file plus 'WARNING: Can't close output sf-soundfile : can't truncate SFfile'. Keep segdur well below the input duration.",
+    "Duration-model edge: the floor term uses (indur - 0.0001), so if the input exceeds an exact multiple of segdur by less than 0.1 ms the model under-predicts by one segment block (up to repets * segdur seconds). Everywhere else the model is sample-exact (worst observed 0.012%).",
+    "Every repetition is 5 ms shorter than segdur (fixed SPLICEDUR crossfade, 221 samples at 44.1 kHz); at segdur 0.01 (the minimum) half of each slice is splice.",
+    "The sync flag changes the duration semantics entirely (output tracks the input length approximately); the duration model assumes it is off.",
+    "repets breakpoint refusal: 'ERROR: Cannot read parameter 2 [b3_rp.brk]: brkpnt_files not permitted.'",
+    "Inputs shorter than 10 ms are refused outright ('Input file is too short for this process.', source: doublets_preprocess)."
+  ],
+  "references": ["cdp://docs/html/cgroextd"]
+}

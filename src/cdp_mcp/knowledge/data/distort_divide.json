@@ -1,0 +1,63 @@
+{
+  "program": "distort",
+  "mode": "divide",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "static"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Distortion by dividing 'wavecycle' frequency: each pseudo-wavecycle is stretched to divider times its length and replaces the following wavecycles, pitching the sound down roughly an octave per doubling of divider while keeping the overall duration unchanged. Duration model static, verified within 0.35% across divider 2-8 (scalar and breakpointed) on 1 s and 2 s tone and noise inputs (output comes out marginally SHORTER, -0.003% to -0.34%, as rebuilt wavecycles are re-quantised). Mono input only.",
+  "musical_use": "A rough-but-gentle pitch-drop distortion: it lowers the sound while adding a coarse texture, roughening without being too violent about it - useful when other waveset distortions are too destructive. Divider values below about 4 stay musical; higher values push most material subsonically low and it may become too low to hear. The interpolate flag smooths the stretched wavecycles (slower, cleaner) - compare both renders on the same material. divider takes a breakpoint file, so the pitch-drop depth can be swept over the file (e.g. progressive collapse from unison into octave-down growl). Best on pitched or strongly voiced sources, where wavecycle detection is stable.",
+  "parameters": {
+    "divider": {
+      "type": "int",
+      "min": 2,
+      "max": 16,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Frequency divisor applied to each wavecycle (CDP-enforced range 2-16: 'Parameter[1] Value (17.000000) out of range (2.000000 to 16.000000)'). Roughly an octave down per doubling. Despite the banner's 'integer only', non-integer values are accepted and rounded to the nearest integer (2.5 verified byte-identical to 3). Breakpoint-capable even though BOTH the banner and the HTML manual are silent about it: a 2-to-8 envelope exits 0 and differs from both endpoint scalar renders."
+    },
+    "interpolate": {
+      "type": "bool",
+      "min": null,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-i",
+      "flag_kind": "no_value",
+      "description": "Use waveform interpolation when stretching wavecycles: slower but cleaner (verified: same duration, different sample content). Engine limitation: validate_params rejects bool true/false values, so pass the number 1 to enable; omit the parameter entirely to disable (any supplied value, even 0, switches the flag on)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Gentle octave-down roughening.",
+      "params": {"divider": 2},
+      "expected_use": "Sound drops about an octave with a coarse grain; output duration matches the input."
+    },
+    {
+      "description": "Progressive collapse: sweep the divisor from 2 to 8 over the file, with clean interpolation.",
+      "params": {"divider": [[0.0, 2], [2.0, 8]], "interpolate": 1},
+      "expected_use": "Pitch and roughness deepen across the sound; duration still matches the input (verified -0.34% on a 2 s tone)."
+    }
+  ],
+  "known_issues": [
+    "DIVERGENCE: divider is breakpoint-capable but neither the banner nor cdistort.htm mentions time-variability (cf. distort multiply, same silence). Verified empirically: brk exits 0 and the render differs from both endpoint scalars.",
+    "The banner's 'integer only' is not enforced: fractional dividers are accepted and rounded to the nearest integer (2.5 renders byte-identical to 3).",
+    "Output is marginally shorter than the input (-0.003% on noise, up to -0.34% on a 2 s tone with a breakpointed divider) - wavecycle re-quantisation, not a real duration change.",
+    "Mono only: stereo refused with 'Application doesn't work with this type of infile.' (exit 255)."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

@@ -1,0 +1,127 @@
+{
+  "program": "bounce",
+  "mode": "bounce",
+  "submode": null,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "expression",
+    "expr": "startgap * count + indur if shorten == 1 else startgap * (1 - shorten ** count) / (1 - shorten) + indur * shorten ** count"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "'Bounces' a sound: count repeats after the source, each gap shorten times the previous one (gap k is startgap * shorten^(k-1), measured start-to-start), each repeat quieter, decaying to endlevel by the last bounce. By DEFAULT each repeated element is also shortened in the same proportion as the accelerando (element k lasts indur * shorten^k), so the file ends when the last, shortest bounce ends: outdur = startgap*(1-shorten^count)/(1-shorten) + indur*shorten^count (= startgap*count + indur when shorten = 1). Verified to within 0.004% on six probe runs (count 3-8, startgap 0.25-1.0, shorten 0.5-1.0, 1 s and 2 s noise; ewarp does not affect duration). The shrink/cut_overlap flags change the duration semantics - see their descriptions. Works on mono and stereo input.",
+  "musical_use": "The bouncing-ball gesture in one pass: accelerating repeats that die away in level, best on short, percussive sources (a source longer than startgap overlaps its own bounces - use cut_overlap for clean separation, or leave the overlaps for a wash that thickens as it accelerates). shorten 0.7-0.9 reads as a natural bounce; near 0.5 the rebounds pile up almost immediately. Keep endlevel low (0.05-0.2) for a convincing die-away, or at 1 for a purely rhythmic accelerando without decay. ewarp bends the loudness decay curve only (>1 pushes the decrescendo toward the start, <1 holds level longer) - it never changes the timing. Set shrink to 0 to keep every repeat full-length (echo-like accelerando rather than ball-bounce).",
+  "parameters": {
+    "count": {
+      "type": "int",
+      "min": 1,
+      "max": 100,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Number of bounces (repeats after the initial statement); CDP-enforced range 1-100 ('Parameter[1] Value (101.000000) out of range (1.000000 to 100.000000)'). With shorten below 1 the gaps converge geometrically, so large counts add ever less time. Scalar only."
+    },
+    "startgap": {
+      "type": "float",
+      "min": 0.04,
+      "max": 10.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Gap between the source start and the first bounce, start-to-start (CDP-enforced range 0.04-10 s). If the source is longer than this, elements overlap unless cut_overlap is set. Scalar only."
+    },
+    "shorten": {
+      "type": "float",
+      "min": 0.1,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Gap-reduction multiplier from one bounce to the next (CDP-enforced range 0.1-1; lower shortens faster, 1 keeps the gaps constant - and switches the duration model to its linear branch). By default it also shrinks each repeated element by the same proportion. Scalar only."
+    },
+    "endlevel": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Loudness of the last bounce as a fraction of the source level (CDP-enforced range 0-1; 1 = no decay). Verified not to affect the output duration. Scalar only."
+    },
+    "ewarp": {
+      "type": "float",
+      "min": 0.01,
+      "max": 100.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Decay warp: bends the level-decay curve toward the start (>1, more decrescendo early) or the end (<1). CDP-enforced range 0.01-100 - the HTML manual says 0.1-100, but the binary accepts 0.05 and its refusal quotes '(0.010000 to 100.000000)'. Verified not to affect the output duration. Scalar only."
+    },
+    "shrink": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Minimum duration for the shrinking bounced elements (CDP-enforced range 0-1: '-s1.5' refused with 'Parameter[6] Value (1.500000) out of range (0.000000 to 1.000000)'). Elements shrink with the accelerando by default; this flag floors that shrinkage - verified inert when the floor is never reached (-s0.2 byte-identical to the unflagged run). shrink = 0 is special: it turns shrinkage OFF entirely, keeping every repeat full-length and LENGTHENING the output to gap-sum + indur (verified 2.22 s vs the modelled 1.732 s) - the duration model assumes this flag is unset."
+    },
+    "cut_overlap": {
+      "type": "bool",
+      "min": null,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-c",
+      "flag_kind": "no_value",
+      "description": "Cut each repeating element where the next begins, preventing overlap (and clipping) when the source outlasts its gaps. Shortens the output: the file then ends one gap-length after the last bounce starts (verified 1.476 s vs 2.244 s unflagged on a 2 s source) - the duration model assumes this flag is unset. Engine limitation: validate_params rejects bool true/false values, so pass the number 1 to enable; omit the parameter entirely to disable (any supplied value, even 0, switches the flag on)."
+    },
+    "trim_start": {
+      "type": "bool",
+      "min": null,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-e",
+      "flag_kind": "no_value",
+      "description": "Shrink elements by trimming their START instead of the default end-trim (verified: same duration, different sample content - the attacks of later bounces are eaten instead of their tails). The manual warns 'do not set both -c and -e flags', but the binary accepts the combination (exit 0, distinct render). Engine limitation: validate_params rejects bool true/false values, so pass the number 1 to enable; omit the parameter entirely to disable (any supplied value, even 0, switches the flag on)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Natural ball-bounce on a short hit.",
+      "params": {"count": 8, "startgap": 0.25, "shorten": 0.7, "endlevel": 0.1, "ewarp": 1.0},
+      "expected_use": "Eight accelerating, dying repeats; a 1 s source yields 0.843 s of bounce tail after the gaps converge (model exact to 0.004%)."
+    },
+    {
+      "description": "Even rhythmic echo: constant gaps, steady die-away, no acceleration.",
+      "params": {"count": 5, "startgap": 0.5, "shorten": 1.0, "endlevel": 0.3, "ewarp": 1.0},
+      "expected_use": "Five evenly spaced, steadily quieter full-length repeats; with shorten = 1 the model's linear branch applies (verified 3.5 s from a 1 s source). Sources longer than startgap overlap their repeats - add cut_overlap 1 for separation (shortens the output below the modelled value)."
+    }
+  ],
+  "known_issues": [
+    "Element shrinkage is ON by default (each repeat lasts indur * shorten^k) - the duration model is built on this. shrink = 0 (-s0) disables shrinkage and lengthens the output to gap-sum + indur; cut_overlap truncates elements and shortens it. Both divergences from the model were measured and are quoted in the flag descriptions.",
+    "The manual's WARNING 'do not set both -c and -e flags' is not enforced: the combination runs (exit 0) and produces a render distinct from -c alone.",
+    "DIVERGENCE: the HTML manual gives ewarp's range as 0.1 to 100; the binary enforces 0.01 to 100 (0.05 accepted, refusal message quotes '(0.010000 to 100.000000)').",
+    "All six numeric parameters reject breakpoint files ('ERROR: Cannot read parameter N [...]: brkpnt_files not permitted.', N = 1-6 in banner order with -s min as 6).",
+    "Unlike the older Groucho programs, the bounce binary prints no 'CDP Release' banner line - it is a CDP8-era addition; its manual page lives in the EXTEND chapter (cgroextd.htm), hence category 'extend'."
+  ],
+  "references": ["cdp://docs/html/cgroextd"]
+}

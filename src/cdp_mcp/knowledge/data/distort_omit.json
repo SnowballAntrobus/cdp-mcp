@@ -1,0 +1,62 @@
+{
+  "program": "distort",
+  "mode": "omit",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "static"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Omits omit out of every group pseudo-wavecycles, replacing them with silence. Because the omitted wavecycles are replaced (not removed), the overall duration does not change: duration model static, SAMPLE-EXACT across all probe runs (88200/44100 frames preserved on 2 s and 1 s tone and noise inputs, omit/group 2/5, 4/5, 10/16, 1/2, and a breakpointed omit). Mono input only.",
+  "musical_use": "Rough texturing with no loss of duration: the sound keeps its outline, rhythm and gesture while its surface is eaten away. Small proportions (1-2 cycles out of 5 or more) lay a granular, gritty film over the sound; large proportions (most of the group silenced) turn it into a hard-edged sputter, like a failing connection. Because omit takes a breakpoint file, the erosion can be automated - e.g. ramp omit from 1 toward group-1 to dissolve a sustained sound into crackle over its length (keep every breakpoint value below group). A gentler alternative to the modulatory waveset distortions when you want grain rather than pitch artefacts.",
+  "parameters": {
+    "omit": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Number of wavecycles silenced out of each group (CDP-enforced range 1-32767: 0 refused with 'Parameter[1] Value (0.000000) out of range (1.000000 to 32767.000000)'). Must always be less than group, enforced at runtime: 'ERROR: A > or = B: can't proceed.' (applies to every breakpoint value too). Breakpoint-capable, banner-confirmed ('A may vary over time'): a 1-to-7 envelope against group 8 exits 0, stays sample-exact in length and differs from both endpoint scalar renders."
+    },
+    "group": {
+      "type": "int",
+      "min": 2,
+      "max": 32768,
+      "unit": "wavecycles",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Size of the wavecycle group out of which omit cycles are silenced (CDP-enforced range 2-32768: 'Parameter[2] Value (40000.000000) out of range (2.000000 to 32768.000000)'). The proportion omit/group sets the erosion depth; the group size itself sets the alternation rate between sound and silence (small groups flicker fast, large groups gate slowly). Scalar only - a breakpoint file is refused."
+    }
+  },
+  "examples": [
+    {
+      "description": "Light granular film: silence 2 cycles in every 5.",
+      "params": {"omit": 2, "group": 5},
+      "expected_use": "Gritty surface over an intact gesture; output duration is sample-exact to the input."
+    },
+    {
+      "description": "Progressive dissolution: erode from 1 to 7 cycles out of every 8 across the file.",
+      "params": {"omit": [[0.0, 1], [2.0, 7]], "group": 8},
+      "expected_use": "The sound crumbles into sputter as it proceeds; duration unchanged."
+    }
+  ],
+  "known_issues": [
+    "omit must stay below group at all times or CDP aborts at runtime with 'ERROR: A > or = B: can't proceed.' - this also applies to every value in a breakpointed omit; the schema cannot enforce the cross-parameter constraint, so out-of-order values fail at run time, not validation time.",
+    "group's breakpoint refusal: 'ERROR: Cannot read parameter 2 [b3_b.brk]: brkpnt_files not permitted.'",
+    "afta8/SoundThread advisory ranges (omit 1-63, group 2-64) are a small subset of the CDP-enforced 1-32767 / 2-32768; very large groups need correspondingly long files worth of wavecycles to have any effect.",
+    "Mono only: stereo refused with 'Application doesn't work with this type of infile.' (exit 255)."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}
