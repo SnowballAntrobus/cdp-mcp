@@ -65,6 +65,34 @@ def _write_noise(path, dur_s, seed=0):
     sf.write(path, sig, _SR, subtype="FLOAT")
 
 
+async def _measured_duration(env, output_path_str: str) -> float:
+    """Duration of a process output, whatever its domain.
+
+    Time-domain outputs are read directly. Spectral outputs are CDP
+    .ana files libsndfile cannot open (the 2026-07-14 macOS QA run
+    failed 16 spectral rows exactly here) — synth them to a temp wav
+    via the engine's own audition path first. pvoc synth is
+    duration-faithful modulo frame padding (phase-1b handoff §5.5;
+    re-verified in every tranche transcript), well inside the rows'
+    rel_tol.
+    """
+    from pathlib import Path
+
+    from cdp_mcp.pvoc import synth_for_audition
+
+    out = Path(output_path_str)
+    if out.suffix.lower() not in (".ana", ".pvx"):
+        return sf.info(str(out)).duration
+    wav, _sub = await synth_for_audition(
+        out,
+        session=env.session,
+        cdp_path=env.cdp_config.cdp_path,
+        cache_root=env.cache_root,
+        cdp_version=env.cdp_config.version,
+    )
+    return sf.info(str(wav)).duration
+
+
 async def _run(env, *, program, mode, input_name, params):
     ctx = _FakeCtx()
     return await process_impl(
@@ -194,7 +222,7 @@ async def test_duration_model_matches_cdp(
 
     r = await _run(env, program=program, mode=mode, input_name="in.wav", params=params)
     assert r["status"] == "ok", r["errors"]
-    actual = sf.info(r["output"]).duration
+    actual = await _measured_duration(env, r["output"])
 
     assert actual == pytest.approx(predicted, rel=rel_tol), (
         f"{program} {mode} {params}: duration_model predicted {predicted:.3f}s "
