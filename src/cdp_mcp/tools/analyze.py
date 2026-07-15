@@ -1,6 +1,6 @@
 """The ``analyze()`` MCP tool — concise MIR scorecard.
 
-Returns a single envelope dict with a 10-field `analysis` block. Same
+Returns a single envelope dict with a 13-field `analysis` block. Same
 target grammar and auto-synth behavior as :func:`visualize`.
 """
 
@@ -59,11 +59,13 @@ async def analyze_impl(
     reference, or the ``"latest"`` alias. ``.ana`` / ``.pvx`` targets
     are auto-synthesized to a temporary ``.wav`` first.
 
-    Returns an envelope whose ``analysis`` field carries the 10-field
+    Returns an envelope whose ``analysis`` field carries the 13-field
     scorecard: ``duration_s``, ``peak_dbfs``, ``rms_db``, ``lufs_i``,
-    ``spectral_centroid_hz``, ``spectral_flux``, ``zero_crossing_rate``,
-    ``onset_count``, ``n_channels``, ``sample_rate``. Any warnings
-    (e.g. "audio too short for LUFS") surface in ``warnings``.
+    ``crest_db``, ``spectral_centroid_hz``, ``spectral_flatness_db``,
+    ``spectral_rolloff85_hz``, ``spectral_flux``,
+    ``zero_crossing_rate``, ``onset_count``, ``n_channels``,
+    ``sample_rate``. Any warnings (e.g. "audio too short for LUFS")
+    surface in ``warnings``.
     """
     # 1. Require active session.
     try:
@@ -174,8 +176,11 @@ async def analyze_impl(
     # Hash off the event loop — sha256 of a long wav is exactly the
     # sync CPU work the async commitment says must not starve MCP
     # heartbeats. (Phase 2 hardening, M2.)
+    # feature_set "concise_v2" since the MIR v2 scorecard additions
+    # (flatness/rolloff/crest) — old concise_v1 entries orphan
+    # harmlessly (never matched, swept by ordinary cache cleanup).
     audio_sha = await asyncio.to_thread(sha256_file, audio_path)
-    cache_key = analysis_cache_key(audio_sha, "concise_v1", t_start, t_duration)
+    cache_key = analysis_cache_key(audio_sha, "concise_v2", t_start, t_duration)
     cache = cache_lookup(cache_root, "analysis", cache_key, ".json")
 
     scorecard_dict: dict | None = None
@@ -266,7 +271,7 @@ async def analyze_impl(
     if verbose:
         verbose_cache = cache_lookup(
             cache_root, "analysis",
-            analysis_cache_key(audio_sha, "verbose_v1", t_start, t_duration),
+            analysis_cache_key(audio_sha, "verbose_v2", t_start, t_duration),
             ".json",
         )
         if verbose_cache.hit:
@@ -295,7 +300,7 @@ async def analyze_impl(
             cache_populate_json(verbose_cache.path, verbose_block)
 
     # 7. Build envelope. Promote scorecard.warnings to envelope.warnings;
-    # the analysis dict carries the 10 numeric fields.
+    # the analysis dict carries the 13 numeric fields.
     envelope = ResultEnvelope(
         status="ok",
         output=None,
@@ -343,18 +348,46 @@ def register(
         reference, or the ``"latest"`` alias. ``.ana`` / ``.pvx`` targets
         are auto-synthesized to a temporary ``.wav`` first.
 
-        Returns an envelope whose ``analysis`` field carries the 10-field
+        Returns an envelope whose ``analysis`` field carries the 13-field
         scorecard: ``duration_s``, ``peak_dbfs``, ``rms_db``, ``lufs_i``,
-        ``spectral_centroid_hz``, ``spectral_flux``, ``zero_crossing_rate``,
-        ``onset_count``, ``n_channels``, ``sample_rate``. Any warnings
-        (e.g. "audio too short for LUFS") surface in ``warnings``.
+        ``crest_db``, ``spectral_centroid_hz``, ``spectral_flatness_db``,
+        ``spectral_rolloff85_hz``, ``spectral_flux``,
+        ``zero_crossing_rate``, ``onset_count``, ``n_channels``,
+        ``sample_rate``. Any warnings (e.g. "audio too short for LUFS")
+        surface in ``warnings``.
+
+        How to read the v2 fields: ``spectral_flatness_db`` near 0 dB
+        means noise-like; very negative (below roughly -40 dB) means
+        pitched/tonal — it distinguishes "went noisy" from "went
+        bright", which centroid/zcr alone cannot. Read it jointly with
+        rolloff/centroid: lowpassed noise also scores low.
+        ``spectral_rolloff85_hz`` is the spectral edge — 85% of energy
+        sits below it — directly actionable when choosing filter bands
+        (e.g. where to place a lowpass or a band split). ``crest_db``
+        (peak minus RMS) is transient-ness: ~35 dB for a click train,
+        ~4-6 dB for a sustained tone; blurring or compression pulls it
+        down. Caveat: ``onset_count`` is unreliable on sustained
+        material (28 spurious onsets measured on a 3 s steady tone) —
+        trust it on percussive material, cross-check crest_db/flux
+        elsewhere.
 
         ``verbose=True`` adds an ``analysis_verbose`` block: MFCC
         means/stds (13 coefficients — timbre), chroma means (12 pitch
-        classes — harmonic color), a tempo estimate, and per-channel
-        peak/RMS. Use it when comparing timbral character across
-        processed variants, or checking whether a transformation
-        preserved pitch content.
+        classes — harmonic color), a tempo estimate, per-channel
+        peak/RMS, plus the v2 additions — ``trajectory`` (16 points of
+        rms_db/centroid_hz/flatness_db across the file: the numeric
+        view of temporal evolution — dissolves, glissandi, scrambling
+        — that whole-file means cannot see), ``inharmonicity``
+        (harmonic-grid deviation: ~0.002 harmonic, ~0.014 bell-like),
+        ``roughness`` (20-150 Hz envelope-modulation fraction —
+        grain/throb), ``attack_sharpness`` (1.0 = click, ~0.1 = pad),
+        ``stereo_width`` (1-|corr(L,R)|: 0 = dual-mono, ~0.4 =
+        spatialised; null for mono), and ``f0`` (pyin median_hz /
+        range_hz / voiced_fraction). The f0 block is the one expensive
+        feature (~2 s of compute per 3 s of audio) and tracks
+        *periodicity*, not perceived spectral pitch — waveset-multiplied
+        audio keeps its f0 while the perceived pitch rises — so read it
+        alongside zcr/centroid, never instead of them.
         """
         return await analyze_impl(
             ctx,

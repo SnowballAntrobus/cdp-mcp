@@ -7,12 +7,13 @@ auditions ONE representative per cluster — the medoid — instead of
 everything. Workflow: batch → cluster → compare medoids → keep winners.
 
 Features per target: MFCC(13) means + stds + spectral-centroid mean +
-RMS mean (28 dims), standardized, PCA-reduced, then agglomerative
-(Ward) clustering. When ``k`` is omitted, a silhouette scan over
-2..min(6, N-1) picks the best-separated cluster count. The medoid of
-each cluster is the member with the smallest mean euclidean distance to
-its co-members in the scaled-PCA space. Deterministic for a fixed
-``seed``.
+RMS mean, plus the MIR v2 additions — flatness-dB mean + std, rolloff-85
+mean, centroid-trajectory total variation, and rms-trajectory range
+(33 dims) — standardized, PCA-reduced, then agglomerative (Ward)
+clustering. When ``k`` is omitted, a silhouette scan over 2..min(6, N-1)
+picks the best-separated cluster count. The medoid of each cluster is
+the member with the smallest mean euclidean distance to its co-members
+in the scaled-PCA space. Deterministic for a fixed ``seed``.
 
 Same target grammar and auto-synth behavior as :func:`analyze`, plus
 the literal string ``"latest_batch"`` meaning every element of the most
@@ -29,6 +30,7 @@ import librosa
 import numpy as np
 from mcp.server.fastmcp import Context, FastMCP
 
+from ..analysis import trajectory_frames
 from ..config import CDPConfig
 from ..graph import (
     LatestTracker,
@@ -334,10 +336,15 @@ def register(
         ``.ana`` / ``.pvx`` targets are auto-synthesized to temporary
         ``.wav`` files first.
 
-        Each target reduces to a 28-dim timbre vector (13 MFCC means +
-        13 MFCC stds + spectral-centroid mean + RMS mean), standardized
-        and PCA-reduced, then grouped with agglomerative clustering.
-        ``k`` (>= 2) fixes the cluster count; when omitted, a
+        Each target reduces to a 33-dim timbre vector (13 MFCC means +
+        13 MFCC stds + spectral-centroid mean + RMS mean + flatness-dB
+        mean/std + rolloff-85 mean + centroid-trajectory total
+        variation + rms-trajectory range), standardized and
+        PCA-reduced, then grouped with agglomerative clustering. The
+        MIR v2 vector separates noisy-vs-tonal and ordered-vs-scrambled
+        variants that the earlier Phase 3 28-dim vector conflated —
+        groupings may therefore differ from pre-v2 runs on the same
+        material. ``k`` (>= 2) fixes the cluster count; when omitted, a
         silhouette scan over 2..min(6, N-1) picks the best-separated k.
         Results are deterministic for a fixed ``seed``.
 
@@ -365,7 +372,16 @@ def register(
 
 
 def _extract_features(audio_path: Path) -> np.ndarray:
-    """28-dim timbre vector: MFCC(13) means + stds + centroid mean + RMS mean.
+    """33-dim timbre vector (MIR v2).
+
+    The Phase 3 28-dim core (MFCC(13) means + stds + centroid mean +
+    RMS mean) plus the gap-analysis §4.5 additions: flatness-dB
+    mean + std (D1 — a noisy pad and a bright tone no longer
+    co-cluster), rolloff-85 mean (D2 spectral edge), and — from the
+    shared 16-point trajectory (:func:`~cdp_mcp.analysis.
+    trajectory_frames`, same frame math as ``analyze(verbose=True)``)
+    — centroid total variation and rms-dB range (D7 — ordered vs
+    scrambled variants were previously indistinguishable, §3.f).
 
     Mono downmix at native sample rate. Raises whatever librosa /
     soundfile raise on unreadable audio — the tool layer converts to
@@ -375,11 +391,30 @@ def _extract_features(audio_path: Path) -> np.ndarray:
     mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
     centroid = librosa.feature.spectral_centroid(y=y, sr=sr)
     rms = librosa.feature.rms(y=y)
+    # Per-frame flatness in dB (floored) — matches the scorecard's
+    # convention; linear flatness spans 1e-9..0.9 and would let a few
+    # noise frames dominate mean/std.
+    flatness_db = 10.0 * np.log10(
+        np.maximum(librosa.feature.spectral_flatness(y=y)[0], 1e-12)
+    )
+    rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr, roll_percent=0.85)
+    rms_traj, centroid_traj, _flatness_traj = trajectory_frames(y, sr)
+    centroid_tv = (
+        float(np.abs(np.diff(centroid_traj)).sum()) if centroid_traj.size > 1 else 0.0
+    )
+    rms_range = (
+        float(rms_traj.max() - rms_traj.min()) if rms_traj.size > 0 else 0.0
+    )
     return np.concatenate([
         mfcc.mean(axis=1),
         mfcc.std(axis=1),
         [float(centroid.mean())],
         [float(rms.mean())],
+        [float(flatness_db.mean())],
+        [float(flatness_db.std())],
+        [float(rolloff.mean())],
+        [centroid_tv],
+        [rms_range],
     ]).astype(np.float64)
 
 
