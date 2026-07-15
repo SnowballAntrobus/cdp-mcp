@@ -1,0 +1,63 @@
+{
+  "program": "submix",
+  "mode": "mix",
+  "submode": null,
+  "category": "mix",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "mixfile"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Renders a text mixfile into one soundfile: each line places a source at a start time with a level (and optional pan) - CDP's timeline/mix engine. Takes NO audio inputs through the engine (input_arity 0): the sources are named inside the mixfile, which is the required pre-output aux parameter (write it with write_data_file()). Line syntax (binary-verified): 'sndname start chans level' (no pan), 'sndname start 1 level pan' (mono panned), 'sndname start 2 llev lpan rlev rpan' (stereo panned). chans MUST match the named file's real channel count. level is a multiplier (1.0 = unity) or dB with suffix ('-6dB'); PLAIN NEGATIVE LEVELS ARE REFUSED. pan: -1 hard left, 0 centre, +1 hard right; beyond +/-1 keeps the hard side and attenuates by 1/|pan|. Output duration = max(start+dur) - min(start), sample-exact: silence BEFORE the first event is stripped, interior gaps are preserved (re-verified this wave: n1@0+n2@0.5 -> 2.5000 s; a lone event at 1.0 -> 1.0000 s). Summation is exactly linear (two 0.5-level copies of one file are bit-identical to the original). All sources must share one sample rate. Channel rule: all-mono with no pan columns -> MONO out; any pan data or any stereo source -> STEREO (all-hard-one-side -> mono). Deterministic.",
+  "musical_use": "The gesture/timeline assembler: place processed fragments at exact times to build phrases, layered swells, call-and-response figures, or dense event clouds from the outputs of other entries. Times need not be sorted, so generate event lists programmatically (an accelerando is just a geometric gap series - a 40-event mixfile renders in one call). HEADROOM IS YOUR JOB AND IT IS NOT OPTIONAL: overlapping events sum linearly, and when the sum exceeds full scale the output WRAPS AROUND (integer overflow - loud moments come back as harsh negative-going garbage), it does not clip. Pre-flight with 'submix getlevel 1 <mixfile>' via execute(): it prints the float peak and the exact 'NORMALISATION REQUIRED' factor; pass that factor as this entry's atten parameter (verified: atten is applied to the float sum BEFORE 16-bit quantisation, so getlevel's factor yields a clean unwrapped render at peak ~1.0). Alternatively keep the sum of overlapping levels <= 1 by construction. Mixfile paths resolve against the SESSION ROOT (the process cwd), so reference sources as 'inputs/<file>' or 'graphs/<graph_id>/<file>' - paths with spaces are impossible (whitespace-split format).",
+  "parameters": {
+    "mixfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "The mix score: one event per line, 'sndname start chans level [pan...]' (write it with write_data_file(); .mix, .txt and extensionless names all accepted). Renders in the argv BEFORE the output path (CDP's 'submix mix mixfile outfile' layout - the position: pre_output engine extension this entry motivated). Relative source paths resolve against the process cwd = session root, NEVER against the mixfile's own directory ('inputs/n1.wav' works; a bare name next to the mixfile in data/ refuses 'uses <name> which is not a sndfile'). Tabs, CRLF endings, ';' comments, blank lines and unsorted times are all fine; negative start times refused; chans mismatch refuses with a WARNING plus 'Application doesn't work with this type of infile.'; letter pans L/R work but 'C' does NOT act as centre (behaves as no-pan) - use numeric pans only."
+    },
+    "atten": {
+      "type": "float",
+      "min": 0.000001,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Whole-mix attenuation, applied to the float sum BEFORE 16-bit quantisation (verified: 3 full-level overlapping copies with atten = getlevel's 0.336683 factor render clean at peak ~1.0, correlation 1.0 with the ideal scaled sum, where the unattenuated render wraps). This is the native headroom valve - feed it 'submix getlevel 1 <mixfile>''s NORMALISATION REQUIRED value. CDP quotes range '(0.000000 to 1.000000)' and accepts -g0 but that renders digital silence (engine verification would fail it); curated min keeps it reachable-but-nonzero."
+    }
+  },
+  "examples": [
+    {
+      "description": "Two-event overlap: layer a processed take over the original, second entry 0.5 s late at half level.",
+      "params": {"mixfile": "events.mix"},
+      "expected_use": "First: write_data_file('events.mix', 'inputs/dry.wav 0.0 1 1.0\\ngraphs/<gid>/wet.wav 0.5 1 0.5'). Output duration = max(start+dur) - min(start). No input argument - this entry takes none."
+    },
+    {
+      "description": "Dense overlapping cloud with getlevel-derived headroom.",
+      "params": {"mixfile": "cloud.mix", "atten": 0.34},
+      "expected_use": "Run execute(['submix', 'getlevel', '1', 'data/cloud.mix']) first; its NORMALISATION REQUIRED value is the atten to pass. Skipping this on hot mixes produces wraparound garbage, not gentle clipping."
+    }
+  ],
+  "known_issues": [
+    "OVERLOAD WRAPS - it does not clip. When overlapping events sum past full scale, the 16-bit output is bit-identical to integer WRAPAROUND of the sum (verified: 3 full-level copies, float peak 2.97, output == wrap_int16(3x); positive overs come back as large NEGATIVE samples). This is catastrophic unmusical distortion. modify loudness in the same build CLIPS on overload - the two programs disagree, so headroom must be staged BEFORE or AT the mix, never after.",
+    "Pre-flight companion: 'submix getlevel 1 <mixfile>' (via execute(); the mode digit 1 is required) prints 'MAX SAMPLE ENCOUNTERED : <peak> at <t> secs / NORMALISATION REQUIRED : <factor> OR <dB>'. Pass that factor as atten - verified to be applied pre-quantisation, yielding a clean render. The banner's -a 'may avoid clipping' flag was byte-identical to the unflagged run on the wrap case (no protection observed; not exposed).",
+    "Output duration = max(start_i + dur_i) - min(start_i): leading silence before the FIRST event is silently stripped (an event placed at 1.0 s alone starts at 0). The engine cannot compute this pre-flight (the durations live in the mixfile), so the duration pre-flight is skipped for this entry - the size watchdog still bounds runaway output. Predict it yourself as max(at+dur)-min(at), not max(at+dur).",
+    "Sources inside the mixfile must all share ONE sample rate (mixed rates refuse with 'Incompatible sample-rate in file ...' + infile-type error); the output SR is the common source SR. Paths may not contain spaces (columns are whitespace-split; quoting does not help). chans column must equal the file's actual channel count.",
+    "Plain negative levels are refused ('Application doesn't work with this type of infile.') - the manual's 'gain -1 phase inversion' trick does not exist here; use the dB form for attenuation ('-6dB') or a 0-1 multiplier.",
+    "Channel rules: all-mono no-pan -> mono; any pan value (including 0) or any stereo source -> stereo; all events panned hard to one side -> mono. A letter 'C' pan does NOT mean centre (behaves as no-pan) - use numeric 0.",
+    "-s/-e output-time crop flags are banner-marked test-only (abrupt edges) and not exposed; use execute() if needed. Deterministic: identical mixfile renders byte-identically run to run.",
+    "This entry is a generator to the engine (input_arity 0): call process() with no input argument. Lineage records no audio inputs - the mixfile path in params is the provenance trail."
+  ],
+  "references": ["cdp://docs/html/cgromix2"]
+}

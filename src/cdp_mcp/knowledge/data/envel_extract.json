@@ -1,0 +1,52 @@
+{
+  "program": "envel",
+  "mode": "extract",
+  "submode": 1,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".evl",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Extracts the amplitude envelope from a soundfile into a binary envelope file (.evl) - a DATA output, not audio: one float per envelope window, sampled every wsize milliseconds. The file is technically a RIFF/WAVE container (FLOAT subtype, sample rate 57 for a 2 s input at wsize 20, 115 frames) which is exactly why it needs the data-output kind: named .wav it would PASS audio verification and poison downstream consumers; this entry names it .evl, verifies exists + non-empty only, and skips the audio duration pre-flight. Envelope fidelity verified: the stored floats correlate at r = 0.99 with the source's per-window peak trajectory. Stereo inputs accepted. Deterministic in the data chunk (the RIFF LIST date chunk differs run to run). Round-trip consumer verified on the binary: 'envel impose 2 <target> <file>.evl <out>' (exit 0, output = target's duration) - reachable via execute(), since the curated envel impose entry is pinned to mode 1 (soundfile donor).",
+  "musical_use": "Envelope capture for reuse and editing: freeze a performance's dynamic arc once, then impose it on other material later (envel impose mode 2 / envel replace mode 2 via execute()), or across sessions - where the curated envel impose (mode 1) needs the donor AUDIO present every call, a .evl is a tiny portable dynamic fingerprint. Small wsize (5-20 ms) captures attack detail and rhythm; large wsize (100-500 ms and up, bounded by the file length) captures only the slow dynamic arc. The envelope follows the loudest excursion per window, so percussive donors yield tight gating shapes. For engine-native envelope transfer without an intermediate file, use the already-curated envel impose / envel replace (mode 1, donor = soundfile); for a human-readable text envelope use execute() with envel extract mode 2 (writes time/level pairs; refuses reserved output extensions like .wav).",
+  "parameters": {
+    "wsize": {
+      "type": "float",
+      "min": 5.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 20.0,
+      "flag": null,
+      "description": "Envelope window size in milliseconds - the time resolution of the extraction. CDP-enforced range 5 to the INPUT's duration in ms ('(5.000000 to 2000.000000)' quoted on a 2 s file - input-dependent, so no static max here). Fractional values accepted (12.5 verified). Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). One float is stored per window; note the actual window count runs slightly above duration/wsize (115 windows for 2 s at wsize 20, an effective ~17.4 ms window - CDP's rounding)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Capture a percussive take's gating envelope at tight resolution.",
+      "params": {"wsize": 20.0},
+      "expected_use": "Output is a .evl data file. Impose it later: execute(['envel', 'impose', '2', 'inputs/pad.wav', 'graphs/<graph_id>/<node>_envel-extract.evl', 'graphs/<graph_id>/gated.wav'])."
+    },
+    {
+      "description": "Slow dynamic arc only.",
+      "params": {"wsize": 500.0},
+      "expected_use": "A handful of floats tracing the macro-dynamics; wsize must stay <= the input duration in ms."
+    }
+  ],
+  "known_issues": [
+    "The output is a DATA file (.evl), not audio: it cannot be auditioned, visualized, analyzed, or fed to another entry as an audio input (the input domain gate refuses it). Consumers: envel impose mode 2 / envel replace mode 2 via execute(). The duration pre-flight is skipped for this entry (duration_model 'static' is a schema placeholder - a .evl has no audio duration).",
+    "POISON HISTORY (why output_format '.evl' matters): CDP dresses the envelope as a RIFF/WAVE (FLOAT, sample rate 57 for 2 s at wsize 20) and writes it verbatim under ANY name including .wav - where it would pass RMS verification and silently corrupt any downstream audio consumer. The data-output naming keeps it out of every audio path.",
+    "wsize's maximum is the input's duration in milliseconds (input-dependent; refusals quote the per-file bound). Same rule family as envel impose/replace's wsize, and the same manual divergence applies there (cgroenvl.htm attributes the bound to the wrong file).",
+    "Mode 2 (text breakpoint output, with -d datareduce 0-1) is not curated: use execute(). It refuses reserved output extensions ('ERROR: Cannot open a textfile (x.wav) with a reserved extension.'); its .brk-shaped output can feed breakpoint parameters directly.",
+    "Envelope content tracks the per-window PEAK (r = 0.99 against the source's windowed peak trajectory on enveloped noise).",
+    "Deterministic in the RIFF data chunk; only the LIST date-comment chunk differs run to run."
+  ],
+  "references": ["cdp://docs/html/cgroenvl"]
+}

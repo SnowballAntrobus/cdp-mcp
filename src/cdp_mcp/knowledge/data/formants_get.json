@@ -1,0 +1,53 @@
+{
+  "program": "formants",
+  "mode": "get",
+  "submode": null,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".for",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Extracts the evolving formant (spectral) envelope from an analysis file and stores it as a binary .for formant data file - a DATA output, not audio. The .for is a RIFF-container data file that CDP writes verbatim under any name; this entry declares output_format '.for' so the engine names it correctly, verifies it as data (exists + non-empty, never an RMS check), and skips the audio duration pre-flight (a get output named .ana would misreport 107.85 s via sfprops from a 2 s source - the poison this output kind exists to prevent). CDP requires exactly one of -f/-p; this entry pins the pitchwise -p form and always emits -p<fbands> (default 8, matching formants vocode); the linear-frequencywise -f form is mutually exclusive and reachable via execute(). Deterministic in the data chunk. The natural consumer is formants put (impose the stored trajectory on another analysis file).",
+  "musical_use": "The first half of the formant-transplant workflow: freeze a donor's timbral motion once, reuse it many times. Extract from speech for vowel trajectories, from bowed strings or brass for resonance signatures, then formants put the file onto noise beds, textures, or chords - each imposition is a separate cheap call, where formants vocode would re-analyse the donor every time. fbands is the resolution knob exactly as in vocode: 2-4 bands/octave gives a coarse dark shadow of the donor, 8-12 approaches intelligibility (the maximum is analysis-dependent - 12 at the default 44.1 kHz analysis). Pitchwise extraction favours low/mid-register donors; use execute() with -f for material concentrated high. The output is data: don't audition or analyze it - put it onto something and listen to that.",
+  "parameters": {
+    "fbands": {
+      "type": "float",
+      "min": 1.0,
+      "max": 12.0,
+      "unit": "bands/octave",
+      "breakpoint_capable": false,
+      "default": 8.0,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Pitchwise formant extraction: N equally-spaced pitch-bands per octave. CDP's real maximum is analysis-dependent ('-p13' refused: 'Too many formant_bands requested: max for this file is 12' at the default 44.1 kHz analysis); fractional values accepted (-p2.5 verified); -p0 accepted by CDP but curated out (min 1). Always emitted (CDP requires -f or -p; entry pins -p, same choice as formants vocode). Breakpoint refused ('Cannot read count of formant_bands.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Extract a speech donor's formant trajectory for reuse.",
+      "params": {"fbands": 8.0},
+      "expected_use": "input = the donor (wav inputs auto-convert via PVOC). Output is a .for data file; feed its session-relative path to formants put's fmntfile parameter."
+    },
+    {
+      "description": "Coarse resonance signature.",
+      "params": {"fbands": 3.0},
+      "expected_use": "A dark, gestural envelope for heavy timbral shadowing via formants put."
+    }
+  ],
+  "known_issues": [
+    "The output is a DATA file (.for), not audio: it cannot be played, auditioned, visualized, analyzed, or fed to another entry as an audio input (the input domain gate refuses it). Its one consumer surface is an aux fmntfile parameter (formants put) or execute(). The duration pre-flight is skipped for this entry (data files have no audio duration; duration_model 'static' is a schema placeholder).",
+    "POISON HISTORY (why output_format '.for' matters): CDP writes this output verbatim under ANY name; named .ana it reports 107.848839 s via sfprops -d from a 2 s source, and named .wav soundfile 'reads' it as sample-rate-344 audio. The engine's data-output naming keeps it out of every audio path.",
+    "CDP requires exactly one of -f/-p ('Insufficient parameters on command line' with neither; 'Unknown flag -f on command line.' with both). The entry always emits -p via the fbands default; the -f frequencywise form (max 256; -f0 crashes 'ERROR: INTERNAL ERROR: (Bug?) / ERROR: Formant array too small: set_specenv_frqs()') is execute() territory.",
+    "fbands' maximum is analysis-dependent (12 for a 44.1 kHz default-analysis file); the refusal quotes the per-file maximum.",
+    "Deterministic in the RIFF data chunk; only the LIST date-comment chunk differs run to run.",
+    "The musical use-case in one call (get + put fused) is the already-curated formants vocode; get/put earn their place when one donor extraction feeds many impositions."
+  ],
+  "references": ["cdp://docs/html/cformant"]
+}

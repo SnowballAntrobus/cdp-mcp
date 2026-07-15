@@ -255,10 +255,18 @@ def build_cdp_argv(
     - ``cwd`` is the directory the subprocess will run from (typically
       ``session.root``); paths inside ``cwd`` are emitted as cwd-relative.
 
-    Layout (per the Phase 1a spec):
+    Layout (per the Phase 1a spec, extended Phase 5 wave 2a):
         [program, mode, *([submode] if submode else []),
-         *input_paths, output_path,
+         *input_paths,
+         *pre_output_params_in_entry_declaration_order,
+         output_path,
          *params_in_entry_declaration_order]
+
+    ``pre_output`` params (``spec.position == "pre_output"`` —
+    positional aux_file slots like ``submix mix``'s mixfile and
+    ``formants put``'s fmntfile) render BETWEEN the inputs and the
+    output path, where those CDP programs expect their data file;
+    every other param renders after the output as before.
 
     Each param emits one of three forms:
 
@@ -290,33 +298,54 @@ def build_cdp_argv(
         argv.append(str(entry.submode))
     for p in input_paths:
         argv.append(_argv_path(p, cwd))
+    # Phase 5 wave 2a: pre_output params occupy the argv slot(s) between
+    # the inputs and the output path (submix mix's mixfile, formants
+    # put's fmntfile); everything else renders after the output.
+    for name, spec in entry.parameters.items():
+        if spec.position == "pre_output":
+            _emit_param(argv, spec, params.get(name, spec.default), cwd)
     argv.append(_argv_path(output_path, cwd))
     for name, spec in entry.parameters.items():
-        value = params.get(name, spec.default)
-        # Optional flag parameter with no value supplied and no default:
-        # omit from argv. (CDP flags are optional by definition; emitting
-        # `-l` with no value would be invalid, and emitting a default for
-        # something the curator left unset would change CDP's behavior.)
-        if spec.flag is not None and value is None:
-            continue
-        if spec.flag_kind == "no_value":
-            # Value-less switch: truthy → bare flag, falsy (False / 0 /
-            # None-after-default) → omitted. There is no value to format.
-            if value:
-                argv.append(spec.flag)
-            continue
-        if isinstance(value, Path):
-            # Compiled breakpoint or resolved aux file (Tasks 8 / 8.7).
-            # Render cwd-relative inside the session tree (CDP-quirk
-            # workaround applies the same as for inputs/outputs).
-            formatted = _argv_path(value, cwd)
-        else:
-            formatted = _format_value(value, spec.type)
-        if spec.flag is None:
-            argv.append(formatted)
-        else:  # attached_value
-            argv.append(f"{spec.flag}{formatted}")
+        if spec.position != "pre_output":
+            _emit_param(argv, spec, params.get(name, spec.default), cwd)
     return argv
+
+
+def _emit_param(
+    argv: list[str],
+    spec: ParameterSpec,
+    value: Any,
+    cwd: Path,
+) -> None:
+    """Append one parameter's argv rendering (possibly nothing) to ``argv``.
+
+    Factored out of :func:`build_cdp_argv` when pre_output positioning
+    split the single param loop in two (Phase 5 wave 2a); the emission
+    rules themselves are unchanged from Phase 3.
+    """
+    # Optional flag parameter with no value supplied and no default:
+    # omit from argv. (CDP flags are optional by definition; emitting
+    # `-l` with no value would be invalid, and emitting a default for
+    # something the curator left unset would change CDP's behavior.)
+    if spec.flag is not None and value is None:
+        return
+    if spec.flag_kind == "no_value":
+        # Value-less switch: truthy → bare flag, falsy (False / 0 /
+        # None-after-default) → omitted. There is no value to format.
+        if value:
+            argv.append(spec.flag)
+        return
+    if isinstance(value, Path):
+        # Compiled breakpoint or resolved aux file (Tasks 8 / 8.7).
+        # Render cwd-relative inside the session tree (CDP-quirk
+        # workaround applies the same as for inputs/outputs).
+        formatted = _argv_path(value, cwd)
+    else:
+        formatted = _format_value(value, spec.type)
+    if spec.flag is None:
+        argv.append(formatted)
+    else:  # attached_value
+        argv.append(f"{spec.flag}{formatted}")
 
 
 def _argv_path(p: Path, cwd: Path) -> str:

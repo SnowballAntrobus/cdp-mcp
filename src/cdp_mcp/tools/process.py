@@ -29,7 +29,7 @@ async def process_impl(
     ctx: Context,
     program: str,
     mode: str,
-    input: str | list[str],
+    input: str | list[str] | None = None,
     params: dict[str, Any] | None = None,
     output_name: str | None = None,
     timeout_seconds: float = 120.0,
@@ -59,10 +59,16 @@ async def process_impl(
 
     ``output_name`` is normalized to carry the right extension before
     the argv reaches CDP: omit the extension and the appropriate one
-    (``.wav`` for time-domain programs, ``.ana`` for spectral) is
-    appended automatically. Passing a mismatched audio extension
-    (e.g. ``.aiff``) returns a structured ``invalid_output_name``
-    error rather than silently rewriting the name.
+    (``.wav`` for time-domain programs, ``.ana`` for spectral, the
+    entry's declared data format for data-output entries) is appended
+    automatically. Passing a mismatched audio extension (e.g.
+    ``.aiff``) returns a structured ``invalid_output_name`` error
+    rather than silently rewriting the name.
+
+    ``input`` may be omitted (or an empty list) for arity-0 generator
+    entries — ``synth noise`` / ``synth wave`` / ``submix mix`` take no
+    audio inputs (Phase 5 wave 2a). Arity mismatches either way return
+    the structured ``arity_mismatch`` error.
     """
     params_dict: dict[str, Any] = params or {}
 
@@ -116,10 +122,16 @@ async def process_impl(
 
     # 4–10: pre-subprocess validation and planning, factored out so the
     # same chain serves graph(dry_run=True) and batch() without drift.
+    # None → [] (arity-0 generators take no input; validate_node's
+    # arity check owns the mismatch reporting either way).
     validation = await validate_node(
         ctx=ctx,
         entry=entry,
-        inputs=[input] if isinstance(input, str) else list(input),
+        inputs=(
+            [] if input is None
+            else [input] if isinstance(input, str)
+            else list(input)
+        ),
         params=params_dict,
         output_name=output_name,
         timeout_seconds=timeout_seconds,
@@ -208,7 +220,7 @@ def register(
         ctx: Context,
         program: str,
         mode: str,
-        input: str | list[str],
+        input: str | list[str] | None = None,
         params: dict[str, Any] | None = None,
         output_name: str | None = None,
         timeout_seconds: float = 120.0,
@@ -231,10 +243,17 @@ def register(
 
         ``output_name`` is normalized to carry the right extension before
         the argv reaches CDP: omit the extension and the appropriate one
-        (``.wav`` for time-domain programs, ``.ana`` for spectral) is
+        (``.wav`` for time-domain programs, ``.ana`` for spectral, the
+        entry's declared data format for data-output entries) is
         appended automatically. Passing a mismatched audio extension
         (e.g. ``.aiff``) returns a structured ``invalid_output_name``
         error rather than silently rewriting the name.
+
+        Generator entries (``input_arity: 0`` — synth noise/wave,
+        submix mix) take no input: omit the ``input`` argument
+        entirely. submix mix instead reads its sources from a mixfile
+        written with ``write_data_file()`` and passed as the
+        ``mixfile`` parameter.
         """
         return await process_impl(
             ctx,

@@ -28,7 +28,13 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .schema import ContextBlock, NodeLineage, OutputVerification, RecentGraphEntry
+from .schema import (
+    DATA_OUTPUT_FORMATS,
+    ContextBlock,
+    NodeLineage,
+    OutputVerification,
+    RecentGraphEntry,
+)
 from .session import Session
 from .utils import atomic_write_text
 
@@ -521,6 +527,14 @@ def verify_output(
     - File size > ``min_size_bytes`` (catches header-only / empty output).
     - For ``.wav``: RMS > ``silence_threshold_dbfs``.
     - For ``.ana``: size only (RMS isn't meaningful spectrally).
+    - For data outputs (``DATA_OUTPUT_FORMATS``: .evl/.for/.txt — Phase 5
+      wave 2a): exists + non-empty only. Never decoded as audio — envel
+      extract's .evl is a RIFF container soundfile happily "reads" as a
+      57 Hz pseudo-wav, so an RMS/silence check here would be actively
+      wrong, not just meaningless. The ``min_size_bytes`` floor is
+      relaxed to "non-empty": a one-window .evl is ~4 data bytes
+      (empirically ~2 KB with CDP's RIFF header, but the header size is
+      CDP's business, not the contract).
 
     Returns:
         :class:`OutputVerification` with ``ok=True`` only if every check
@@ -528,6 +542,8 @@ def verify_output(
         wavs, or silent wavs (rms = 0). Below-threshold but non-silent wavs
         get their dBFS reported plus an error string.
     """
+    if path.suffix.lower() in DATA_OUTPUT_FORMATS:
+        min_size_bytes = 0  # non-empty is the whole size contract
     errors: list[str] = []
     exists = path.exists()
     if not exists:

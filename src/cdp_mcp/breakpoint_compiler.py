@@ -122,7 +122,7 @@ def compile_breakpoint_value(
     value: Any,
     source_duration_s: float | None,
     source_kind: Literal[
-        "input_wav", "pvoc_lineage", "ana_sfprops",
+        "input_wav", "pvoc_lineage", "ana_sfprops", "set_by_param",
         "dry_run_override", "dry_run_dummy",
     ] | None,
     session_root: Path,
@@ -286,7 +286,7 @@ def _compile_list_mode(
     mode: Literal["relative", "absolute"],
     source_duration_s: float | None,
     source_kind: Literal[
-        "input_wav", "pvoc_lineage", "ana_sfprops",
+        "input_wav", "pvoc_lineage", "ana_sfprops", "set_by_param",
         "dry_run_override", "dry_run_dummy",
     ] | None,
     envelopes_dir: Path,

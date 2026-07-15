@@ -32,6 +32,7 @@ from simpleeval import InvalidExpression, SimpleEval
 
 from .limits import OUTPUT_DURATION_CAP_S
 from .schema import (
+    DATA_OUTPUT_FORMATS,
     DurationModelExpression,
     DurationModelLinear,
     DurationModelSetBy,
@@ -152,6 +153,12 @@ def _evaluate_duration_model(
         # IS the intent: any missing input duration that the expression
         # might reference means we can't predict.
         if any(d is None for d in indurs) and "indur" in model.expr:
+            return None
+        # Arity-0 (Phase 5 wave 2a): with no inputs at all, an
+        # indur-referencing expression is equally unpredictable — the
+        # any() guard above is vacuously False on an empty list, so
+        # guard explicitly rather than falling through to a KeyError.
+        if not indurs and "indur" in model.expr:
             return None
 
         # Task 8: if any param is a breakpoint value (list or .brk path),
@@ -288,7 +295,17 @@ async def check_duration_preflight(
     without any file existing yet. Positionally aligned with
     ``resolved_inputs``; a ``None`` entry (or a shorter list) means
     "probe the file as usual".
+
+    Data outputs (Phase 5 wave 2a): entries whose ``output_format`` is
+    a data format (.evl/.for/.txt) skip pre-flight entirely — the
+    output has no audio duration to predict or cap (envel extract's
+    .evl "duration" is one float per envelope window; a formants get
+    output misreports 107 s via sfprops from a 2 s source). The size
+    watchdog still bounds the subprocess reactively.
     """
+    if entry.output_format in DATA_OUTPUT_FORMATS:
+        return [], None
+
     indurs: list[float | None] = []
     for i, p in enumerate(resolved_inputs):
         override = (

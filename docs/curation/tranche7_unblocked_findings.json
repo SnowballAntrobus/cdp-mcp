@@ -1,0 +1,101 @@
+{
+  "generated_at": "2026-07-15",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build, banners 'CDP Release 7.1 2016')",
+    "os": "Linux x86_64 sandbox",
+    "note": "Phase 5 wave 2a: the three engine gaps (pre_output aux placement, data outputs, arity-0) were closed first, then these six entries curated against them. To be re-verified on macOS r8 by the CDP-gated suite (new gated tests in tests/test_pre_output_aux.py / test_data_outputs.py / test_arity0.py). .for and .evl outputs are RIFF containers with the same per-run LIST date chunk as .ana - determinism judged on the data chunk."
+  },
+  "entries": [
+    {
+      "program": "submix",
+      "mode": "mix",
+      "submode": null,
+      "breakpoint_capable": {"atten": false},
+      "duration_row": ["submix", "mix", null, {"mixfile": "events.mix"}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "UNBLOCKED by the position:'pre_output' ParameterSpec field this entry motivated (tranche-5 dropped[0]): argv renders 'submix mix <mixfile> <outfile>' with the mixfile before the output. input_arity 0 - the sources live inside the mixfile; lineage records an empty inputs list. Engine argv lineage-verified: 'submix mix data/ev.mix graphs/<gid>/n1_submix-mix.wav'.",
+        "Tranche-5 empirics treated as spec and spot-re-verified: outdur = max(start+dur) - min(start) sample-exact (n1@0+n2@0.5 -> 2.5000; lone event@1.0 -> 1.0000, leading silence stripped); summation exactly linear (2 x 0.5-level copies bit-identical to source); OVERLOAD WRAPS (3 full-level copies == wrap_int16(3x) to 1 LSB, 22287 overs). known_issues carry the mandated pair: overload-WRAPS warning + 'submix getlevel 1 <mixfile>' pre-flight guidance (mode digit required; prints MAX SAMPLE + NORMALISATION REQUIRED).",
+        "NEW FINDING: -g (exposed as atten, 0.000001-1.0) is applied to the float sum BEFORE 16-bit quantisation - getlevel's NORMALISATION REQUIRED factor (0.336683 on the wrap case) renders CLEAN (correlation 1.0 with the ideal scaled sum, peak ~1.0). Contrast tranche 5's -a flag (byte-identical no-op on the same case; not exposed). -g0 accepted by CDP but renders silence - curated min keeps it nonzero. -s/-e crop flags banner-marked test-only, not exposed.",
+        "duration_model is expression 'mixfile' - deliberately references the non-scalar aux param so the existing pre-flight guard skips (the real rule cannot be computed engine-side; durations live inside the mixfile). duration_row indur is null (arity-0) and the row does NOT fit the shared formula fixture (no input to write; aux mixfile needed) - pinned instead by the gated test_submix_mix_real_cdp_duration_rule.",
+        "Mixfile rules in the entry (from tranche 5, unchanged): line syntax 'sndname start chans level [pan...]'; chans must match the file; plain negative levels refused ('-6dB' form works); pan 'C' does NOT mean centre; relative paths resolve against the process cwd = session root ('inputs/x.wav', 'graphs/<gid>/x.wav'), never the mixfile's directory; no spaces in paths; all sources one sample rate; all-mono no-pan -> mono out, any pan/stereo -> stereo. Deterministic."
+      ]
+    },
+    {
+      "program": "formants",
+      "mode": "put",
+      "submode": 1,
+      "breakpoint_capable": {"quicksearch": false, "lof": false, "hif": false, "gain": false},
+      "duration_row": ["formants", "put", 2.0, {"fmntfile": "g1.for", "gain": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "UNBLOCKED by pre_output (tranche-5 dropped[3]): 'formants put 1 infile fmntfile outfile [-i][-l][-h][-g]' - the .for slot sits between input and output, expressed as an aux_file with position 'pre_output' (binary aux data, not text - the aux_file docstring was widened accordingly). It is NOT input 2 (.for stays unknown_input_domain to the PVOC gate, by design).",
+        "duration_model expression 'indur' - output duration = the input .ana's duration regardless of the .for's length (2 s -> 2.029070; 1 s .ana + 2 s .for -> 1.026163; the usual ~+1.5% pvoc grid overhead, inside the 5% tolerance). duration_row does NOT fit the shared formula fixture (needs a .for aux the fixture cannot supply - grain rerhythm precedent); the get->put chain is pinned by the gated test_formants_get_put_chain_real_cdp.",
+        "Mode 1 (formants REPLACE the sound's own) pinned; mode 2 (impose on top) is data-chunk-distinct (verified) and reachable via execute(). -i quicksearch (mode 1 only per banner) changes the render.",
+        "Ranges (verbatim): -l 'Parameter[1] ... (5.000000 to 22050.000000)'; -h 'Parameter[2]' same range; -g 'Parameter[3] ... (0.000002 to 40.000000)' - NOTE gain max 40 here vs formants vocode's 10 (-g20 accepted). Breakpoints all refused ('brkpnt_files not permitted', parameters 1/2/3).",
+        "A non-formant aux file refuses cleanly: 'ERROR: INVALID DATA / ERROR: cannot open input file <name> to read data.' Deterministic in the data chunk; -i/-l/-h/-g change the render."
+      ]
+    },
+    {
+      "program": "formants",
+      "mode": "get",
+      "submode": null,
+      "breakpoint_capable": {"fbands": false},
+      "duration_row": ["formants", "get", 2.0, {"fbands": 8.0}, null],
+      "stochastic": false,
+      "notes": [
+        "UNBLOCKED by the data-output kind (tranche-5 dropped[2]): output_format '.for' - the engine names the output .for, verifies exists + non-empty (never RMS), skips the duration pre-flight, and the PVOC gate keeps it out of audio inputs. duration_row tolerance null: a data file has no audio duration to measure (duration_model 'static' is a schema placeholder; documented in the entry).",
+        "POISON RE-VERIFIED (the reason for the output kind): a get output named .ana reports sfprops -d = 107.848839 s from a 2 s source; named .wav, soundfile 'reads' it as sr-344 audio. Both recorded in the entry's known_issues.",
+        "Exactly one of -f/-p required (neither: 'Insufficient parameters on command line'; both: 'Unknown flag -f on command line.'). Entry pins -p (fbands default 8, same as vocode); -f via execute().",
+        "Ranges match the vocode findings: -p13 'Too many formant_bands requested: max for this file is 12' (input-dependent); -p0 accepted (curated out, min 1); -p2.5 accepted; -f0 crashes 'INTERNAL ERROR ... set_specenv_frqs()'; -f max 256. -p brk refused ('Cannot read count of formant_bands.').",
+        "Deterministic in the RIFF data chunk (148400 bytes at -p8 on the 2 s tone analysis). Consumer surface: formants put's fmntfile aux param (session-relative 'graphs/<gid>/<node>_formants-get.for') - the get-once/put-many split of the already-shipped formants vocode."
+      ]
+    },
+    {
+      "program": "envel",
+      "mode": "extract",
+      "submode": 1,
+      "breakpoint_capable": {"wsize": false},
+      "duration_row": ["envel", "extract", 2.0, {"wsize": 20.0}, null],
+      "stochastic": false,
+      "notes": [
+        "UNBLOCKED by the data-output kind (tranche-5 dropped[1]): output_format '.evl'. The binary writes a RIFF/WAVE-dressed envelope (FLOAT subtype, sample rate 57, 115 frames for 2 s at wsize 20, ~2530 bytes; wsize 2000 -> 1 float, 2074 bytes) under ANY name - naming it .evl and verifying as data (exists + non-empty, no RMS decode) removes the pseudo-wav poison. Duration pre-flight skips (duration_row tolerance null - no audio duration; duration_model 'static' is a placeholder).",
+        "Envelope fidelity: the stored floats correlate at r = 0.99 with the source's per-window PEAK trajectory. Window count runs above dur/wsize (115 windows for 2 s at wsize 20 = effective ~17.4 ms) - CDP's rounding, noted in the entry.",
+        "wsize: CDP-enforced 5 to the INPUT's length in ms ('(5.000000 to 2000.000000)' on 2 s; 4 and 2001 refused); fractional accepted (12.5); brk refused ('Cannot read parameter 1 ... brkpnt_files not permitted.'). Entry default 20 (always emitted). Stereo input accepted -> 'any'.",
+        "Round-trip verified for the consumer path: 'envel impose 2 tone2.wav e1.evl rt.wav' (mode 2 takes NO wsize) -> exit 0, 2.0 s. Documented as execute() territory (curated envel impose is mode 1). Mode 2 of extract (text brkfile, -d datareduce) stays uncurated; '.txt' sits in the output-format Literal for it.",
+        "Deterministic in the data chunk (raw bytes differ via the RIFF LIST date chunk - same trap as .ana, now recorded for .evl/.for too)."
+      ]
+    },
+    {
+      "program": "synth",
+      "mode": "noise",
+      "submode": null,
+      "breakpoint_capable": {"srate": false, "chans": false, "dur": false, "amp": true},
+      "duration_row": ["synth", "noise", null, {"dur": 2.0, "amp": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "UNBLOCKED by arity-0 (input_arity 0): process() runs it with no input argument; lineage inputs []. duration_model set_by dur - sample-exact (2.0 -> 88200 frames). duration_row indur null; the row does NOT fit the shared formula fixture (fixture always passes an input) - pinned by the gated test_synth_noise_real_cdp_deterministic_and_exact.",
+        "FIRST-CLASS FINDING - deterministic 'randomness': no seed flag exists and identical params render byte-identically (verified back-to-back AND 1.2 s apart - not clock-seeded). stochastic recorded false literally; the entry documents that a fresh noise take cannot be had from the binary.",
+        "amp (-a): CDP range '(0.000000 to 1.000000)'; -a0 ACCEPTED rendering digital silence (would fail output verification) - curated min 0.000001. Exact linear scaling (amp 0.25 == 0.25 x amp-1 render to 1 LSB; RMS at amp 1 ~ -4.8 dBFS). BREAKPOINT-CAPABLE (banner 'Amp may vary through time'; 0->1 ramp verified) - compiles against the OUTPUT duration via the new set_by_param axis.",
+        "DIVERGENCES: banner says chans 'can be 1, 2 or 4' - binary enforces '(1.000000 to 16.000000)' and 3/5/8/16 all render (correct channel counts, but DUAL-MONO: all channels bit-identical). srate quotes '(16000.000000 to 192000.000000)' but only the discrete set 16000/22050/24000/32000/44100/48000/88200/96000 is accepted (44000 'Invalid sample rate.'; 176400/192000 refused). afta8's -f float flag is absent from the banner, accepted, and IGNORED (PCM_16 out) - not exposed.",
+        "dur range '(0.040000 to 7200.000000)' (0.039 refused); the engine's 300 s cap applies first via set_by pre-flight. SoundThread ships synth_noise (inputtype []) with matching parameterization."
+      ]
+    },
+    {
+      "program": "synth",
+      "mode": "wave",
+      "submode": 1,
+      "breakpoint_capable": {"srate": false, "chans": false, "dur": false, "frq": true, "amp": true, "tabsize": false},
+      "duration_row": ["synth", "wave", null, {"dur": 2.0, "frq": 440.0, "amp": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "UNBLOCKED by arity-0. Working argv 'synth wave 1 out.wav 44100 1 2.0 440 [-aamp] [-ttabsize]' - engine emits submode before the output and positionals in banner order (lineage-verified). set_by dur sample-exact (88200 frames). Row does not fit the shared formula fixture (arity-0); pinned by the gated test_synth_wave_real_cdp_frq_breakpoint.",
+        "frq (probed per the task): required positional; CDP-enforced '(0.100000 to 22000.000000)' REGARDLESS of sample rate - 12 kHz at srate 22050 accepted SILENTLY (aliases); fractional fine. BREAKPOINT-CAPABLE (banner 'Frq and Amp may vary through time'; brk render differs from constant) - relative envelopes compile against dur via set_by_param (source_kind in lineage). Entry default 440.",
+        "amp: same rules as noise (-a0 accepted -> silence, curated min; brk-capable, ramp verified). tabsize (-t): enforced '(256.000000 to 4096.000000)' (-t3/-t100000 refused; afta8's 0-32000 wrong); -t4096 changes the render.",
+        "DIVERGENCE - mode labels: banner says 3 'sawtooth wave', 4 'ramp wave'; the rendered mode-3 cycle is a TRIANGLE (peak at quarter-cycle, trough at three-quarter, verified numerically; afta8 and SoundThread synth_wave_3 both say triangle). Mode 5 refused 'Program mode value [5] is out of range [1 - 4].' Entry pins submode 1 (sine); 2-4 via execute().",
+        "dur/chans/srate rules identical to synth noise (chans 17 refused '(1.000000 to 16.000000)'; dual-mono multichannel; discrete srate set). Deterministic (1.1 s apart). afta8 -f flag accepted and ignored - not exposed."
+      ]
+    }
+  ],
+  "dropped": []
+}

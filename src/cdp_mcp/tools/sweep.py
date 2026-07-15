@@ -92,6 +92,26 @@ async def sweep_impl(
             ),
         )])
 
+    # Arity-0 exclusion (Phase 5 wave 2a, documented choice): sweep()'s
+    # signature requires ONE source reference; a generator has none, so
+    # every variant would fail the arity check anyway. Refuse up front
+    # with the actionable route instead of N confusing per-variant
+    # errors. (A future parameter-exploration story for generators
+    # belongs to a signature redesign, not a special-cased input.)
+    if entry.input_arity == 0:
+        return _failure(session, latest_tracker, [ErrorEntry(
+            type="arity_zero_unsupported",
+            message=(
+                f"{program!r} {mode!r} is a generator (input_arity 0); "
+                "sweep() holds one input constant and cannot express a "
+                "no-input entry."
+            ),
+            fix=(
+                "Run generators via process() with no input argument, "
+                "once per parameter setting."
+            ),
+        )])
+
     if (
         not isinstance(param_sets, list)
         or not all(isinstance(p, dict) for p in param_sets)

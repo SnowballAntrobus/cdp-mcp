@@ -55,17 +55,31 @@ class ParameterSpec(BaseModel):
     between the JSONs and the verified table.
 
     ``type: "aux_file"`` (Phase 3) marks a parameter whose value is a
-    string path to an existing auxiliary TEXT data file — e.g. ``texture``'s
+    string path to an existing auxiliary data file — e.g. ``texture``'s
     notedata slot, produced by the ``write_data_file`` tool into
-    ``<session>/data/``. Any extension except ``.brk`` is accepted
-    (``.brk`` is reserved for the breakpoint compiler's routing).
+    ``<session>/data/``. Usually a text file, but binary CDP data files
+    are equally valid (``formants put``'s ``.for`` slot — Phase 5 wave
+    2a). Any extension except ``.brk`` is accepted (``.brk`` is
+    reserved for the breakpoint compiler's routing).
     ``validate_params`` checks the type only; existence + resolution
     against the session happen in ``node_validation`` (step 8.7), which
     replaces the value with a resolved :class:`~pathlib.Path` so
     ``build_cdp_argv`` renders it cwd-relative like other paths.
+
+    ``position: "pre_output"`` (Phase 5 wave 2a) marks a positional
+    ``aux_file`` parameter whose argv slot sits BETWEEN the inputs and
+    the output path — CDP's ``submix mix <mixfile> <outfile>`` and
+    ``formants put 1 <infile> <fmntfile> <outfile>`` layouts.
+    ``build_cdp_argv`` renders ``pre_output`` params (in entry
+    declaration order) before the output slot; all other params render
+    after it as before. Only meaningful on positional (``flag is
+    None``) ``aux_file`` params — enforced by a model validator, since
+    a flagged or non-file param "before the output" has no CDP meaning
+    and would silently corrupt the argv.
     """
 
     type: Literal["float", "int", "str", "bool", "aux_file"]
+    position: Literal["pre_output"] | None = None
     min: float | None = None
     max: float | None = None
     unit: str | None = None
@@ -94,6 +108,28 @@ class ParameterSpec(BaseModel):
             raise ValueError(
                 f"Parameter with flag={self.flag!r} must declare flag_kind "
                 "(\"attached_value\" or \"no_value\")."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _position_requires_positional_aux_file(self) -> ParameterSpec:
+        """``position: "pre_output"`` is only meaningful for positional
+        ``aux_file`` params (Phase 5 wave 2a) — the pre-output argv slot
+        is where CDP programs like ``submix mix`` / ``formants put``
+        expect their data file, and nothing else belongs there."""
+        if self.position is None:
+            return self
+        if self.type != "aux_file":
+            raise ValueError(
+                f"position={self.position!r} requires type 'aux_file' "
+                f"(got {self.type!r}) — only auxiliary data files occupy "
+                "the pre-output argv slot."
+            )
+        if self.flag is not None:
+            raise ValueError(
+                f"position={self.position!r} requires a positional "
+                f"parameter (flag is None), got flag={self.flag!r} — "
+                "flagged params always render after the output path."
             )
         return self
 
@@ -167,6 +203,31 @@ DurationModel = Annotated[
 # KnowledgeEntry
 # ---------------------------------------------------------------------------
 
+# Data (non-audio) output formats a curated entry may declare (Phase 5
+# wave 2a, unblocking envel extract / formants get). Empirically pinned
+# against the r8 binaries:
+#
+# - ``.evl`` — envel extract mode 1's binary envelope file. CDP dresses
+#   it as a RIFF/WAVE (FLOAT subtype, sample rate 57 for a 2 s input at
+#   wsize 20) and writes it verbatim under ANY name, so an entry that
+#   named it ``.wav`` would mint a pseudo-wav that PASSES audio
+#   verification and poisons downstream consumers.
+# - ``.for`` — formants get's binary formant data file (also a RIFF
+#   container; a get output named ``.ana`` misreports 107.85 s via
+#   ``sfprops -d`` from a 2 s source).
+# - ``.txt`` — text data outputs (envel extract mode 2's brkfile form;
+#   no curated consumer yet, reserved so the namer/verifier logic
+#   doesn't need reopening when one lands).
+#
+# Consumers: the output namer (node_validation step 9) uses the entry's
+# declared data format instead of the domain-derived audio extension;
+# verify_output checks exists + non-empty only (no wav RMS/silence
+# decode); the duration pre-flight skips (data files have no audio
+# duration); and the PVOC domain gate already refuses them as inputs
+# (unknown_input_domain), so nothing feeds them to sfprops or the
+# audition synth.
+DATA_OUTPUT_FORMATS = frozenset({".evl", ".for", ".txt"})
+
 
 class KnowledgeEntry(BaseModel):
     """One curated CDP ``(program, mode)`` combination.
@@ -185,10 +246,22 @@ class KnowledgeEntry(BaseModel):
     submode: int | None = None
     category: str
     domain: Literal["time", "spectral"]
+    # ``input_arity: 0`` (Phase 5 wave 2a) marks a generator / data-driven
+    # entry with NO audio inputs (synth noise/wave; submix mix, whose
+    # sources live inside its mixfile). validate_node accepts an empty
+    # inputs list, the duration pre-flight evaluates with no indurs
+    # (duration typically ``set_by`` a dur param), and lineage records an
+    # empty inputs list. graph()/batch()/sweep() exclude arity-0 entries
+    # with a structured ``arity_zero_unsupported`` error — their spec
+    # shapes are input-wiring by construction (see those modules).
     input_arity: int | Literal["N", "variable"]
     channel_constraint: Literal["mono", "stereo", "any", "multi"]
     input_format: str
-    output_format: str
+    # ``.wav`` / ``.ana`` are the audio formats (extension actually
+    # derived from ``domain`` at output-naming time, as before).
+    # ``.evl`` / ``.for`` / ``.txt`` are data formats — see
+    # DATA_OUTPUT_FORMATS above for the exact semantics they switch on.
+    output_format: Literal[".wav", ".ana", ".evl", ".for", ".txt"]
     stability: Literal["stable", "unstable", "buggy", "deprecated"] = "stable"
     phase_sensitive: bool = False
     stereo_link_default: Literal["linked", "related", "independent"] | None = None
@@ -349,6 +422,10 @@ class CompiledBreakpoint(BaseModel):
       reference). Phase 2 Task 2.
     - ``"preexisting_brk"`` — user supplied an existing .brk file by
       path. No compilation happened; ``source_duration_s`` is ``None``.
+    - ``"set_by_param"`` — arity-0 (generator) entry: there is no input
+      audio, so the envelope axis is the OUTPUT duration, taken from
+      the entry's ``set_by`` duration-model parameter (e.g. ``synth
+      wave``'s ``dur``). Phase 5 wave 2a.
     - ``"dry_run_override"`` / ``"dry_run_dummy"`` — Task 11a
       ``graph(dry_run=True)`` records only: duration came from a
       caller-supplied upstream prediction, or was unknowable and a
@@ -361,7 +438,7 @@ class CompiledBreakpoint(BaseModel):
     source_duration_s: float | None  # None when path mode (not compiled)
     source_kind: Literal[
         "input_wav", "pvoc_lineage", "ana_sfprops", "preexisting_brk",
-        "dry_run_override", "dry_run_dummy",
+        "set_by_param", "dry_run_override", "dry_run_dummy",
     ]
 
 

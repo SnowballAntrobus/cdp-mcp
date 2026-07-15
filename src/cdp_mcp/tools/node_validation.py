@@ -36,7 +36,13 @@ from ..graph import (
 )
 from ..processing import build_cdp_argv, validate_params
 from ..pvoc import _domain_of, maybe_insert_pvoc, read_ana_duration
-from ..schema import CompiledBreakpoint, ErrorEntry, KnowledgeEntry
+from ..schema import (
+    DATA_OUTPUT_FORMATS,
+    CompiledBreakpoint,
+    DurationModelSetBy,
+    ErrorEntry,
+    KnowledgeEntry,
+)
 from ..security import SecurityError, validate_command
 from ..session import Session
 
@@ -183,24 +189,14 @@ async def validate_node(
         )
     if len(inputs) != entry.input_arity:
         return ValidationResult(
-            errors=[
-                ErrorEntry(
-                    type="arity_mismatch",
-                    message=(
-                        f"Entry {entry.program} {entry.mode} expects "
-                        f"{entry.input_arity} input(s); got {len(inputs)}."
-                    ),
-                    fix=(
-                        f"Pass exactly {entry.input_arity} input "
-                        "reference(s)."
-                    ),
-                )
-            ],
+            errors=[_arity_mismatch_error(entry, len(inputs))],
             warnings=warnings,
         )
 
     # 5. Resolve inputs. Path entries are pre-resolved upstream outputs
-    # from an orchestrating graph()/batch() call — used as-is.
+    # from an orchestrating graph()/batch() call — used as-is. An
+    # arity-0 entry (generator; Phase 5 wave 2a) has an empty list here
+    # and every per-input loop below is a clean no-op.
     try:
         resolved_inputs = [
             ref if isinstance(ref, Path)
@@ -341,14 +337,21 @@ async def validate_node(
                 ),
             ))
             continue
-        src_duration, src_kind = await _resolve_source_duration(
-            session=session,
-            post_pvoc_paths=post_pvoc_paths,
-            pvoc_source_nodes=pvoc_source_nodes,
-            graph_dir=graph_dir,
-            cdp_path=cdp.cdp_path,
-            cdp_version=cdp.version,
-        )
+        if not post_pvoc_paths:
+            # Arity-0 (Phase 5 wave 2a): no input audio — the envelope
+            # axis is the OUTPUT duration from the set_by dur param.
+            src_duration, src_kind = _arity0_axis_duration(
+                entry, params_dict
+            )
+        else:
+            src_duration, src_kind = await _resolve_source_duration(
+                session=session,
+                post_pvoc_paths=post_pvoc_paths,
+                pvoc_source_nodes=pvoc_source_nodes,
+                graph_dir=graph_dir,
+                cdp_path=cdp.cdp_path,
+                cdp_version=cdp.version,
+            )
         result = compile_breakpoint_value(
             param_name=param_name,
             param_spec=spec,
@@ -387,7 +390,7 @@ async def validate_node(
 
     # 9. Build main op argv.
     main_node_id = node_id_base if node_id_base is not None else f"n{counter}"
-    out_ext = ".ana" if entry.domain == "spectral" else ".wav"
+    out_ext = _output_extension(entry)
     normalized_name, name_error = _normalize_output_name(
         output_name, out_ext
     )
@@ -489,19 +492,7 @@ async def _validate_node_dry_run(
         )
     if len(inputs) != entry.input_arity:
         return ValidationResult(
-            errors=[
-                ErrorEntry(
-                    type="arity_mismatch",
-                    message=(
-                        f"Entry {entry.program} {entry.mode} expects "
-                        f"{entry.input_arity} input(s); got {len(inputs)}."
-                    ),
-                    fix=(
-                        f"Pass exactly {entry.input_arity} input "
-                        "reference(s)."
-                    ),
-                )
-            ],
+            errors=[_arity_mismatch_error(entry, len(inputs))],
             warnings=warnings,
         )
 
@@ -621,12 +612,19 @@ async def _validate_node_dry_run(
             for name in entry.parameters
         )
         if needs_duration:
-            src_duration, src_kind = await _dry_run_source_duration(
-                resolved_inputs=resolved_inputs,
-                indur_overrides=indur_overrides,
-                session=session,
-                cdp=cdp,
-            )
+            if not resolved_inputs:
+                # Arity-0: axis = output duration (set_by dur param),
+                # mirroring the real path's fallback.
+                src_duration, src_kind = _arity0_axis_duration(
+                    entry, params_dict
+                )
+            else:
+                src_duration, src_kind = await _dry_run_source_duration(
+                    resolved_inputs=resolved_inputs,
+                    indur_overrides=indur_overrides,
+                    session=session,
+                    cdp=cdp,
+                )
             if src_duration is None:
                 # Duration genuinely unknowable pre-execution: validate
                 # structure/ranges against a dummy axis, then warn.
@@ -692,7 +690,7 @@ async def _validate_node_dry_run(
         # 9. Build main op argv (planned paths; temp .brk paths render
         # in-session, matching execution shape).
         main_node_id = f"n{counter}"
-        out_ext = ".ana" if entry.domain == "spectral" else ".wav"
+        out_ext = _output_extension(entry)
         normalized_name, name_error = _normalize_output_name(
             output_name, out_ext
         )
@@ -770,6 +768,75 @@ async def _dry_run_source_duration(
 # ---------------------------------------------------------------------------
 # Helpers (moved from process.py — used only internally by validate_node)
 # ---------------------------------------------------------------------------
+
+
+def _output_extension(entry: KnowledgeEntry) -> str:
+    """Output extension for step 9's naming (Phase 5 wave 2a).
+
+    Data-output entries (envel extract's ``.evl``, formants get's
+    ``.for``) use their declared ``output_format`` — naming these with
+    the domain-derived audio extension is exactly the poison the data
+    output kind exists to prevent (a ``.wav``-named .evl passes audio
+    verification at sample rate 57; a ``.ana``-named .for misreports
+    107 s via sfprops). Audio entries keep the domain-derived extension
+    as before.
+    """
+    if entry.output_format in DATA_OUTPUT_FORMATS:
+        return entry.output_format
+    return ".ana" if entry.domain == "spectral" else ".wav"
+
+
+def _arity_mismatch_error(
+    entry: KnowledgeEntry, got: int
+) -> ErrorEntry:
+    """Structured arity_mismatch with a generator-aware fix hint."""
+    if entry.input_arity == 0:
+        fix = (
+            "This entry is a generator (input_arity 0) — omit the "
+            "input argument (or pass an empty list). Its output can "
+            "then be referenced as 'latest' by other tools."
+        )
+    else:
+        fix = f"Pass exactly {entry.input_arity} input reference(s)."
+    return ErrorEntry(
+        type="arity_mismatch",
+        message=(
+            f"Entry {entry.program} {entry.mode} expects "
+            f"{entry.input_arity} input(s); got {got}."
+        ),
+        fix=fix,
+    )
+
+
+def _arity0_axis_duration(
+    entry: KnowledgeEntry,
+    params_dict: dict[str, Any],
+) -> tuple[float | None, Literal["set_by_param"] | None]:
+    """Envelope axis for arity-0 breakpoint compilation (Phase 5 wave 2a).
+
+    Generators have no input audio, but their breakpoint envelopes
+    still need a relative-time axis: the OUTPUT duration, which a
+    ``set_by`` duration model reads straight from the dur param (user
+    value first, curated default second). Returns ``(None, None)``
+    when the model isn't ``set_by`` or the value isn't a positive
+    scalar — the compiler then surfaces its usual
+    ``param_breakpoint_no_source_duration`` (absolute-time tuples and
+    pre-existing .brk paths remain usable either way).
+    """
+    model = entry.duration_model
+    if not isinstance(model, DurationModelSetBy):
+        return None, None
+    spec = entry.parameters.get(model.param)
+    value = params_dict.get(
+        model.param, spec.default if spec is not None else None
+    )
+    if (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and value > 0
+    ):
+        return float(value), "set_by_param"
+    return None, None
 
 
 def _resolve_aux_file_params(

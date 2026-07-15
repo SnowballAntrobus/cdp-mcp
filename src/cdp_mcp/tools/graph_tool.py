@@ -124,6 +124,26 @@ async def graph_impl(
                 ),
             ))
             continue
+        # Arity-0 exclusion (Phase 5 wave 2a, documented choice): node
+        # specs require a non-empty 'in' by construction, so a
+        # generator node is inexpressible in graph()'s wiring grammar.
+        # Refuse with the actionable route rather than letting the
+        # per-node arity check emit a "pass exactly 0 inputs" paradox.
+        if entry.input_arity == 0:
+            graph_errors.append(ErrorEntry(
+                type="arity_zero_unsupported",
+                message=(
+                    f"node {nid!r}: {program!r} {mode!r} is a generator "
+                    "(input_arity 0); graph() nodes wire inputs and "
+                    "cannot express a no-input entry."
+                ),
+                fix=(
+                    "Run the generator first via process() with no "
+                    "input argument, then reference its output in this "
+                    "graph's inputs={...} dict."
+                ),
+            ))
+            continue
         entries[nid] = entry
         in_refs = spec["_in"]
         refs[nid] = in_refs

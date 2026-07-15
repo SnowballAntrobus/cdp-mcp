@@ -1,0 +1,92 @@
+{
+  "program": "formants",
+  "mode": "put",
+  "submode": 1,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Imposes a stored formant trajectory (a .for file from formants get) onto the spectrum of the input analysis file. Pinned to mode 1: the new formant envelope REPLACES the sound's own formant envelope (mode 2 imposes ON TOP of the existing envelope - byte-verified distinct output - reachable via execute()). The fmntfile is a pre-output aux parameter: CDP's argv is 'formants put 1 infile fmntfile outfile', with the formant data file BETWEEN input and output (the position: pre_output engine slot, shared with submix mix). Output duration = the INPUT .ana's duration regardless of the .for file's length (verified: 1 s .ana + 2 s .for -> 1.026 s out; 2 s .ana -> 2.029 s). Deterministic in the analysis data chunk (only the RIFF LIST date chunk differs run to run). Together with formants get this splits formants vocode into its two halves: extract once, impose many times.",
+  "musical_use": "The second half of the formant-transplant workflow: run formants get on a donor (speech, a shout, an instrument with strong resonances) to freeze its evolving spectral envelope as a .for file, then put it onto any number of targets - one extraction, many impositions, unlike formants vocode which re-derives the donor every call. Mode 1 (pinned) fully re-colors the target: noise and broadband textures take on vowel-like motion; sustained chords inherit the donor's articulation. Use lof to strip imposed rumble and gain around 0.5 to tame level buildup; quicksearch trades formant accuracy for speed on long files. The .for path resolves like any aux file (session-relative): pass 'graphs/<graph_id>/<node>_formants-get.for' straight from a formants get run. Feed the output onward spectrally or let auto-PVOC synth it back to audio.",
+  "parameters": {
+    "fmntfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Path to a binary formant data file (.for), normally produced by a formants get run - reference its output as a session-relative path (e.g. 'graphs/<graph_id>/n1_formants-get.for'). Renders in the argv between the input and the output (pre_output). A non-formant file is refused cleanly ('ERROR: INVALID DATA / ERROR: cannot open input file <name> to read data.'). Note this is a BINARY aux file - the aux_file docstring's usual write_data_file() route does not apply; formants get makes these."
+    },
+    "quicksearch": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-i",
+      "flag_kind": "no_value",
+      "description": "Quicksearch for formants (less accurate, faster) - banner's -i switch, mode 1 only (mode 2's banner omits it). Changes the render (verified against the unflagged run)."
+    },
+    "lof": {
+      "type": "float",
+      "min": 5.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Low frequency below which the spectrum is set to zero (CDP-enforced 5 to 22050: '-l-1' refused quoting '(5.000000 to 22050.000000)', numbered parameter 1). No cross-check against hif. Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "hif": {
+      "type": "float",
+      "min": 5.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "High frequency above which the spectrum is set to zero (CDP-enforced 5 to 22050, numbered parameter 2). Breakpoint refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.000002,
+      "max": 40.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Adjustment to spectrum loudness, 'normally < 1.0' (banner). CDP-enforced range 0.000002 to 40 ('-g-1' refused quoting '(0.000002 to 40.000000)', parameter 3) - NOTE: a different maximum from formants vocode's gain (10); -g20 verified accepted here. Breakpoint refused (parameter 3)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Stamp a stored vocal formant trajectory onto a noise texture.",
+      "params": {"fmntfile": "graphs/<graph_id>/n1_formants-get.for", "gain": 0.5},
+      "expected_use": "input = the target (wav inputs auto-convert via PVOC). Output .ana lasts as long as the target regardless of the .for's length."
+    },
+    {
+      "description": "Fast pass with rumble stripped.",
+      "params": {"fmntfile": "graphs/<graph_id>/n1_formants-get.for", "quicksearch": true, "lof": 120.0},
+      "expected_use": "Quicker, slightly less accurate formant fit; spectrum zeroed below 120 Hz."
+    }
+  ],
+  "known_issues": [
+    "The fmntfile occupies CDP's pre-output argv slot ('formants put 1 infile fmntfile outfile') - it is an aux parameter with position: pre_output, NOT a second input (a .for cannot pass the engine's input domain gate, and this is by design: it is data, not audio).",
+    "Output duration follows the INPUT analysis file only; a longer or shorter .for is fine (1 s .ana + 2 s .for -> 1.026 s output verified). Expression 'indur' carries the usual ~+1.5% pvoc analysis-grid overhead over the source wav duration - within the 5% duration-model tolerance.",
+    "Mode 2 (impose on top of the sound's own formants, no -i flag) produces genuinely different output (byte-verified) and is not curated - use execute(['formants', 'put', '2', ...]).",
+    "gain's CDP maximum here is 40, not vocode's 10 - the two formants programs enforce different ranges for the same-named flag.",
+    "No parameter accepts breakpoint files (refusals verbatim: parameters 1, 2, 3 'brkpnt_files not permitted').",
+    "A file that is not formant data refuses with 'ERROR: INVALID DATA / ERROR: cannot open input file <name> to read data.' - the engine only checks the aux file exists, so this surfaces as a CDP subprocess error.",
+    "Byte-level comparison of two runs differs only in the RIFF LIST date chunk - compare data chunks when hashing .ana outputs."
+  ],
+  "references": ["cdp://docs/html/cformant"]
+}

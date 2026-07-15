@@ -61,6 +61,7 @@ async def test_list_categories_returns_sorted_unique(mcp_with_tools):
         "distort", "edit", "envelope", "extend", "filter", "granular",
         "mix",
         "modify", "morph", "spectral-frequency", "spectral-time",
+        "synthesis",
         "texture",
         "uncurated",
     ]
@@ -73,7 +74,7 @@ async def test_list_categories_returns_sorted_unique(mcp_with_tools):
 
 async def test_list_programs_no_filter_returns_all_curated(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {})
-    assert len(payload) == 61
+    assert len(payload) == 67
     keys = {(e["program"], e["mode"]) for e in payload}
     # Spot-check representatives across phases rather than the full set
     # (the count above pins the total; per-entry presence is pinned by
@@ -102,6 +103,7 @@ async def test_list_programs_domain_filter(mcp_with_tools):
         ("blur", "scatter"), ("combine", "cross"), ("combine", "diff"),
         ("blur", "spread"), ("blur", "suppress"),
         ("combine", "interleave"), ("combine", "max"),
+        ("formants", "get"), ("formants", "put"),
         ("formants", "vocode"), ("pitch", "tune"), ("spec", "grab"),
         ("strange", "shift"),
         ("focus", "accu"), ("focus", "exag"), ("focus", "fold"),

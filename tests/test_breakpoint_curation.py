@@ -31,6 +31,26 @@ from cdp_mcp.knowledge.loader import KnowledgeIndex
 # cdpr8/_cdp/_cdprogs). Updating any cell in this table is a curation
 # decision and must pair with an entry in docs/phase-2-breakpoint-review.md.
 _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
+    # --- Phase 5 wave 2a (tranche 7: unblocked entries; see docs/curation/) ---
+    ("submix", "mix"): {
+        "atten": False,
+    },
+    ("envel", "extract"): {
+        "wsize": False,
+    },
+    ("formants", "get"): {
+        "fbands": False,
+    },
+    ("formants", "put"): {
+        "quicksearch": False, "lof": False, "hif": False, "gain": False,
+    },
+    ("synth", "noise"): {
+        "srate": False, "chans": False, "dur": False, "amp": True,
+    },
+    ("synth", "wave"): {
+        "srate": False, "chans": False, "dur": False,
+        "frq": True, "amp": True, "tabsize": False,
+    },
     # --- Phase 5 tranches 5-6 (sandbox-CDP probed; see docs/curation/) ---
     ("submix", "interleave"): {
         # no numeric parameters

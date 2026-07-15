@@ -83,6 +83,24 @@ async def batch_impl(
             ),
         )])
 
+    # Arity-0 exclusion (Phase 5 wave 2a, documented choice): batch()
+    # maps one op over MANY inputs — a generator has no inputs to map
+    # over, so the tool's spec shape cannot express it. process() runs
+    # generators directly (omit input).
+    if entry.input_arity == 0:
+        return _failure(session, latest_tracker, [ErrorEntry(
+            type="arity_zero_unsupported",
+            message=(
+                f"{program!r} {mode!r} is a generator (input_arity 0); "
+                "batch() varies inputs and cannot express a no-input "
+                "entry."
+            ),
+            fix=(
+                "Run generators via process() with no input argument; "
+                "vary parameters across calls (or use execute())."
+            ),
+        )])
+
     if not isinstance(inputs, list) or not inputs:
         return _failure(session, latest_tracker, [ErrorEntry(
             type="batch_spec_error",
