@@ -2,23 +2,17 @@
 
 An MCP (Model Context Protocol) server that wraps the [Composers' Desktop Project](https://www.composersdesktop.com/) (CDP) suite, exposing it as a set of tools an LLM can call for sound transformation, analysis, and visualization.
 
-> **Status:** Phase 1b complete. Production-quality on the Phase 1a tool surface — same nine tools, same five curated programs, now with derivative caches (PVOC / analysis / visualizations / audition), pre-flight duration prediction, reactive disk watchdog, structured stderr error parsing, polymorphic-parameter breakpoint compilation, `recent_graphs` deque with `prev_N` aliases, and an MCP keepalive regression gate.
+> **Status:** Phase 3 complete. 21 tools; **43 curated programs** (every parameter range, duration model, and breakpoint capability empirically verified against real CDP binaries) plus 194 auto-generated uncurated stubs surfacing the long tail. DAG orchestration (`graph`, `batch`), a full observation suite (spectrograms, MIR scorecards, segmentation, comparison, progression, clustering), FTS5 search over CDP's manual, per-output provenance, and derivative caches throughout. Phase handoffs live in `docs/`.
 
 ## What this does
 
-Wraps CDP — a 500+ program suite for offline sound transformation — as MCP tools an LLM can call. Phase 1a curates five programs (`blur blur`, `modify brassage`, `morph morph`, `extend loop`, `filter sweeping`) plus the `pvoc` analysis/synthesis pair they depend on, along with observation tools that render mel spectrograms and extract MIR scorecards. Auto-inserts the PVOC conversion step when input and program domains don't match, so the LLM never has to think about `.ana` vs `.wav` files explicitly. An `execute()` escape hatch covers anything uncurated, behind a security boundary that rejects shell metacharacters and out-of-session file paths.
+Wraps CDP — a 500+ program suite for offline sound transformation — as MCP tools an LLM can call in collaboration with a human composer. The knowledge layer curates the musically vital core of CDP (spectral blurring/morphing/stretching, waveset distortion, granular time-stretch, scrambling and gesture extension, filtering, texture generation) with hand-written musical guidance and machine-verified engineering metadata. Auto-inserts PVOC analysis/synthesis when input and program domains don't match, so the LLM never thinks about `.ana` vs `.wav`. Every action returns structured errors with fixes, full lineage lands on disk, and an `execute()` escape hatch covers the uncurated long tail behind a security boundary.
 
-## What's new in Phase 1b
+## Phase history
 
-Phase 1b made the Phase 1a tool surface production-quality without adding new tools. Key changes:
-
-- **Derivative caches** under `~/.cdp_mcp/cache/` give 15× to 1231× speedups on repeat operations across PVOC, MIR analysis, and spectrogram rendering. Audition synth cache makes parameter variation against the same spectral target ~7.5× faster.
-- **Pre-flight duration prediction** rejects calls whose `duration_model` predicts output exceeding the 300-second cap before CDP spawns. Complemented by a reactive disk watchdog that SIGKILLs the subprocess on output-size overruns (configurable via env vars).
-- **Structured error taxonomy** with action-oriented `fix` text on every entry. Four stderr patterns (`output_exists`, `channel_mismatch`, `usage_banner_returned`, `silent_output`) coexist with the existing generic errors.
-- **`recent_graphs` deque** (length 5) with `prev_1`..`prev_4` aliases for branching conversational workflows. Per-process, not persisted.
-- **Polymorphic parameters**: scalars, relative-time tuple lists, absolute-time tuple lists (`"abs:"` prefix), or pre-existing `.brk` file paths. Defensive compilation with sort + dedupe + auto-append. Content-addressable breakpoint files.
-- **CDP version detection** via path-component regex (stock CDP r8 has no `cdp` binary). Mismatch warning on session reload.
-- **Test infrastructure**: fault-injection in `fake_subprocess.py` (`--cdp-refuse-clobber`, `--cdp-die-on-dot-path`, `--cdp-silent-output`, `--cdp-grow-file`). Apple Silicon arch-wrapping autouse fixture. MCP keepalive stress test (slow-marked).
+- **Phase 1a/1b** — core loop (`process` → `visualize`/`analyze`), five curated programs, derivative caches (15×–1231× speedups), pre-flight duration prediction + reactive disk watchdog, structured error taxonomy, polymorphic breakpoint parameters, `latest`/`prev_N` conversational aliases. Record: `docs/phase-1b-handoff.md`.
+- **Phase 2** — DAG orchestration: `graph()` (whole-DAG validation with chained per-node duration predictions, then topological execution into one graph directory) and `batch()` (N inputs, one atomic context event, `latest_batch[i]` addressing); the observation track (`segments`, `compare`, `progression`, verbose `analyze`); the `breakpoint()` envelope DSL; multi-input processing; a hardening pass (cancellation-safe subprocesses, security-gate fixes, event-loop hygiene). Record: `docs/phase-2-handoff.md`.
+- **Phase 3** — knowledge completion: 6 → 43 curated entries via an empirical pipeline against CDP built from source (`scripts/build_cdp8_linux.sh`); four-source curation hierarchy (*binaries decide, source explains, manual describes, SoundThread + afta8 prioritize*); `search_docs`/`read_doc` (FTS5 over the CDP manual), `why()` provenance, `cluster()`, `write_data_file()` + `aux_file` parameters (texture programs); long-tail stub generator. Findings — including several CDP bugs the docs don't know about — in `docs/forensics.md` and `docs/curation/`. Record: `docs/phase-3-handoff.md`.
 
 ## Installation
 
@@ -47,6 +41,8 @@ The server needs to know where your CDP binaries live. Set `CDP_PATH` to the dir
 ```bash
 export CDP_PATH=/cdpr8/_cdp/_cdprogs
 ```
+
+No CDP install? On Linux, `scripts/build_cdp8_linux.sh` builds ~211 binaries from the open-source [CDP8 release](https://github.com/ComposersDesktop/CDP8) in one command.
 
 ## Use with Claude Desktop
 
@@ -79,7 +75,12 @@ Drop a `.wav` file into `~/cdp_sessions/my_first_session/inputs/`, then:
 
 Claude calls `process("blur", "blur", input="frog.wav", params={"blurring": 10})` — the server auto-inserts a `pvoc anal` step because blur is spectral and the input is a wav — followed by `visualize("latest")`. The spectrogram comes back inline in the chat, and the rendered PNG is on disk under `<session>/visualizations/`.
 
-From here you can chain further: `modify brassage` for time-stretching, `extend loop` for looping, etc. The `"latest"` reference always points at the most recent successful output, so you can iterate naturally without naming each intermediate.
+From here the workflows compose:
+
+- **Iterate:** chain further `process()` calls via `"latest"` / `prev_N`, with time-varying parameters built by `breakpoint()` (named shapes or custom point lists).
+- **Orchestrate:** describe a whole chain declaratively with `graph(dry_run=True)` — per-node duration predictions before anything runs — then execute it.
+- **Explore:** `batch()` one program across many inputs, `cluster()` the results, audition one medoid per cluster with `compare()`, and view a chain's evolution with `progression()`.
+- **Understand:** `segments()` finds onsets/silences to feed edit points; `why()` reconstructs any output's full provenance; `search_docs()`/`read_doc()` consult CDP's own manual.
 
 ## Environment variables
 
@@ -87,65 +88,49 @@ From here you can chain further: `modify brassage` for time-stretching, `extend 
 |----------|---------|---------|
 | `CDP_PATH` | (required) | Path to the CDP binaries directory. |
 | `CDP_MCP_SESSIONS_ROOT` | `~/cdp_sessions` | Where session directories live. |
+| `CDP_MCP_DOCS_ROOT` | (auto-derived) | CDP HTML manual location for `search_docs` (found by walking up from `CDP_PATH`). |
 | `CDP_MCP_DISABLE_ARCH_X86_64` | (off) | Set to `1` on Apple Silicon if your CDP is a native arm64 build. |
 | `CDP_MCP_DURATION_CAP_S` | `300.0` | Predicted output duration cap, seconds. `process()` pre-flight rejects calls above this. |
 | `CDP_MCP_OUTPUT_SIZE_CAP_BYTES` | `1073741824` (1 GB) | Output file size cap. Reactive disk watchdog SIGKILLs the subprocess on crossing. |
 
 Invalid values (non-numeric, non-positive) fall back to defaults with a warning on stderr.
 
-## Manual smoke test (without Claude Desktop)
-
-```bash
-# With CDP_PATH unset: server prints a warning to stderr but starts cleanly.
-cdp-mcp < /dev/null
-
-# With CDP_PATH set: server prints the detected version and binaries.
-CDP_PATH=/path/to/cdp/_cdprogs cdp-mcp < /dev/null
-```
-
-In both cases, the process exits cleanly when stdin closes.
-
 ## Tools
 
-Nine tools ship in Phase 1a:
+21 tools across five groups:
 
-| Tool | Purpose |
-|------|---------|
-| `list_categories`, `list_programs`, `get_program_info` | Introspection over the curated CDP knowledge layer |
-| `set_session`, `describe_workspace` | Session and workspace management |
-| `execute` | Raw CDP escape hatch with security boundary (binary location, shell metacharacters, file path scope) |
-| `process` | Curated CDP invocation with PVOC auto-insertion, parameter validation, and graph lineage |
-| `visualize` | Mel-spectrogram PNG returned inline plus on disk |
-| `analyze` | Concise MIR scorecard (duration, peak, RMS, LUFS, spectral centroid, spectral flux, ZCR, onset count, channels, sample rate) |
+| Group | Tools |
+|-------|-------|
+| Introspection | `list_categories`, `list_programs`, `get_program_info`, `search_docs`, `read_doc` |
+| Workspace | `set_session`, `describe_workspace` (incl. full graph `history`), `read_envelope`, `write_data_file` |
+| Action | `process` (curated, PVOC auto-insert, lineage), `execute` (gated escape hatch), `graph` (declarative DAG w/ dry-run), `batch` (N-input exploration), `breakpoint` (envelope DSL) |
+| Observation | `visualize`, `analyze` (+`verbose`), `segments`, `compare`, `progression`, `cluster` |
+| Provenance | `why` |
+
+Every action returns a `ResultEnvelope` with structured errors (each carrying `fix` text) and a context block (`latest`, `recent_graphs`, `available_sources`) so the LLM stays grounded across turns.
 
 ## Development
 
 ```bash
-pytest
+pytest                    # hermetic: fake-CDP doubles, no CDP needed
 ruff check src tests
 ```
 
-### Acceptance test
-
-`tests/test_acceptance.py` runs the full frog chain (`process("blur","blur") → visualize → analyze → process("modify","brassage") → process("extend","loop") → visualize → analyze → cross-graph visualize`) end-to-end against real CDP under a dotted session name (`frog_acceptance_v1.0`). It's skipped when `$CDP_PATH` isn't set or doesn't contain `blur`, `pvoc`, `modify`, `extend`. To run it:
+With real CDP, the CDP-gated layer executes too — curation formula rows, breakpoint-capability probes, and the acceptance chains:
 
 ```bash
-CDP_PATH=/path/to/cdpr8/_cdp/_cdprogs pytest tests/test_acceptance.py -v
+CDP_PATH=/path/to/cdpr8/_cdp/_cdprogs pytest        # zero gated skips
 ```
 
-The per-tool tests in `test_execute.py`, `test_process.py`, `test_visualize.py`, `test_analyze.py` use a fake-CDP wrapper (`tests/fixtures/fake_subprocess.py`) and cover orchestration concerns exhaustively without needing CDP installed.
+On Linux, `scripts/build_cdp8_linux.sh` provides the binaries for this; the curated knowledge layer was verified against exactly this build, then re-verified on macOS r8.
+
+### Curation
+
+Adding a program to the knowledge layer is an empirical process, not transcription — CDP's banners and manual both contain errors (see `docs/forensics.md` for the catalogue). The pipeline: `scripts/curation_harness.py` inventories banners; probes against real binaries pin ranges, duration models, breakpoint capability, and determinism; `docs/curation/` holds per-tranche transcripts and machine-readable findings; pinned tables in `tests/test_breakpoint_curation.py` and `tests/test_curation_formulas.py` fail on any drift. Priors come from SoundThread's `process_help.json` and afta8's 888 Renoise definitions (`scripts/parse_afta8_definitions.py`).
 
 ### Slow tests (MCP keepalive stress test)
 
-Tests marked `@pytest.mark.slow` are excluded from the default `pytest` cycle (configured in `pyproject.toml`). They take 80–120 seconds. To run:
-
-```bash
-pytest -m slow tests/test_stress.py
-```
-
-`tests/test_stress.py` exercises the MCP keepalive mechanism: a subprocess sleeps for 80 s while emitting periodic stderr, and the test asserts that `ctx.report_progress` fired multiple times during the run. Without those notifications Claude Desktop would close the connection at ~60 s. The test uses `tests/fixtures/fake_subprocess.py` rather than real CDP for deterministic duration across machines — see the test's module docstring for the rationale.
-
-To run every test including slow ones: `pytest -m ''`.
+Tests marked `@pytest.mark.slow` are excluded from the default cycle. `pytest -m slow tests/test_stress.py` exercises the keepalive mechanism (~80–120 s). To run everything: `pytest -m ''`.
 
 ### Apple Silicon
 
@@ -153,8 +138,8 @@ CDP binaries are x86-only. The server auto-wraps subprocesses with `arch -x86_64
 
 ### Symlinks in `$CDP_PATH`
 
-The security boundary's binary check resolves symlinks before verifying location. A symlinked binary in `$CDP_PATH` must point at a target that is itself inside `$CDP_PATH`. Well-behaved CDP installs follow this convention.
+The security boundary's binary check resolves symlinks before verifying location. A symlinked binary in `$CDP_PATH` must point at a target that is itself inside `$CDP_PATH`.
 
 ## Acknowledgements
 
-Inspired by [DavidPiazza/CDP_MCP](https://github.com/DavidPiazza/CDP_MCP) and [j-p-higgins/SoundThread](https://github.com/j-p-higgins/SoundThread). This project adopts a couple of their conventions (the `CDP_PATH` environment variable, array-form command invocation) but does not derive any code from them.
+Inspired by [DavidPiazza/CDP_MCP](https://github.com/DavidPiazza/CDP_MCP) and [j-p-higgins/SoundThread](https://github.com/j-p-higgins/SoundThread); curation priors from SoundThread's process help data and [afta8's CDP Interface](https://www.renoise.com/tools/cdp-interface) for Renoise (definitions by afta8 and Djeroek). CDP itself is open source: [ComposersDesktop/CDP8](https://github.com/ComposersDesktop/CDP8) (LGPL) — thanks to Trevor Wishart and everyone at CDP. This project adopts a few conventions from these tools (the `CDP_PATH` environment variable, array-form invocation) but derives no code from them.
