@@ -111,19 +111,56 @@ def _check_type(
     spec: ParameterSpec,
     value: Any,
 ) -> ErrorEntry | None:
-    """Accepts int / float scalars, list (breakpoint pairs), and `.brk`
-    path strings. Compiler validates list / path contents separately
-    (Task 8). Bool still rejected (no curated bool params yet)."""
+    """Accepts int / float scalars, list (breakpoint pairs), `.brk`
+    path strings, and — for ``aux_file`` params — non-``.brk`` path
+    strings. Compiler validates list / .brk-path contents separately
+    (Task 8); aux-file existence is checked in node_validation step 8.7.
+    Bool accepted only for value-less switch params (Phase 3)."""
+    if spec.type == "aux_file":
+        # Auxiliary text-file parameter: value must be a str path with
+        # any extension EXCEPT .brk (that routing belongs to the
+        # breakpoint compiler; a .brk-named notedata file would be
+        # validated as time/value pairs, which it is not).
+        if isinstance(value, str) and not value.lower().endswith(".brk"):
+            return None
+        if isinstance(value, str):
+            return ErrorEntry(
+                type="param_type",
+                message=(
+                    f"Parameter {name!r} is an aux_file parameter but got "
+                    f"a .brk path {value!r}."
+                ),
+                fix=(
+                    "The .brk extension is reserved for breakpoint files. "
+                    "Write the auxiliary data with write_data_file() using "
+                    "a .txt/.dat/.csv name and pass that path."
+                ),
+            )
+        return ErrorEntry(
+            type="param_type",
+            message=(
+                f"Parameter {name!r} is an aux_file parameter but got "
+                f"{type(value).__name__} {value!r}; expected a str path "
+                "to an existing text data file."
+            ),
+            fix=(
+                "Write the data with write_data_file() and pass the "
+                "returned path (or a session-relative path like "
+                "'data/notes.txt')."
+            ),
+        )
     if isinstance(value, bool):
-        # bool is a subclass of int; treat it as a type error in Phase 1a
-        # since no curated entries expose bool-typed params yet.
+        # bool is a subclass of int. Accepted only for value-less switch
+        # flags (Phase 3: True emits the bare flag, False omits it);
+        # rejected for numeric params as before.
+        if spec.flag_kind == "no_value":
+            return None
         return ErrorEntry(
             type="param_type",
             message=f"Parameter {name!r} got bool {value!r}; expected a number.",
             fix=(
-                "Bool-typed parameters and value-less flags are not "
-                "currently exposed in any curated entry. For the switch "
-                "you want, reach for execute()."
+                "Bools are only accepted for value-less switch "
+                "parameters (flag_kind 'no_value'). Pass a number here."
             ),
         )
     if isinstance(value, (int, float)):
@@ -233,6 +270,12 @@ def build_cdp_argv(
     emitting a bare ``-l`` for an attached-value flag would be invalid CDP
     syntax, and the curator clearly didn't want the switch on.
 
+    A ``no_value`` switch emits its bare flag only when the resolved value
+    is truthy; a falsy value (``False``, ``0``, or ``None``-after-default)
+    omits the switch. (Phase 3 fix: previously any non-``None`` value —
+    including a curated ``default: false`` — emitted the switch
+    unconditionally, so e.g. ``strange glis``'s ``-i`` was always on.)
+
     Paths are rendered cwd-relative when they live under ``cwd`` (i.e. inside
     the session tree). Paths outside ``cwd`` stay absolute. This dodges a
     nasty CDP quirk where some programs — modify brassage in particular —
@@ -256,17 +299,21 @@ def build_cdp_argv(
         # something the curator left unset would change CDP's behavior.)
         if spec.flag is not None and value is None:
             continue
+        if spec.flag_kind == "no_value":
+            # Value-less switch: truthy → bare flag, falsy (False / 0 /
+            # None-after-default) → omitted. There is no value to format.
+            if value:
+                argv.append(spec.flag)
+            continue
         if isinstance(value, Path):
-            # Compiled breakpoint file (Task 8). Render cwd-relative
-            # inside the session tree (CDP-quirk workaround applies
-            # the same as for inputs/outputs).
+            # Compiled breakpoint or resolved aux file (Tasks 8 / 8.7).
+            # Render cwd-relative inside the session tree (CDP-quirk
+            # workaround applies the same as for inputs/outputs).
             formatted = _argv_path(value, cwd)
         else:
             formatted = _format_value(value, spec.type)
         if spec.flag is None:
             argv.append(formatted)
-        elif spec.flag_kind == "no_value":
-            argv.append(spec.flag)
         else:  # attached_value
             argv.append(f"{spec.flag}{formatted}")
     return argv

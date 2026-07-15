@@ -1,0 +1,23 @@
+{
+  "program": "features",
+  "mode": "<unknown>",
+  "category": "uncurated",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "curated": false,
+  "stability": "unstable",
+  "description": "Use an anlysis file to find the MOST PROMINENT FEATURES in a sound source.",
+  "musical_use": "",
+  "parameters": {},
+  "duration_model": {
+    "kind": "static"
+  },
+  "examples": [],
+  "known_issues": [
+    "auto-generated from usage banner; unverified"
+  ],
+  "references": []
+}

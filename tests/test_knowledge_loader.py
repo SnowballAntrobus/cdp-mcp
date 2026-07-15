@@ -44,6 +44,8 @@ def test_categories_sorted_and_unique(real_index):
         "morph",
         "spectral-frequency",
         "spectral-time",
+        "texture",
+        "uncurated",
     ]
 
 
@@ -78,8 +80,8 @@ def test_curated_only_passthrough_includes_all(real_index):
     # All curated entries are curated, so curated_only=False just returns the
     # same set. The flag's behavior is exercised; the data doesn't (yet)
     # contain uncurated entries to filter out.
-    assert len(real_index.list_entries(curated_only=False)) == 42
-    assert len(real_index.list_entries(curated_only=True)) == 42
+    assert len(real_index.list_entries(curated_only=False)) == 237
+    assert len(real_index.list_entries(curated_only=True)) == 43
 
 
 def test_get_returns_none_for_missing(real_index):
@@ -121,20 +123,32 @@ def test_malformed_entry_warns_and_skips(tmp_path, monkeypatch, capsys):
     from cdp_mcp.knowledge import loader
 
     class _FakeTraversable:
-        def __init__(self, p):
+        def __init__(self, p, live=True):
             self._p = p
+            self._live = live
 
-        def joinpath(self, *_parts):
-            return self  # always return ourselves
+        def joinpath(self, *parts):
+            # Only the curated data dir maps to tmp_path; the uncurated
+            # dir (Phase 3) resolves to a dead traversable so the fake
+            # doesn't serve every entry twice.
+            live = bool(parts) and parts[-1] == "data"
+            return _FakeTraversable(self._p, live=live)
 
         def glob(self, pattern):
-            return self._p.glob(pattern)
+            return self._p.glob(pattern) if self._live else iter(())
 
     def fake_files(_pkg):
         return _FakeTraversable(tmp_path)
 
     monkeypatch.setattr(loader, "files", fake_files)
-    monkeypatch.setattr(loader, "as_file", lambda x: _NoopCtx(tmp_path))
+    monkeypatch.setattr(
+        loader,
+        "as_file",
+        lambda x: _NoopCtx(
+            tmp_path if getattr(x, "_live", True)
+            else tmp_path / "does_not_exist"
+        ),
+    )
 
     index = loader.KnowledgeIndex.load()
 

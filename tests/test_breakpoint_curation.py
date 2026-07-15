@@ -32,6 +32,27 @@ from cdp_mcp.knowledge.loader import KnowledgeIndex
 # decision and must pair with an entry in docs/phase-2-breakpoint-review.md.
 _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
     # --- Phase 3 tranche 3 (sandbox-CDP probed; see docs/curation/) ---
+    ("texture", "simple"): {
+        "notedata": False,
+        "outdur": False,
+        "packing": True,
+        "scatter": True,
+        "tgrid": True,
+        "sndfirst": True,
+        "sndlast": True,
+        "mingain": True,
+        "maxgain": True,
+        "mindur": True,
+        "maxdur": True,
+        "minpich": True,
+        "maxpich": True,
+        "omit": True,
+        "atten": True,
+        "position": True,
+        "spread": True,
+        "seed": False,
+        "whole": False,
+    },
     ("modify", "stack"): {
         "transpos": False,
         "count": False,

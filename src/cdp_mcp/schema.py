@@ -53,9 +53,19 @@ class ParameterSpec(BaseModel):
     ``docs/phase-2-breakpoint-review.md``); outcomes are pinned in
     ``tests/test_breakpoint_curation.py``, which fails on any drift
     between the JSONs and the verified table.
+
+    ``type: "aux_file"`` (Phase 3) marks a parameter whose value is a
+    string path to an existing auxiliary TEXT data file — e.g. ``texture``'s
+    notedata slot, produced by the ``write_data_file`` tool into
+    ``<session>/data/``. Any extension except ``.brk`` is accepted
+    (``.brk`` is reserved for the breakpoint compiler's routing).
+    ``validate_params`` checks the type only; existence + resolution
+    against the session happen in ``node_validation`` (step 8.7), which
+    replaces the value with a resolved :class:`~pathlib.Path` so
+    ``build_cdp_argv`` renders it cwd-relative like other paths.
     """
 
-    type: Literal["float", "int", "str", "bool"]
+    type: Literal["float", "int", "str", "bool", "aux_file"]
     min: float | None = None
     max: float | None = None
     unit: str | None = None

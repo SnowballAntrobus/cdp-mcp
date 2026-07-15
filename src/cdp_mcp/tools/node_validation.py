@@ -371,6 +371,20 @@ async def validate_node(
             graph_dir=graph_dir,
         )
 
+    # 8.7. Resolve aux_file parameters (Phase 3). Existence-check the
+    # str path against the session (data/ first — write_data_file's
+    # output directory), then swap in the resolved Path so
+    # build_cdp_argv renders it cwd-relative and the security gate
+    # (step 10) scope-checks the real location. The lineage params
+    # snapshot records the resolved path via the mutated dict.
+    aux_errors = _resolve_aux_file_params(entry, params_dict, session)
+    if aux_errors:
+        return ValidationResult(
+            errors=aux_errors,
+            warnings=param_warnings,
+            graph_dir=graph_dir,
+        )
+
     # 9. Build main op argv.
     main_node_id = node_id_base if node_id_base is not None else f"n{counter}"
     out_ext = ".ana" if entry.domain == "spectral" else ".wav"
@@ -663,6 +677,18 @@ async def _validate_node_dry_run(
                 predicted_duration_s=predicted_duration_s,
             )
 
+        # 8.7. Resolve aux_file parameters — same resolution and
+        # existence check as the real path (aux files must already
+        # exist at dry-run time; write_data_file precedes planning).
+        # Mutates only the local params copy.
+        aux_errors = _resolve_aux_file_params(entry, params_dict, session)
+        if aux_errors:
+            return ValidationResult(
+                errors=aux_errors,
+                warnings=param_warnings + breakpoint_warnings,
+                predicted_duration_s=predicted_duration_s,
+            )
+
         # 9. Build main op argv (planned paths; temp .brk paths render
         # in-session, matching execution shape).
         main_node_id = f"n{counter}"
@@ -744,6 +770,67 @@ async def _dry_run_source_duration(
 # ---------------------------------------------------------------------------
 # Helpers (moved from process.py — used only internally by validate_node)
 # ---------------------------------------------------------------------------
+
+
+def _resolve_aux_file_params(
+    entry: KnowledgeEntry,
+    params_dict: dict[str, Any],
+    session: Session,
+) -> list[ErrorEntry]:
+    """Resolve ``aux_file`` parameter values (str paths) to on-disk Paths.
+
+    Resolution order for relative paths mirrors the breakpoint
+    compiler's convention, with ``data/`` (``write_data_file``'s output
+    directory) as the canonical location:
+
+    1. ``<session>/data/<value>``
+    2. ``<session>/<value>``
+
+    Absolute paths pass through unchanged — an existing file outside
+    the session resolves here and is then rejected by the security
+    gate's path-scope check (step 10), keeping the boundary in one
+    place. A path that resolves to no existing file raises
+    ``param_aux_file_missing``.
+
+    On success the param value is replaced with the resolved
+    :class:`~pathlib.Path` so ``build_cdp_argv`` renders it
+    cwd-relative and the lineage params snapshot records the resolved
+    location. Non-str values are left alone — ``validate_params``
+    (step 6) already rejected them, so this path never sees one in
+    practice.
+    """
+    errors: list[ErrorEntry] = []
+    data_dir = session.root / "data"
+    for name, spec in entry.parameters.items():
+        if spec.type != "aux_file":
+            continue
+        value = params_dict.get(name)
+        if not isinstance(value, str):
+            continue
+        raw = Path(value)
+        if raw.is_absolute():
+            candidates = [raw]
+        else:
+            candidates = [data_dir / raw, session.root / raw]
+        resolved = next((c for c in candidates if c.is_file()), None)
+        if resolved is None:
+            searched = ", ".join(str(c) for c in candidates)
+            errors.append(ErrorEntry(
+                type="param_aux_file_missing",
+                message=(
+                    f"Parameter {name!r} references aux data file "
+                    f"{value!r} but no such file exists. Searched: "
+                    f"{searched}."
+                ),
+                fix=(
+                    "Create the file first with write_data_file() (it "
+                    "writes into the session's data/ directory), or "
+                    "pass a session-relative path to an existing file."
+                ),
+            ))
+            continue
+        params_dict[name] = resolved.resolve()
+    return errors
 
 
 async def _resolve_source_duration(

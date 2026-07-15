@@ -1,0 +1,233 @@
+{
+  "program": "texture",
+  "mode": "simple",
+  "submode": 5,
+  "category": "texture",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "outdur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Scatters copies of the source sound into a stochastic event texture: onsets fall at an average 'packing' interval (optionally randomised by scatter), each event transposed to a random pitch between minpich and maxpich relative to the source's assumed MIDI pitch, with random level (mingain-maxgain) and duration (mindur-maxdur). Pinned to submode 5 ('NONE' - free pitch range, no harmonic field); submodes 1-4 constrain pitches to harmonic fields/sets given in the notedata file and are separate entries if curated later. The required notedata parameter is an auxiliary text file (write it with write_data_file()): for mode 5 a single line carrying the assumed MIDI pitch of the input sound (e.g. '60'; fractional values like '60.3' are accepted). Genuinely stochastic with a working -r seed (same seed reproduces the output byte-identically; unseeded runs differ). Mono input only; output is always STEREO.",
+  "musical_use": "The classic CDP texture generator - one source becomes a cloud, stream, or chord of itself. packing is the density knob: tight values (0.01-0.05 s) fuse events into granular masses or sonorous chords (watch for amplitude overload - reduce gains or maxdur), moderate values (0.1-0.5 s) give rippling streams, sparse values (1 s+) give pointillist scatterings. Keep minpich = maxpich = the notedata pitch to retain the source pitch; widen the range for stochastic pitch clouds (transposition is by resampling, so events also shorten/lengthen). Short mindur/maxdur crop events into grains; the -w 'whole' switch instead plays each event to the end of the source, piling up overlaps and emergent resonances. position/spread place and widen the stereo image. Time-varying (breakpoint) packing sculpts density envelopes - accelerating swarms, thinning tails; time-varying pitch ranges sweep the cloud's register. Use seed to make a take reproducible before committing to a render.",
+  "parameters": {
+    "notedata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Auxiliary text data file (any extension except .brk; produce it with write_data_file()). Mode 5 needs only the first line: the assumed MIDI pitch of each input sound (one value per sound; single input here, e.g. '60'). Fractional pitches accepted. Format errors are CDP INVALID DATA refusals: non-numeric content gives 'Insufficient pitch values in notedata file.'; extra rows without a '#N' count header give \"'#' missing before datacount in notedata file\". Resolved against the session's data/ directory, then the session root."
+    },
+    "outdur": {
+      "type": "float",
+      "min": 0.01,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Requested duration of the output texture (CDP range 0.01 to 32767). Actual output lands between about 1.3% below outdur and outdur + maxdur (the final event's tail extends past the grid) - see known_issues. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "packing": {
+      "type": "float",
+      "min": 2.3e-05,
+      "max": 60.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Average time between event onsets - the texture's density knob (CDP-enforced range 0.000023 to 60; 0 refused). May vary over time via a breakpoint file (verified: brk run differs from both scalar-endpoint renders at the same seed)."
+    },
+    "scatter": {
+      "type": "float",
+      "min": 0.0,
+      "max": 10.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Randomisation of event onsets in seconds (CDP-enforced 0 to 10). 0 keeps onsets on the regular packing grid. Breakpoint-capable (exit 0 verified)."
+    },
+    "tgrid": {
+      "type": "float",
+      "min": 0.0,
+      "max": 10000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Minimum step in milliseconds for a quantised timegrid of event start times (CDP-enforced 0 to 10000; default 0 = no grid). Breakpoint-capable (exit 0 verified)."
+    },
+    "sndfirst": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1,
+      "flag": null,
+      "description": "First sound to use from the input list (range 1 to number of input sounds - with this single-input entry, must be 1; 2 refused with 'FIRST SND-IN-LIST TO USE > count of files entered'). Breakpoint-capable (exit 0 verified)."
+    },
+    "sndlast": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1,
+      "flag": null,
+      "description": "Last sound to use from the input list (range 1 to number of input sounds - with this single-input entry, must be 1). Breakpoint-capable (exit 0 verified)."
+    },
+    "mingain": {
+      "type": "int",
+      "min": 1,
+      "max": 127,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 64,
+      "flag": null,
+      "description": "Minimum level of texture events, MIDI-velocity-style 1-127 (CDP-enforced; 0 refused). CDP default 64. Breakpoint-capable (exit 0 verified)."
+    },
+    "maxgain": {
+      "type": "int",
+      "min": 1,
+      "max": 127,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 64,
+      "flag": null,
+      "description": "Maximum level of texture events, 1-127 (CDP-enforced; 128 refused). CDP default 64. Breakpoint-capable (exit 0 verified)."
+    },
+    "mindur": {
+      "type": "float",
+      "min": 0.016,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Minimum duration of events in the texture (CDP-enforced 0.016 to 32767). Breakpoint-capable (exit 0 verified)."
+    },
+    "maxdur": {
+      "type": "float",
+      "min": 0.016,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum duration of events in the texture (must be >= mindur). Values slightly above the input duration are fine (2.5 on a 2 s input verified); far beyond it CDP fails obscurely (61 gave 'Cannot open output file' - see known_issues). Also bounds the stochastic duration overshoot past outdur. Breakpoint-capable (exit 0 verified)."
+    },
+    "minpich": {
+      "type": "float",
+      "min": 1.0,
+      "max": 127.0,
+      "unit": "MIDI pitch",
+      "breakpoint_capable": true,
+      "default": 60.0,
+      "flag": null,
+      "description": "Minimum pitch of texture events as a MIDI value (CDP-enforced 1 to 127; fractional values accepted, e.g. 59.5). Events are transposed relative to the notedata assumed pitch. Breakpoint-capable (exit 0 verified)."
+    },
+    "maxpich": {
+      "type": "float",
+      "min": 1.0,
+      "max": 127.0,
+      "unit": "MIDI pitch",
+      "breakpoint_capable": true,
+      "default": 60.0,
+      "flag": null,
+      "description": "Maximum pitch of texture events as a MIDI value (CDP-enforced 1 to 127; fractional values accepted). Breakpoint-capable (exit 0 verified)."
+    },
+    "omit": {
+      "type": "int",
+      "min": 0,
+      "max": 64,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0,
+      "flag": null,
+      "description": "1 in 'omit' events are silent; fewer events silent as the value increases, and at 64 (as at 0) no events are silent (CDP-enforced 0 to 64; 65 refused). Breakpoint-capable (exit 0 verified)."
+    },
+    "atten": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Overall attenuation of the output as a multiplier. CDP's real enforced range is 0.000002 to 1.0 (-a100 refused '(0.000002 to 1.000000)'; afta8's 0-100 range is wrong). Breakpoint-capable (exit 0 verified, flag in banner order)."
+    },
+    "position": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Centre of the output stereo image: 0 = left, 1 = right (CDP default 0.5). NOT range-enforced by CDP (-p2 ran silently) - the curated 0-1 range is engine-enforced. Breakpoint-capable (exit 0 verified)."
+    },
+    "spread": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Spatial spread of texture events, 0 to 1 (1 = full spread; CDP-enforced, -s2 refused; CDP default 0.1). Breakpoint-capable (exit 0 verified)."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Random seed - a WORKING seed (verified: -r5 twice 1.1 s apart is byte-identical in decoded samples; -r5 vs -r9 differ; seeded differs from unseeded). CDP-enforced 0 to 32767 (afta8's max 10 is a UI cap); 0 (or omitting the flag) seeds from the clock, differing each run. Breakpoint file refused ('brkpnt_files not permitted')."
+    },
+    "whole": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-w",
+      "flag_kind": "no_value",
+      "description": "Always play the whole input sound per event, ignoring the mindur/maxdur values (verified: changes output and extends the tail past the grid, +36% duration observed). Piles up overlaps for resonant, sustained textures."
+    }
+  },
+  "examples": [
+    {
+      "description": "Reproducible rippling stream at the source pitch: events every 0.25 s on average, 0.2-0.5 s long, seeded.",
+      "params": {"notedata": "nd60.txt", "outdur": 5.0, "packing": 0.25, "mindur": 0.2, "maxdur": 0.5, "seed": 5},
+      "expected_use": "A 5 s stereo texture of overlapping source copies at the assumed pitch (write nd60.txt first: write_data_file('nd60.txt', '60'))."
+    },
+    {
+      "description": "Dense granular pitch cloud across two octaves, onsets humanised, wide stereo.",
+      "params": {"notedata": "nd60.txt", "outdur": 8.0, "packing": 0.05, "scatter": 0.05, "mindur": 0.05, "maxdur": 0.15, "minpich": 48.0, "maxpich": 72.0, "spread": 1.0},
+      "expected_use": "A shimmering stochastic cloud; different every run - add seed to pin a take."
+    }
+  ],
+  "known_issues": [
+    "Duration honesty (set_by outdur): actual output lands between about 1.3% below outdur and roughly outdur + maxdur, because the final event's tail extends past the grid. Observed across both curation rounds: -1.3% to +1.2% with maxdur 0.5; +11.6% with maxdur 1.5; +18.5% with maxdur 2.0; +25.4% with maxdur 2.5 (all on outdur 5). The banner calls outdur the '(min) duration of outfile' but runs land slightly below it (7.98 from outdur 8). Keep maxdur small relative to outdur when output length matters; unseeded duration also varies run to run.",
+    "Mono input -> STEREO output on every run (events are placed in a stereo image via position/spread). Stereo input is refused: 'Application doesn't work with this type of infile.' channel_constraint 'mono' describes the input side; the output .wav is always 2-channel.",
+    "Genuinely stochastic with a working -r seed (contrast modify revecho's no-op seed): unseeded runs differ in both samples and frame count; the same seed reproduces output byte-identically.",
+    "CDP enforces option-flag ORDER: flags must follow the positionals in banner order -a -p -s -r -w ('-r5 -a0.5' refuses with 'option flag -a out of order on cmdline.'). The engine emits parameters in entry declaration order, which matches the banner order.",
+    "atten's real CDP range is 0.000002 to 1.0 (a multiplier), not the 0-100 suggested by afta8 (-a100 refused with '(0.000002 to 1.000000)').",
+    "position (-p) is not range-enforced by CDP (-p2 ran, exit 0). The bare -p 'random permute' switch and the -c 'choose files cyclically' switch (meaningful with multiple inputs) are not exposed; reach for execute() if needed.",
+    "The manual's 'all parameters except notedata, outdur and seed may vary over time' verified: every numeric parameter including the -a/-p/-s flags accepted a breakpoint file (exit 0; packing additionally verified to differ from both scalar endpoints at the same seed); outdur and seed refuse with 'brkpnt_files not permitted'.",
+    "maxdur far beyond the input duration fails obscurely (maxdur 61 on a 2 s input: 'ERROR: Cannot open output file ...' after the timer starts); values slightly above the input duration are fine (2.5 on 2 s verified)."
+  ],
+  "references": ["cdp://docs/html/cgrotext"]
+}

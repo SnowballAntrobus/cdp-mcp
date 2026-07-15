@@ -1,0 +1,23 @@
+{
+  "program": "get_partials",
+  "mode": "<unknown>",
+  "category": "uncurated",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "curated": false,
+  "stability": "unstable",
+  "description": "OR:    get_partials harmonic 3-4 inanalfile outfile fundamental threshold time [-v]",
+  "musical_use": "",
+  "parameters": {},
+  "duration_model": {
+    "kind": "static"
+  },
+  "examples": [],
+  "known_issues": [
+    "auto-generated from usage banner; unverified"
+  ],
+  "references": []
+}

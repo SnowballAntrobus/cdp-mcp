@@ -1,0 +1,23 @@
+{
+  "program": "topantail2",
+  "mode": "<unknown>",
+  "category": "uncurated",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "curated": false,
+  "stability": "unstable",
+  "description": "STARTGATE  level at start before which sound is to be removed (0-1).",
+  "musical_use": "",
+  "parameters": {},
+  "duration_model": {
+    "kind": "static"
+  },
+  "examples": [],
+  "known_issues": [
+    "auto-generated from usage banner; unverified"
+  ],
+  "references": []
+}

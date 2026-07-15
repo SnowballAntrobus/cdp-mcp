@@ -1,0 +1,49 @@
+{
+  "generated_at": "2026-07-14",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build, texture banner 'CDP Release 7.1 2016')",
+    "os": "Linux x86_64 sandbox",
+    "note": "Re-curation of the tranche-3 dropped record (schema_gap_aux_file) after the aux_file engine change. Re-verified end-to-end through process_impl by the CDP-gated tests in tests/test_aux_file.py; to be re-verified on macOS r8 after integration."
+  },
+  "entries": [
+    {
+      "program": "texture",
+      "mode": "simple",
+      "submode": 5,
+      "breakpoint_capable": {
+        "notedata": false,
+        "outdur": false,
+        "packing": true,
+        "scatter": true,
+        "tgrid": true,
+        "sndfirst": true,
+        "sndlast": true,
+        "mingain": true,
+        "maxgain": true,
+        "mindur": true,
+        "maxdur": true,
+        "minpich": true,
+        "maxpich": true,
+        "omit": true,
+        "atten": true,
+        "position": true,
+        "spread": true,
+        "seed": false,
+        "whole": false
+      },
+      "duration_row": ["texture", "simple", 2.0, {"notedata": "nd60.txt", "outdur": 5.0, "packing": 0.25, "scatter": 0.3, "mindur": 0.2, "maxdur": 0.5, "seed": 5}, 0.15],
+      "stochastic": true,
+      "notes": [
+        "RE-CURATED from tranche 3's dropped[0] (reason schema_gap_aux_file): notedata is now expressible as the index's first aux_file parameter. Mode 5 ('NONE') notedata is a single line with the input sound's assumed MIDI pitch ('60'; fractional '60.3' accepted). The duration_row requires writing the aux file first (write_data_file('nd60.txt', '60')) - the shared noise-input fixture in test_curation_formulas.py cannot run it unmodified; the equivalent pin lives in tests/test_aux_file.py's CDP-gated texture tests.",
+        "duration_model set_by outdur, honest bounds re-measured: actual lands between ~1.3% below outdur and ~outdur + maxdur (final event's tail; overshoot grows with maxdur: +11.6% at maxdur 1.5, +18.5% at 2.0, +25.4% at 2.5, all on outdur 5; within -1.3%..+1.2% at maxdur 0.5). Banner's '(min) duration' claim re-confirmed FALSE on the undershoot side (7.9795 from outdur 8, seeded). rel_tol 0.15 in the row reflects the maxdur/outdur = 0.1 overshoot bound plus undershoot.",
+        "GENUINELY STOCHASTIC with a WORKING -r seed (re-verified): -r5 twice 1.1 s apart byte-identical in decoded samples AND frame count; -r5 vs -r9 differ; unseeded runs differ in samples and frame count (225275 vs 221850). Seed range CDP-enforced 0-32767 (afta8's 10 is a UI cap); seed brk refused 'Cannot read parameter 30 [...]: brkpnt_files not permitted.'",
+        "Mono input -> STEREO output on every run; stereo input refused ('Application doesn't work with this type of infile.'). Curated channel_constraint 'mono' (input side) with the 2-channel output documented in known_issues.",
+        "FLAG ORDER TRAP (new first-class finding): option flags must follow the positionals in banner order -a -p -s -r -w; '-r5 -a0.5' refuses with 'ERROR: option flag -a out of order on cmdline.' The tranche-3 spot probes never saw this (only -r was ever passed). The curated entry declares atten/position/spread/seed/whole in banner order so build_cdp_argv's declaration-order emission matches.",
+        "Breakpoints, ALL params probed (manual: 'All parameters except notedata, outdur and seed may vary over time' - CONFIRMED): every numeric positional (packing scatter tgrid sndfirst sndlast mingain maxgain mindur maxdur minpich maxpich omit) and all three value flags (-a -p -s) accept a brk file (exit 0); packing additionally verified to differ from both scalar-endpoint renders at the same seed. outdur refused ('Cannot read parameter 1'), seed refused.",
+        "Ranges (CDP-enforced, verbatim probes): outdur (0.01 to 32767); packing (0.000023 to 60); scatter (0 to 10); tgrid (0 to 10000); mingain/maxgain (1 to 127); mindur (0.016 to 32767); minpich/maxpich (1 to 127, fractional accepted); omit (0 to 64); atten (0.000002 to 1.0) - afta8's 0-100 range is WRONG, it is a <=1 multiplier; spread (0 to 1); seed (0 to 32767). position is NOT range-enforced (-p2 exit 0; -p doubles as the bare permute switch when -c is set); curated 0-1 is engine-enforced. maxdur 61 on a 2 s input fails obscurely ('Cannot open output file'); 2.5 is fine.",
+        "-w 'whole' verified (exit 0, output differs, tail extends +36%): exposed as a bool no_value param default false - the first curated consumer of the Phase 3 falsy-switch semantics. -c and bare -p (permute) left to execute().",
+        "notedata error surface: non-numeric file -> 'Insufficient pitch values in notedata file.'; extra rows without '#N' header -> \"'#' missing before datacount in notedata file\". Subdirectory-relative notedata paths work (sub/nd.txt exit 0), so the engine's cwd-relative data/ rendering is safe."
+      ]
+    }
+  ]
+}

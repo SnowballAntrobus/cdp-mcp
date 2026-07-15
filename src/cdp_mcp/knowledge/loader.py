@@ -1,8 +1,15 @@
 """Knowledge-index loader.
 
-Scans :mod:`cdp_mcp.knowledge.data` for ``*.json`` files, validates each
-through :class:`~cdp_mcp.schema.KnowledgeEntry`, and exposes lookup helpers
-used by the introspection tools.
+Scans :mod:`cdp_mcp.knowledge.data` (curated entries) and
+``data_uncurated/`` (auto-generated long-tail stubs from
+``scripts/generate_uncurated_entries.py``) for ``*.json`` files, validates
+each through :class:`~cdp_mcp.schema.KnowledgeEntry`, and exposes lookup
+helpers used by the introspection tools.
+
+Uncurated entries carry ``curated: false`` and surface only through
+``list_programs(curated_only=False)`` — ``process()`` hard-gates on
+``entry.curated``, so loading them here widens discovery without widening
+execution.
 
 Failure mode is intentionally tolerant: malformed entries log a warning to
 ``sys.stderr`` and are skipped — the server still starts. We never write
@@ -41,29 +48,47 @@ class KnowledgeIndex:
 
     @classmethod
     def load(cls) -> KnowledgeIndex:
-        """Load all curated entries from the packaged ``data/`` directory.
+        """Load all entries from the packaged ``data/`` and
+        ``data_uncurated/`` directories.
+
+        ``data/`` holds the curated entries; ``data_uncurated/`` holds
+        auto-generated long-tail stubs (``curated: false``, empty
+        parameter dicts) that exist for discovery only. The uncurated
+        directory is optional — absent, nothing is loaded from it.
 
         Uses :func:`importlib.resources.files` so it works equally from an
         editable install and an installed wheel. Bad entries are logged and
         skipped, not raised.
         """
         entries: list[KnowledgeEntry] = []
-        data_root = files("cdp_mcp.knowledge").joinpath("data")
-        # ``as_file`` materializes the resource to a real filesystem path
-        # when the package is installed inside a zip; for editable installs
-        # it's a no-op that returns the existing path.
-        with as_file(data_root) as data_dir:
-            json_paths = sorted(p for p in data_dir.glob("*.json"))
-            for path in json_paths:
-                try:
-                    raw = path.read_text(encoding="utf-8")
-                    entries.append(KnowledgeEntry.model_validate_json(raw))
-                except (ValidationError, json.JSONDecodeError, OSError) as e:
-                    print(
-                        f"[cdp-mcp] WARNING: skipping malformed knowledge "
-                        f"entry {path.name}: {e}",
-                        file=sys.stderr,
-                    )
+        for subdir in ("data", "data_uncurated"):
+            data_root = files("cdp_mcp.knowledge").joinpath(subdir)
+            # ``as_file`` materializes the resource to a real filesystem
+            # path when the package is installed inside a zip; for editable
+            # installs it's a no-op that returns the existing path.
+            try:
+                with as_file(data_root) as data_dir:
+                    if not data_dir.is_dir():
+                        continue
+                    json_paths = sorted(p for p in data_dir.glob("*.json"))
+                    for path in json_paths:
+                        try:
+                            raw = path.read_text(encoding="utf-8")
+                            entries.append(
+                                KnowledgeEntry.model_validate_json(raw)
+                            )
+                        except (
+                            ValidationError, json.JSONDecodeError, OSError
+                        ) as e:
+                            print(
+                                f"[cdp-mcp] WARNING: skipping malformed "
+                                f"knowledge entry {path.name}: {e}",
+                                file=sys.stderr,
+                            )
+            except FileNotFoundError:
+                # Zip-backed installs raise here for a missing resource
+                # directory; a missing data_uncurated/ is not an error.
+                continue
         print(f"[cdp-mcp] Loaded {len(entries)} knowledge entries", file=sys.stderr)
         return cls(entries)
 
