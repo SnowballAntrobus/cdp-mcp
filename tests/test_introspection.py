@@ -59,6 +59,7 @@ async def test_list_categories_returns_sorted_unique(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_categories", {})
     assert payload == [
         "distort", "edit", "envelope", "extend", "filter", "granular",
+        "mix",
         "modify", "morph", "spectral-frequency", "spectral-time",
         "texture",
         "uncurated",
@@ -72,7 +73,7 @@ async def test_list_categories_returns_sorted_unique(mcp_with_tools):
 
 async def test_list_programs_no_filter_returns_all_curated(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {})
-    assert len(payload) == 43
+    assert len(payload) == 61
     keys = {(e["program"], e["mode"]) for e in payload}
     # Spot-check representatives across phases rather than the full set
     # (the count above pins the total; per-entry presence is pinned by
@@ -89,7 +90,7 @@ async def test_list_programs_no_filter_returns_all_curated(mcp_with_tools):
 async def test_list_programs_category_filter(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {"category": "filter"})
     assert [(e["program"], e["mode"]) for e in payload] == [
-        ("filter", "lohi"), ("filter", "sweeping"),
+        ("filter", "bank"), ("filter", "lohi"), ("filter", "sweeping"),
     ]
 
 
@@ -100,6 +101,9 @@ async def test_list_programs_domain_filter(mcp_with_tools):
         ("blur", "avrg"), ("blur", "blur"), ("blur", "drunk"),
         ("blur", "scatter"), ("combine", "cross"), ("combine", "diff"),
         ("blur", "spread"), ("blur", "suppress"),
+        ("combine", "interleave"), ("combine", "max"),
+        ("formants", "vocode"), ("pitch", "tune"), ("spec", "grab"),
+        ("strange", "shift"),
         ("focus", "accu"), ("focus", "exag"), ("focus", "fold"),
         ("focus", "step"), ("hilite", "trace"),
         ("morph", "glide"), ("morph", "morph"), ("spec", "magnify"),

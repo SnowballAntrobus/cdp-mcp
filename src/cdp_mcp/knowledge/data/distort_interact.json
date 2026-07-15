@@ -1,0 +1,36 @@
+{
+  "program": "distort",
+  "mode": "interact",
+  "submode": 2,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur1"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Time-domain interaction of two sounds at the wavecycle level, pinned to submode 2: the wavecycle LENGTHS of input1 are imposed on the wavecycles of input2 - input2's waveshapes are squeezed/stretched cycle-by-cycle into input1's cycle-length sequence, so the output takes input1's pitch contour ('pseudo pitch') dressed in input2's waveform material. Verified: imposing a 440 Hz tone's cycle lengths onto noise yields a 2 s output whose strongest spectral peak is exactly 440 Hz. No numeric parameters. Output duration = input1's duration PROVIDED input1 has fewer wavecycles than input2 (the natural pairing: pitched/periodic first, dense/noisy second) - verified 1.9977 s from a 2 s tone (-0.11%); the REVERSED pairing collapses (see known_issues). Mono files only. Deterministic.",
+  "musical_use": "A time-domain vocoder-of-pitch: put the PITCHED sound first and the TEXTURE second, and the texture is forced to sing the first sound's pitch line. Noise becomes a pitched rasp, speech becomes a monotone robot at the melody of input1, cymbals become tuned sizzle - all with a raw, waveset-glitch edge no spectral process gives (zero-crossing 'wavecycles' are pseudo-cycles, so expect gritty artefacts on complex material; that grit is the point). Input1's amplitude articulation is discarded - only its cycle-length (pitch) skeleton survives - so choose input1 for its pitch contour, input2 for its timbre and grain. Submode 1 (not pinned) instead INTERLEAVES the wavecycles of both files one-for-one, audibly splicing the two materials into a single buzzy strand - reach for execute() for that mode. Follow with filter lohi to tame HF hash, or envel impose to restore a shaped dynamic.",
+  "parameters": {},
+  "examples": [
+    {
+      "description": "Make noise sing: a pitched phrase's cycle lengths imposed on a noisy texture.",
+      "params": {},
+      "expected_use": "input1 = pitched/periodic source (pitch skeleton), input2 = texture donor; output is input1's length and pitch in input2's clothing."
+    }
+  ],
+  "known_issues": [
+    "DURATION DEPENDS ON THE PAIRING (headline): the process consumes wavecycles pairwise and stops when input1's run out. With input1 the more periodic (fewer-cycles) file, outdur = indur1 (verified 1.9977 from 2 s, -0.11%). REVERSED - noise first, tone second - the 2 s inputs produced 0.0783 s: input1's first N2 cycles only. The indur1 model assumes the natural pairing; the engine cannot enforce it, so order inputs deliberately (periodic first).",
+    "Submode 2 pinned (impose lengths; SoundThread distort_interact_2). Submode 1 (interleave wavecycles) verified working: equal-material inputs give indur1+indur2 (3.99993 from 2+2), but dissimilar cycle densities collapse the same way (tone+noise -> 2.078 s) - probed, documented, not shipped as an entry (one (program, mode) key).",
+    "Mono files only (banner 'Works on MONO files only'; stereo refused verbatim 'Application doesn't work with this type of infile.').",
+    "No parameters at all - material choice and input order are the entire control surface.",
+    "Wavecycles are zero-crossing pseudo-cycles: DC offset or very low-frequency content in either file changes the cycle segmentation radically (the usual waveset caveat; phase_sensitive true).",
+    "Mode 3 refuses 'Program mode value [3] is out of range [1 - 2].' Deterministic (identical decoded samples 1.1 s apart)."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

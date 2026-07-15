@@ -1,0 +1,102 @@
+{
+  "program": "grain",
+  "mode": "rerhythm",
+  "submode": 1,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Re-times the grains of a grainy sound according to a list of duration-multipliers in a text data file (multfile) - explicit, patterned event re-timing, where grain timewarp is a single continuous ratio. Each onset-to-onset time is multiplied by the next value from the multfile, cycling back to its start when the list is exhausted (pinned submode 1; submode 2 instead plays EACH grain once per multiplier before moving on, multiplying the event count by the list length). Grains keep their pitch and internal speed. The multfile is an auxiliary text file (write it with write_data_file()): multipliers separated by spaces or newlines (both verified byte-identical), each CDP-enforced 0.001-1000; any intergrain time reduced below MINGRAINTIME (0.032 s) is set to 0.032. Verified arithmetic (exact to the sample on a 0.2 s-spaced click train): outdur = sum of (cycled multiplier_i x intergrain_i) + un-retimed head/tail; a multfile of '1.0' reproduces the input duration exactly - the static model is that baseline, and real use scales duration by roughly the mean multiplier (see known_issues). Deterministic; mono and stereo accepted.",
+  "musical_use": "The grain family's rhythm sequencer: where timewarp glides, rerhythm PATTERNS. A multfile like '0.5 2.0' turns an even pulse into a long-short lilt (verified: alternating 0.1 s/0.4 s gaps from a 0.2 s grid); '1 1 1 0.25 0.25 0.25 0.25 1' writes a fill into a steady beat; all-values-below-1 compresses a phrase into a tumble while every attack stays crisp. Because pitch is untouched, the sense of motion is felt directly as rhythm (manual). Craft notes from the manual: if the result stutters or fires in bursts, the gate is not separating the grains - every undetected boundary makes two grains ride as one (set gate with grain count/assess via execute(), or breakpoint the gate over time). Grains may START to overlap when gaps shrink - onset distances change, grain lengths do not. Pair with grain repitch/remotif (same data-file pattern applied to pitch, or pitch+rhythm together) for fuller motif transformation.",
+  "parameters": {
+    "multfile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Auxiliary text data file of duration-multipliers (produce with write_data_file(); any extension except .brk). Values separated by spaces or newlines (verified equivalent); applied cyclically to successive intergrain times. Each value CDP-enforced: 'ERROR: INVALID DATA / ERROR: Ratio (2000.000000) out of range (0.001000 - 1000.000000)'. Non-numeric content: 'ERROR: No data in file ...'. TRAP: a time/value breakpoint file here is consumed as a FLAT VALUE LIST, not an envelope (a '0.0 1.0 / 2.0 2.0' file was read as the value sequence 0.0,1.0,2.0,2.0 and refused on the 0.0) - same trap as modify stack's transpos file."
+    },
+    "len": {
+      "type": "float",
+      "min": 0.1,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Maximum time between grains in seconds (CDP-enforced 0.1 to the input duration, 'Parameter[2] Value (0.001000) out of range (0.100000 to 2.000000)' on a 2 s file). Breakpoint refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.')."
+    },
+    "gate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.3,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Required signal level for a grain to be seen (CDP-enforced 0-1). Real default 0.3 (manual; the banner's 'default 1' is wrong for this family). Breakpoint-capable (verified exit 0 with a 0.05->0.5 ramp; banner/manual 'gate may vary over time')."
+    },
+    "minhole": {
+      "type": "float",
+      "min": 0.032,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Minimum duration of inter-grain holes (CDP-enforced 0.032 - the default - to the input duration). Breakpoint refused ('Cannot read parameter 5 [...]: brkpnt_files not permitted.')."
+    },
+    "winsize": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Envelope-tracking window in ms for a signal-tracking gate; 0 = off (CDP-enforced 0 to the input duration in ms). Breakpoint refused ('Cannot read parameter 6 [...]: brkpnt_files not permitted.')."
+    },
+    "ignore_last": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "Ignore the last grain in the source (verified: 2.69 s vs 2.90 s with multiplier 1.5). Must follow the value flags (CDP flag-order enforcement)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Long-short lilt: alternate multipliers 0.5 and 2.0 over an even pulse.",
+      "params": {"multfile": "lilt.txt"},
+      "expected_use": "Even 0.2 s gaps become 0.1/0.4 s pairs (first write_data_file('lilt.txt', '0.5 2.0')); duration ~unchanged when multipliers average 1."
+    },
+    {
+      "description": "Uniform swing check / neutral baseline: a single multiplier of 1.0.",
+      "params": {"multfile": "unit.txt"},
+      "expected_use": "Byte-stable pass through the grain machinery; output duration equals the input exactly (write_data_file('unit.txt', '1.0'))."
+    }
+  ],
+  "known_issues": [
+    "Duration honesty (static model): actual duration = sum(cycled multiplier_i x intergrain_i) + un-retimed remainder - verified EXACT on click trains ('1.5' -> 2.900 s from 2 s = 1.5 x 1.8 s span + 0.2 s tail; '0.5 2.0' -> 2.300 s; '1.0' -> 2.000 s). The static model is only the mean-multiplier==1 baseline; scale expectations by the mean multiplier. Intergrain times below 0.032 s clamp to 0.032, further compressing extreme shrinks.",
+    "Submode pinned to 1 (sequential, no grain repetition). Submode 2 plays each grain at EVERY multiplier in the list before advancing (verified: '0.5 2.0' -> 4.700 s from 2 s = each 0.2 s gap replaced by 0.1 s + 0.4 s copies) - curate separately if needed.",
+    "The multfile argv slot follows the output file, so it is expressible as an aux_file parameter (contrast submix mix's pre-output mixfile). Multiplier range errors are INVALID DATA refusals quoting '(0.001000 - 1000.000000)' with a dash, not the usual 'to'.",
+    "On material with fewer than two detected grains the process exits 0 and returns the input unchanged (flat noise verified) - re-timing needs detectable holes; set the gate carefully (manual: poorly separated grains 'behave as a single grain').",
+    "DIVERGENCE: banner gate 'default 1' vs real default 0.3; manual len minimum '1' vs enforced 0.1 (family-wide).",
+    "-x must follow the value flags (CDP flag-order enforcement).",
+    "Stereo accepted (verified 2-channel, same arithmetic)."
+  ],
+  "references": ["cdp://docs/html/cgrogrns"]
+}

@@ -1,0 +1,105 @@
+{
+  "program": "grain",
+  "mode": "timewarp",
+  "submode": null,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur * ratio"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Stretches or shrinks the DURATION of a grainy sound without stretching the grains themselves: only the onset-to-onset (intergrain) times are multiplied by ratio, so every attack keeps its natural speed and timbre - like playing the same phrase faster or slower on the same instrument. The exact output rule, verified sample-close on three click trains: outdur = ratio x (last grain onset - first grain onset) + (indur - that span). The entry's 'indur * ratio' model is the honest approximation for material whose grains cover the file; it under/over-predicts by (ratio-1) x (uncovered head+tail) - observed -5% at ratio 2 and -6.7% at ratio 3 on a train with a 0.2 s tail, and it FAILS COMPLETELY on sounds with fewer than two detected grains (flat noise: output = input exactly, any ratio; see known_issues). Any intergrain time that would fall below MINGRAINTIME (0.032 s) is set to 0.032. Deterministic; mono and stereo accepted.",
+  "musical_use": "Event-level rubato and tempo change. Ratio below 1 packs the attacks into a denser, faster gestural stream (accelerando at .5 halves the gaps); above 1 opens air between events without any pitch or timbral cost - the anti-timestretch, since stretch time and modify speed both smear or transpose attacks. The breakpoint form is where it becomes a phrasing tool (banner: brk times refer to INFILE time): ramp 1 -> 2 for a written-out ritardando, step between fixed ratios to recompose a rhythm grid, dip below 1 mid-file for a surge. Combine with grain rerhythm (explicit per-gap multipliers from a data file) when you want patterned rather than continuous retiming. Get the gate right first (see grain reverse) - undetected grains simply don't move.",
+  "parameters": {
+    "ratio": {
+      "type": "float",
+      "min": 0.001,
+      "max": 1000.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 2.0,
+      "flag": null,
+      "description": "Multiplier on the intergrain (onset-to-onset) times: 2 doubles them, 0.5 halves them (CDP-enforced range quoted 'Parameter[1] Value (...) out of range (0.001000 to 1000.000000)'). Intergrain times shrunk below 0.032 s are clamped to 0.032. Breakpoint-CAPABLE, banner-confirmed ('Timestretch-ratio and Gate may vary over time. Times in brkpnt files refer to INFILE time.'): a 0.5->2 ramp exits 0 (2.18 s from 2 s) and differs from both endpoint renders."
+    },
+    "len": {
+      "type": "float",
+      "min": 0.1,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Maximum time between grains in seconds (CDP-enforced 0.1 to the input duration, 'Parameter[2] Value (0.001000) out of range (0.100000 to 2.000000)' on a 2 s file). Breakpoint refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.')."
+    },
+    "gate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.3,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Required signal level for a grain to be seen (CDP-enforced 0-1). Real default 0.3 (manual; the banner's 'default 1' is wrong for this family). Breakpoint-capable (gate ramp exits 0; banner-confirmed)."
+    },
+    "minhole": {
+      "type": "float",
+      "min": 0.032,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Minimum duration of inter-grain holes (CDP-enforced 0.032 - the default - to the input duration). Breakpoint refused ('Cannot read parameter 5 [...]: brkpnt_files not permitted.')."
+    },
+    "winsize": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Envelope-tracking window in ms for a signal-tracking gate; 0 = off (CDP-enforced 0 to the input duration in ms). Breakpoint refused ('Cannot read parameter 6 [...]: brkpnt_files not permitted.')."
+    },
+    "ignore_last": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "Ignore the last grain in the source (verified: 3.59 s instead of 3.80 s at ratio 2). Must follow the value flags (CDP flag-order enforcement)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Half-speed feel: double every gap between attacks, attacks untouched.",
+      "params": {"ratio": 2.0},
+      "expected_use": "Output roughly 2x the input duration on well-covered grainy material (less the unstretched head/tail)."
+    },
+    {
+      "description": "Written-out ritardando: ratio ramps 1.0 to 2.0 across the file.",
+      "params": {"ratio": "rit.brk"},
+      "expected_use": "Gradual deceleration of the event stream (write rit.brk with breakpoint(); brk times are INFILE time)."
+    }
+  ],
+  "known_issues": [
+    "Duration honesty: the exact rule (verified to the sample on 10-, 15- and 20-grain trains) is outdur = ratio x (grain-onset span) + (indur - span); the modelled 'indur * ratio' is exact only when grains span the whole file. Observed errors: -2.5% (dense train, ratio 2), -5.0% (0.2 s tail, ratio 2), -6.7% (ratio 3), +10% relative at ratio 0.5. Budget accordingly when chaining.",
+    "On material where the gate finds fewer than two grains (flat noise, sustained tones) the process exits 0 and returns the input UNCHANGED - ratio has no effect and the duration model over/under-predicts by the full ratio factor. The duration-model fixture's flat-noise input only passes at ratio 1.0 (findings row pinned there); verify real use on grainy material.",
+    "Intergrain times reduced below MINGRAINTIME 0.032 s are silently clamped to 0.032 (banner-documented), so extreme shrink ratios bottom out instead of stacking grains.",
+    "DIVERGENCE: banner gate 'default 1' vs real default 0.3; manual len minimum '1' vs enforced 0.1 (family-wide).",
+    "afta8's ratio max of 50 is an advisory subset - CDP enforces 0.001 to 1000.",
+    "-x must follow the value flags (CDP flag-order enforcement).",
+    "Stereo accepted (verified 2-channel, same duration arithmetic)."
+  ],
+  "references": ["cdp://docs/html/cgrogrns"]
+}

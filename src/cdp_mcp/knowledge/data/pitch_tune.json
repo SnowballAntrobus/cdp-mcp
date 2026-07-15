@@ -1,0 +1,96 @@
+{
+  "program": "pitch",
+  "mode": "tune",
+  "submode": 1,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Replaces the spectral frequencies of an analysis file by harmonics of a specified pitch: every partial is retuned to the nearest harmonic of the template frequency, yielding a natural-sounding resonance at that pitch which still carries the source's spectral articulation. Pinned to submode 1 (template in Hz; submode 2 takes possibly-fractional MIDI values instead). Verified: tuning 2 s of noise to 440 Hz produces a spectrum whose top peaks are ALL exact multiples of 440 (440, 2200, 4400, 7920 ... measured on the pvoc resynthesis). Works best on unpitched/noisy material (manual). Duration static (output .ana duration equals the input's, 2.029070 from 2.029070). The template argv slot also accepts a text file of several frequencies - a pitch SET (chord) rather than a time envelope - inexpressible under the current schema and documented in known_issues. Deterministic (analysis data chunk identical across runs).",
+  "musical_use": "The most elegant way to tune a spectrum to a pitch (manual): noise, cymbals, breath, rain and city rumble come out as pitched resonance that still moves like the original. Put the template frequency in the register where the source's energy actually lives - a template far below the material leaves little to lock onto (SPECINFO report or pitchinfo via execute() can find the spectral centre). focus is the tuning strength (1 = fully snapped, small values only lean partials toward the harmonics); clarity suppresses everything that is not part of the template's harmonic series - raise it toward 1 to thin the sound into a purer harmonic halo; trace restricts replacement to the N loudest channels per window, keeping the rest of the spectrum untouched (partial tuning); bcut protects the bass below a cutoff from being retuned. All four are time-varyable: a focus ramp 0 to 1 morphs the source INTO its tuned self - one of the classic CDP reveals. For chords, the multi-pitch template file exists but needs execute() today.",
+  "parameters": {
+    "frequency": {
+      "type": "float",
+      "min": 16.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 440.0,
+      "flag": null,
+      "description": "The pitch (Hz) whose harmonic series the spectrum is tuned to (submode 1; CDP calls the slot pitch_template). CDP-enforced range is '>0 - 22050[nyquist]': 0 and 25000 refuse with 'ERROR: Input frq value (...) ... is outside frq range (>0 - 22050[nyquist])' (5 Hz was ACCEPTED - the curated min 16 is a musical floor, and SoundThread's 20-20000 is advisory). The slot is CDP's file-or-number type: breakpoint files are NOT envelopes here (a .brk is read as a flat frequency LIST and its time values refuse as out-of-range frequencies) - scalar only through this entry; see known_issues for the pitch-set file form."
+    },
+    "focus": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": "-f",
+      "flag_kind": "attached_value",
+      "description": "Degree of focusing of partial pitches onto the template (CDP-enforced 0-1, refusal 'Parameter[2] Value (2.000000) out of range (0.000000 to 1.000000)'; default 1 - verified: the unflagged render is data-identical to -f1). Breakpoint-CAPABLE (verified: a 0->1 ramp differs from both endpoint renders); banner/manual: 'All parameters may vary over time.'"
+    },
+    "clarity": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Degree to which non-template partials are suppressed (CDP-enforced 0-1, refusal 'Parameter[3] Value (1.500000) out of range (0.000000 to 1.000000)'; default 0). Higher values purify the harmonic result. Breakpoint accepted (exit 0 verified)."
+    },
+    "trace": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "channels",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Number of (window-by-window) most prominent analysis channels to be replaced by template frequencies - restricts tuning to the loudest components. CDP-enforced 1 to the analysis channel count ('Parameter[4] Value (5000.000000) out of range (1.000000 to 513.000000)' at the default 1024-point analysis; input-dependent max). Optional, no default (omit = all channels eligible). Breakpoint accepted (exit 0 verified)."
+    },
+    "bcut": {
+      "type": "float",
+      "min": 9.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Bass cutoff: frequencies below bcut are ignored (not retuned). CDP-enforced 9 to 22050 Hz ('Parameter[5] Value (30000.000000) out of range (9.000000 to 22050.000000)'). Optional, no default. Breakpoint accepted (exit 0 verified)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Tune noisy material to A440 - full snap.",
+      "params": {"frequency": 440.0},
+      "expected_use": "A 440 Hz resonance carrying the source's motion; resynthesised peaks land on exact multiples of 440 (verified)."
+    },
+    {
+      "description": "Morph into tune: focus ramps 0 to 1 while clarity thins the inharmonic residue.",
+      "params": {"frequency": 220.0, "focus": "focus_ramp.brk", "clarity": 0.6},
+      "expected_use": "The source audibly crystallises onto the 220 Hz series across the file (write focus_ramp.brk with breakpoint())."
+    }
+  ],
+  "known_issues": [
+    "The pitch_template slot accepts a TEXT FILE of several frequencies (space- or newline-separated) - a pitch SET/chord, every partial tuned to the nearest harmonic of the nearest set member. This file form is inexpressible under the current schema (the slot is scalar float here): a .brk-named file routes through the breakpoint compiler, and the binary reads any file as a flat value list anyway (verified: a time/value file's 0.0 time refused as a frequency). Use execute() for chords; same aux-value-list gap as modify stack's transpos file.",
+    "Range refusals for the template have a cosmetic binary bug: given a NUMBER the message prints the value in the filename slot - 'Input frq value 25000.000000 in file 25000 is outside frq range (>0 - 22050[nyquist])'.",
+    "Submode 2 (MIDI template) verified working, including fractional values (60.5); out-of-range MIDI refuses via the converted frequency ('Input midi value 200.000000 ... outside frq range'). Pinned to submode 1 to match SoundThread pitch_tune_1.",
+    "trace's maximum is the analysis channel count (513 at the engine's default 1024-point analysis) - input-analysis-dependent, so refusal bounds vary with analysis settings.",
+    "Static duration verified at the analysis grain: output .ana reports exactly the input's duration (2.029070 s from a 2 s source wav; the ~+1.5% over the wav is the pvoc analysis grid, as with all spectral entries).",
+    "Deterministic in the RIFF data chunk; only the LIST date comment differs between runs (do not byte-compare .ana files)."
+  ],
+  "references": ["cdp://docs/html/cpitch"]
+}

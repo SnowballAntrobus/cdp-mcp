@@ -1,0 +1,112 @@
+{
+  "program": "grain",
+  "mode": "reposition",
+  "submode": null,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Places the grains of a grainy sound at EXPLICIT onset times given in a text data file (timefile) - absolute event re-timing, where grain rerhythm is relative (multipliers). The timefile is an auxiliary text file (write_data_file()): ascending times in seconds, space- or newline-separated; grain k of the source starts at timefile[k] + offset. If the timefile has fewer entries than the source has grains, the surplus grains are DROPPED (verified: 2 times against 10 grains -> 0.7 s output containing 2 grains); inter-onset gaps below MINGRAINTIME (0.032 s) are raised to 0.032. Verified duration rule (exact on click trains): outdur = offset + last timefile entry + (indur - last source grain onset) - i.e. the file plays out from the final repositioned grain. The static model is the baseline for a timefile mirroring the source onsets; see known_issues for the honest bounds. Deterministic; mono and stereo accepted.",
+  "musical_use": "Imposes a rhythmic structure of your choosing on found attacks - quantise a sloppy performance to a grid, spread tight clicks into a slow constellation, or copy the timing DNA of one sound onto another: run grain find (execute()) on sound A to harvest its onset times, then reposition sound B's grains onto them so the two pulse in sync (the manual's own showcase workflow, after Trevor Wishart). The offset parameter delays the whole pattern - the manual suggests running reposition twice with offsets like 0.25 and 0.33 and mixing the results for doubled/flammed grain patterns. Since surplus grains are dropped, a short timefile also acts as an event-count gate: give it four times and you keep exactly the first four grains. As with all grain programs, the gate decides what counts as a grain - wrong gate, wrong events (see grain reverse).",
+  "parameters": {
+    "timefile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Auxiliary text data file of ascending grain-onset times in seconds (produce with write_data_file(); grain find's output is exactly this format). Space- or newline-separated. Times must increase: 'ERROR: INVALID DATA / ERROR: Sync times out of sequence (0.500000 0.200000)'. Negative times make the file unreadable ('ERROR: No data in file ...'). TRAP: a time/value .brk file here is consumed as a FLAT VALUE LIST (its interleaved times+values become the time sequence and refuse as out-of-sequence) - not an envelope."
+    },
+    "offset": {
+      "type": "float",
+      "min": 0.0,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Added to ALL grain timings (CDP-enforced 'Parameter[2] Value (-0.500000) out of range (0.000000 to 32767.000000)'). Verified: offset 0.5 prepends 0.5 s (leading silence is KEPT, 2.90 s -> 3.40 s). With offset 0 and a first time of 0, the first grain is nudged: 'WARNING: 1st grain moved by 0.015011 secs (662 samps) to allow for startsplice'. Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "len": {
+      "type": "float",
+      "min": 0.1,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Maximum time between grains in seconds (CDP-enforced 0.1 to the input duration, 'Parameter[3] Value (0.001000) out of range (0.100000 to 2.000000)' on a 2 s file). Breakpoint refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.')."
+    },
+    "gate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.3,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Required signal level for a grain to be seen (CDP-enforced 0-1). Real default 0.3 (manual; the banner's 'default 1' is wrong for this family). Breakpoint-capable (verified exit 0; banner/manual 'gate may vary over time')."
+    },
+    "minhole": {
+      "type": "float",
+      "min": 0.032,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Minimum duration of inter-grain holes (CDP-enforced 0.032 - the default - to the input duration). Breakpoint refused ('Cannot read parameter 5 [...]: brkpnt_files not permitted.')."
+    },
+    "winsize": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Envelope-tracking window in ms for a signal-tracking gate; 0 = off (CDP-enforced 0 to the input duration in ms). Breakpoint refused ('Cannot read parameter 6 [...]: brkpnt_files not permitted.')."
+    },
+    "ignore_last": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "Ignore the last grain in the source (verified: 2.69 s vs 2.90 s on the 10-time pattern). Must follow the value flags (CDP flag-order enforcement)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Stretch a tight 0.2 s click grid onto a 0.3 s grid.",
+      "params": {"timefile": "grid03.txt", "offset": 0.0},
+      "expected_use": "Ten grains land at 0, 0.3, ..., 2.7 s (first write_data_file('grid03.txt', '0 0.3 0.6 0.9 1.2 1.5 1.8 2.1 2.4 2.7')); output = 2.7 + source tail."
+    },
+    {
+      "description": "Flam layer: same pattern delayed by a quarter second, for mixing over the original.",
+      "params": {"timefile": "grid03.txt", "offset": 0.25},
+      "expected_use": "Identical grain pattern starting 0.25 s later (the manual's double-reposition-and-mix recipe)."
+    }
+  ],
+  "known_issues": [
+    "Duration honesty (static model): actual = offset + last timefile entry + (indur - last source grain onset), verified exact on click trains (times to 2.7 -> 2.900 s from a 2 s source; +0.5 offset -> 3.400 s). The static baseline holds only when the timefile ends near the source's own last onset and offset is 0; otherwise the timefile drives the duration. Plan chains off the timefile, not the model.",
+    "Surplus grains beyond the timefile's entry count are silently DROPPED (2 times vs 10 grains -> 2-grain, 0.7 s output) - the timefile is also an event-count gate; there is no cycling (contrast rerhythm's cycling multipliers).",
+    "The timefile argv slot follows the output file - expressible as an aux_file parameter (contrast submix mix's pre-output mixfile). offset is a positional that RENDERS AFTER the aux file, matching the banner order 'timefile offset'.",
+    "A first grain requested at time 0 is nudged by 662 samples with a WARNING ('to allow for startsplice'); exit is still 0.",
+    "On material with fewer than two detected grains the process exits 0 and returns the input effectively unchanged (flat noise verified, 2.000 s exact).",
+    "DIVERGENCE: banner gate 'default 1' vs real default 0.3; manual len minimum '1' vs enforced 0.1 (family-wide).",
+    "-x must follow the value flags (CDP flag-order enforcement). Stereo accepted (verified 2-channel)."
+  ],
+  "references": ["cdp://docs/html/cgrogrns"]
+}

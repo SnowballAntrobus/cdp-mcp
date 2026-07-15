@@ -1,0 +1,51 @@
+{
+  "program": "modify",
+  "mode": "loudness",
+  "submode": 1,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Multiplies the signal by a gain factor (mode 1 GAIN, SoundThread's modify_loudness_1). Verified exactly linear (gain 0.5 output matches 0.5 x input to one 16-bit LSB) and sample-exact in duration. On overload it CLIPS (saturates): gain 4 on near-full-scale material equals clip(4 x input) - the safe opposite of submix mix, which WRAPS on overload. gain is genuinely breakpoint-capable (a 0->1 ramp file ran, differs from both endpoint renders, and the output's first 100 ms RMS fell to 3.7% of the source while the last 100 ms stayed at 97%) - this makes mode 1 a general-purpose fade/ducking tool, not just a static trim. Other loudness modes (2 dB-gain, 3 normalise, 4 force-level, 5 balance, 6 phase-invert...) are separate curations. Mono and stereo accepted, including stereo with a breakpoint gain.",
+  "musical_use": "The workhorse level tool: pre-attenuate before overload-prone processes (essential before submix mix, whose overloads wrap around catastrophically - scale each source so the summed peak stays under 1), balance wet/dry stems before mixing, or push quiet material up (values > 1 amplify, clipping applied only where the result would exceed full scale). With a breakpoint gain it becomes envelope shaping by hand: fades in/out, swells, manual ducking curves, sidechain-like pumping drawn as a time/value list - often the quickest fix when a generated gesture needs one event tamed. Every -6 dB is a factor of 0.5 if you think in dB (use mode 2 via execute() for native dB values).",
+  "parameters": {
+    "gain": {
+      "type": "float",
+      "min": 0.0,
+      "max": 32767.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Level multiplier: < 1 attenuates, > 1 amplifies with saturation at full scale (CDP-enforced range 0 to 32767; gain 0 itself is refused at runtime with 'ERROR: INVALID DATA / ERROR: With gain of 0.000000 the soundfile will be reduced to SILENCE!'). May vary over time via a breakpoint file (verified: ramp differs from both endpoints and applies as expected). DIVERGENCE: cgromody.htm claims 'a gain value of -1 inverts the phase' - the binary refuses all negatives ('Value (-1.000000) out of range (0.000000 to 32767.000000)'); use mode 6 (invert phase) via execute() instead."
+    }
+  },
+  "examples": [
+    {
+      "description": "Halve the level before summing several full-scale events with submix mix.",
+      "params": {"gain": 0.5},
+      "expected_use": "Exactly 0.5 x input, same duration; stack headroom for later mixing."
+    },
+    {
+      "description": "Hand-drawn fade-in over the whole file.",
+      "params": {"gain": [[0.0, 0.0], [1.0, 1.0]]},
+      "expected_use": "Breakpoint gain (relative times) - output swells from silence to unity."
+    }
+  ],
+  "known_issues": [
+    "Overload behavior verified: output saturates at full scale (equals clip(gain x input), NOT integer wraparound). Contrast submix mix in the same build, which wraps.",
+    "gain 0 is inside the quoted range but refused at runtime: 'ERROR: INVALID DATA / ERROR: With gain of 0.000000 the soundfile will be reduced to SILENCE!'. A breakpoint envelope reaching 0 momentarily is fine (0->1 ramp verified).",
+    "DIVERGENCE: the HTML manual says gain -1 inverts phase; the binary range-refuses negative gains (0 to 32767). Phase inversion lives in loudness mode 6.",
+    "Deterministic: two runs 1.1 s apart identical in decoded samples.",
+    "afta8's 0-100 range and SoundThread's 0.001-2 slider are advisory subsets of the CDP-enforced 0-32767."
+  ],
+  "references": ["cdp://docs/html/cgromody"]
+}

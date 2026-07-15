@@ -1,0 +1,36 @@
+{
+  "program": "combine",
+  "mode": "max",
+  "submode": null,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur_max"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "In each analysis channel, in each window, keeps only the LOUDEST spectral component among all the input files - a winner-takes-all spectral merge. The inputs fuse into an ultra-seamless mix in which each sound remains recognisable, with subtle spectral interaction where their energies compete (quieter components in contested channels simply vanish). No parameters at all. Output duration equals the LONGER input's analysed duration (verified both orders: 2 s + 1 s -> 2.029070 either way; past the shorter file's end the longer input wins every channel by default) - contrast combine interleave, which stops at the SHORTER input. Accepts 3+ inputs (entry pins arity 2; more via execute()). Deterministic (data chunk identical across runs).",
+  "musical_use": "The spectral crossfader that never fades: sounds merge 'just like an ordinary mix' but seamlessly woven at the channel level - the manual's celebrated example is Rob Waring's hornwhivoc, a horn, a whistle and a voice merged into one continuous timbre. Works best on sounds of similar loudness with DIFFERENT spectral centres (each keeps the channels where it is strongest); a much louder input simply wins everywhere and the effect collapses to that sound. Because the loser's data is omitted, not attenuated, the blend can be a little unpredictable on similar spectra (manual) - that instability is part of its character, producing flickering hand-offs between sources. Use it instead of submix mix when you want one fused voice rather than two audible layers, or before a morph to pre-fuse materials. Level-match inputs first (modify loudness) to control who wins which register.",
+  "parameters": {},
+  "examples": [
+    {
+      "description": "Winner-takes-all merge of two level-matched sources.",
+      "params": {},
+      "expected_use": "One seamless hybrid the length of the longer input, each source audible where its spectrum dominates."
+    }
+  ],
+  "known_issues": [
+    "Duration = the LONGER input's analysed duration (indur_max), verified order-independent (2 s + 1 s -> 2.029070 both ways). DIVERGENCE-worth noting inside the combine family: interleave truncates to the shorter, cross runs to the shorter, max runs to the longer - check per mode, never assume.",
+    "After the shorter input ends, the output is simply the remaining input's spectrum (no fade or gate at the join).",
+    "Refusals (verbatim): a single input 'Insufficient input files for this process'; .wav inputs 'Application doesn't work with this type of infile.' (family-shared).",
+    "Binary accepts 3+ .ana inputs (verified exit 0). Entry pins input_arity 2; use execute() for bigger stacks.",
+    "No parameters: level relationships between the inputs are the ONLY control surface - stage loudness before this node.",
+    "Deterministic in the RIFF data chunk; only the LIST date comment differs between runs (do not byte-compare .ana files)."
+  ],
+  "references": ["cdp://docs/html/ccombine"]
+}

@@ -1,0 +1,105 @@
+{
+  "program": "grain",
+  "mode": "duplicate",
+  "submode": null,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur * repeats"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Makes 'repeats' copies of each grain in turn, proceeding through the file grain by grain - rapid-fire stutter/repeat at the event level. Grains are bursts above the gate level separated by holes of at least minhole seconds. Output duration is repeats x input duration to within 1% across click trains, enveloped noise and flat noise (each grain-slot, onset to next onset, is written repeats times; splice overhead adds (repeats-1) x 331 frames). repeats = 1 is a verified exact pass-through (frame-identical duration). Unlike grain reverse, material with only ONE detectable grain still works - the whole file is treated as the grain and duplicated end to end. Deterministic; mono and stereo accepted.",
+  "musical_use": "The event-level stutter: each attack fires again immediately, turning single hits into drum-roll bursts and speech into stammer. Small repeats (2-4) read as rhythmic echo of each event; large values granulate the timeline into insistent loops of each moment. The classic CDP advice is to find the gate first (grain count via execute(), or trust the 0.3 default and listen): a wrong gate 'appears to produce anomalous results, such as no grain duplications and a long period of silence' (manual). A breakpointed repeats ramp (verified working) makes the stutter density evolve - e.g. 1 to 4 across the file turns a plain phrase into an accelerating jam; a breakpointed gate tracks decaying material. Follow with envel dovetail to tame the abrupt end of the last repeat.",
+  "parameters": {
+    "repeats": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 2,
+      "flag": null,
+      "description": "Number of repetitions of each grain (CDP calls it N; enforced range quoted 'Parameter[1] Value (...) out of range (1.000000 to 32767.000000)'). 1 = exact pass-through (verified frame-identical duration). Fractional values are accepted and rounded to NEAREST (2.5 verified byte-identical to 3). Breakpoint-CAPABLE, banner/manual-confirmed ('N and gate may vary over time'): a 1->4 ramp exits 0 (4.615 s from 2 s) and differs from both endpoint renders."
+    },
+    "len": {
+      "type": "float",
+      "min": 0.1,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Maximum time between grains in seconds. CDP-enforced 0.1 to the input duration ('Parameter[2] Value (0.001000) out of range (0.100000 to 2.000000)' on a 2 s file) - the manual's '1 to duration' minimum is wrong. Breakpoint refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.')."
+    },
+    "gate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.3,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Required signal level for a grain to be seen (CDP-enforced 0-1, refusal 'Parameter[3] ... (0.000000 to 1.000000)'). Real default 0.3 (manual; the banner's 'default 1' is wrong - verified behaviourally in this family). Breakpoint-capable (gate ramp exits 0; banner-confirmed)."
+    },
+    "minhole": {
+      "type": "float",
+      "min": 0.032,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Minimum duration of inter-grain holes (CDP-enforced 0.032 - the default - to the input duration; refusal 'Parameter[4] Value (0.001000) out of range (0.032000 to 2.000000)'). Breakpoint refused ('Cannot read parameter 5 [...]: brkpnt_files not permitted.')."
+    },
+    "winsize": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Envelope-tracking window in ms for a signal-tracking gate; 0 = no tracking. CDP-enforced 0 to the input duration in ms ('Parameter[5] Value (9999.000000) out of range (0.000000 to 2000.000000)' on a 2 s file). Breakpoint refused ('Cannot read parameter 6 [...]: brkpnt_files not permitted.')."
+    },
+    "ignore_last": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "Do not duplicate the last grain in the source (verified: 3.59 s instead of 4.01 s at repeats 2 on a 10-grain train). Must follow the value flags (CDP flag-order enforcement)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Double every event: each grain fires twice.",
+      "params": {"repeats": 2},
+      "expected_use": "Stuttered version at ~2x the input duration."
+    },
+    {
+      "description": "Accelerating stutter: repeats ramps 1 to 4 across the file.",
+      "params": {"repeats": "reps_ramp.brk"},
+      "expected_use": "Progressively denser event repetition (write reps_ramp.brk with breakpoint(); duration grows toward 4x by the end of the file)."
+    }
+  ],
+  "known_issues": [
+    "duration model 'indur * repeats' verified within +0.25%/-0.9% across repeats 1-4 on click trains (2 s/3 s), enveloped noise and flat noise; splice overhead adds (repeats-1) x 331 frames (7.5 ms each) and sparse-grain material comes in slightly under. With a breakpointed repeats the model should use the mean value (1->4 ramp gave 4.615 s from 2 s, ~mean 2.3x).",
+    "Works even when the whole file is a single grain (flat noise verified: repeats copies of the entire file, +0.18% duration error) - the grain family's 'No grains found' refusal (see grain reverse) was never triggered for duplicate.",
+    "Fractional repeats rounds to NEAREST (2.5 == 3, byte-verified), matching distort divide's behaviour, not truncation.",
+    "DIVERGENCE: banner claims gate 'default 1'; real default 0.3 (manual value, behaviourally verified in this family). Manual/banner len minimum '1' is actually 0.1.",
+    "The -x switch must follow value flags (CDP banner-order enforcement, 'option flag -l out of order on cmdline.' when -x came first).",
+    "Wrong gate values silently produce 'anomalous results, such as no grain duplications and a long period of silence' (manual warning) - the process exits 0 either way; sanity-check the output duration against repeats x indur.",
+    "Stereo accepted (verified 2-channel output, model holds)."
+  ],
+  "references": ["cdp://docs/html/cgrogrns"]
+}

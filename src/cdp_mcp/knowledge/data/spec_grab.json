@@ -1,0 +1,51 @@
+{
+  "program": "spec",
+  "mode": "grab",
+  "submode": null,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "0.0029"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Grabs a single analysis window from an .ana file at the given time - a one-window spectral snapshot (about 2.9 ms; sfprops reports 0.002907 s for a default 44.1 kHz analysis). The output is a valid but degenerate .ana whose purpose is to feed other spectral tools, above all morph glide (verified end-to-end: two grabbed windows -> morph glide -> a 2.0 s interpolation .ana); pvoc synth of a bare grabbed window produces a ZERO-frame wav (verified), so never audition a grab directly. Times past the true end of the analysis grab the last window (grab at 2.5 on a 2.03 s analysis is data-identical to grab at 2.0), but CDP still range-checks against an internal bound slightly past the end ('out of range (0.000000 to 3.025941)' on that same file). Deterministic (analysis data identical across runs; only the RIFF LIST date chunk differs).",
+  "musical_use": "The freeze-frame primitive of the morph glide workflow: grab one window from sound A and one from sound B, then morph glide interpolates a seamless spectral glide between the two snapshots over any duration - instant drones, risers and slow timbral crossfades built from single instants. Grab at spectrally distinctive moments (a vowel peak, a cymbal's shimmer, the densest point of a texture - use analyze()'s trajectory to find them). spec magnify does grab-plus-stretch in one step when only one sound is involved; grab is the two-sound door. A grabbed window is also the cheapest way to freeze a timbre for spectral 'chords': glide between two grabs of the SAME file for subtle internal motion.",
+  "parameters": {
+    "time": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time of the window to grab. CDP enforces 0 to slightly past the analysed duration (input-dependent; refusal on a 2.03 s analysis quoted '(0.000000 to 3.025941)'); anything past the last window inside that bound grabs the last window (verified data-identical). Negative refused. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Freeze the one-second mark of a sound as a spectral snapshot.",
+      "params": {"time": 1.0},
+      "expected_use": "A one-window .ana (~2.9 ms) for morph glide; do not synth it directly."
+    },
+    {
+      "description": "Grab the sound's opening spectrum for a glide from its own attack.",
+      "params": {"time": 0.0},
+      "expected_use": "Pair with a later grab and morph glide between them."
+    }
+  ],
+  "known_issues": [
+    "The output is ONE analysis window (~0.0029 s; duration model is that constant, exact to 0.24% against the measured 0.002907 s). It is scaffolding for morph glide / spec magnify, not audible material: pvoc synth of a grabbed window yields a 0-frame wav (verified, exit 0).",
+    "DIVERGENCE (softened): the banner says 'A time beyond end of file will grab last window' - true only within CDP's internal bound slightly past the end; far beyond it refuses with a range error ('Parameter[1] Value (99.000000) out of range (0.000000 to 3.025941)' on a 2.03 s analysis).",
+    "time rejects breakpoint files ('brkpnt_files not permitted').",
+    "Two runs differ byte-wise only in the RIFF LIST date-comment chunk; the analysis data chunk is identical (deterministic).",
+    "The one-window duration is analysis-settings-dependent (default engine PVOC: 0.002907 s at 44.1 kHz); non-default analyses would change the constant."
+  ],
+  "references": ["cdp://docs/html/cspecedi"]
+}

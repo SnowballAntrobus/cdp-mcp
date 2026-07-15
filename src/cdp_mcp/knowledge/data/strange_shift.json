@@ -1,0 +1,81 @@
+{
+  "program": "strange",
+  "mode": "shift",
+  "submode": 4,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "LINEAR frequency shift of part of the spectrum: every analysis frequency between frqlo and frqhi is offset by the same number of Hz (frqshift), which decorrelates harmonic relationships - the signature inharmonic 'frequency shifter' sound, unlike pitch transposition (which multiplies). Pinned to submode 4 (shift only INSIDE the frqlo-frqhi band; submodes: 1 = whole spectrum, 2 = above a divide, 3 = below a divide, 5 = outside the band). Verified on a 440 Hz tone with shift +200: resynthesised peak lands at exactly 640 Hz. Duration static (output .ana duration equals the input's). All three parameters may vary over time (frqshift breakpoint verified to differ from both endpoint renders); the -l switch selects log interpolation between time-varying values. Deterministic (data chunk identical across runs).",
+  "musical_use": "The classic route to bell, gong and metallic colourations: shifting a harmonic spectrum additively makes the partials inharmonic - upward shifts brighten into dense clangour, downward shifts deepen toward gong (manual). Submode 4's band-limiting is the craft handle the whole-spectrum mode lacks: keep the fundamental register intact (set frqlo above it) and shift only the upper partials for a sound that stays pitched but grows metallic skin; or target a narrow mid band to detune just the body resonances. Small shifts (a few Hz to tens of Hz) give beating and phasey chorus against the unshifted region; large shifts rebuild the timbre outright. Time-varying frqshift is a spectral glissando of the band only - sweep 0 to a few hundred Hz for a sound that gradually 'un-tunes' itself (add -l for log-shaped motion, all-positive or all-negative values only).",
+  "parameters": {
+    "frqshift": {
+      "type": "float",
+      "min": -22050.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": 50.0,
+      "flag": null,
+      "description": "Linear shift applied to spectral frequencies inside the band, in Hz; negative shifts downward (CDP-enforced 'Parameter[1] Value (30000.000000) out of range (-22050.000000 to 22050.000000)'; SoundThread's +-500 is an advisory subset). Breakpoint-CAPABLE, banner-confirmed: a 50->400 ramp differs from both endpoint renders."
+    },
+    "frqlo": {
+      "type": "float",
+      "min": 20.0,
+      "max": 22039.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": 20.0,
+      "flag": null,
+      "description": "Lower edge of the band inside which shifting takes place. CDP-enforced range quoted 'Parameter[2] Value (-5.000000) out of range (10.766602 to 22039.233398)' - the bounds sit a quarter channel-width inside 0/nyquist and are analysis-settings-dependent; the curated 20 Hz min is a musical floor inside them. Breakpoint accepted (exit 0 verified); banner: 'frqshift, frq_divide, frqlo & frqhi may vary over time.'"
+    },
+    "frqhi": {
+      "type": "float",
+      "min": 20.0,
+      "max": 22039.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": 20000.0,
+      "flag": null,
+      "description": "Upper edge of the shifted band (same CDP-enforced bounds as frqlo, 'Parameter[3] ... (10.766602 to 22039.233398)'). frqhi BELOW frqlo is accepted silently and produces a distinct render - keep frqhi > frqlo yourself. Breakpoint accepted (exit 0 verified)."
+    },
+    "log_interp": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-l",
+      "flag_kind": "no_value",
+      "description": "Log (instead of linear) interpolation between time-varying frequency values. Verified a NO-OP on all-scalar runs (byte-identical with/without) and a real change with a breakpointed frqshift. Banner: only useful when parameters are time-varying, AND frqshift values must be all positive or all negative for it to work."
+    }
+  },
+  "examples": [
+    {
+      "description": "Metallic upper body: shift everything above 300 Hz up 200 Hz, fundamental untouched.",
+      "params": {"frqshift": 200.0, "frqlo": 300.0, "frqhi": 8000.0},
+      "expected_use": "Pitched core with inharmonic, bell-like upper partials (440 Hz partials inside the band verified to land at +200 Hz exactly)."
+    },
+    {
+      "description": "Progressive detune: band shift glides from 0-ish to 400 Hz across the file.",
+      "params": {"frqshift": "shift_ramp.brk", "frqlo": 100.0, "frqhi": 8000.0},
+      "expected_use": "The sound gradually un-tunes into clangour (write shift_ramp.brk with breakpoint(); add log_interp for log-shaped motion, all values same sign)."
+    }
+  ],
+  "known_issues": [
+    "frqlo/frqhi's real enforced bounds are 10.766602 to 22039.233398 Hz at the engine's default 1024-point 44.1 kHz analysis - a quarter channel-width inside 0 and nyquist, so they move with analysis settings; refusal texts vary with the file.",
+    "frqhi < frqlo is accepted silently (verified, distinct render) - no CDP warning; the entry cannot cross-validate two parameters, so order them yourself.",
+    "-l log interpolation: byte-identical no-op unless at least one frequency parameter is time-varying (verified); banner further requires all-positive or all-negative frqshift values for it to work.",
+    "Submode pinned to 4 (shift inside the band). Submodes 2/3 take a single frq_divide instead of the frqlo/frqhi pair - a different argv shape, so they need their own entries; submode 1 (whole spectrum) is submode 4 with the band flung wide; submode 5 inverts the band.",
+    "Shifted components falling outside the analysis range are lost (energy above nyquist-shift disappears on upward shifts).",
+    "Deterministic in the RIFF data chunk; only the LIST date comment differs between runs.",
+    "Refusal on .wav input (verbatim): 'Application doesn't work with this type of infile.'; mode 6 refuses 'Program mode value [6] is out of range [1 - 5].'"
+  ],
+  "references": ["cdp://docs/html/cstrange"]
+}

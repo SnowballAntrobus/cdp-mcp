@@ -1,0 +1,112 @@
+{
+  "program": "filter",
+  "mode": "bank",
+  "submode": 1,
+  "category": "filter",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + tail"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "A bank of resonant filters tuned to the harmonic series over lofrq, applied to the input (mode 1 HARMONIC; modes 2-6 give alternate/sub-harmonics and equal-interval banks and are separate curations). Output duration is exactly indur + tail, and the tail flag has an UNDOCUMENTED default of 1.0 s (verified: 2 s in -> 3.0 s out with no -t; 1 s -> 2.0 s; -t2 -> +2 s; -t0.5 -> +0.5 s; the entry pins tail=1.0 explicitly so the model always holds). Q may vary over time (breakpoint verified: differs from both endpoint renders); every other parameter refuses breakpoint files. With scat > 0 the filter frequencies are randomised and the process becomes GENUINELY STOCHASTIC with NO seed flag (two -s0.5 runs 1.1 s apart differ; scat 0 runs are identical) - leave scat at 0 when reproducibility matters. Mono and stereo accepted.",
+  "musical_use": "Turns any material into a pitched resonance: set lofrq to the fundamental you want and the bank rings its harmonic series through the sound - noise becomes a chord, percussion becomes tuned mallets. Q is the character knob: low Q (1-20) colours while keeping the source recognisable; high Q (hundreds to thousands, afta8 default 400) rings long pitched tails from transients - raise gain substantially at high Q (values of 40-50+ are normal, per the manual) since narrow bands remove most energy. A time-varying Q breakpoint morphs from coloured noise to pure ringing across the file. hifrq caps how many harmonics sound - keep it high (several kHz) for brightness, low for dark hums. scat detunes the series toward bell-like inharmonicity (1 = fully scattered - but unseeded, every render differs). tail lets high-Q rings decay; -d doubles the filtering for steeper isolation.",
+  "parameters": {
+    "q": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Filter tightness (CDP-enforced 0.001 to 10000; 0.0005 refused quoting that range). Low = broad colouring, high = ringing resonators. Banner-confirmed time-variable and verified: a 5->500 breakpoint ran and differs from both endpoint renders."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Overall makeup gain (CDP-enforced 0.001 to 10000; 0 refused). High Q needs high gain (40-50+ per the manual). Breakpoint refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    },
+    "lof": {
+      "type": "float",
+      "min": 0.1,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Fundamental of the harmonic series (the bank's root). DIVERGENCE: banner/manual give the range as 0-or-10 to srate/3 (14700 at 44.1 kHz); the binary enforces 0.1 to 22050 (probed: 0 and -5 refused quoting '(0.100000 to 22050.000000)'; 5 and 20000 accepted). Breakpoint refused (parameter 3)."
+    },
+    "hif": {
+      "type": "float",
+      "min": 0.1,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Upper frequency limit of the bank - harmonics above this are omitted. Same real range as lof (0.1 to 22050; the banner's 'lofrq+ to srate/3' is not enforced, and hif < lof is accepted silently). Breakpoint refused (parameter 4)."
+    },
+    "tail": {
+      "type": "float",
+      "min": 0.01,
+      "max": 20.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Decay time appended after the input for the filters to ring out; output duration is exactly indur + tail. CDP's implicit default is 1.0 s (undocumented - the manual omits -t entirely); the entry emits -t1.0 explicitly. CDP-enforced range 0 to 20, but tail = 0 triggers a buffer bug (output balloons to a fixed 262144 frames with a garbage-silence tail) - curated minimum 0.01 keeps it unreachable. Breakpoint refused."
+    },
+    "scat": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Random scatter of the filter frequencies away from the exact harmonic series (CDP-enforced 0 to 1; 2 refused). NON-REPRODUCIBLE: there is no seed flag and two identical scat>0 commands produce different output (verified 1.1 s apart); scat 0 (or omitting the flag) is fully deterministic. Breakpoint refused."
+    },
+    "double": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-d",
+      "flag_kind": "no_value",
+      "description": "Double filtering - the bank is applied with a steeper effective rolloff (verified: changes the render, duration unchanged)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Ring a 110 Hz harmonic chord out of noise, with a ringing decay.",
+      "params": {"q": 400.0, "gain": 40.0, "lof": 110.0, "hif": 6000.0, "tail": 2.0},
+      "expected_use": "Pitched, bell-organ resonance at A2; output = indur + 2 s."
+    },
+    {
+      "description": "Morph from coloured noise to pure ringing via time-varying Q.",
+      "params": {"q": [[0.0, 5.0], [1.0, 800.0]], "gain": 20.0, "lof": 220.0, "hif": 8000.0},
+      "expected_use": "Breakpoint Q (relative times); tail defaults to 1.0 s, so output = indur + 1."
+    }
+  ],
+  "known_issues": [
+    "UNDOCUMENTED DEFAULT (first-class finding): with no -t flag the binary appends a 1.0 s tail - neither the banner nor cgrofilt.htm mentions a default, and the manual's usage line omits -t altogether. The entry pins tail=1.0 explicitly so the duration model indur + tail is always exact (verified sample-exact across 1/2/3 s inputs and tails 0.5-2).",
+    "tail = 0 is accepted by CDP (range 0-20) but is buggy: output becomes a fixed 262144 frames (2^18, about 5.94 s at 44.1 kHz) regardless of input length, the extension carrying low-level filter garbage (verified on 1 s and 2 s inputs; first section matches the normal render). Curated minimum 0.01 avoids it.",
+    "scat > 0 is genuinely stochastic with NO seed: two identical commands 1.1 s apart differ. Keep scat = 0 for reproducible renders; there is no way to pin a take.",
+    "DIVERGENCE: lof/hif's real enforced range is 0.1 to 22050 Hz, not the documented 10 (or 0) to srate/3; and hif < lof passes silently.",
+    "Only Q accepts breakpoint files; gain/lof/hif/tail/scat refuse with 'Cannot read parameter N [...]: brkpnt_files not permitted.' (N = 2,3,4; tail and scat report 6 and 7 in the brk-read stage but 5 and 6 in range refusals - CDP's numbering is stage-dependent).",
+    "Deterministic with scat unset (two runs identical in decoded samples)."
+  ],
+  "references": ["cdp://docs/html/cgrofilt"]
+}

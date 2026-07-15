@@ -1,0 +1,95 @@
+{
+  "program": "grain",
+  "mode": "reverse",
+  "submode": null,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Reverses the ORDER of the grains in a grainy sound without reversing the grains themselves - the retrograde of an attack sequence, with every attack transient still pointing forwards. A 'grain' is a burst of signal above the gate level separated from its neighbours by holes of at least minhole seconds; detection is amplitude-gating, so the process needs material with clear attacks and genuine dips between events (percussive/iterative sources, speech, click trains). Verified: on a 10-grain click train the output's grain-peak sequence is exactly the input's reversed, grains un-reversed internally. Output duration is the input's plus one splice tail (+331 frames / 7.5 ms at 44.1 kHz observed; -1.3% on sparse 2-grain material) - modelled static. Sounds with fewer than two detectable grains are refused: 'ERROR: INVALID DATA / ERROR: No grains found.' (pure tones and flat noise both refuse). Deterministic; mono and stereo input both accepted.",
+  "musical_use": "The subtlest of the grain re-orderers: because each grain still plays forwards, the source stays completely recognisable - only its large-scale time-order runs backwards, like retrograding a melodic motif rather than reversing the tape. Use it on drum loops, plucked/struck phrases, speech syllables or any 'grainy' texture for a version that is familiar yet quietly wrong-footed. Getting the gate right is the whole craft: run grain count (via execute()) or start from the default 0.3 and adjust until the grain count matches what you hear as events; a time-varying gate breakpoint can track material whose level drifts. If grains merge (no holes below the gate), groups behave as single grains and the reversal gets coarser - raising minhole forces coarser grouping deliberately. Combine with modify radical mode 1 (true reversal) for forwards-grains-backwards-order vs backwards-everything comparisons.",
+  "parameters": {
+    "len": {
+      "type": "float",
+      "min": 0.1,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Maximum time between grains in seconds. CDP-enforced range 0.1 to the input duration ('Parameter[1] Value (0.001000) out of range (0.100000 to 2.000000)' on a 2 s file) - the manual/banner claim of 'Range: 1 to duration' is wrong about the minimum. -b0.5 verified byte-identical to leaving the flag off on a 0.2 s-spaced train. Breakpoint refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.')."
+    },
+    "gate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.3,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Required signal level for a grain to be seen (CDP-enforced 0 to 1; refusal 'Parameter[2] ... out of range (0.000000 to 1.000000)'). DIVERGENCE: the binary's banner says 'default 1' but the real default is 0.3 - manual and afta8 agree, and the unflagged render is byte-identical to -l0.3 (and differs from -l0.45 detection counts). Breakpoint-CAPABLE (verified: a 0.05->0.5 gate ramp on an alternating loud/soft train differs from both scalar-endpoint renders); banner/manual-confirmed 'gate may vary over time'."
+    },
+    "minhole": {
+      "type": "float",
+      "min": 0.032,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Minimum duration of the below-gate holes that separate grains. CDP-enforced 0.032 (the default) up to the input duration ('Parameter[3] Value (0.010000) out of range (0.032000 to 2.000000)' on a 2 s file). Larger values merge close events into bigger grain-units. Breakpoint refused ('Cannot read parameter 5 [...]: brkpnt_files not permitted.')."
+    },
+    "winsize": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "When set, the gate level tracks the signal's own envelope, measured with a window of winsize milliseconds; 0 turns tracking off. CDP-enforced 0 to the input duration in ms ('Parameter[4] Value (2500.000000) out of range (0.000000 to 2000.000000)' on a 2 s file). Breakpoint refused ('Cannot read parameter 6 [...]: brkpnt_files not permitted.')."
+    },
+    "ignore_last": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "Ignore the last grain in the source (verified: drops one grain-slot from the output, 2.0075 s -> 1.8000 s on a 10-grain train). Useful when the final 'grain' is really the file's tail. Must come after the value flags - CDP enforces banner flag order ('option flag -l out of order on cmdline.' when -x precedes -l)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Retrograde a percussive phrase with default grain detection.",
+      "params": {},
+      "expected_use": "Grain order reversed, each attack still forwards; output within a splice-length of the input duration."
+    },
+    {
+      "description": "Track a decaying source: gate rides down from 0.4 to 0.1 across the file.",
+      "params": {"gate": "gate_ramp.brk"},
+      "expected_use": "Quiet late grains are still detected instead of being merged into one closing blob (write gate_ramp.brk with breakpoint())."
+    }
+  ],
+  "known_issues": [
+    "Needs at least two detectable grains: a pure 440 Hz tone and flat unenveloped noise both refuse with 'ERROR: INVALID DATA / ERROR: No grains found.' (exit 255). This also means the duration-model regression fixture's flat-noise input cannot run this program - verify on percussive material.",
+    "Duration honesty (static): output gains one closing splice - +331 frames (7.5 ms) on 2 s and 3 s click trains; on sparse material the last grain's repositioning can shave a little (-1.34% on a 2-grain noise file). Worst observed |error| 1.4%.",
+    "Grain detection is the musical parameter surface: gate too high merges soft grains into their loud neighbours (verified: a 0.15-amp grain between 0.9-amp grains disappears as a separate unit at gate 0.3), gate too low can hear noise floors as grains. CDP's grain assess utility (execute()) suggests the gate that maximises the grain count.",
+    "DIVERGENCE: the banner says gate 'default 1'; the actual default is 0.3 (manual value; unflagged render byte-identical to -l0.3).",
+    "DIVERGENCE: manual/banner give len's range as '1 to duration of infile'; the binary enforces 0.1 to the input duration.",
+    "CDP enforces flag order for the -x switch: it must follow the value flags ('ERROR: option flag -l out of order on cmdline.' observed with '-x -l0.3'); value-flag order among themselves was tolerated ('-l0.3 -b0.5' ran). The engine emits flags in entry declaration order, which matches the banner.",
+    "Stereo input accepted (verified: 2-channel output, same +331-frame growth) despite the grain family's speech/mono heritage."
+  ],
+  "references": ["cdp://docs/html/cgrogrns"]
+}

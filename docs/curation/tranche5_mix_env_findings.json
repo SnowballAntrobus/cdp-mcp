@@ -1,0 +1,190 @@
+{
+  "generated_at": "2026-07-15",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build, banners 'CDP Release 7.1 2016')",
+    "os": "Linux x86_64 sandbox",
+    "note": "To be re-verified on macOS r8 by the CDP-gated suite after integration. Spectral (.ana) determinism judged on the RIFF data chunk (CDP writes a per-run date comment into the LIST chunk, so raw-byte comparison always differs)."
+  },
+  "entries": [
+    {
+      "program": "submix",
+      "mode": "interleave",
+      "submode": null,
+      "breakpoint_capable": {},
+      "duration_row": ["submix", "interleave", [2.0, 1.0], {}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model expression 'indur_max' - sample-exact (n1+n2 -> 88200 frames); shorter inputs zero-padded (channel exactly silent past its source's end). duration_row indur field is a 2-list [indur1, indur2] (multi-input row shape, new this tranche).",
+        "Channel i is a bit-identical copy of input i (array-equal verified; input 1 = left). No parameters at all - entry ships with an empty parameters dict.",
+        "Mono inputs only ('Application doesn't work with this type of infile.'); equal sample rates required ('ERROR: INCORRECT USE / ERROR: Different sample-rates in input files: can't proceed.'); one input refused ('Insufficient input files for this process').",
+        "Binary accepts 3+ inputs for multichannel output (5 inputs -> 5-channel wav verified; banner max 1000 channels); entry pins input_arity 2 (stereo). >2 channels via execute()."
+      ]
+    },
+    {
+      "program": "envel",
+      "mode": "impose",
+      "submode": 1,
+      "breakpoint_capable": {"wsize": false},
+      "duration_row": ["envel", "impose", [2.0, 2.0], {"wsize": 20.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model expression 'indur1' - sample-exact regardless of donor length (2s target/1s donor -> 2.0; 1s target/2s donor -> 1.0). 'static' would over-predict on longer donors; multi-input rows carry [indur1, indur2].",
+        "Envelope transfer verified with the repo's analysis.trajectory_frames: output RMS-dB trajectory vs the DONOR r=0.9607 on a flat-tone target (target-vs-donor baseline r=0.025). Transfer is multiplicative (target's own envelope remains underneath - contrast replace).",
+        "Donor shorter than target: target material past the donor's end is scaled by the donor's closing envelope value, not silenced (second-half RMS fell to 9.0% of unprocessed).",
+        "DIVERGENCE: wsize's max is INPUT 1's duration in ms (2s target: refusal '(5.000000 to 2000.000000)'; 3s target: 2500 accepted, 3100 refused '(5.000000 to 3000.000000)') - cgroenvl.htm and afta8 both attribute the bound to the donor ('length of imposed_sndfile'). Fractional wsize accepted (12.5).",
+        "wsize brk refused: 'ERROR: Cannot read parameter 1 [b5_ws.brk]: brkpnt_files not permitted.' No time-varying parameter on this mode.",
+        "Stereo target and cross mono/stereo pairings accepted -> 'any'. Deterministic (identical decoded samples 1.1 s apart)."
+      ]
+    },
+    {
+      "program": "envel",
+      "mode": "replace",
+      "submode": 1,
+      "breakpoint_capable": {"wsize": false},
+      "duration_row": ["envel", "replace", [2.0, 2.0], {"wsize": 20.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model expression 'indur1' - sample-exact (incl. stereo target and shorter donor).",
+        "Flatten-then-impose verified distinct from envel impose on the same pair (byte-level difference); output trajectory vs donor r=0.9619 on a wavy-noise target whose own envelope was uncorrelated with the donor (0.025).",
+        "Shares impose's wsize rules verbatim (range 5 to input 1's length in ms, brk refused parameter 1, same manual/afta8 donor-length divergence).",
+        "Manual caveat kept in entry: near-zero amplitudes in the target cannot be meaningfully rescaled by the flattening stage. Deterministic; stereo -> 'any'."
+      ]
+    },
+    {
+      "program": "formants",
+      "mode": "vocode",
+      "submode": null,
+      "breakpoint_capable": {"fbands": false, "lof": false, "hif": false, "gain": false},
+      "duration_row": ["formants", "vocode", [2.0, 2.0], {"fbands": 8.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model expression 'indur_min' - verified both orders (2s x 1s and 1s x 2s both -> the 1 s input's analysed duration 1.026163; 2s x 2s -> 2.029070). The pvoc analysis grid adds ~+1.5% over the source wav duration - inside the 5% row tolerance (combine cross precedent).",
+        "CDP requires exactly one of -f/-p ('Insufficient parameters on command line' with neither; 'Unknown flag -p on command line.' with both). Entry pins pitchwise -p with default 8 (SoundThread formants_vocode); -f unexposed (mutual exclusion inexpressible in the schema - two defaulted flags would co-emit).",
+        "Ranges: -p max input-dependent ('ERROR: INVALID DATA / ERROR: Too many formant_bands requested: max for this file is 12'); -p0 accepted by CDP but curated out (min 1); fractional -p2.5 accepted. -f0 crashes 'ERROR: INTERNAL ERROR: (Bug?) / ERROR: Formant array too small: set_specenv_frqs()'; -f max 256. -l/-h '(5.000000 to 22050.000000)' (numbered parameter 1); -g '(0.000002 to 10.000000)' (parameter 3; afta8's 0-1 advisory). hif < lof accepted silently.",
+        "Breakpoints all refused: -p<brk> 'Cannot read count of formant_bands.'; -l/-g '<...> brkpnt_files not permitted.' (parameters 1/3).",
+        "Deterministic in the analysis data chunk (only the RIFF LIST date chunk differs run-to-run - the tranche's .ana-hashing trap).",
+        "Amplitude imposition sanity: synth of (flat tone x pulsed donor) vocode correlates with the donor's RMS trajectory at r=0.8887."
+      ]
+    },
+    {
+      "program": "spec",
+      "mode": "grab",
+      "submode": null,
+      "breakpoint_capable": {"time": false},
+      "duration_row": ["spec", "grab", 2.0, {"time": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Output is ONE analysis window: sfprops -d reports 0.002907 s (= 1/344 s at the default engine analysis) at every probed grab time (0, 1.0, 2.0, 2.5). duration_model expression '0.0029' (constant; +0.24% vs measured) - the constant is analysis-settings-dependent.",
+        "DIVERGENCE (softened banner claim): 'a time beyond end of file will grab last window' holds only within an internal bound slightly past the end - grab@2.5 on a 2.029 s analysis works and is data-identical to the last window, but grab@99 refuses 'ERROR: Parameter[1] Value (99.000000) out of range (0.000000 to 3.025941)'.",
+        "time brk refused ('Cannot read parameter 1 [b5_t.brk]: brkpnt_files not permitted.').",
+        "Workflow verified end-to-end: two grabs -> 'morph glide a b out 2.0' -> exit 0, 2.002907 s output (the morph-glide feeder role that motivated curation). Anti-pattern verified: pvoc synth of a bare grabbed window -> exit 0 but a 0-frame wav - grabs are not auditionable directly (in entry known_issues).",
+        "Deterministic (data chunk identical across runs)."
+      ]
+    },
+    {
+      "program": "modify",
+      "mode": "loudness",
+      "submode": 1,
+      "breakpoint_capable": {"gain": true},
+      "duration_row": ["modify", "loudness", 2.0, {"gain": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model static - sample-exact. gain 0.5 output equals 0.5 x input to one 16-bit LSB (exact linear scaling).",
+        "OVERLOAD CONTRAST (paired finding with submix mix): gain 4 on near-full-scale material equals clip(4x) - allclose verified, wraparound ruled out. modify loudness saturates; submix mix wraps. Headroom must be staged BEFORE mixing.",
+        "gain breakpoint-capable (verified: 0->1 ramp differs from both endpoint renders; first 100 ms RMS 3.7% of source vs last 100 ms 97%; also runs on stereo input). Mode 1 chosen over modes 2-8: the only single-input mode with a breakpointable level (ST modify_loudness_1).",
+        "Ranges: '(0.000000 to 32767.000000)' (gain -0.5/-1/100000 refused; 10000 accepted). gain 0 is inside the quoted range but refused at runtime: 'ERROR: INVALID DATA / ERROR: With gain of 0.000000 the soundfile will be reduced to SILENCE!' (a 0->1 breakpoint touching 0 is fine).",
+        "DIVERGENCE: cgromody.htm says 'a gain value of -1 inverts the phase'; the binary refuses all negatives - phase inversion is loudness mode 6.",
+        "Deterministic; stereo accepted -> 'any'."
+      ]
+    },
+    {
+      "program": "filter",
+      "mode": "bank",
+      "submode": 1,
+      "breakpoint_capable": {"q": true, "gain": false, "lof": false, "hif": false, "tail": false, "scat": false, "double": false},
+      "duration_row": ["filter", "bank", 2.0, {"q": 50.0, "gain": 1.0, "lof": 220.0, "hif": 4400.0, "tail": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model expression 'indur + tail' - sample-exact across 1/2/3 s inputs and tails 0.5-2. UNDOCUMENTED DEFAULT (first-class finding): with no -t flag the binary appends tail = 1.0 s (banner and cgrofilt.htm silent; the manual's usage line omits -t entirely). Entry pins default 1.0 so -t1.0 is always emitted and the model always holds.",
+        "-t0 BUG: tail 0 is inside CDP's range (0 to 20) but yields a fixed 262144-frame (2^18) output on both 1 s and 2 s inputs, tail full of low-level filter garbage (first section matches the normal render). Curated min 0.01 makes it unreachable.",
+        "Q breakpoint-capable, banner-confirmed ('Q may vary over time'): brk 5->500 exits 0 and differs from both endpoint renders. Refusals: gain 'Cannot read parameter 2 [...]: brkpnt_files not permitted.', lof 3, hif 4, tail (-t<brk>) 6, scat (-s<brk>) 7 - while RANGE refusals number tail 5 and scat 6 (CDP's parameter numbering is stage-dependent).",
+        "DIVERGENCE: lof/hif real enforced range is 0.1 to 22050 Hz ('(0.100000 to 22050.000000)'; lof 5 and hif 20000 accepted) - banner/manual claim 0-or-10 to srate/3 (14700 at 44.1k). hif < lof accepted silently.",
+        "scat > 0 is GENUINELY STOCHASTIC with NO seed flag: two -s0.5 runs 1.1 s apart differ; scat-less runs identical. stochastic recorded false because the DEFAULT (scat unset) path is deterministic; the entry documents the scat lottery (no way to pin a take).",
+        "Other ranges: Q/gain '(0.001000 to 10000.000000)'; tail '(0.000000 to 20.000000)'; scat '(0.000000 to 1.000000)'. -d changes the render, duration-neutral. Stereo accepted -> 'any'."
+      ]
+    }
+  ],
+  "dropped": [
+    {
+      "program": "submix",
+      "mode": "mix",
+      "submode": null,
+      "reason": "engine_gap_argv_layout_pre_output_aux",
+      "breakpoint_capable_probed": null,
+      "stochastic": false,
+      "notes": [
+        "DROPPED, exhaustively probed (this is the Phase 6 timeline() engine - full detail in tranche5_mix_env.md section 1): CDP wants 'submix mix mixfile outfile' with the mixfile BEFORE the output, but build_cdp_argv renders every parameter (including aux_file) AFTER the output, and the mixfile cannot be an entry input either (.mix/.txt is unknown_input_domain to the PVOC gate). RECOMMENDATION: a ParameterSpec position field (e.g. 'pre_output') consumed by build_cdp_argv, or timeline() assembles its own argv and enters at the security gate. formants put has the same pre-output slot - one fix unblocks both.",
+        "Mixfile line syntax (binary-verified): 'sndname start chans level', 'sndname start 1 level pan', 'sndname start 2 llev lpan rlev rpan'. chans must match the file (mismatch: WARNING + 'Application doesn't work with this type of infile.'). level = multiplier or '-6dB' form; PLAIN NEGATIVE LEVELS REFUSED. pan -1/0/+1, beyond +-1 = hard side attenuated by 1/|pan|; manual's letter pans L/R work, 'C' does NOT act as centre (behaves as no-pan). Tabs, CRLF, ';' comments, blank lines, unsorted times all fine; negative start times refused; paths with spaces impossible (whitespace-split; quoting doesn't help).",
+        "Path resolution (cwd = session root, mixfile in data/): relative paths resolve against the process CWD, NEVER the mixfile's own directory ('inputs/n1.wav' works; a bare name next to the mixfile refuses 'uses only_in_data.wav which is not a sndfile'). Absolute and ./ paths work.",
+        "OUTPUT DURATION RULE (verified sample-exact on 6 configs incl. a 40-event accelerando): outdur = max(start_i + dur_i) - min(start_i) - leading silence before the FIRST event is stripped; interior gaps preserved. timeline() must predict max(at+dur) - min(at), not max(at+dur).",
+        "HEADLINE - OVERLOAD WRAPS: summing is exactly linear, and when the sum exceeds full scale the output is bit-identical to 16-bit integer WRAPAROUND of the sum (3 full-level copies: float peak 2.85, 12182 overs, maxdiff vs wrap 0.0) - positive overs come back as large negative samples. The -a 'may avoid clipping' flag was byte-identical to the unflagged run (no-op here). modify loudness 1 in the same build CLIPS - headroom must be staged before the mix. Pre-flight companion verified: 'submix getlevel 1 mixfile' prints 'MAX SAMPLE ENCOUNTERED : 2.850123 at 0.086304 secs / NORMALISATION REQUIRED : 0.350862 OR -9.0973dB'.",
+        "SR: all sources must share one rate ('WARNING: ... Incompatible sample-rate in file inputs/n1_22k.wav' + infile-type refusal); an all-22050 mixfile renders at 22050.",
+        "Channels: all-mono no-pan -> MONO out; any pan/stereo source -> STEREO, except all-hard-one-side -> MONO. Flags: -s/-e crop in output time (test-only per banner); -g range quoted '(0.000000 to 1.000000)' with -g1.5 refused BUT -g0 accepted rendering silence (banner says '>0-1'). Deterministic (decoded-identical 1.1 s apart). Flag brks not probed (entry dropped before that stage; -s/-e/-g are test scaffolding)."
+      ]
+    },
+    {
+      "program": "envel",
+      "mode": "extract",
+      "submode": 1,
+      "reason": "schema_gap_data_output",
+      "breakpoint_capable_probed": {"wsize": false},
+      "stochastic": false,
+      "notes": [
+        "DROPPED, fully probed: mode 1's output is a binary envelope file dressed as a RIFF/WAVE - FLOAT subtype, SAMPLE RATE 57, 115 frames for a 2 s input at wsize 20 (one float per window). CDP writes it under ANY name including .wav (and appends .wav itself to extensionless names), so an entry would mint an SR-57 pseudo-wav that PASSES output verification (soundfile reads it, rms computes) and silently poisons downstream audio consumers - worse than a hard failure. The engine derives output extension from the domain (node_validation step 9: time -> '.wav'), leaving no way to express an .env output.",
+        "Mode 2 (text brkfile) is equally inexpressible and refuses reserved-extension names outright: 'ERROR: Cannot open a textfile (x6.wav) with a reserved extension.' Content: tab-separated time/level pairs (116 lines at wsize 20 on 2 s); -d datareduce enforced 0-1 (refusals quote '(0.000000 to 1.000000)', parameter 2); -d0.5 reduced 116 lines -> 6; -d0 = no reduction.",
+        "wsize brk refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.').",
+        "Round-trip verified for the future consumer: 'envel impose 2 tone2.wav x1.env out.wav' exits 0 (2.0 s). RECOMMENDATION: an output-kind field (e.g. output_format honored by the output namer + a verifier bypass) would unblock envel extract 1/2 and formants get together. Until then envel impose/replace mode 1 (donor = soundfile) covers the envelope-transfer use-case with no intermediate file."
+      ]
+    },
+    {
+      "program": "formants",
+      "mode": "get",
+      "submode": null,
+      "breakpoint_capable_probed": null,
+      "reason": "schema_gap_data_output",
+      "stochastic": false,
+      "notes": [
+        "DROPPED, fully probed: outputs a .for formant data file (also a RIFF/WAVE container), written verbatim under any name (.for/.ana/.wav all accepted, exit 0). POISON VERIFIED: a get output named .ana reports sfprops -d = 107.848839 s from a 2 s source - since the engine names every spectral output '.ana', a curated formants get would feed garbage durations to preflight and garbage data to pvoc synth downstream.",
+        "Requires exactly one of -f/-p ('Insufficient parameters on command line' / 'Unknown flag -p on command line.' when both).",
+        "The musical use-case (extract formants, impose elsewhere) is covered by the shipped formants vocode, which does get+put internally in one program. If the output-kind schema gap is fixed for envel extract, formants get becomes curatable the same day."
+      ]
+    },
+    {
+      "program": "formants",
+      "mode": "put",
+      "submode": 1,
+      "reason": "engine_gap_argv_layout_pre_output_aux",
+      "breakpoint_capable_probed": null,
+      "stochastic": false,
+      "notes": [
+        "DROPPED, fully probed: 'formants put 1 infile fmntfile outfile [-i][-l][-h][-g]' - the .for slot sits BETWEEN input and output, i.e. before the output, exactly like submix mix's mixfile (same build_cdp_argv layout gap), and it cannot be input 2 either (.for is unknown_input_domain to the PVOC gate).",
+        "Behavior on the binary: modes 1 (replace own formants) and 2 (impose on top) both exit 0; output duration = the input .ana's duration regardless of the .for's length (1 s .ana + 2 s .for -> 1.026 s; 2 s .ana -> 2.029 s). -i quicksearch and -l/-h/-g all exit 0. Deterministic in the data chunk.",
+        "One pre-output-position schema extension plus aux_file acceptance of a .for (binary, not text - the aux_file docstring currently says TEXT) unblocks it; formants vocode ships the use-case meanwhile."
+      ]
+    },
+    {
+      "program": "hilite",
+      "mode": "arpeg",
+      "submode": 1,
+      "reason": "binary_defect_uninitialized_memory",
+      "breakpoint_capable_probed": {"wave": false, "rate": true, "phase": false, "lof": true, "hif": true, "band": true, "amp": true, "decay": false, "sustain": true},
+      "stochastic": false,
+      "notes": [
+        "DROPPED on a source-confirmed binary defect: repeated identical runs yield different analysis data with garbage amplitudes. Mode 1, 8 runs -> per-run max amp inf / 5.19e18 / 2.81e22 / 1.09e35 / inf / inf / 2.68e26 / 0.496 (7 of 8 poisoned); mode 2: 3 of 4; modes 5/6: NaN + inf amps, mode 5 synth = digital silence. A poisoned mode-1 render synthesizes to full-scale noise (RMS 0.9999, pvoc synth warns 'use gain of <= 0.000000'); the rare clean render is musically sane (RMS 0.042) - the algorithm works, the memory doesn't.",
+        "Mechanism (source): dev/hilite/ap_hilite.c:820 mallocs the ARPE_KEEP sustain-counter array without zeroing; do_on() in hilite.c treats nonzero garbage as an active sustained arpegtone and sustain_arpeg_note() computes amp = window_amp * KEEP[cc]/SUST - heap garbage becomes a gain of up to inf. Clean runs happen only when the allocator returns zeroed pages. One-line calloc fix upstream would make this curatable; stochastic recorded false (this is a defect, not a random feature).",
+        "Full parameter surface probed anyway (for the day it's fixed): rate range '(0.000000 to 344.531250)' (= window rate, input-dependent); wave '(1.000000 to 4.000000)'; -p '(0.000000 to 1.000000)'; -N '(0.020000 to 50.000000)'; -s '(1.000000 to 698.000000)' (= window count, input-dependent); -b '(43.066406 to 22050.000000)' (min = one channel width); -a '(0.000000 to 10000.000000)' (afta8's 0-100 advisory). -T/-K exit 0. Duration static (2.029070 on the 2 s analysis).",
+        "Breakpoints: rate brk exits 0 and differs from both endpoint renders; -l/-h/-b/-a/-s brks exit 0; wave refused (parameter 1); -p refused (parameter 3). DIVERGENCE: the banner says 'all parameters may vary over time, except for wavetype and startphase', but -N (nonlinear decay) ALSO refuses: 'ERROR: Cannot read parameter 8 [b5_dk.brk]: brkpnt_files not permitted.' (afta8 marks it breakpointable too - both wrong per the binary)."
+      ]
+    }
+  ]
+}

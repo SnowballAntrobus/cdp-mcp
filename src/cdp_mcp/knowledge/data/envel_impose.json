@@ -1,0 +1,52 @@
+{
+  "program": "envel",
+  "mode": "impose",
+  "submode": 1,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 2,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur1"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Extracts the amplitude envelope of input 2 (the donor) and multiplies it onto input 1 (the target) - envelope transfer, CDP's offline sidechain. Pinned to mode 1 (donor is a soundfile); modes 2-4 take binary .env / text breakpoint envelopes and are not curated (their envelope argv slot cannot be expressed as an audio input). Output duration equals input 1's duration exactly (sample-exact on all probes, regardless of donor length). The transfer is multiplicative: the target's own envelope remains underneath (verified: imposing a 4-pulse donor onto a flat tone gives an output whose 16-point RMS trajectory correlates with the donor's at r = 0.96, computed with the repo's analysis.trajectory_frames). Envelope is sampled every wsize milliseconds. Mono and stereo targets both work; mono donors on stereo targets and vice versa are accepted.",
+  "musical_use": "The 'instruments influencing each other' primitive: make percussive material gate or duck a pad by imposing the percussion's envelope on the pad - rhythm transplanted without any spectral change. Small wsize (5-20 ms) follows attacks tightly and chops sustained material into the donor's rhythm; large wsize (100-500 ms) transfers only the slow dynamic arc, good for breathing/swelling effects. Impose a crescendo-shaped donor for written-in dynamics, or a tremolo-rate donor for amplitude modulation with organic irregularity. Because the transfer is multiplicative, quiet parts of the target stay proportionally quiet - use envel replace (mode 1) instead when the target's own dynamics should be erased first. Donor silence gates the target to silence, so gaps in the donor punch holes in the target.",
+  "parameters": {
+    "wsize": {
+      "type": "float",
+      "min": 5.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 20.0,
+      "flag": null,
+      "description": "Envelope-scanning window in milliseconds. CDP-enforced range is 5 to the duration of INPUT 1 in ms (input-dependent: on a 2 s target 2001 was refused with 'Value (2001.000000) out of range (5.000000 to 2000.000000)'; on a 3 s target the max was 3000) - the HTML manual and afta8 say the bound is the DONOR's length, but the binary uses the target's. Fractional values accepted (12.5 verified). Small = tight rhythmic gating, large = slow dynamic arc. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Offline sidechain: percussion envelope gates a sustained pad.",
+      "params": {"wsize": 20.0},
+      "expected_use": "inputs = [pad, percussion]; output is the pad pulsing in the percussion's rhythm, exactly as long as the pad."
+    },
+    {
+      "description": "Slow-arc transfer: only the donor's overall dynamic shape.",
+      "params": {"wsize": 300.0},
+      "expected_use": "Attack detail ignored; the target inherits the donor's crescendo/decay contour."
+    }
+  ],
+  "known_issues": [
+    "Input order matters: input 1 is the sound that is shaped, input 2 is the envelope donor. Output duration = input 1's duration exactly (verified sample-exact with donor shorter and longer than the target).",
+    "Donor shorter than target: the region of the target past the donor's end is scaled by the donor's closing envelope value, not silenced (verified: 2 s target, 1 s donor ending in a fade -> second-half RMS fell to 9% of the unprocessed target's).",
+    "wsize's maximum is input 1's duration in ms (runtime-enforced, input-dependent). DIVERGENCE: cgroenvl.htm and afta8 document the range as '5 to length of imposed_sndfile' (the donor); the binary enforces the TARGET's length (probed both directions).",
+    "wsize rejects breakpoint files ('ERROR: Cannot read parameter 1 [...]: brkpnt_files not permitted.') - there is no time-varying parameter on this mode.",
+    "Deterministic: two runs 1.1 s apart produce identical decoded samples.",
+    "Envelope-transfer fidelity verified with the repo's analysis.trajectory_frames: output RMS trajectory vs donor r = 0.96 on a flat-tone target (target-vs-donor baseline correlation was 0.03)."
+  ],
+  "references": ["cdp://docs/html/cgroenvl"]
+}

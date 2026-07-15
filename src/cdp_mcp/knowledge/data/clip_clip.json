@@ -1,0 +1,52 @@
+{
+  "program": "clip",
+  "mode": "clip",
+  "submode": 2,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Clips each HALF-WAVECYCLE at a fraction of its own peak (pinned submode 2, 'Clip Fraction'): unlike conventional clipping, which only touches signal above a fixed threshold, this cuts the top off every half-cycle proportionally, so the distortion is uniform across the whole signal and the original dynamic range survives. fraction 1 = literally no change (verified byte-identical to the input); lower values square up the waveform progressively - the lower the fraction, the harder the distortion. A CDP8-era addition (the clip binary prints no CDP version banner). Duration static, sample-exact. Mono only. Deterministic. HEADLINE: the output is re-scaled to full code after clipping - a 0.7-peak input came back with a 1.0 peak (see known_issues); stage gain AFTER this node.",
+  "musical_use": "Level-independent overdrive: because the cut is proportional to each half-cycle's own peak, quiet passages distort exactly as much as loud ones - a fuzz that ignores dynamics instead of riding them, keeping the phrase's shape while changing its voice. fraction around 0.7 adds even harmonic grit and presence; 0.3-0.5 is square-ish and buzzy; near 0.01 everything becomes hard-edged pulse waves. On pitched material it reads as a waveshaper (odd-harmonic sheen on sines); on noise and drums it flattens transient crests into a denser, hotter crunch. Contrast submode 1 (conventional clip-at-level, not pinned): that one gates by absolute level and errors if the signal never reaches it. Since the output returns at full scale regardless of input level, follow with modify loudness to sit it back into a mix - and don't use input level as a drive control, it has none here.",
+  "parameters": {
+    "fraction": {
+      "type": "float",
+      "min": 0.01,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.7,
+      "flag": null,
+      "description": "Fraction of each half-wavecycle at which to clip; 1 = no change (verified: output byte-identical to the input), smaller = harder distortion. CDP-enforced range 0-1 ('Parameter[1] Value (1.500000) out of range (0.000000 to 1.000000)'), but 0 aborts at runtime: 'ERROR: INVALID DATA / ERROR: No distortion with a zero parameter value.' - the curated min 0.01 (SoundThread's floor) keeps that unreachable. Breakpoint refused ('Cannot read parameter 1 [frac.brk]: brkpnt_files not permitted.') - fixed for the whole file."
+    }
+  },
+  "examples": [
+    {
+      "description": "Moderate uniform crunch.",
+      "params": {"fraction": 0.7},
+      "expected_use": "Even harmonic grit across loud AND quiet material; duration unchanged, output peak at full scale."
+    },
+    {
+      "description": "Square-up: heavy proportional clipping.",
+      "params": {"fraction": 0.3},
+      "expected_use": "Buzzy, near-square timbre that still follows the source's dynamics."
+    }
+  ],
+  "known_issues": [
+    "OUTPUT IS RENORMALISED (headline): after clipping, the result comes back at ~full scale regardless of input level (0.7-peak sine at fraction 0.7 -> 1.0-peak output; fraction 0.2 -> 0.96). Input level is NOT a drive control, and downstream headroom must be restaged (modify loudness) - especially before submix mix, whose overload WRAPS.",
+    "fraction 1 is a verified byte-identical pass-through - a rare exact-identity setting, useful for A/B chains.",
+    "fraction 0 is inside CDP's quoted range but refuses at runtime ('No distortion with a zero parameter value.'); curated min 0.01 makes it unreachable.",
+    "Submode 1 (clip at absolute level, range 0-1) verified working but not pinned; per the manual it 'acts as a gate value' and errors if the signal never exceeds the level. Mode 3 refuses 'Program mode value [3] is out of range [1 - 2].'",
+    "Mono only (verbatim, CDP8-style wording: 'ERROR: INVALID DATA / ERROR: File st2.wav is not of correct type (must be mono)') - a different refusal string from the Groucho-era 'Application doesn't work with this type of infile.'",
+    "The clip binary prints no 'CDP Release' banner line and its usage lists no flags - the fraction is the entire parameter surface. Deterministic (identical decoded samples 1.1 s apart); duration sample-exact static."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

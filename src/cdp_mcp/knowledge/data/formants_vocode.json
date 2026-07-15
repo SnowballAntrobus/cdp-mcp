@@ -1,0 +1,86 @@
+{
+  "program": "formants",
+  "mode": "vocode",
+  "submode": null,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur_min"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Cross-synthesis (formerly SPECVOCO): extracts the evolving spectral envelope (formants) of input 2 and imposes it on the spectrum of input 1 - input 1 supplies the material, input 2 the timbral shape. Output duration follows the SHORTER input (verified both orders: 2 s x 1 s and 1 s x 2 s both give the 1 s input's analysed duration). CDP requires exactly one of the two extraction flags -f/-p; this entry pins the pitchwise form and always emits -p<fbands> (SoundThread's choice, default 8); the linear-frequencywise -f form is mutually exclusive with -p (passing both refuses with 'Unknown flag -p on command line.') and is reachable via execute(). Deterministic: two runs 1.1 s apart have identical analysis data (only the RIFF LIST date-comment chunk differs). Amplitude follows the donor's envelope too - a flat tone vocoded by a pulsed donor synthesized to an RMS trajectory correlating with the donor at r = 0.89.",
+  "musical_use": "The classic 'make the water shout' process: vocal or speech-like donors stamp their formant motion onto any sustained, spectrally rich target. Input 1 wants dense, broadband material (noise, textures, sustained chords - things with energy to carve); input 2 wants strong, moving spectral shapes (speech, shouts, animal calls). fbands is the resolution knob: low values (2-4 bands/octave) give a coarse, dark shadow of the donor; 8-12 approach intelligibility. Pitchwise extraction favours low/mid-register donors (the manual recommends frequencywise for material concentrated high - use execute() with -f there). Use -l to strip rumble the donor pushes into the target and -g around 0.5 to tame level buildup (values > 1 amplify, max 10). Chain the output straight into another spectral entry or let auto-PVOC synth it back.",
+  "parameters": {
+    "fbands": {
+      "type": "float",
+      "min": 1.0,
+      "max": 12.0,
+      "unit": "bands/octave",
+      "breakpoint_capable": false,
+      "default": 8.0,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Pitchwise formant extraction: N equally-spaced pitch-bands per octave. CDP's real maximum is analysis-dependent ('Too many formant_bands requested: max for this file is 12' at 44.1 kHz / 1024-point analysis); fractional values accepted (2.5 verified); 0 is accepted by CDP but curated out (min 1). Always emitted (CDP requires -f or -p; entry pins -p). Breakpoint file refused ('Cannot read count of formant_bands.')."
+    },
+    "lof": {
+      "type": "float",
+      "min": 5.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Low frequency below which the spectrum is filtered out (CDP-enforced 5 to 22050: '-l-1' refused with 'Parameter[1] Value (-1.000000) out of range (5.000000 to 22050.000000)'). No cross-check against hif: lof > hif is accepted silently. Breakpoint refused ('brkpnt_files not permitted', parameter 1)."
+    },
+    "hif": {
+      "type": "float",
+      "min": 5.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "High frequency above which the spectrum is filtered out (CDP-enforced 5 to 22050). hif < lof is accepted without warning - keep hif above lof yourself. Breakpoint refused."
+    },
+    "gain": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 10.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Amplitude adjustment of the signal, 'normally < 1.0' (banner). CDP-enforced range 0.000002 to 10 ('-g-1' refused quoting '(0.000002 to 10.000000)'; afta8's 0-1 is an advisory subset). Breakpoint refused ('brkpnt_files not permitted', parameter 3)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Speech-shaped noise: voice donor carves a noise texture.",
+      "params": {"fbands": 8.0, "gain": 0.5},
+      "expected_use": "inputs = [noise/texture, speech]; output .ana lasts as long as the shorter input."
+    },
+    {
+      "description": "Coarse timbral shadowing with rumble removed.",
+      "params": {"fbands": 3.0, "lof": 120.0, "gain": 0.5},
+      "expected_use": "Dark, gestural version of the donor's motion on the target's material."
+    }
+  ],
+  "known_issues": [
+    "CDP requires exactly one of -f / -p; this entry always emits -p via the fbands default. Passing both forms refuses ('Unknown flag -p on command line.'), and the -f (frequencywise) variant is not exposed - use execute() for it. -f0 crashes with 'ERROR: INTERNAL ERROR: (Bug?) / ERROR: Formant array too small: set_specenv_frqs()'.",
+    "Output duration = the shorter input's analysed duration (expr indur_min; the .ana analysis grid adds about +1.5% over the source wav duration - 2 s wavs give a 2.029 s .ana - within the duration-model tolerance).",
+    "fbands' maximum is analysis-dependent (12 for a 44.1 kHz / default-analysis file; the refusal is 'ERROR: INVALID DATA / ERROR: Too many formant_bands requested: max for this file is 12').",
+    "lof/hif are not cross-checked (lof 400 with hif 100 ran silently); no parameter accepts breakpoint files.",
+    "Byte-level comparison of two runs differs only in the RIFF LIST chunk (CDP writes a date comment) - compare the data chunk, not raw bytes, when hashing .ana outputs.",
+    "Inputs are .ana analysis files; time-domain .wav inputs are auto-converted by the engine's PVOC insertion."
+  ],
+  "references": ["cdp://docs/html/cformant"]
+}

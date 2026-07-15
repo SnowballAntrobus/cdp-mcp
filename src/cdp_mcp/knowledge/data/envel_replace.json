@@ -1,0 +1,52 @@
+{
+  "program": "envel",
+  "mode": "replace",
+  "submode": 1,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 2,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur1"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Replaces the amplitude envelope of input 1 with the envelope extracted from input 2: the target's own envelope is flattened out first, then the donor's contour is applied - contrast envel impose, which multiplies the donor's envelope on top of the target's. Pinned to mode 1 (donor is a soundfile; SoundThread's envel_replace_1); modes 2-4 take binary .env / text breakpoint envelopes and are not curated. Output duration equals input 1's duration exactly (sample-exact on all probes). Verified with the repo's analysis.trajectory_frames: replacing the envelope of an undulating noise source with a 4-pulse donor gives an output RMS trajectory correlating with the donor at r = 0.96 (the unprocessed target correlated at 0.03), and the result audibly differs from envel impose on the same pair (outputs not byte-identical). Mono and stereo targets both work.",
+  "musical_use": "Envelope transplant rather than envelope combination: the target's dynamics are erased and the donor's are written in. The canonical CDP use (quoted in the manual) is restoring a sound's original contour after a process that mangled levels - e.g. filtering with time-varying Q - by using the pre-process sound as the donor. Musically it is the stronger form of the offline sidechain: where impose leaves the target's internal dynamics ghosting through, replace makes the target follow the donor's rhythm with full commitment - drum-machine-tight gating of pads, speech rhythm stamped onto texture. Beware targets with near-silent passages: flattening cannot meaningfully rescale what is almost zero (manual caveat), so noise floors get boosted - choose sustained, healthy-level targets.",
+  "parameters": {
+    "wsize": {
+      "type": "float",
+      "min": 5.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 20.0,
+      "flag": null,
+      "description": "Envelope-scanning window in milliseconds, used for both the flattening of input 1 and the sampling of input 2. CDP-enforced range 5 to input 1's duration in ms (input-dependent, same rule verified on envel impose). SoundThread default 20. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Transplant a percussive donor's rhythm onto sustained material, erasing its own swells.",
+      "params": {"wsize": 20.0},
+      "expected_use": "inputs = [sustained target, rhythmic donor]; output follows only the donor's contour."
+    },
+    {
+      "description": "Restore the original dynamic contour after a level-mangling process.",
+      "params": {"wsize": 50.0},
+      "expected_use": "inputs = [processed sound, original sound]; the processed timbre gets its old dynamics back."
+    }
+  ],
+  "known_issues": [
+    "Input order matters: input 1 is flattened and reshaped, input 2 is the envelope donor. Output duration = input 1's duration exactly (verified with donor shorter than target).",
+    "Near-zero amplitudes in the target cannot be meaningfully rescaled by the flattening stage (manual caveat) - low-level noise gets amplified; prefer healthy-level targets.",
+    "wsize's maximum is input 1's duration in ms (runtime-enforced, input-dependent; manual/afta8 attribute the bound to the donor - same documentation error as envel impose).",
+    "wsize rejects breakpoint files ('ERROR: Cannot read parameter 1 [...]: brkpnt_files not permitted.').",
+    "Deterministic: two runs 1.1 s apart produce identical decoded samples.",
+    "Verified distinct from envel impose on the same input pair (byte-level difference), with the replace output tracking the donor even where the target's own envelope disagreed."
+  ],
+  "references": ["cdp://docs/html/cgroenvl"]
+}

@@ -1,0 +1,242 @@
+{
+  "generated_at": "2026-07-15",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build, banners 'CDP Release 7.1 2016'; clip and scramble print no version banner)",
+    "os": "Linux x86_64 sandbox",
+    "note": "To be re-verified on macOS r8 by the CDP-gated suite after integration. Spectral (.ana) determinism judged on the RIFF data chunk (LIST date-chunk trap, tranche 5). GRAIN-FAMILY FIXTURE WARNING: the duration-formula fixture's flat noise registers as ONE grain - grain reverse REFUSES on it ('No grains found.'), and timewarp/rerhythm/reposition rows only hold at their neutral pins; duplicate is fully fixture-compatible. rerhythm/reposition rows additionally need their aux data file written before the run."
+  },
+  "seed_hunt": {
+    "question": "Would any grain-family entry be the SEEDED mono stochastic entry that triggers the deferred stereo seed-linking machinery?",
+    "answer": "No. The grain program has no seed flag in any of its 15 modes and dev/grain contains no srand call; its only drand48 uses are in r_extend (timestretch_iterative, rand_ints_with_restricted_repeats/do_repet_restricted_perm - ASC/PSC scatter) and noise_extend (grab_noise_and_expand), and via the osbind.c drand48 shim (rand()/RAND_MAX; nm shows T drand48 + U srand) those paths run from rand()'s fixed default seed - deterministic every run, unseeded and unseedable (the tranche-2 modify-revecho mechanism). All five shipped grain modes verified decoded-identical 1.1 s apart.",
+    "trigger_candidate": "scramble scramble (CDP8-era waveset scrambler, dev/science/scramble.c): seed is a REQUIRED positional 0-256 and it WORKS - line 1123 srand(dz->iparam[SCR_SEED]) seeds the rand() behind the drand48 shim (the same path that makes revecho's seed Windows-only). Verified: seed 5 twice decoded-identical; seed 5 vs 9 differ; no unseeded/clock path exists. MONO ONLY ('ERROR: INVALID DATA / ERROR: File st2.wav is not of correct type (must be mono)'). If curated, THIS entry poses the stereo seed-linking question (channel split -> per-channel seeds -> interleave). Recorded only; no channel machinery built this tranche."
+  },
+  "entries": [
+    {
+      "program": "grain",
+      "mode": "reverse",
+      "submode": null,
+      "breakpoint_capable": {
+        "len": false,
+        "gate": true,
+        "minhole": false,
+        "winsize": false,
+        "ignore_last": false
+      },
+      "duration_row": ["grain", "reverse", 2.0, {}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model static: +331 frames (7.5 ms closing splice) on 2 s and 3 s click trains (+0.38%/+0.25%); -1.34% on sparse 2-grain noise; worst |error| 1.4%.",
+        "ROW REQUIRES GRAINY INPUT: flat fixture noise and pure tones refuse 'ERROR: INVALID DATA / ERROR: No grains found.' (needs >= 2 detected grains) - the formula fixture's _write_noise input cannot run this program.",
+        "Content verified: grain-peak sequence exactly reversed, grains themselves forwards (input [0.87,0.37,0.14,...,0.85] -> output [0.85,0.14,0.38,...,0.87]).",
+        "gate brk CAPABLE (0.05->0.5 ramp on an alternating-amplitude train differs from both scalar-endpoint renders; banner/manual 'gate may vary over time'). len/minhole/winsize brks refused 'Cannot read parameter 3/5/6 [...]: brkpnt_files not permitted.'",
+        "DIVERGENCE: banner gate 'default 1' vs real default 0.3 (manual/afta8 value; unflagged render byte-identical to -l0.3, grain counts match 0.3 not 0.45). DIVERGENCE: manual/banner len range '1 to duration' vs enforced 0.1-duration ('Parameter[1] Value (0.001000) out of range (0.100000 to 2.000000)').",
+        "Flag order: '-x' before a value flag refuses 'ERROR: option flag -l out of order on cmdline.'; value-flag reordering tolerated. Range-refusal numbering (len 1, gate 2, minhole 3, winsize 4) differs from brk numbering (3/5/6) - stage-dependent.",
+        "Stereo accepted (2-channel out, same +331 frames) -> 'any'. Deterministic."
+      ]
+    },
+    {
+      "program": "grain",
+      "mode": "duplicate",
+      "submode": null,
+      "breakpoint_capable": {
+        "repeats": true,
+        "len": false,
+        "gate": true,
+        "minhole": false,
+        "winsize": false,
+        "ignore_last": false
+      },
+      "duration_row": ["grain", "duplicate", 2.0, {"repeats": 2}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model expression 'indur * repeats' - worst -0.9% across repeats 1-4 on click trains, enveloped noise AND flat fixture noise (4.007234 from 2 s at repeats 2 on the fixture profile: +0.18%). repeats=1 is an exact identity (frame-identical duration). Splice overhead (repeats-1) x 331 frames.",
+        "FIXTURE-COMPATIBLE: single-grain flat noise works (whole file duplicated N times) - no 'No grains found' refusal on this mode.",
+        "repeats (CDP 'N') brk 1->4: exit 0, 4.615 s, differs from both endpoint renders -> capable (banner 'N and Gate may vary over time'). Fractional repeats rounds to NEAREST (2.5 byte-identical to 3). Range verbatim '(1.000000 to 32767.000000)'.",
+        "gate brk exit 0; len/minhole/winsize brks refused (parameters 3/5/6). Family divergences as grain reverse (gate default 0.3 not 1; len min 0.1 not 1).",
+        "-x = last grain not duplicated (3.59 s vs 4.01 s at repeats 2); must follow value flags. Stereo accepted -> 'any'. Deterministic."
+      ]
+    },
+    {
+      "program": "grain",
+      "mode": "timewarp",
+      "submode": null,
+      "breakpoint_capable": {
+        "ratio": true,
+        "len": false,
+        "gate": true,
+        "minhole": false,
+        "winsize": false,
+        "ignore_last": false
+      },
+      "duration_row": ["grain", "timewarp", 2.0, {"ratio": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model expression 'indur * ratio', HONESTLY BOUNDED. Exact rule verified to the sample on 10/15/20-grain trains: outdur = ratio x (last onset - first onset) + (indur - span). Model errors on grainy material: -2.5% (dense train, ratio 2) to -6.7% (ratio 3, 0.2 s tail), +10% at ratio 0.5.",
+        "ROW PINNED AT ratio 1.0 (2.000000 exact on both grainy and fixture-noise inputs) because on material with fewer than two detected grains the process exits 0 and returns the input UNCHANGED at ANY ratio (flat fixture noise verified at ratio 2, 0.5, 1) - any other pin fails the flat-noise fixture.",
+        "ratio range verbatim '(0.001000 to 1000.000000)' (afta8's 50 advisory). ratio brk 0.5->2: exit 0, 2.18 s, differs from both endpoints -> capable; banner: 'Times in brkpnt files refer to INFILE time.' Intergrain times below MINGRAINTIME 0.032 s clamp to 0.032.",
+        "gate brk exit 0; len/minhole/winsize refused (3/5/6). Family divergences as grain reverse. -x verified (3.59 s vs 3.80 s). Stereo accepted -> 'any'. Deterministic."
+      ]
+    },
+    {
+      "program": "grain",
+      "mode": "rerhythm",
+      "submode": 1,
+      "breakpoint_capable": {
+        "multfile": false,
+        "len": false,
+        "gate": true,
+        "minhole": false,
+        "winsize": false,
+        "ignore_last": false
+      },
+      "duration_row": ["grain", "rerhythm", 2.0, {"multfile": "unit_mult.txt"}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "AUX-FILE ENTRY (first grain-family aux_file use): the multfile argv slot follows the output, so the tranche-3 aux_file ParameterSpec expresses it (contrast submix mix's pre-output gap). ROW REQUIRES the harness to write unit_mult.txt containing '1.0' (write_data_file) before running; with it the static model is EXACT (2.000000 from 2 s).",
+        "duration_model static = the mean-multiplier-1 baseline. Exact data-dependent rule verified: outdur = sum(cycled mult_i x intergrain_i) + un-retimed remainder ('1.5' -> 2.900023 = 1.5x1.8+0.2; '0.5 2.0' -> 2.300068; mode 2 with '0.5 2.0' -> 4.700000 = each gap replayed at every multiplier).",
+        "Multfile validation verbatim: 'ERROR: INVALID DATA / ERROR: Ratio (2000.000000) out of range (0.001000 - 1000.000000)' (DASH format, not 'to'); non-numeric 'ERROR: No data in file ...'; newline- and space-separated files byte-identical; a time/value .brk consumed as a FLAT VALUE LIST (0.0 time refused as a ratio) - modify-stack transpos trap.",
+        "Submode 2 (play each grain at every multiplier) probed and documented; submode range refusal 'Program mode value [3] is out of range [1 - 2].'",
+        "Flat-noise (1-grain) input: exit 0, pass-through - fixture-survivable at the neutral pin. gate brk exit 0; len/minhole/winsize refused (3/5/6); family divergences as grain reverse; -x verified; stereo accepted -> 'any'. Deterministic."
+      ]
+    },
+    {
+      "program": "grain",
+      "mode": "reposition",
+      "submode": null,
+      "breakpoint_capable": {
+        "timefile": false,
+        "offset": false,
+        "len": false,
+        "gate": true,
+        "minhole": false,
+        "winsize": false,
+        "ignore_last": false
+      },
+      "duration_row": ["grain", "reposition", 2.0, {"timefile": "match_onsets.txt", "offset": 0.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "AUX-FILE ENTRY: timefile of ascending onset seconds (grain find's output format) follows the output slot -> aux_file-expressible; offset is a positional that renders AFTER the aux file (banner order 'timefile offset'). ROW REQUIRES a timefile mirroring the source onsets (verified 2.000023, +0.001%, on a 0.2 s-grid click train with times '0 0.2 ... 1.8'); on flat fixture noise any timefile passes trivially (1 grain, 2.000000).",
+        "duration_model static is the mirrored-timefile baseline; the real rule (verified exact): outdur = offset + last timefile entry + (indur - last source grain onset). offset 0.5 KEEPS the leading silence (2.90 -> 3.40 s).",
+        "SURPLUS GRAINS DROPPED: a 2-entry timefile against 10 grains -> 0.700000 s output with 2 grains; no cycling (contrast rerhythm).",
+        "Timefile validation verbatim: 'ERROR: INVALID DATA / ERROR: Sync times out of sequence (0.500000 0.200000)'; negative times -> 'ERROR: No data in file ...'; .brk envelope consumed as flat list (refuses out-of-sequence). First grain at t=0 warns 'WARNING: 1st grain moved by 0.015011 secs (662 samps) to allow for startsplice' (exit 0).",
+        "offset range verbatim '(0.000000 to 32767.000000)' (range refusal names Parameter[2]); offset brk refused 'Cannot read parameter 1 [...]: brkpnt_files not permitted.' (stage-dependent numbering). gate brk exit 0; len/minhole/winsize refused (3/5/6); family divergences as grain reverse; -x verified; stereo accepted -> 'any'. Deterministic."
+      ]
+    },
+    {
+      "program": "pitch",
+      "mode": "tune",
+      "submode": 1,
+      "breakpoint_capable": {
+        "frequency": false,
+        "focus": true,
+        "clarity": true,
+        "trace": true,
+        "bcut": true
+      },
+      "duration_row": ["pitch", "tune", 2.0, {"frequency": 440.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "NOT data-file-gated (the brief's open question): the pitch_template slot takes a plain number - shipped as a scalar float. The multi-pitch FILE form (a chord/set, '220 440 880' verified exit 0) is inexpressible and documented; a time/value .brk is consumed as a FLAT frequency list (0.0 refused).",
+        "duration_model static - output .ana duration exactly equals the input's (2.029070; the +1.45% vs the 2 s wav is the pvoc analysis grid, inside row tolerance).",
+        "Tuning verified: resynth of noise-tuned-to-440 has its top 8 spectral peaks at EXACT multiples of 440 Hz.",
+        "Template range verbatim (with cosmetic binary bug - the value prints in the filename slot): 'ERROR: Input frq value 25000.000000 in file 25000 is outside frq range (>0 - 22050[nyquist])'; 5 Hz ACCEPTED (ST 20 Hz advisory; entry curates min 16). Mode 2 (MIDI) verified incl. fractional 60.5.",
+        "Flags: focus '(0.000000 to 1.000000)' param 2, default 1 VERIFIED (unflagged data-identical to -f1); clarity param 3 (0-1, default 0); trace param 4 '(1.000000 to 513.000000)' (= channel count, input-analysis-dependent); bcut param 5 '(9.000000 to 22050.000000)'.",
+        "Breakpoints: all four flags exit 0 ('All parameters may vary over time', banner+manual); focus brk VERIFIED differs from both endpoint renders. Flag order -c before -f tolerated.",
+        "Deterministic in the data chunk. Mono .ana."
+      ]
+    },
+    {
+      "program": "combine",
+      "mode": "interleave",
+      "submode": null,
+      "breakpoint_capable": {"leafsize": false},
+      "duration_row": ["combine", "interleave", [2.0, 1.0], {"leafsize": 1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model expression 'indur_min' - verified both orders (2 s + 1 s -> 1.026163 either way; equal inputs -> 2.029070; 3 inputs -> shortest). Time advances through all inputs in parallel; the longer tail is DISCARDED. Multi-input row shape [indur1, indur2] (excluded from the single-input formula fixture).",
+        "leafsize range verbatim '(1.000000 to 698.000000)' - max = the FIRST input's window count (698 = 2 s x 344/s, analysis-settings-dependent); 400 accepted against a 353-window output. Brk refused 'Cannot read parameter 1 [leaf.brk]: brkpnt_files not permitted.' leaf 1 vs 4 renders differ (data-chunk hashes).",
+        "Refusals verbatim: .wav inputs 'Application doesn't work with this type of infile.'; single input 'Insufficient input files for this process'. 3+ .ana inputs accepted - entry pins arity 2, execute() beyond.",
+        "Deterministic (data chunk identical 1.1 s apart)."
+      ]
+    },
+    {
+      "program": "combine",
+      "mode": "max",
+      "submode": null,
+      "breakpoint_capable": {},
+      "duration_row": ["combine", "max", [2.0, 1.0], {}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model expression 'indur_max' - verified both orders (2 s + 1 s -> 2.029070 either way; 3 inputs -> longest). FAMILY DIVERGENCE: combine interleave truncates to the SHORTER input, combine cross runs to the shorter, combine max runs to the LONGER - per-mode duration semantics, never assume within a program.",
+        "No parameters at all (entry parameters {}); the inputs' relative loudness is the only control surface (winner-takes-all per channel per window).",
+        "Refusals verbatim: single input 'Insufficient input files for this process'; .wav inputs 'Application doesn't work with this type of infile.' 3+ inputs accepted (arity pinned 2).",
+        "Deterministic (data chunk)."
+      ]
+    },
+    {
+      "program": "strange",
+      "mode": "shift",
+      "submode": 4,
+      "breakpoint_capable": {
+        "frqshift": true,
+        "frqlo": true,
+        "frqhi": true,
+        "log_interp": false
+      },
+      "duration_row": ["strange", "shift", 2.0, {"frqshift": 200.0, "frqlo": 100.0, "frqhi": 8000.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model static (2.029070 / 1.026163 across positive/negative shifts and band variants; +1.45% analysis-grid offset vs the source wav, inside tolerance).",
+        "Shift verified: 440 Hz tone + frqshift 200 -> resynth peak at exactly 640.0 Hz.",
+        "Ranges verbatim: frqshift 'Parameter[1] Value (30000.000000) out of range (-22050.000000 to 22050.000000)' (SoundThread's +-500 advisory); frqlo/frqhi 'Parameter[2]/[3] ... (10.766602 to 22039.233398)' - a quarter channel-width inside 0/nyquist, analysis-settings-dependent. frqhi < frqlo ACCEPTED SILENTLY (distinct render).",
+        "Breakpoints: frqshift brk (50->400) differs from both endpoint renders -> capable; frqlo/frqhi brks exit 0 (banner: 'frqshift, frq_divide, frqlo & frqhi may vary over time').",
+        "-l log interpolation: byte-identical NO-OP on all-scalar runs; real change with a breakpointed frqshift (banner: time-varying only, all values same sign).",
+        "Mode 6 refusal 'Program mode value [6] is out of range [1 - 5].' Submodes 2-3 have a different argv shape (single frq_divide) - separate entries if curated. Deterministic (data chunk)."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "interact",
+      "submode": 2,
+      "breakpoint_capable": {},
+      "duration_row": ["distort", "interact", [2.0, 2.0], {}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Submode 2 pinned (impose input1's wavecycle LENGTHS on input2's wavecycles - SoundThread distort_interact_2). duration_model expression 'indur1', verified -0.11% (1.997732 from a 2 s tone + 2 s noise) - VALID ONLY when input1 has fewer wavecycles (periodic/pitched first). ROW REQUIRES that pairing: input1 periodic, input2 dense.",
+        "HEADLINE: reversed pairing COLLAPSES the duration - noise first, tone second gave 0.078277 s from two 2 s inputs (input1's first N2 cycles only). The engine cannot enforce input order; documented as the entry's chief hazard.",
+        "Pseudo-pitch verified: tone2-lengths-on-noise output's strongest FFT peak = 440.0 Hz exactly.",
+        "Submode 1 (interleave wavecycles) probed, not shipped (one (program, mode) key): equal-material inputs -> indur1+indur2 (3.999932 from 2+2, -0.002%); n2+n1 -> 2.014218; dissimilar densities collapse (tone+noise -> 2.078277).",
+        "No parameters at all. MONO ONLY (banner 'Works on MONO files only'; stereo refused 'Application doesn't work with this type of infile.'). Mode 3 refusal '[1 - 2]'. Deterministic. Multi-input row excluded from the single-input formula fixture."
+      ]
+    },
+    {
+      "program": "clip",
+      "mode": "clip",
+      "submode": 2,
+      "breakpoint_capable": {"fraction": false},
+      "duration_row": ["clip", "clip", 2.0, {"fraction": 0.7}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model static - sample-exact on all probes.",
+        "HEADLINE: output is RENORMALISED to ~full scale after clipping (0.7-peak sine at fraction 0.7 -> 1.000 peak; fraction 0.2 -> 0.964). Input level is not a drive control; restage headroom downstream (pairs with tranche 5's loudness-clips vs submix-wraps findings).",
+        "fraction 1 is a verified BYTE-IDENTICAL pass-through. Range verbatim '(0.000000 to 1.000000)'; 0 aborts at runtime 'ERROR: INVALID DATA / ERROR: No distortion with a zero parameter value.' (entry min 0.01, SoundThread's floor). Brk refused 'Cannot read parameter 1 [frac.brk]: brkpnt_files not permitted.'",
+        "MONO ONLY with CDP8-style wording: 'ERROR: INVALID DATA / ERROR: File st2.wav is not of correct type (must be mono)' - a different refusal string from the Groucho-era 'Application doesn't work with this type of infile.' The clip binary also prints no CDP version banner.",
+        "Submode 1 (clip at absolute level) verified working, not pinned; mode 3 refusal '[1 - 2]'. Deterministic."
+      ]
+    }
+  ],
+  "dropped": [
+    {
+      "program": "grain",
+      "mode": "scramble",
+      "submode": null,
+      "reason": "program_nonexistent",
+      "breakpoint_capable_probed": null,
+      "stochastic": null,
+      "notes": [
+        "VERIFIED NONEXISTENT: the grain program's mode list is count, omit, repitch, timewarp, find, duplicate, rerhythm, reverse, reposition, reorder, remotif, assess, r_extend, grev, noise_extend, align - no scramble. cgrogrns.htm's only 'scramble' hit is prose. Distinct from extend scramble (already curated, tranche 1).",
+        "The name's other referent is the standalone CDP8 'scramble scramble' waveset scrambler - a MONO, REQUIRED-SEED (positional, 0-256), WORKING-SEED stochastic program (srand(seed) at science/scramble.c:1123 seeds the rand()-backed drand48 shim; seed 5 twice identical, 5 vs 9 differ; 'must be mono' stereo refusal). Recorded in seed_hunt as the Phase 6 stereo-seed-linking trigger candidate; not in this tranche's set, no channel machinery built."
+      ]
+    }
+  ]
+}

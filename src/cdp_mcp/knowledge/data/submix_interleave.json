@@ -1,0 +1,35 @@
+{
+  "program": "submix",
+  "mode": "interleave",
+  "submode": null,
+  "category": "mix",
+  "domain": "time",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur_max"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Interleaves two mono soundfiles into one stereo file: input 1 becomes the left channel, input 2 the right, each channel a bit-identical copy of its source (verified with array equality). The output lasts exactly as long as the LONGER input (sample-exact); the shorter channel is padded with digital silence to match (verified: 1 s + 2 s inputs -> 88200 frames, channel 1 exactly zero after 1 s). No parameters at all. Inputs must be mono (stereo input refused: \"Application doesn't work with this type of infile.\") and share one sample rate (refusal: 'ERROR: INCORRECT USE / ERROR: Different sample-rates in input files: can't proceed.'). The CDP binary also accepts 3, 4, or more inputs for multichannel output (5 inputs -> a 5-channel wav verified; max 1000 channels per the banner) - this entry pins the 2-in stereo case; reach for execute() for >2 channels.",
+  "musical_use": "The clean way to build a stereo image from two mono renders: run a process twice with different settings (or different seeds/variants from sweep()), then interleave the two takes hard left/right for wide, decorrelated stereo. Because each channel is a bit-exact copy, nothing is summed and nothing can clip - contrast submix mix, where panned copies sum. Classic pairings: two envel impose renders with complementary envelopes for ping-pong movement; two filter bank renders a few Hz apart in lofrq for beating width; a dry and a processed take for instant width. Inverse operation is housekeep chans mode 4 (extract/mono-mix); modify space mode 1 pans a single mono file instead. Unequal lengths are fine - the shorter side simply falls silent.",
+  "parameters": {},
+  "examples": [
+    {
+      "description": "Two mono takes into one stereo file (input 1 = left, input 2 = right).",
+      "params": {},
+      "expected_use": "Pass exactly two mono references; output duration equals the longer input, shorter channel zero-padded."
+    }
+  ],
+  "known_issues": [
+    "Inputs must be mono: a stereo input is refused with \"Application doesn't work with this type of infile.\" (exit 255). channel_constraint 'mono' describes the inputs; the output is always 2-channel here.",
+    "Sample rates must match: 'ERROR: INCORRECT USE / ERROR: Different sample-rates in input files: can't proceed.' (exit 255).",
+    "Fewer than two inputs: 'Insufficient input files for this process' (exit 255).",
+    "The binary accepts more than the banner's advertised 4 files (5 mono inputs produced a 5-channel wav, exit 0); this entry's input_arity pins the stereo (2-input) case only.",
+    "Channel data is a verbatim copy of each input (verified bit-identical), so the process is trivially deterministic; the shorter input is zero-padded, not looped or faded."
+  ],
+  "references": ["cdp://docs/html/cgromixr"]
+}

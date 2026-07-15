@@ -31,6 +31,102 @@ from cdp_mcp.knowledge.loader import KnowledgeIndex
 # cdpr8/_cdp/_cdprogs). Updating any cell in this table is a curation
 # decision and must pair with an entry in docs/phase-2-breakpoint-review.md.
 _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
+    # --- Phase 5 tranches 5-6 (sandbox-CDP probed; see docs/curation/) ---
+    ("submix", "interleave"): {
+        # no numeric parameters
+    },
+    ("envel", "impose"): {
+        "wsize": False,
+    },
+    ("envel", "replace"): {
+        "wsize": False,
+    },
+    ("formants", "vocode"): {
+        "fbands": False,
+        "lof": False,
+        "hif": False,
+        "gain": False,
+    },
+    ("spec", "grab"): {
+        "time": False,
+    },
+    ("modify", "loudness"): {
+        "gain": True,
+    },
+    ("filter", "bank"): {
+        "q": True,
+        "gain": False,
+        "lof": False,
+        "hif": False,
+        "tail": False,
+        "scat": False,
+        "double": False,
+    },
+    ("grain", "reverse"): {
+        "len": False,
+        "gate": True,
+        "minhole": False,
+        "winsize": False,
+        "ignore_last": False,
+    },
+    ("grain", "duplicate"): {
+        "repeats": True,
+        "len": False,
+        "gate": True,
+        "minhole": False,
+        "winsize": False,
+        "ignore_last": False,
+    },
+    ("grain", "timewarp"): {
+        "ratio": True,
+        "len": False,
+        "gate": True,
+        "minhole": False,
+        "winsize": False,
+        "ignore_last": False,
+    },
+    ("grain", "rerhythm"): {
+        "multfile": False,
+        "len": False,
+        "gate": True,
+        "minhole": False,
+        "winsize": False,
+        "ignore_last": False,
+    },
+    ("grain", "reposition"): {
+        "timefile": False,
+        "offset": False,
+        "len": False,
+        "gate": True,
+        "minhole": False,
+        "winsize": False,
+        "ignore_last": False,
+    },
+    ("pitch", "tune"): {
+        "frequency": False,
+        "focus": True,
+        "clarity": True,
+        "trace": True,
+        "bcut": True,
+    },
+    ("combine", "interleave"): {
+        "leafsize": False,
+    },
+    ("combine", "max"): {
+        # no numeric parameters
+    },
+    ("strange", "shift"): {
+        "frqshift": True,
+        "frqlo": True,
+        "frqhi": True,
+        "log_interp": False,
+    },
+    ("distort", "interact"): {
+        # no numeric parameters
+    },
+    ("clip", "clip"): {
+        "fraction": False,
+    },
     # --- Phase 3 tranche 3 (sandbox-CDP probed; see docs/curation/) ---
     ("texture", "simple"): {
         "notedata": False,

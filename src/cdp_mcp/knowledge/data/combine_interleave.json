@@ -1,0 +1,52 @@
+{
+  "program": "combine",
+  "mode": "interleave",
+  "submode": null,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur_min"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Interleaves analysis WINDOWS from the input files, leafsize windows per leaf (formerly SPECLIFN): the output alternates leaf-sized chunks of each sound's spectrum while time advances through all inputs in parallel, amalgamating their spectral characteristics into one sound. Output duration equals the SHORTER input's analysed duration (verified both orders: 2 s + 1 s -> 1.026163 either way; equal inputs -> 2.029070) - time is never extended, contrast combine max which runs to the LONGER input. leafsize 1 mingles the spectra window by window into a single fused hybrid; large leaves (8-20+) pass recognisable alternating chunks. Accepts 3+ inputs on the command line (entry pins arity 2; more via execute()). Deterministic (data chunk identical across runs).",
+  "musical_use": "The 'churning' combiner - afta8/manual: with very small leafsize the sounds mingle thoroughly and relatively smoothly (a somewhat grainy shimmer relative to the source characters); with larger leaves (8, 10, 20+) the result churns or pulsates as the output oscillates among the source materials - 'to churn means to shake, stir or agitate violently, as when making butter from milk... It's one of my favourites! - Ed.' Use leafsize 1-2 as a spectral blender for making a genuinely intermediate timbre from two strong sources (cheaper and stranger than a morph, since amplitude AND frequency data alternate rather than interpolate); use big leaves as a rhythmic timbre-switcher whose rate follows the analysis window rate (~344 leaves/s at default settings - leafsize 34 is roughly 10 alternations per second per pair). Sounds of similar loudness churn best; a much louder input simply dominates its leaves.",
+  "parameters": {
+    "leafsize": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "windows",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Number of analysis windows per leaf (chunk) taken from each input in turn. CDP-enforced 1 up to the FIRST input's window count ('Parameter[1] Value (1000.000000) out of range (1.000000 to 698.000000)' with a 2 s first input at the default 344 windows/s; 400 was accepted with a 1 s second input) - input-dependent max; SoundThread's 1-20 is an advisory subset. leafsize 1 vs 4 verified to produce different renders. Breakpoint refused ('Cannot read parameter 1 [leaf.brk]: brkpnt_files not permitted.') - fixed for the whole file."
+    }
+  },
+  "examples": [
+    {
+      "description": "Window-by-window spectral mingle of two sources.",
+      "params": {"leafsize": 1},
+      "expected_use": "A fused hybrid timbre the length of the shorter input."
+    },
+    {
+      "description": "Churning alternation: ~86 ms chunks of each sound in turn.",
+      "params": {"leafsize": 30},
+      "expected_use": "Audible pulsating oscillation between the two source characters (~11 chunk-swaps per second at default analysis)."
+    }
+  ],
+  "known_issues": [
+    "Duration = the SHORTER input's analysed duration (indur_min), verified order-independent - the opposite of combine max (indur_max). Windows advance through all inputs in parallel; the longer input's tail is discarded, not appended.",
+    "leafsize's maximum is the first input's window count (698 for 2 s at the engine's default analysis) - analysis-settings-dependent, and values above the OUTPUT's own window count still run (leafsize 400 with a 353-window output verified exit 0: the 'interleave' then degenerates toward the first input's opening leaf).",
+    "Refusals (verbatim): .wav inputs 'Application doesn't work with this type of infile.'; a single input 'Insufficient input files for this process'.",
+    "Binary accepts 3+ .ana inputs (verified; three-input render exits 0 at the shortest input's duration). The entry pins input_arity 2 - reach for execute() for bigger stacks.",
+    "All inputs should share analysis settings (same engine analysis defaults make this automatic in-session).",
+    "Deterministic in the RIFF data chunk; only the LIST date comment differs between runs (do not byte-compare .ana files)."
+  ],
+  "references": ["cdp://docs/html/ccombine"]
+}

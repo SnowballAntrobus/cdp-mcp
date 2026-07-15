@@ -40,6 +40,7 @@ def test_categories_sorted_and_unique(real_index):
         "extend",
         "filter",
         "granular",
+        "mix",
         "modify",
         "morph",
         "spectral-frequency",
@@ -52,7 +53,7 @@ def test_categories_sorted_and_unique(real_index):
 def test_list_entries_by_category(real_index):
     entries = real_index.list_entries(category="filter")
     assert [(e.program, e.mode) for e in entries] == [
-        ("filter", "lohi"), ("filter", "sweeping"),
+        ("filter", "bank"), ("filter", "lohi"), ("filter", "sweeping"),
     ]
 
 
@@ -63,6 +64,9 @@ def test_list_entries_by_domain_spectral(real_index):
         ("blur", "avrg"), ("blur", "blur"), ("blur", "drunk"),
         ("blur", "scatter"), ("combine", "cross"), ("combine", "diff"),
         ("blur", "spread"), ("blur", "suppress"),
+        ("combine", "interleave"), ("combine", "max"),
+        ("formants", "vocode"), ("pitch", "tune"), ("spec", "grab"),
+        ("strange", "shift"),
         ("focus", "accu"), ("focus", "exag"), ("focus", "fold"),
         ("focus", "step"), ("hilite", "trace"),
         ("morph", "glide"), ("morph", "morph"), ("spec", "magnify"),
@@ -80,8 +84,8 @@ def test_curated_only_passthrough_includes_all(real_index):
     # All curated entries are curated, so curated_only=False just returns the
     # same set. The flag's behavior is exercised; the data doesn't (yet)
     # contain uncurated entries to filter out.
-    assert len(real_index.list_entries(curated_only=False)) == 237
-    assert len(real_index.list_entries(curated_only=True)) == 43
+    assert len(real_index.list_entries(curated_only=False)) == 250
+    assert len(real_index.list_entries(curated_only=True)) == 61
 
 
 def test_get_returns_none_for_missing(real_index):

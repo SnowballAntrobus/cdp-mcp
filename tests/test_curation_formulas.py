@@ -133,6 +133,31 @@ async def _run(env, *, program, mode, input_name, params):
           "sweepfrq": 1.0, "tail": 0.5}, 0.05),
         # --- Phase 3 tranche 1 (single-input entries; multi-input rows
         # excluded — this fixture writes one in.wav) ---
+        # (grain reverse/rerhythm/reposition + spec grab also excluded:
+        # grain ops refuse the fixture's flat noise ('No grains found') and
+        # rerhythm/reposition need aux timefiles the shared fixture cannot
+        # supply — duration rules pinned in docs/curation/tranche6 transcript.)
+        ("modify", "loudness", 2.0,
+         {"gain": 0.5},
+         0.05),
+        ("filter", "bank", 2.0,
+         {"q": 50.0, "gain": 1.0, "lof": 220.0, "hif": 4400.0, "tail": 1.0},
+         0.05),
+        ("grain", "duplicate", 2.0,
+         {"repeats": 2},
+         0.05),
+        ("grain", "timewarp", 2.0,
+         {"ratio": 1.0},
+         0.05),
+        ("pitch", "tune", 2.0,
+         {"frequency": 440.0},
+         0.05),
+        ("strange", "shift", 2.0,
+         {"frqshift": 200.0, "frqlo": 100.0, "frqhi": 8000.0},
+         0.05),
+        ("clip", "clip", 2.0,
+         {"fraction": 0.7},
+         0.05),
         ("modify", "stack", 2.0,
          {"transpos": -12.0, "count": 3, "lean": 1.0, "atk_offset": 0.0, "gain": 1.0, "dur": 1.0},
          0.05),
