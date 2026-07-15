@@ -287,75 +287,13 @@ A handful of `test_subprocess_core.py` tests that exercise the arch-detection lo
 
 ### 4.9 Test infrastructure
 
-- **`tests/fixtures/fake_subprocess.py`** is the workhorse. Executable Python script that simulates CDP behavior: writes wav/ana files, emits stderr lines, sleeps, exits cleanly or fails specific ways. Flags are named `--cdp-<simulated-behavior>` for self-documentation: `--cdp-refuse-clobber`, `--cdp-die-on-dot-path` (uses SIGTERM not SIGILL — see §5.2), `--cdp-silent-output`, `--cdp-grow-file`.
-- **`tests/conftest.py`** has two session-scoped autouse fixtures: `_isolated_sessions_root` (redirects `CDP_MCP_SESSIONS_ROOT` to `tmp_path` so test runs never touch the developer's real session dir) and `_disable_apple_silicon_arch_wrapping`.
-- **Acceptance test** (`tests/test_acceptance.py`) exercises the full frog chain end-to-end against real CDP under the deliberately-dotted session name `frog_acceptance_v1.0` (locks in the brassage path-mangling regression).
-- **Stress test** (`tests/test_stress.py`, `@pytest.mark.slow`) — opt-in long test (`pytest -m slow tests/test_stress.py`). 80s subprocess sleep, ≥5 progress calls, duration in `[60s, 180s]`.
+**Extracted (2026-07-14) to [`docs/testing-principles.md`](testing-principles.md)** — the permanent reference for the fixture inventory (fake_subprocess flags, conftest autouse fixtures, acceptance + stress tests) and the testing principles, kept current through Phase 3.
 
 ---
 
 ## 5. Forensic discoveries (institutional knowledge)
 
-These are findings made through real implementation work that would otherwise be lost. They're indexed so they can be cited by source file when relevant. Each one represents hours of investigation that a future contributor shouldn't have to repeat.
-
-### 5.1 CDP-specific behavior
-
-**5.1.1 — Stock CDP r8 has no `cdp` binary.** The closest binary names are `cdparams`, `cdparse`, etc. Before Task 4, every production session recorded `cdp_version: "unknown"` because `_detect_version()` looked for `cdp --version`. Phase 1b's fix: probe primary, fall back to walking `cdp_path.parts` in reverse for a `cdp[_-]?r?\d+(\.[\w.]+)?` pattern match. Most installs match `cdpr8` directly → version becomes `"r8"`. Documented in `config.py`.
-
-**5.1.2 — CDP r8 emits error-class messages to STDOUT, not stderr.** Verified empirically with `pvoc synth` refuse-to-clobber and `sndinfo chandiff` channel mismatch. The error parser (Task 5) searches `combined = stderr + "\n" + stdout` for the two patterns that benefit. Documented in `error_parsing.py`.
-
-**5.1.3 — Real CDP error phrasings (Task 5 refinement):**
-- Refuse-clobber: `"Cannot open output file ..."` (uses "open" not "create" — the broader regex matches both)
-- Channel mismatch: `"Process only works with STEREO files."` or `"Process only works with MONO files."`
-- "Application doesn't work with this type of infile" was considered as a `channel_mismatch` pattern and **rejected as too generic** — it could mean wrong sample rate, wrong format, wrong encoding, anything. A misleading `fix` hint is worse than no specific entry.
-
-**5.1.4 — `pvoc anal` and `pvoc synth` are byte-deterministic** for the same input + CDP version. Verified empirically by hashing outputs across multiple runs in Tasks 10 and 11. The entire derivative cache premise rests on this; both directions confirmed. SHA of test PVOC anal output: `e4e6954…`. SHA of test PVOC synth output: `26fb3dba…`.
-
-**5.1.5 — Real PVOC scales nonlinearly with input duration.** Empirically on Apple Silicon M-series, 10 minutes of mono 44.1 kHz wav analyzes in ~5 seconds. The naive linear extrapolation from "37ms for a few-second wav" gives multi-hour estimates for 60+ seconds of PVOC work, which is wrong by orders of magnitude. There must be substantial per-call overhead that dominates at small sizes, then very efficient streaming behavior at larger sizes. **Don't extrapolate PVOC timings linearly.** (Forced the Task 13 plan substitution from real CDP to `fake_subprocess`.)
-
-**5.1.6 — `modify brassage` SIGILLs (silently, no stderr) on absolute paths whose ancestry contains a `.`** Root cause is brassage's `_cdptemp1` sibling-derivation logic. Phase 1a workaround: cwd-relative argv paths for in-session writes; absolute for cache reads outside the session tree. The acceptance test uses session name `frog_acceptance_v1.0` to lock the regression. Documented in `processing.py:_argv_path` and `tests/test_acceptance.py`.
-
-**5.1.7 — PVOC `.ana` files are 10-20× the source WAV size.** Window-dependent. Surfaced when the 1 GB output cap kept firing on long-input PVOC steps. Watchdog message in `pvoc.py` mentions this. Phase 3 should grow per-program `pvoc_analysis_expansion_factor` hints.
-
-**5.1.8 — CDP binaries are inconsistent about exit codes when printing the usage banner.** Some exit 0, others 1, 2, or 255. The right invariant is *behavioral*: "expected output missing AND 'Usage:' in stderr OR stdout", regardless of exit code. Documented in `error_parsing.py` for `_USAGE_BANNER_RE`.
-
-**5.1.9 — `extend loop` may be silent during execution.** The design doc flagged this as an open question for stress-testing the keepalive. Task 13 sidestepped by using `fake_subprocess --sleep 80 --stderr-lines 20` instead — the keepalive is clock-driven, not stderr-driven, so the empirical question is moot for that test's purpose.
-
-### 5.2 macOS-specific behavior
-
-**5.2.1 — macOS's ReportCrash routes SIGILL/SIGABRT/SIGSEGV/SIGBUS/SIGFPE/SIGTRAP through a crash dialog.** Test fakes simulating CDP crashes should use **SIGTERM** (or SIGKILL/SIGINT/SIGHUP) to avoid triggering the dialog during every test run. Task 2's `--cdp-die-on-dot-path` was originally `--cdp-sigill-on-dot-path` and used SIGILL; the rename and signal change preserve the test's purpose (production only checks `exit_code != 0`, doesn't care about the specific signal) while avoiding ReportCrash noise. Documented in `_trigger_signal_death` docstring.
-
-**5.2.2 — macOS `/var → /private/var` symlink.** When test fixtures put cache directories under `tmp_path` (which resolves to `/var/folders/...` on macOS but `/private/var/folders/...` after `Path.resolve()`), the security gate's path-scope check fails because it compares resolved vs unresolved paths. Fix: `Path.resolve()` on the cache root before constructing the SessionManager in tests. Surfaced in the Task 10 verification driver and documented there.
-
-### 5.3 Python / packaging behavior
-
-**5.3.1 — `pip install -e ".[dev]"` may install into a different Python's site-packages.** Task 6's verification surfaced this: the venv's active Python was 3.11, but `pip install -e ...` installed into `python3.13/site-packages` (system-wide). The fix is `python -m pip install ...` which binds the install to the active interpreter. Worth flagging if you ever see "module not found" errors after a fresh install in a multi-Python-version environment.
-
-**5.3.2 — `monkeypatch.setattr("module.X", ...)` doesn't catch from-imports.** If you do `from module import X` in caller code, you have to patch `caller_module.X`, not `module.X`. This bit Task 7 when patching `OUTPUT_FILE_SIZE_CAP_BYTES`: must patch BOTH `cdp_mcp.limits.OUTPUT_FILE_SIZE_CAP_BYTES` AND `cdp_mcp.tools.process.OUTPUT_FILE_SIZE_CAP_BYTES` because process.py from-imports.
-
-**5.3.3 — `importlib.reload(module)` is required to test env-var rebinding.** Module-level constants computed at import (like `OUTPUT_DURATION_CAP_S = _resolve_positive_float(...)`) are frozen at first import. A test like "set env var, expect new constant value" needs `importlib.reload(limits)` after `monkeypatch.setenv`. The Task 7 test `test_env_var_override_round_trip` does this. Without that, future "lazy import" optimizations could silently break env-var overrides without test coverage.
-
-**5.3.4 — `matplotlib.use("Agg")` must be called programmatically at server entry, before any pyplot import.** The `MPLBACKEND=Agg` environment variable is unreliable across launch wrappers (`uvx`, `npx`, IDE-spawned servers may drop or override it). A GUI backend on a headless server hangs `visualize()` indefinitely on first call. `server.py` does this at module top. Documented in `visualization.py` and the design doc.
-
-**5.3.5 — `audioread` deprecation in Python 3.14.** `audioread` (transitive via librosa) deprecates `aifc` and `sunau` in 3.14. Mitigation: rely on `soundfile` exclusively (already in deps; librosa prefers it when available). `LIBROSA_AUDIO_BACKEND=soundfile` env var available in librosa 0.10+ for explicit selection. No `audioread=False` parameter on `librosa.load()` — that was a v6 mis-attribution in the design doc.
-
-### 5.4 Test infrastructure findings
-
-**5.4.1 — Test fakes should fail in the same ways production fails.** Phase 1a's `fake_subprocess.py` initially overwrote outputs unconditionally; production was broken on the same path (`pvoc synth` refuses-clobber). Task 2 added `--cdp-refuse-clobber` etc. Naming convention: `--cdp-<simulated-behavior>` (observable behavior, not implementation detail).
-
-**5.4.2 — Phantom session in cache dir.** `list_sessions()` returns every subdir of `sessions_root`. If tests put a cache directory under `tmp_path` that gets used as a sessions_root, the cache appears as a "session." Fix: use `tmp_path_factory.mktemp("cache")` outside the sessions root, or `tmp_path / "cache"` (separate dir). Pattern documented in `tests/test_workspace.py`.
-
-**5.4.3 — `monkeypatch.setattr` on `run_cdp_command` directly is the right way to prove "subprocess didn't run."** Timing-based "second call was faster" leaves room for filesystem cache, GC, etc. Patching the entry point and asserting it wasn't entered is direct empirical proof. Used in Task 11 for the cross-tool audition cache verification ("analyze hits viz-populated audition cache without subprocess").
-
-**5.4.4 — `pytest-timeout` as belt-and-suspenders.** Global `timeout = 30` in `pyproject.toml` catches async-coordination bugs that would otherwise hang. The stress test uses a longer per-test override via `@pytest.mark.timeout(200)` (added to the `markers` config list in Phase 1b Task 13).
-
-**5.4.5 — Substrate choice depends on what the test verifies.** Tests verifying MECHANISMS (clock-driven keepalive, atomic-write contract, hardlink behavior) use synthetic substrate. Tests verifying END-TO-END properties (regex matching real CDP outputs, real PVOC determinism, security boundary against real path traversal) need real CDP. The Task 13 plan-vs-implementation divergence (substituted `fake_subprocess` for real PVOC) is the clearest case: the test verifies the clock loop fires across 60 seconds, which is a mechanism property, so synthetic substrate is *purer* than real with variable timing.
-
-### 5.5 Determinism findings (cache correctness)
-
-**5.5.1 — PVOC anal: deterministic** (`e4e6954…` across runs)
-**5.5.2 — PVOC synth: deterministic** (`26fb3dba…` across runs)
-**5.5.3 — `blur blur`: NOT independently verified** in Phase 1b. The frog acceptance test confirms it produces correct-shaped output, but byte-determinism across runs hasn't been measured. Same caveat for `modify brassage`, `extend loop`, `filter sweeping`, `morph morph`. None are marked `phase_sensitive: true`, so they're assumed deterministic. **Phase 3 should verify each** as part of the curation-expansion work — empirical confirmation of determinism is what makes Phase 4's process-output cache (if revived) safe to enable.
+**Extracted (2026-07-14) to [`docs/forensics.md`](forensics.md)** — the permanent forensic record. The `5.1.x`–`5.5.x` identifiers are preserved there verbatim (so existing citations like "handoff §5.5" still resolve), §5.4's test-infrastructure findings live in [`docs/testing-principles.md`](testing-principles.md), and the Phase 2/3 findings gathered since (`P2-n` / `P3-n`) are appended in the same document.
 
 ---
 
@@ -507,7 +445,7 @@ ruff check src tests
 - `cluster()` with PCA + hierarchical default; UMAP opt-in.
 - `why()` provenance tool.
 - CDP docs FTS5 index with version-mismatch rebuild trigger.
-- Extract `docs/forensics.md` and `docs/testing-principles.md` from this handoff and the design doc's appendices (see §5).
+- Extract `docs/forensics.md` and `docs/testing-principles.md` from this handoff and the design doc's appendices (see §5). **Done, 2026-07-14.**
 
 ### Phase 4 needs
 
@@ -523,7 +461,7 @@ ruff check src tests
 
 ### Cross-phase: extracting institutional knowledge
 
-Phase 3 should extract §5 of this document into `docs/forensics.md` (CDP-specific) and `docs/testing-principles.md` (test infrastructure). This handoff document then becomes a Phase 1b artifact pointing at those canonical sources rather than holding them inline.
+**Done (2026-07-14, Phase 3 close-out):** §5 of this document was extracted into `docs/forensics.md` (CDP-specific, with Phase 2/3 findings appended) and §4.9 + §5.4 into `docs/testing-principles.md`. This handoff is now a Phase 1b artifact pointing at those canonical sources rather than holding them inline.
 
 ---
 
