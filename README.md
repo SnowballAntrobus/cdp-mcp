@@ -2,7 +2,7 @@
 
 An MCP (Model Context Protocol) server that wraps the [Composers' Desktop Project](https://www.composersdesktop.com/) (CDP) suite, exposing it as a set of tools an LLM can call for sound transformation, analysis, and visualization.
 
-> **Status:** Phase 3 complete. 21 tools; **43 curated programs** (every parameter range, duration model, and breakpoint capability empirically verified against real CDP binaries) plus 194 auto-generated uncurated stubs surfacing the long tail. DAG orchestration (`graph`, `batch`), a full observation suite (spectrograms, MIR scorecards, segmentation, comparison, progression, clustering), FTS5 search over CDP's manual, per-output provenance, and derivative caches throughout. Phase handoffs live in `docs/`.
+> **Status:** Phase 4 complete (Ableton export deferred). 31 tools + 3 workflow prompts; **43 curated programs** (every parameter range, duration model, and breakpoint capability empirically verified against real CDP binaries) plus 194 auto-generated uncurated stubs surfacing the long tail. DAG orchestration (`graph`, `batch`), a full observation suite (spectrograms, MIR scorecards, segmentation, comparison, progression, clustering), FTS5 search over CDP's manual, per-output provenance, and derivative caches throughout. Phase handoffs live in `docs/`.
 
 ## What this does
 
@@ -13,6 +13,7 @@ Wraps CDP — a 500+ program suite for offline sound transformation — as MCP t
 - **Phase 1a/1b** — core loop (`process` → `visualize`/`analyze`), five curated programs, derivative caches (15×–1231× speedups), pre-flight duration prediction + reactive disk watchdog, structured error taxonomy, polymorphic breakpoint parameters, `latest`/`prev_N` conversational aliases. Record: `docs/phase-1b-handoff.md`.
 - **Phase 2** — DAG orchestration: `graph()` (whole-DAG validation with chained per-node duration predictions, then topological execution into one graph directory) and `batch()` (N inputs, one atomic context event, `latest_batch[i]` addressing); the observation track (`segments`, `compare`, `progression`, verbose `analyze`); the `breakpoint()` envelope DSL; multi-input processing; a hardening pass (cancellation-safe subprocesses, security-gate fixes, event-loop hygiene). Record: `docs/phase-2-handoff.md`.
 - **Phase 3** — knowledge completion: 6 → 43 curated entries via an empirical pipeline against CDP built from source (`scripts/build_cdp8_linux.sh`); four-source curation hierarchy (*binaries decide, source explains, manual describes, SoundThread + afta8 prioritize*); `search_docs`/`read_doc` (FTS5 over the CDP manual), `why()` provenance, `cluster()`, `write_data_file()` + `aux_file` parameters (texture programs); long-tail stub generator. Findings — including several CDP bugs the docs don't know about — in `docs/forensics.md` and `docs/curation/`. Record: `docs/phase-3-handoff.md`.
+- **Phase 4** — workflow polish: `sweep()` (one source × N param variants — a reversed design-doc non-goal, driven by usage evidence), `tag`/`journal`/`set_config`/`list_session_files`, dependency-safe `cleanup()` + `cleanup_cache()` (dry-run default), graph templates (`save_graph`/`load_graph`/`list_graphs`), a lineage→regenerate reproducibility test, and three MCP workflow prompts. `export_to_ableton` and the process-output cache are deferred with recorded rationale.
 
 ## Installation
 
@@ -79,8 +80,9 @@ From here the workflows compose:
 
 - **Iterate:** chain further `process()` calls via `"latest"` / `prev_N`, with time-varying parameters built by `breakpoint()` (named shapes or custom point lists).
 - **Orchestrate:** describe a whole chain declaratively with `graph(dry_run=True)` — per-node duration predictions before anything runs — then execute it.
-- **Explore:** `batch()` one program across many inputs, `cluster()` the results, audition one medoid per cluster with `compare()`, and view a chain's evolution with `progression()`.
+- **Explore:** `batch()` one program across many inputs or `sweep()` one input across many parameter settings, `cluster()` the results, audition one medoid per cluster with `compare()`, and view a chain's evolution with `progression()`.
 - **Understand:** `segments()` finds onsets/silences to feed edit points; `why()` reconstructs any output's full provenance; `search_docs()`/`read_doc()` consult CDP's own manual.
+- **Keep:** `tag()` the winners, `journal()` the taste notes, `save_graph()` a chain you liked as a reusable template, `cleanup()` the rest (dependency-safe, dry-run by default).
 
 ## Environment variables
 
@@ -97,14 +99,15 @@ Invalid values (non-numeric, non-positive) fall back to defaults with a warning 
 
 ## Tools
 
-21 tools across five groups:
+31 tools across six groups:
 
 | Group | Tools |
 |-------|-------|
 | Introspection | `list_categories`, `list_programs`, `get_program_info`, `search_docs`, `read_doc` |
-| Workspace | `set_session`, `describe_workspace` (incl. full graph `history`), `read_envelope`, `write_data_file` |
-| Action | `process` (curated, PVOC auto-insert, lineage), `execute` (gated escape hatch), `graph` (declarative DAG w/ dry-run), `batch` (N-input exploration), `breakpoint` (envelope DSL) |
+| Workspace | `set_session`, `describe_workspace` (incl. full graph `history`), `read_envelope`, `write_data_file`, `set_config`, `list_session_files` |
+| Action | `process` (curated, PVOC auto-insert, lineage), `execute` (gated escape hatch), `graph` (declarative DAG w/ dry-run), `batch` (N inputs × one process), `sweep` (one input × N param variants), `breakpoint` (envelope DSL) |
 | Observation | `visualize`, `analyze` (+`verbose`), `segments`, `compare`, `progression`, `cluster` |
+| Curation | `tag`, `journal`, `cleanup` (dependency-safe, dry-run default), `cleanup_cache`, `save_graph`/`load_graph`/`list_graphs` |
 | Provenance | `why` |
 
 Every action returns a `ResultEnvelope` with structured errors (each carrying `fix` text) and a context block (`latest`, `recent_graphs`, `available_sources`) so the LLM stays grounded across turns.

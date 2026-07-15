@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from . import __version__ as _cdp_mcp_version
 from .config import CDPConfig
@@ -69,6 +69,9 @@ class SessionConfig(BaseModel):
     cdp_version: str  # "unknown" if CDP wasn't configured at creation time
     python_version: str
     cdp_mcp_version: str
+    # User-adjustable settings persisted by set_config() (Phase 4).
+    # Absent from pre-Phase-4 config.json files; defaults to {} on load.
+    user_config: dict = Field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------

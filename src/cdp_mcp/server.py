@@ -24,6 +24,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
+from . import prompts
 from .config import CDPConfig, CDPConfigError, detect_cdp
 from .graph import LatestTracker
 from .knowledge.loader import KnowledgeIndex
@@ -31,6 +32,7 @@ from .session import SessionManager
 from .tools import analyze as analyze_module
 from .tools import batch as batch_module
 from .tools import breakpoint as breakpoint_module
+from .tools import cleanup as cleanup_module
 from .tools import cluster as cluster_module
 from .tools import compare as compare_module
 from .tools import data_files as data_files_module
@@ -38,10 +40,15 @@ from .tools import docs as docs_module
 from .tools import execute as execute_module
 from .tools import graph_tool as graph_module
 from .tools import introspection, workspace
+from .tools import journal as journal_module
 from .tools import process as process_module
 from .tools import progression as progression_module
 from .tools import provenance as provenance_module
 from .tools import segments as segments_module
+from .tools import session_config as session_config_module
+from .tools import sweep as sweep_module
+from .tools import tagging as tagging_module
+from .tools import templates as templates_module
 from .tools import visualize as visualize_module
 
 mcp = FastMCP("cdp-mcp")
@@ -183,6 +190,27 @@ data_files_module.register(
     mcp,
     sessions=_session_manager,
 )
+
+# Phase 4: sweep, session lifecycle, cleanup, templates, prompts.
+sweep_module.register(
+    mcp,
+    sessions=_session_manager,
+    knowledge_index=_index,
+    cdp_config_provider=lambda: _cdp_config,
+    latest_tracker=_latest_tracker,
+    cache_root=_cache_root,
+)
+tagging_module.register(mcp, sessions=_session_manager, latest_tracker=_latest_tracker)
+journal_module.register(mcp, sessions=_session_manager)
+session_config_module.register(mcp, sessions=_session_manager)
+cleanup_module.register(
+    mcp,
+    sessions=_session_manager,
+    latest_tracker=_latest_tracker,
+    cache_root=_cache_root,
+)
+templates_module.register(mcp, sessions=_session_manager)
+prompts.register(mcp)
 
 
 def create_server() -> FastMCP:
