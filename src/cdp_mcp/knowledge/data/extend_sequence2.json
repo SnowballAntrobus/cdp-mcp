@@ -1,0 +1,72 @@
+{
+  "program": "extend",
+  "mode": "sequence2",
+  "submode": null,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 2,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "seqfile"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Multi-sound score renderer: plays SEVERAL input sounds at times, pitches, levels and durations listed in a sequence text file - a one-shot sampler-sequencer (this entry pins 2 inputs; the binary is variadic, a 3-input run verified - use execute() for more; single input refuses 'Insufficient input files for this process'). SEQUENCE FILE SYNTAX (source- and probe-verified): the parser reads FLOATS as a stream - line structure is free (an all-on-one-line file rendered byte-identical to the line-per-event form); lines starting with ';' are comments (leading whitespace then ';' also skipped). First infilecnt values = notional MIDI pitch of each input (0-127); every following group of 5 values = one event: input-sound-number (integer 1..N, fractional or out-of-range refused 'Instrument number (1st item) at line N does  not correspond to any input file'), output-time (seconds, must be NON-DECREASING - equal times legal, i.e. chords; decreasing refused 'Times do not increase at (...) AT LINE N'), midi-pitch (0-127), loudness (>= 0; values > 1 ACCEPTED - the banner's '0-1' is advisory), duration (seconds, must exceed the reader's fixed 2 ms floor: 'Duration (...) at line N is too short for splicelen (2 ms)'). A value count not congruent to first-line-pitches + 5k refuses 'Sound-number, Time, Pitch, Level, Duration vals not grouped correctly'. PITCH SEMANTICS: only the DIFFERENCE (event-pitch - notional-pitch) matters; transposition ratio = 2^(diff/12), applied by SAMPLE-RATE RESAMPLING (linear interpolation), so +12 st plays the sound at half length and double speed (verified: 660 Hz source event at +12 measured 1314 Hz and 0.15 s from a 0.3 s source); notional 60/event 72 rendered byte-identical to notional 76/event 88. DURATION RULE (Phase 6 empirics, exact on every probe): outdur = MAX over events of (time_i + min(indur[snd_i] / 2^((pitch_i - notional_i)/12), dur_i)) - the listed duration CURTAILS (end-splice applied) but NEVER EXTENDS an event ('1 1.0 76 1.0 5.0' on a 0.3 s source still ends at 1.3), and an EARLIER event's tail past the last event's end IS kept (event at t=0 lasting 1.2 s + last event ending 0.55 rendered 1.2000). Deterministic (identical decoded shas 1.2 s apart). Overlapping events SUM WITHOUT CLIPPING: 'OVERLOAD!!' is printed once but raw float sums above full scale are written (3-event chord peaked 1.805) - it does not wrap; trim afterwards or lower attenuation.",
+  "musical_use": "THE constructed-rhythm primitive: write a score, get a rendered phrase. Feed it two contrasting one-shots (a ping and a thud, a syllable and a click) and a sequence file, and it becomes a drum machine / melody sequencer whose voices are your own sounds - the natural back-end for programmatic gesture and timeline construction, since the sequence file is trivially machine-generated (write it with write_data_file()). Times are absolute output seconds (equal times build chords), pitch is per-event in fractional MIDI relative to each sound's declared notional pitch (use fractional values for detune and micro-tonality), loudness shapes per-event accents (values over 1 push gain - watch the summed peaks), and the duration field is a per-event choke/gate: shorter than the (transposed) sound curtails it with an end-splice of splice ms, longer is silently ignored. Remember transposition is resampling: low events lengthen and darken, high events shorten and brighten - factor that into rhythmic spacing (an event's real length is indur/2^(st/12), and the file's total length follows the max-rule). Keep attenuation at 1 and headroom in the sources, or drop attenuation when dense chords overload. For one-sound sequences use the simpler sibling extend sequence (execute()); for stochastic clouds instead of exact scores use texture.",
+  "parameters": {
+    "seqfile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED sequence text file (any extension except .brk; write it with write_data_file()). Line 1: notional MIDI pitch of each input sound, one value per input in argv order (0-127, fractional accepted). Then one 5-value group per event: sound-number (1..N integer), output-time (seconds, non-decreasing; equal times = chord), midi-pitch (0-127, fractional accepted; rendered as resampling transposition by 2^((pitch-notional)/12)), loudness (>= 0; > 1 accepted), duration (seconds; > 2 ms; curtails but never extends the event). ';' comment lines allowed; whitespace/line breaks free (values parsed as a stream). All refusals are verbatim INVALID DATA errors quoted in the entry description. Times above 7200 s are ACCEPTED (a 7300 s event rendered a 1.3 GB file, exit 0) - the engine duration cap is the only guard."
+    },
+    "attenuation": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Overall attenuation multiplied into every event's loudness (CDP-enforced 0 to 1: 'Parameter[2] Value (1.500000) out of range (0.000000 to 1.000000)', -0.5 same; CDP default 1.0). CDP accepts 0 but renders DIGITAL SILENCE (verified peak 0.0000) - the curated minimum keeps it positive. afta8's -10..10 / default 0.9 is wrong on both counts. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "splice": {
+      "type": "float",
+      "min": 2.0,
+      "max": 200.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 2.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Length of the end-splice applied when an event's listed duration CURTAILS the (transposed) sound (CDP-enforced 2 to 200 ms, refusals verbatim; default 2 - flag-less run byte-identical to -s2). Only audible when curtailment happens: on a sequence with no curtailed events -s50 rendered byte-identical to the default; on a curtailed event it differs. Breakpoint file refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Two-voice rhythmic phrase: ping (notional 76) and thud (notional 57) alternating, one ping transposed up an octave.",
+      "params": {"seqfile": "seq.txt", "attenuation": 1.0},
+      "expected_use": "First write seq.txt, e.g. write_data_file('seq.txt', '76 57\\n1 0.0 76 1.0 0.3\\n2 0.5 57 1.0 0.4\\n1 1.0 88 1.0 0.3\\n'). Renders a 1.15 s phrase (last event at 1.0 + 0.3/2 - the +12 event plays at half length)."
+    },
+    {
+      "description": "Chord stab: three events at the same time, levels dropped to avoid overload.",
+      "params": {"seqfile": "chord.txt", "attenuation": 0.5},
+      "expected_use": "chord.txt = '76 57\\n1 0.1 76 0.6 0.3\\n2 0.1 57 0.6 0.4\\n1 0.1 71 0.6 0.3'. Equal times are legal and sum; without the level cuts a full-level 3-note chord peaked 1.8 (OVERLOAD!! warning, floats written unclipped)."
+    }
+  ],
+  "known_issues": [
+    "DURATION comes from the sequence file, not from a parameter: outdur = max over events of (time + min(indur[snd]/2^((pitch-notional)/12), listed-duration)) - exact (4 dp) on nine probe sequences including transposed, curtailed, chord and early-long-tail cases. The engine cannot predict it (duration_model 'seqfile' engages the preflight skip path); the runtime watchdog is the guard. Multi-input entry: duration_row null, rule pinned in docs/curation/tranche11a_iteration.md.",
+    "Transposition is SAMPLE-RATE RESAMPLING: an event at +12 st lasts half as long as the source, -12 twice as long (verified: outdur followed indur/2^(st/12) exactly; +12 event measured 1314 Hz from a 660 Hz source). The listed duration value can curtail (end-splice of 'splice' ms) but NEVER extend an event.",
+    "OVERLOAD prints a warning but does NOT clip or wrap: overlapping full-level events write raw float sums > 1.0 to the output (peak 1.805 verified on a 3-note chord). Reduce attenuation or per-event loudness, or normalise downstream.",
+    "attenuation 0 is CDP-legal but renders digital silence (peak 0.0000) - curated minimum is 0.000002. Loudness values > 1 in the file are accepted silently despite the banner's '0-1'.",
+    "Event times above the source's intended range are unguarded: a single event at t=7300 s rendered a 1.3 GB file (exit 0). Keep times sane; the engine's duration cap and watchdog are the only guards.",
+    "All inputs must share ONE channel count ('ERROR: INVALID DATA / ERROR: Incompatible channel-count in input file ...' verbatim on mono+stereo; stereo+stereo verified, 2-channel output) and ONE sample rate ('ERROR: Incompatible sample-rate in input file ...'). Mono inputs give mono output (contrast modify sausage's always-stereo).",
+    "This entry pins 2 inputs; the binary is variadic (3-input run verified: sound-number 3 addressed the third file). Use execute() for wider ensembles. The sibling 'extend sequence' (single input, 3-value rows time/semitone-transposition/loudness) is execute()-only.",
+    "Deterministic: identical decoded shas 1.2 s apart; no seed exists. No mode digit in the argv (mode name 'sequence2' only)."
+  ],
+  "references": ["cdp://docs/html/cgroextd"]
+}

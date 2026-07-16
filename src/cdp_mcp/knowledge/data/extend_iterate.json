@@ -1,0 +1,131 @@
+{
+  "program": "extend",
+  "mode": "iterate",
+  "submode": 1,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "outduration"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Repeats the input sound 'in a fluid manner' until a requested OUTPUT DURATION is filled (mode 1; sibling submode 2 counts repetitions instead - same engine, verified byte-identical when the settings coincide: mode 1 outduration 1.8 == mode 2 repetitions 5 on a 0.3 s source at default delay). Copies start every 'delay' seconds (default: the input duration, i.e. back-to-back); each copy can be randomly time-jittered (rand), pitch-shifted (pshift, resampling - changes copy length), level-cut (ampcut) and progressively faded (fade). DURATION (exact on 7 probes at 2 input durations): copies start at multiples of delay strictly BELOW outduration; actual output = delay * (ceil(outduration/delay) - 1) + indur - equal to outduration when outduration is a multiple of delay, otherwise up to one delay+indur beyond; with pshift/rand > 0 the last copy's length varies (observed 1.03-1.08 from a deterministic 1.05). SEED SEMANTICS (probe-verified): -s > 0 is a WORKING seed (same seed byte-identical 1.3 s apart, seeds 5 vs 9 differ); -s0 or omitting the flag is the CLOCK path (two -s0 runs 1.3 s apart differ); with rand/pshift/ampcut all 0 the seed is INERT (seed 5 == seed 9 == unseeded, byte-identical - fade alone consumes NO randomness: two unseeded -f0.3 runs were byte-identical despite the banner's '(average) amplitude fade'). fade is a deterministic geometric decay: each copy is ~(1-fade) the level of the last (measured envelope 0.75/0.55/0.385/0.27/0.19 at fade 0.3) - THE bouncing-ball/echo-decay knob. gain 0 (default) auto-scales to avoid distortion (1/(overlap count)); explicit gain multiplies the source before summing (-g1 = unity, overlapped copies then sum above the source peak - 0.865 from a 0.77 source at delay half the sound length). delay 0 is accepted and stacks ALL copies at t=0 (unison layering; output = one input-length of summed copies).",
+  "musical_use": "The core repetition primitive for constructed rhythm and Phase-6 gesture building: one hit becomes a pulse train, a stutter, an echo tail or a decaying bounce. delay is the rhythmic clock (set it explicitly - at the default it just tiles the sound end to end); fade turns repetition into decay (0.2-0.4 reads as natural echo/bounce, combined with a shortening delay-breakpoint it is the classic bouncing ball); rand humanises the grid (small values 0.05-0.2) or destroys it (near 1); pshift adds per-hit detune shimmer - it resamples, so hits also shorten/lengthen; ampcut adds random per-hit level scatter. Keep rand/pshift/ampcut at 0 for a fully deterministic pulse; the moment any is nonzero SET A SEED so takes are reproducible (seed 0 = clock = irreproducible). delay/rand/pshift/ampcut all take breakpoint files through output time - a falling delay ramp is an accelerando (fade itself is scalar-only: shape long-term decay with fade, shape tempo with a delay envelope). For an exact repetition COUNT use submode 2; for pitch-line-following iteration use iterline; for multi-sample sets use iterlinef.",
+  "parameters": {
+    "outduration": {
+      "type": "float",
+      "min": 0.0,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Requested output duration. CDP-enforced runtime range (input-duration to 32767): 'Parameter[1] Value (0.200000) out of range (0.300000 to 32767.000000)' on a 0.3 s source - the floor is the input length. Actual output = delay*(ceil(outduration/delay)-1) + indur (exact when rand/pshift are 0): equal to outduration when it is a multiple of delay, otherwise overshooting by up to delay+indur (2.0 requested at delay 0.3 rendered 2.1). Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "delay": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 100.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Average time between iteration onsets (CDP-enforced 0.000002 to 100 s: 'Parameter[2] Value (101.000000) out of range (0.000002 to 100.000000)'). OMITTED = the input's duration (copies tile back to back). -d0 is accepted despite the floor and stacks every copy at t=0 (unison layer, output one input-length long). Breakpoint-capable through OUTPUT time (verified: a 0.1->0.4 ramp rendered 0.974 s, distinct from both scalar endpoints 0.8/2.3 at the same seed) - a falling ramp is an accelerando. NOTE: relative-time breakpoint envelopes are compiled against the INPUT duration; for shapes spanning a longer output pass absolute times in a .brk file."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Randomisation of the delay times, 0-1 (CDP-enforced; 1.5 refused verbatim). STOCHASTIC when > 0: unseeded runs differ in samples AND duration - set a seed. Breakpoint-capable (verified distinct from both scalar endpoints at seed 5)."
+    },
+    "pshift": {
+      "type": "float",
+      "min": 0.0,
+      "max": 12.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Maximum random pitch-shift of each iteration in (fractional) semitones, up or down (CDP-enforced 0 to 12; 13 refused verbatim). Resampling: shifted copies change length, so total duration drifts (1.03-1.08 observed around a 1.05 deterministic base). Stochastic when > 0 - set a seed. Breakpoint-capable (verified distinct from both scalar endpoints at seed 5). WARNING: with pshift > 0 the default auto-gain can overshoot full scale (peak 1.86 observed on iterline's shared engine) - set gain explicitly or normalise downstream."
+    },
+    "ampcut": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Maximum random amplitude reduction per iteration, 0-1 (CDP-enforced; 1.5 refused verbatim). Stochastic when > 0 (same-length outputs, different samples) - set a seed. Breakpoint-capable (verified distinct from both scalar endpoints at seed 5)."
+    },
+    "fade": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-f",
+      "flag_kind": "attached_value",
+      "description": "DETERMINISTIC geometric decay per iteration - each copy ~(1-fade) times the previous level (measured quarter-peaks 0.75/0.55/0.385/0.27/0.19 at 0.3); despite the banner's '(average)' it consumes no randomness (two unseeded runs byte-identical). CDP-enforced 0-1 (1.5 refused verbatim). NOT breakpoint-capable in practice: a fade brk file is accepted syntactically but ALWAYS aborts at runtime with 'ERROR: No significant signal level found' (verified with and without explicit gain) - binary bug, scalar only."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Overall gain applied to the source before summing, 0-1 (CDP-enforced; 1.5 refused verbatim). Special value 0 (default) = 'best guess for no distortion': auto-scales by 1/(max overlap count) (measured: default == -g0.5 envelope at delay = indur/2). -g1 = unity (overlaps sum above source peak: 0.865 from 0.77). Breakpoint file refused ('Cannot read parameter 7 [...]: brkpnt_files not permitted.')."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Random seed, CDP-enforced 0-32767 (refusals verbatim). Source-verified (extend/extprepro.c:1133): seed > 0 calls srand(seed) - a WORKING seed (same seed byte-identical 1.3 s apart; 5 vs 9 differ); seed 0 or omission calls initrand48() = srand(time(0)) - the CLOCK path (two -s0 runs 1.3 s apart differ). INERT while rand/pshift/ampcut are all 0 (seed 5 == seed 9 == unseeded byte-identical). Entry default 1 so renders are reproducible; pass 0 deliberately for a fresh roll. Breakpoint file refused ('Cannot read parameter 8')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Deterministic pulse train: a 0.3 s hit every 0.15 s for ~2 s.",
+      "params": {"outduration": 2.0, "delay": 0.15},
+      "expected_use": "Overlapping stutter at 6.7 Hz; fully deterministic (no random params), output 2.1 s (last onset below 2.0 plus the hit length)."
+    },
+    {
+      "description": "Decaying bounce with humanised timing and shimmer, reproducible.",
+      "params": {"outduration": 3.0, "delay": 0.25, "fade": 0.3, "rand": 0.15, "pshift": 1.5, "seed": 5},
+      "expected_use": "Echo-decay gesture: each repeat ~30% quieter, slightly off-grid and detuned. Rerun with seed 5 for the identical take; change the seed for variants."
+    }
+  ],
+  "known_issues": [
+    "Duration honesty (set_by outduration): actual = delay*(ceil(outduration/delay)-1) + indur, exact across 7 probes at 2 input durations with rand/pshift 0 - equal to outduration only when outduration is a multiple of delay (2.0 at delay 0.3 rendered 2.1, outduration+delay+indur is the worst case; 1.5/3.0 at delay 0.3 were exact). pshift/rand > 0 add per-run drift (1.03-1.08 observed around 1.05). The duration_row pins outduration 6.0 on the 2 s fixture (delay defaults to indur -> exact).",
+    "Seed 0 (and flag omission) is the CLOCK path - irreproducible. The entry defaults seed to 1; the seed is inert until rand, pshift or ampcut is nonzero.",
+    "fade is scalar-only: a breakpoint file aborts at runtime with 'ERROR: No significant signal level found' (INVALID DATA) even though the file is accepted syntactically - binary bug, verified with and without explicit gain. delay/rand/pshift/ampcut breakpoints all work (each verified distinct from both scalar endpoints at a fixed seed); outduration/gain/seed refuse brk files verbatim.",
+    "Breakpoint time axis is OUTPUT time, but the engine compiles relative-time envelopes against the INPUT duration - for an envelope spanning a longer output, supply absolute-time values (they are passed through unscaled in .brk path mode).",
+    "delay 0 is accepted despite the quoted 0.000002 floor: all copies stack at t=0 (unison layering). In this mode that terminates (duration = indur); in iterline the same value HANGS - never map 0 through.",
+    "gain 0 (default) is an auto-level, not silence; -g1 sums overlaps above the source peak (0.865 from a 0.77-peak source at 2x overlap). With pshift the auto-level can still overshoot full scale - stage headroom.",
+    "Modes are one engine: mode 1 outduration 1.8 rendered byte-identical to mode 2 repetitions 5 (0.3 s source, default delay). Stereo input accepted (2-channel output, duration model holds).",
+    "repetitions-style integer slot rounding (sibling): fractional values are rounded (2.5 -> 3 verified in submode 2)."
+  ],
+  "references": ["cdp://docs/html/cgroextd"]
+}

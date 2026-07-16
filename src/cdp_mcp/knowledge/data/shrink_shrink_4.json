@@ -1,0 +1,151 @@
+{
+  "program": "shrink",
+  "mode": "shrink",
+  "submode": 4,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "gap * (((dur - 0.000001) // gap) + 1)"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "shrink around a CHOSEN TIME (mode 4): repeats the sound while shortening it, each repeat keeping the material around 'time' (in input seconds) and losing both edges - the generalisation of modes 1-3 (from-end / around-midpoint / from-start). Content-verified on a decaying ping: with time 0.05 the 4th repeat's envelope peaked at 0.693 = the source's level AT 0.05 s (mode 1 kept the 0.771 attack, mode 2 the 0.175 middle, mode 3 the 0.044 tail); all four modes rendered the SAME event grid (identical 1.9321 s durations, different content). Argv adds the leading time positional: time shrinkage gap contract dur spl. time is runtime-ranged 0 to the input duration ('Parameter[1] Value (0.400000) out of range (0.000000 to 0.300000)' on a 0.3 s source). Everything else re-verified identical to curated submode 1: contract >= shrinkage rule; duration exact at contract 1 (gap*ceil(dur/gap)); geometric early-halt at contract < 1 (banner's '(Minimum) duration' false without -m); -m regularises the grid out to dur and enables -r; -r is fixed-sequence pseudo-random (unseeded drand48 shim - byte-identical reruns, no seed exists); -s > indur segfaults; all params refuse breakpoints; -n equalise / -i per-segment reverse; stereo accepted.",
+  "musical_use": "The focusable bounce: point 'time' at the feature you want to survive the shrinking - a vowel's core, the snap of a snare, the scrape in a texture - and every repeat zooms further into it, discarding context symmetrically. Sweeping time across renders (it is scalar-only) moves the microscope: early times give attack-centric bounces like mode 1, late times tail-ghosts like mode 3, and anything between isolates interior features modes 1-3 cannot reach. Great for turning long evolving sources into rhythmic figures whose repeats distil one moment; with contract just above shrinkage plus -m it lands as the same physical bounce-to-rest as submode 1. Level rides the source envelope at 'time' - centre on quiet material and add -n to bring the shrunk repeats up to match.",
+  "parameters": {
+    "time": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "INPUT-time centre the shrinking preserves (runtime-enforced 0 to the input duration, refusal verbatim; negative refused). Each repeat keeps material around this point and sheds both edges (content-verified: repeat envelope matches the source's level at this time). Breakpoint refused."
+    },
+    "shrinkage": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Length factor per repeat, CDP-enforced 0-1 (0 legal = pure repeats). Must be <= contract. Breakpoint refused."
+    },
+    "gap": {
+      "type": "float",
+      "min": 0.0,
+      "max": 60.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Initial onset spacing; runtime floor = input duration, ceiling 60 (refusals verbatim in the submode-1 entry). Breakpoint refused."
+    },
+    "contract": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Gap-shortening factor per repeat, 0-1, runtime rule contract >= shrinkage ('Contraction of inter-events distance can't be less than shrinkage of sounds.'). 1.0 = equal spacing (duration model exact). Breakpoint refused."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.0,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Target output duration; runtime floor = 2x input duration. Exact at contract 1 (gap*ceil(dur/gap)); at contract < 1 the series may halt earlier - '(Minimum)' is false without -m. Breakpoint refused."
+    },
+    "spl": {
+      "type": "float",
+      "min": 2.0,
+      "max": 50.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 8.0,
+      "flag": null,
+      "description": "Splice length in ms, CDP-enforced 2-50; also the 2-splice shrink floor. Breakpoint refused."
+    },
+    "small": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Minimum sound length (repeats then stay equal). SEGFAULT if larger than the input duration (exit 139, family landmine). Breakpoint refused."
+    },
+    "minsep": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-m",
+      "flag_kind": "attached_value",
+      "description": "Minimum event separation - regularises the grid and lets the render reach dur; must be < gap (verbatim refusal). Precondition for -r. Breakpoint refused."
+    },
+    "rnd": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Timing jitter after the -m floor, 0-1. NO-OP without -m; FIXED-SEQUENCE when active (unseeded drand48 shim, byte-identical reruns - vary the value, not the run count). Breakpoint refused."
+    },
+    "eqlevel": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "Equalise maximum level of output events - useful here whenever 'time' centres on quiet material (repeats otherwise ride the source's level at that point)."
+    },
+    "invert": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-i",
+      "flag_kind": "no_value",
+      "description": "Reverse each segment in the output (family-verified live)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Zoom-bounce into a vowel's core at 0.8 s of a spoken phrase.",
+      "params": {"time": 0.8, "shrinkage": 0.65, "gap": 2.0, "contract": 0.75, "dur": 8.0, "spl": 8, "minsep": 0.1},
+      "expected_use": "Repeats close in on the 0.8 s moment, shedding the phrase around it, tightening onto a 100 ms grid out to ~8 s."
+    },
+    {
+      "description": "Equal-pulse distillation with predictable length and levelled repeats.",
+      "params": {"time": 0.15, "shrinkage": 0.7, "gap": 0.5, "contract": 1.0, "dur": 4.0, "spl": 10, "eqlevel": true},
+      "expected_use": "Steady 0.5 s grid, each repeat a shorter window around 0.15 s, levels equalised; output exactly 4.0 s."
+    }
+  ],
+  "known_issues": [
+    "time is INPUT time and runtime-ranged 0..indur (refusal verbatim); it is scalar-only like every other param (all breakpoints refused, family-probed parameters 2-9 plus the extra leading slot).",
+    "Duration model exact only at contract = 1 (mode-4 boundary case re-verified: time 0.5 / gap 2.0 / dur 6.0 on a 2 s source rendered 6.0000 exactly as predicted); contract < 1 can halt before dur (family finding, same event grid as modes 1-3 - all four rendered 1.9321 s on the shared probe settings). Use -m to force the render out to dur. FLOAT BORDERLINE (family): a dur that is an exact decimal multiple of a non-binary-exact gap can gain one extra gap (0.9/0.3 -> 1.2).",
+    "-r no-op without -m; fixed-sequence when active (unseeded drand48 shim; byte-identical reruns verified in submode 1; no seed exists). stochastic: false, version_sensitive: true.",
+    "-s larger than the input duration segfaults (exit 139, no message).",
+    "Content rule (verified): each repeat's level follows the source envelope AT 'time' - quiet centres give quiet bounces; -n equalises.",
+    "Modes 5/6 (peak-segmentation variants) are multi-output and dropped - see docs/curation/tranche11a_iteration_findings.json."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

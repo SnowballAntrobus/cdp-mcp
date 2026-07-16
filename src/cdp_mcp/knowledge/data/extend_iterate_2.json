@@ -1,0 +1,129 @@
+{
+  "program": "extend",
+  "mode": "iterate",
+  "submode": 2,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "repetitions * delay + indur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Repeats the input sound a COUNTED number of times (mode 2 of extend iterate; the same engine as curated submode 1 - mode 1 outduration 1.8 rendered byte-identical to mode 2 repetitions 5 on a 0.3 s source at default delay). 'repetitions' counts the EXTRA copies after the initial statement: total events = repetitions + 1. DURATION (exact on all 7 probes at 2 input durations, rand/pshift 0): outdur = repetitions * delay + indur, where delay defaults to the input duration (back-to-back tiling). The engine's duration model needs 'delay' - ALWAYS PASS IT (omitting it makes CDP fall back to delay = indur but fails the engine's duration preflight with predicted_duration_evaluation_failed; pass delay explicitly, e.g. delay = the input duration for the CDP-default behavior). Fractional repetitions are ROUNDED (2.5 rendered as 3, verified by duration). All randomisation/seed/fade/gain behavior is identical to submode 1 and was re-verified here: seed > 0 works (byte-identical reruns), seed 0/omitted = clock, seed inert while rand/pshift/ampcut are 0; fade is a deterministic geometric decay whose breakpoint form always aborts ('ERROR: No significant signal level found'); delay/rand/pshift/ampcut breakpoints all verified distinct from both scalar endpoints at a fixed seed; delay 0 accepted (all copies stacked at t=0, output one input-length); gain 0 auto-levels.",
+  "musical_use": "The counted twin of submode 1 - reach for it when a gesture needs EXACTLY N hits: a 5-stroke drag, a triplet stamp, an 8-note stutter fill. Phase-6 timeline work prefers this mode because count * delay + source-length is sample-predictable: place the block, know its end. delay is the pulse (pass it always - it is also the duration model's input); fade sets per-hit decay for bounce and echo shapes; rand/pshift/ampcut add controlled dirt (set a seed the moment any is nonzero, seed 0 is the clock). One repetition with a delay shorter than the sound is a slapback double; many repetitions with delay near the sound length is a clean loop-like tile; delay 0 stacks N copies into a single thickened unison hit. For fill-to-a-length behavior use submode 1; for pitch-line iteration use iterline.",
+  "parameters": {
+    "repetitions": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "repeats",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Number of repeats AFTER the initial statement (total events = repetitions + 1; verified: repetitions 5 at delay 0.3 on a 0.3 s source rendered 1.8 s = 6 events). CDP-enforced 1 to 32767 ('Parameter[1] Value (0.000000) out of range (1.000000 to 32767.000000)'). Fractional values rounded (2.5 -> 3, verified). Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). afta8's 1-100 is an advisory subset."
+    },
+    "delay": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 100.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Average time between iteration onsets (CDP-enforced 0.000002 to 100 s, refusal verbatim). ALWAYS PASS IT: the duration model reads it, and omitting it fails the engine's duration preflight (CDP itself would default to the input duration - pass that value explicitly for the same result). -d0 accepted despite the floor: all copies stack at t=0. Breakpoint-capable through output time (verified distinct from both scalar endpoints at seed 5; relative-time envelopes compile against the INPUT duration - use absolute .brk times for longer outputs); with a delay breakpoint the duration model no longer applies (preflight skips)."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Randomisation of delay times, 0-1 (CDP-enforced, refusal verbatim). Stochastic when > 0 (unseeded runs differ in samples AND duration: 1.158 vs 1.057 observed) - set a seed. Breakpoint-capable (verified at seed 5)."
+    },
+    "pshift": {
+      "type": "float",
+      "min": 0.0,
+      "max": 12.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Maximum random per-copy pitch-shift in (fractional) semitones, up or down (CDP-enforced 0 to 12). Resampling - shifted copies change length, so total duration drifts around the model (1.032-1.081 observed vs 1.05). Stochastic when > 0 - set a seed. Breakpoint-capable (verified at seed 5)."
+    },
+    "ampcut": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Maximum random per-copy amplitude reduction, 0-1 (CDP-enforced). Stochastic when > 0 (same length, different samples) - set a seed. Breakpoint-capable (verified at seed 5)."
+    },
+    "fade": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-f",
+      "flag_kind": "attached_value",
+      "description": "DETERMINISTIC geometric per-copy decay (~x(1-fade) each repeat; envelope 0.75/0.55/0.385/0.27/0.19 measured at 0.3; two unseeded runs byte-identical - no randomness despite the banner's '(average)'). CDP-enforced 0-1. Breakpoint form is BROKEN (always 'ERROR: No significant signal level found') - scalar only."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Overall source gain, 0-1 (CDP-enforced). 0 (default) = auto-level 1/(max overlap count); -g1 = unity (overlaps sum above the source peak). Breakpoint file refused ('Cannot read parameter 7')."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Random seed, CDP-enforced 0-32767. seed > 0 WORKS (srand(seed), source-verified; byte-identical reruns 1.3 s apart, 5 vs 9 differ); seed 0/omitted = CLOCK (irreproducible); inert while rand/pshift/ampcut are all 0. Entry default 1. Breakpoint file refused ('Cannot read parameter 8')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Exact 6-hit stutter: 5 repeats at 150 ms on top of the initial statement.",
+      "params": {"repetitions": 5, "delay": 0.15},
+      "expected_use": "Deterministic 6-event roll; duration = 5*0.15 + source length, sample-predictable for timeline placement."
+    },
+    {
+      "description": "5-stroke decaying drag with slight human timing, reproducible.",
+      "params": {"repetitions": 4, "delay": 0.12, "fade": 0.35, "rand": 0.1, "seed": 7},
+      "expected_use": "Each stroke ~35% quieter and slightly off-grid; rerun with seed 7 for the identical take."
+    }
+  ],
+  "known_issues": [
+    "PASS delay ALWAYS: the duration model is repetitions * delay + indur (exact on 7 probes at 2 input durations), and delay has no expressible default (CDP's own default is the input duration, which the schema cannot encode). Omitting delay makes the engine's duration preflight fail with predicted_duration_evaluation_failed - the render itself would be fine (CDP tiles back-to-back), so this is a curated-interface constraint, not a binary one.",
+    "repetitions counts EXTRA copies: total events = repetitions + 1 (duration probes pin it); fractional values are rounded (2.5 -> 3).",
+    "pshift/rand > 0 make duration drift around the model (resampled copy lengths / jittered onsets); the row tolerance absorbs it at 0. Seed 0 (or omission) is the clock path - the entry defaults seed to 1; the seed is inert until rand/pshift/ampcut is nonzero.",
+    "fade breakpoint files always abort ('ERROR: No significant signal level found') - binary bug shared with submode 1; scalar fade works and is deterministic.",
+    "delay 0 accepted despite the quoted 0.000002 floor - all copies stack at t=0 (unison thickener; duration = indur, model over-predicts that corner). In iterline the same value hangs; never map 0 through blindly.",
+    "Byte-identical to submode 1 when the settings coincide (outduration = repetitions*delay + indur). Stereo input accepted (2-channel output)."
+  ],
+  "references": ["cdp://docs/html/cgroextd"]
+}

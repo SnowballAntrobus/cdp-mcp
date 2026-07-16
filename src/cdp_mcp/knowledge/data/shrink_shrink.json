@@ -1,0 +1,142 @@
+{
+  "program": "shrink",
+  "mode": "shrink",
+  "submode": 1,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "gap * (((dur - 0.000001) // gap) + 1)"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "THE BOUNCING-BALL OP: repeats the sound while SHORTENING it on each repetition - mode 1 shrinks FROM THE END, so every repeat keeps the ATTACK and loses tail (content-verified on a decaying ping: repeat 4's envelope still peaked at the attack level 0.771; siblings: mode 2 keeps the middle 0.175, mode 3 the tail 0.044, mode 4 around a chosen time). Each repeat k is shrinkage^k of the original length; onsets are gap*contract^k apart. CONTRACTION RULE (runtime-enforced): contract >= shrinkage ('Contraction of inter-events distance can't be less than shrinkage of sounds.' verbatim) - events can never overlap. DURATION (probe-pinned): at contract = 1 (equal spacing) output = gap * (ceil(dur/gap)) exactly - 3 probes at 2 input durations including shrinkage 0 (curated expression, floor-division form); at contract < 1 the geometric gap series can HALT well before dur (banner calls dur the '(Minimum) duration' but shrinkage 0.7/gap 0.4/contract 0.8 with dur 3.0 rendered 1.9321 = the series' natural end when gaps contract to the shrunken-sound floor; the expression is then an upper bound) - with -m (minimum event separation) the grid goes regular at min and DOES reach dur (3.0806 from 3.0). RANDOMISATION IS FIXED-SEQUENCE (first-class): -r jitters timings only AFTER -m's floor is reached (without -m, -r0.5 rendered BYTE-IDENTICAL to no -r at all), and the jitter comes from an UNSEEDED drand48 shim (no srand call anywhere in new/shrink.c) - two -r0.5 -m runs 1.3 s apart were byte-identical while -r0.5 vs -r0.9 vs no-r all differ: the 'random' offsets are the same every run, on every machine with this build; no seed exists. -n equalises repeat levels (byte-identical here since mode 1 keeps every attack; audible in modes 2/3); -i reverses each segment (verified different render). ALL 8 parameters refuse breakpoint files ('Cannot read parameter 2..9 [...]: brkpnt_files not permitted.', all probed). Stereo accepted. CRASH LANDMINE: -s (minimum sound length) LARGER than the input duration SEGFAULTS (exit 139, no message).",
+  "musical_use": "One hit becomes a bounce: the repeats shorten like a ball losing height while contract < 1 pulls them closer like a ball losing air-time - shrinkage 0.6-0.8 with contract just above it is the classic physical bounce-to-rest; end with -m to let it settle into a buzz-roll at fixed spacing. Mode 1's keep-the-attack behavior makes it THE percussive version (every bounce still hits at full attack level - shrink shortens, it does not fade); chain extend iterate's fade afterwards for amplitude decay, or use mode 3 (keeps the decaying tails) for a bounce that softens on its own. shrinkage 0 turns it into a straight metronome repeat of the whole sound (duration then exactly gap*ceil(dur/gap)); shrinkage near 1 barely shrinks (long evolving trains). contract = 1 keeps the pulse steady while the sounds shorten - a shrinking-note ostinato with sample-predictable length. The -r jitter is usable texture but identical on every render (build-level fixed sequence) - vary -r's VALUE, not reruns, for variants.",
+  "parameters": {
+    "shrinkage": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Length factor from one repeat to the next (CDP-enforced 0-1: 'Parameter[1] Value (1.100000) out of range (0.000000 to 1.000000)'). 0 is legal = NO shrinking (pure repeats of the whole sound). Shrinking stops once repeats hit the 2-splice floor (sounds then stay equal length). Must be <= contract. Breakpoint refused ('Cannot read parameter 2')."
+    },
+    "gap": {
+      "type": "float",
+      "min": 0.0,
+      "max": 60.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Initial time between repeat onsets - runtime floor is the INPUT DURATION ('Parameter[2] Value (0.200000) out of range (0.300000 to 60.000000)' on a 0.3 s source; ceiling 60). Sets the bounce's starting tempo and (at contract 1) the exact output grid. Breakpoint refused ('Cannot read parameter 3')."
+    },
+    "contract": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Gap-shortening factor per repeat (CDP-enforced 0-1) with the runtime rule contract >= shrinkage (verbatim refusal quoted in description) - events cannot overlap. 1.0 = equal spacing (duration model exact); < 1 = accelerating bounce whose series can halt before dur. Breakpoint refused ('Cannot read parameter 4')."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.0,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Target output duration - runtime floor is 2x the input duration ('Parameter[4] Value (32768.000000) out of range (0.600000 to 32767.000000)'). At contract 1 the output is exactly gap*ceil(dur/gap) (the repeat grid runs to the first onset-sum >= dur); at contract < 1 the banner's '(Minimum)' is FALSE - the series may halt earlier (1.93 rendered from dur 3.0). Breakpoint refused ('Cannot read parameter 5')."
+    },
+    "spl": {
+      "type": "float",
+      "min": 2.0,
+      "max": 50.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 10.0,
+      "flag": null,
+      "description": "Splice length in ms (CDP-enforced 2 to 50, refusals verbatim). Also sets the shrink floor: repeats never get shorter than 2 splices. Breakpoint refused ('Cannot read parameter 6')."
+    },
+    "small": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Minimum sound length - once repeats shrink to it they stay this length (verified: series then halts earlier, 1.7444 vs 1.9321). CRASH LANDMINE: a value LARGER than the input duration SEGFAULTS (exit 139, no message; -s0.5 on a 0.3 s source). Keep small < indur. Breakpoint refused ('Cannot read parameter 7')."
+    },
+    "minsep": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-m",
+      "flag_kind": "attached_value",
+      "description": "Minimum event separation - once gaps contract to it the grid goes REGULAR and the render continues to dur (3.0806 from dur 3.0, vs halting at 1.93 without it). Must be less than gap ('Minimum event separation must be less than initial event separation.' verbatim). Also the PRECONDITION for -r: randomisation only acts after this floor is reached. Breakpoint refused ('Cannot read parameter 8')."
+    },
+    "rnd": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Timing randomisation AFTER the -m floor is reached, 0-1 (CDP-enforced, 1.5 refused verbatim). NO-OP without -m (with -m unset, -r0.5 rendered byte-identical to no flag). FIXED-SEQUENCE pseudo-random: the drand48 shim is never seeded (source: no srand/initrand48 in new/shrink.c), so identical commands give byte-identical 'randomisation' every run - vary the VALUE for variants; no seed exists. Breakpoint refused ('Cannot read parameter 9')."
+    },
+    "eqlevel": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "Equalise the maximum level of output events (banner: 'if possible'). Byte-identical to the base render in THIS mode on an attack-fronted source (every repeat already keeps the attack peak); audible in modes 2/3 where repeats come from quieter regions."
+    },
+    "invert": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-i",
+      "flag_kind": "no_value",
+      "description": "Reverse each segment in the output (verified: changes the render, same duration). Banner: reversing the OUTFILE then yields unreversed segments that expand/decelerate - the anti-bounce."
+    }
+  },
+  "examples": [
+    {
+      "description": "Classic bounce-to-rest: repeats shorten to 70%, spacing tightens to 80%, settling at 60 ms.",
+      "params": {"shrinkage": 0.7, "gap": 0.4, "contract": 0.8, "dur": 3.0, "spl": 10, "minsep": 0.06},
+      "expected_use": "Accelerating, shortening bounce that lands on a regular 60 ms buzz and runs to ~3 s. Without minsep the series halts naturally around 1.9 s."
+    },
+    {
+      "description": "Steady-pulse shrinking ostinato with sample-predictable length.",
+      "params": {"shrinkage": 0.8, "gap": 0.5, "contract": 1.0, "dur": 4.0, "spl": 10},
+      "expected_use": "Equal 0.5 s grid, sounds shorten 20% per repeat; output exactly 4.0 s (gap*ceil(dur/gap) - the duration model is exact at contract 1)."
+    }
+  ],
+  "known_issues": [
+    "Duration model is EXACT ONLY AT contract = 1: repeats start at multiples of gap strictly below dur, output = last start + gap (probes 3.2/2.5/3.5/6.0/8.0 from dur 3.0/2.2/3.0/6.0/6.5 at gaps 0.4/0.5/0.7/2.0/2.0, two input durations, incl. shrinkage 0; dur 6.0 / gap 2.0 rendered 6.0000 exactly as the expression predicts). FLOAT BORDERLINE: when dur is an exact decimal multiple of a gap that is NOT binary-exact, the accumulated start can land just under dur and add one extra gap (dur 0.9 / gap 0.3 rendered 1.2, not 0.9) - avoid non-binary-exact boundary pairs when placement is critical. At contract < 1 the geometric series can HALT before dur (1.9321 from dur 3.0 - equal to the sum of gap*contract^k until gaps hit the shrunken-sound floor); the expression then over-predicts (safe for the cap, wrong for placement - use -m to force the render out to dur, or contract 1). The banner's 'DUR: (Minimum) duration' is FALSE without -m.",
+    "-r randomisation is a NO-OP without -m, and with -m it is FIXED-SEQUENCE: the drand48 shim is never seeded in new/shrink.c, so the same command renders byte-identically every run (1.3 s-apart pairs verified identical; different -r values differ). stochastic: false; no seed exists; version_sensitive (a build with working libc drand48 seeding would differ).",
+    "SEGFAULT: -s (small) greater than the input duration crashes with exit 139 and no message. contract < shrinkage and -m >= gap refuse with verbatim INVALID DATA errors (quoted in the param descriptions).",
+    "All 8 numeric parameters refuse breakpoint files (parameters 2-9, each probed verbatim) - shape time-variation by chaining renders instead.",
+    "Mode semantics (content-verified on a decaying ping): 1 keeps the ATTACK of each repeat (cut from end), 2 the middle, 3 the tail, 4 around a chosen time - modes 2/3 are execute()-reachable with the same argv; mode 4 is curated separately (extra leading time param). Modes 5/6 are multi-output (dropped; see tranche11a findings).",
+    "gap's floor is the input duration and dur's floor is twice it (runtime-enforced, refusals quoted) - shrink cannot make output shorter than two statements.",
+    "-n is a no-op on attack-fronted sources in this mode; -i (per-segment reverse) verified live. Stereo accepted (2-channel output)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

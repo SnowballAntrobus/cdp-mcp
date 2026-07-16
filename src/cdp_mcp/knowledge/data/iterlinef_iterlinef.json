@@ -1,0 +1,131 @@
+{
+  "program": "iterlinef",
+  "mode": "iterlinef",
+  "submode": 1,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 25,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "outduration"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "iterline driven by a SAMPLE SET instead of resampling one file: takes EXACTLY 25 input sounds - the same source pre-transposed at every semitone from -12 to +12, in ascending order, file 13 = the untransposed reference - and iterates them along a TDATA transposition line (mode 1 interpolates the line; sibling mode 2 steps). PER-EVENT SELECTION (source new/iterlinef.c:1824-1827, content-verified with a marker file): file index = 13 + round(line transposition), residual micro-transposition applied by resampling - a constant +5 line played file 18 verbatim (a noise burst planted there came out as noise), +5.5 rounded AWAY to file 19 played at -0.49 st, 0 played file 13. Because each semitone comes from a REAL recording rather than resampling, up to +-12 st keeps natural length/timbre (beyond that the line's +-24 range resamples the edge files). ARITY IS A HARD, SILENT GATE: 24 or 26 inputs CRASH with exit 254 and NO error message; only exactly 25 runs. Unequal file durations are accepted silently (banner's 'approx equal' is advisory; a double-length file 18 ran); mixed channel counts refuse verbatim ('Incompatible channel-count in input file ...'). Shares iterline's machinery, re-verified here: ALL-POSITIONAL argv (tdata outduration delay rand pshift ampcut gain seed, only -n a real flag); FIRST-EVENT BUG (first copy takes the line's END transposition - measured +10.85 st on a 0->12 line); tdata rules (t0 = 0, strictly advancing times, +-24 st, ';' comments, end-hold); seed > 0 works (byte-identical reruns at pshift 3, 5 vs 9 differ) / 0 = clock; delay breakpoint accepted, gain breakpoint refused ('Cannot read parameter 7'); duration = last onset below outduration + last copy length (2.10 from a 2.0 request).",
+  "musical_use": "The sampler-quality version of iterline: when resampling artifacts matter - pitched percussion, mallets, vocal hits - feed it a proper 25-way semitone multisample (render one with a batch of modify speed or a sampler export) and the iteration line walks REAL samples, picking the nearest semitone file per event and only micro-transposing the remainder. Melodic ostinati, stepped runs and glissandi keep natural attack and body at every pitch; timbre changes you bake into the set (brighter high samples, darker low) ride along for free - or subvert it and plant DIFFERENT sounds across the 25 slots so the pitch line becomes a timbre sequencer (verified: the engine really does play whichever file sits at the rounded semitone). Same discipline as iterline: delay positive (0 hangs the family), seed anything stochastic, first event sounds at the line's end pitch, -n only with a nonzero seed. Generating the 25 filenames is Phase-6 scripting work - keep them in a stable order, ascending, reference at slot 13.",
+  "parameters": {
+    "tdata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED transposition-line text file (time semitone pairs; write with write_data_file()). Transpositions are relative to FILE 13 (the set's centre): +1 selects file 14, -12 file 1, fractional values select the rounded file (half away from zero: +5.5 -> file 19) plus residual resampling. Rules as iterline (t0 = 0, strictly advancing, -24..+24, ';' comments, end-hold) - the +-24 extremes resample the edge files by the +-12 overflow."
+    },
+    "outduration": {
+      "type": "float",
+      "min": 0.0,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Requested output duration - REQUIRED positional (runtime floor = input duration). Actual = last onset below the request + the last copy's length (2.1035 from 2.0 at delay 0.3 on 0.3 s sources). Breakpoint file refused."
+    },
+    "delay": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 100.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "max",
+      "default": null,
+      "flag": null,
+      "description": "Time between copy onsets - REQUIRED positional, must be positive (the family's delay-0 hang). CDP range (0.000002 to 100). Breakpoint-capable (brk accepted, exit 0; family behavior endpoint-verified in iterline). Relative-time envelopes compile against the longest input's duration - use absolute .brk times to span the output."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "max",
+      "default": 0.0,
+      "flag": null,
+      "description": "Delay randomisation 0-1 (positional). Stochastic when > 0 - set a seed. Breakpoint accepted (family-verified)."
+    },
+    "pshift": {
+      "type": "float",
+      "min": 0.0,
+      "max": 12.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "max",
+      "default": 0.0,
+      "flag": null,
+      "description": "Random per-copy pitch scatter around the line, 0-12 st (positional). Applied by resampling ON TOP of the file selection. Stochastic when > 0 - set a seed (verified: seed 5 byte-identical reruns at pshift 3). Breakpoint accepted (family-verified)."
+    },
+    "ampcut": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "max",
+      "default": 0.0,
+      "flag": null,
+      "description": "Random per-copy amplitude reduction 0-1 (positional). Stochastic when > 0 - set a seed. Breakpoint accepted (family-verified)."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Overall gain 0-1 (positional); 0 = auto max-acceptable level. Breakpoint refused ('Cannot read parameter 7 [...]: brkpnt_files not permitted.', re-verified in this program)."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Random seed 0-32767 (positional): > 0 works (byte-identical reruns 1.3 s apart), 0 = clock, inert at zero random params. Entry default 1."
+    },
+    "normalise": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "Normalise output level; only legal with a non-zero seed (family refusal 'NORMALISATION CANNOT BE USED IF SEED VALUE IS ZERO')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Natural-sounding melodic run over a 25-way semitone multisample.",
+      "params": {"tdata": "run.txt", "outduration": 4.0, "delay": 0.2},
+      "expected_use": "Pass the 25 files ascending (-12..+12 st, reference 13th). run.txt e.g. '0 -5\\n4 7': each copy plays the nearest semitone SAMPLE with only micro-resampling - no chipmunk artifacts across the run."
+    },
+    {
+      "description": "Timbre sequencer: 25 different one-shots in the slots, line = program changes.",
+      "params": {"tdata": "prog.txt", "outduration": 6.0, "delay": 0.25, "seed": 3},
+      "expected_use": "The rounded line value picks which FILE plays (verified with a planted marker file), so a stepped line walks through your kit; fractional values add micro-detune."
+    }
+  ],
+  "known_issues": [
+    "EXACTLY 25 INPUTS OR SILENT CRASH: 24 and 26 inputs both exit 254 with NO diagnostic at all (empty output) - the arity gate is real but unreported. The entry pins input_arity 25.",
+    "Selection rule (source-pinned, iterlinef.c:1824-1827): file = 13 + lround(line transposition) (half rounds away from zero: +5.5 -> file 19), residual applied by resampling. The banner's 'must consist of 25 transpositions at semitone intervals' is convention, NOT checked - unequal durations and arbitrary content run silently (which enables the timbre-sequencer trick, and means a wrongly-ordered set plays wrong pitches without warning). Mixed channel counts DO refuse verbatim.",
+    "FIRST-EVENT BUG shared with iterline (two-pass engine): the first copy takes the line's END transposition (measured +10.85 on a 0->12 line). Trim or design for it.",
+    "ALL-POSITIONAL argv as iterline (banner flags are a Sound Loom leftover); tdata/outduration/delay required; delay must be positive (family hang at 0).",
+    "Duration honesty (set_by outduration): last onset below the request + last copy length (2.1035 from 2.0). duration_row null: a 25-input entry cannot run on the shared single-input duration fixture - the rule is pinned here and in docs/curation/tranche11a_iteration.md.",
+    "Seed 0 = clock (entry defaults 1); stochastic only when rand/pshift/ampcut > 0. version_sensitive: CDP8-new program, no release banner."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

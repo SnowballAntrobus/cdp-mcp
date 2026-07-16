@@ -1,0 +1,129 @@
+{
+  "program": "iterline",
+  "mode": "iterline",
+  "submode": 1,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "outduration"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "extend iterate steered by a TRANSPOSITION LINE: repeats the input sound to outduration, transposing each copy to a time-varying pitch line read from a TDATA text file of time/semitone pairs. Mode 1 INTERPOLATES the line at each copy's onset (verified: pairs '0 0 / 2 12' gave copies at 0, 1.8, 3.6, 5.4, 7.2, 9.0, 10.8 st); sibling submode 2 STEPS to the nearest listed value instead. ARGV DIVERGENCE (first-class): the usage banner prints flag syntax ([-ddelay] [-rrand] ...) but the CLI build takes ALL parameters as REQUIRED POSITIONALS in order tdata outduration delay rand pshift ampcut gain seed (flag-style calls refuse 'Insufficient parameters on cmdline.'; only -n is a real flag) - Sound Loom leftover, source set_param_data 'dDDDD0di' (new/iterline.c:529). FIRST-EVENT BUG (first-class, source-diagnosed): the FIRST copy is rendered with the transposition at the LAST event's time, not at 0 - the level-estimation pass leaves 'thistrans' at the line's end and pass 2 never resets it (iterline.c:1361 initialises it once before both passes). Verified on three lines: '0 0/2 12' gave ev1 = +10.8 st (= the final event's value) in mode 1 and +12 in mode 2; a 3-point line's ev1 matched its final value too. Start the line at your intended first pitch AND expect ev1 to sound at the line's ENDING pitch - or trim the first copy off. TDATA RULES (all refusals verbatim): first time MUST be 0 ('Initial time in data in file ... must be zero.'); times strictly advance; transpositions limited to -24..+24 st ('Found transposition value (25.000000) out of range (-24 to +24)'); values pair up ('Data not paired correctly'); ';' comments allowed; beyond the last time the line HOLDS its final value. Transposition is resampling (copies shorten going up, lengthen going down). Seed semantics as extend iterate (source-shared): seed > 0 works, 0 = clock, inert with rand/pshift/ampcut at 0; -n (normalise) REFUSES with seed 0 ('NORMALISATION CANNOT BE USED IF SEED VALUE IS ZERO'). Duration: copies start every delay seconds strictly below outduration; actual = last start + last copy's (transposed) length - 2.0 requested rendered 1.9618 (+12 st line end), 3.0 rendered 2.8019.",
+  "musical_use": "Melodic iteration: one hit walks a pitch contour - rising stutters, sirens made of drum hits, gliss arpeggios from a single pluck. Mode 1's interpolation makes smooth glissando gestures (each copy samples the line where it lands); write the line as a handful of time/semitone pairs and let delay set the rhythmic grain (fine delays = audible glide, coarse = melodic steps). The +-24 st range is four octaves of span; remember copies resample - lines dropping low also slow and thicken, lines rising sharpen and shorten, so a falling line naturally decays into weight (bouncing-ball pitch physics for free). Layer rand/pshift/ampcut (seeded!) for humanised shimmer around the line. WATCH the two landmines: the first copy sounds at the line's END pitch (trim it or fold it into the design), and delay 0 hangs the binary. Keep gain explicit (or -n with a nonzero seed) when pshift is live - the auto-level can overshoot full scale. Step-quantised version: submode 2; multi-sample version: iterlinef.",
+  "parameters": {
+    "tdata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED transposition-line text file (any extension except .brk; write with write_data_file()): time semitone pairs, whitespace-free-form, ';' comments allowed. First time must be 0; times strictly increase; transpositions -24..+24 (fractional fine); the line holds its last value to the end of the output. All format refusals are verbatim INVALID DATA errors quoted in the entry description."
+    },
+    "outduration": {
+      "type": "float",
+      "min": 0.0,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Requested output duration - REQUIRED positional. CDP-enforced runtime range (input-duration to 32767): 'Parameter[2] Value (0.200000) out of range (0.300000 to 32767.000000)' on a 0.3 s source. Actual output = last copy onset (below outduration on the delay grid) + that copy's transposed length: 2.0 rendered 1.9618 with a +12 line end, 3.0 rendered 2.8019 - within one delay + one (transposed) copy of the request; a -24 line end can run up to 4x the input past the last onset. Breakpoint file refused ('Cannot read parameter 1')."
+    },
+    "delay": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 100.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Time between copy onsets - REQUIRED positional (CDP range refusal verbatim '(0.000002 to 100.000000)'). DELAY 0 HANGS THE BINARY (accepted, then infinite loop killed only by timeout - the output-duration termination never advances); the curated entry requires an explicit positive value. Breakpoint-capable (a 0.1->0.4 ramp rendered 1.847 s, distinct from both scalar endpoints at seed 5) - falling ramps are accelerandi. Relative-time envelopes compile against the INPUT duration; use absolute .brk times to span the output."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Delay-time randomisation 0-1 (positional; CDP refusal verbatim as Parameter[4]). Stochastic when > 0 - set a seed. Breakpoint-capable (verified distinct from both scalar endpoints at seed 5)."
+    },
+    "pshift": {
+      "type": "float",
+      "min": 0.0,
+      "max": 12.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Maximum random per-copy pitch scatter AROUND the line, in semitones (positional; CDP-enforced 0-12, refusal verbatim as Parameter[5]). Stochastic when > 0 - set a seed. WARNING: with pshift > 0 the default auto-gain overshoots full scale (peak 1.86 observed at pshift 3) - pass gain explicitly or use -n with a nonzero seed. Breakpoint-capable (verified at seed 5)."
+    },
+    "ampcut": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Maximum random per-copy amplitude reduction 0-1 (positional; refusal verbatim as Parameter[6]). Stochastic when > 0 - set a seed. Breakpoint-capable (verified at seed 5)."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Overall gain 0-1 (positional; refusal verbatim as Parameter[7]). Special value 0 (default) = maximum acceptable level (auto). Breakpoint file refused ('Cannot read parameter 7')."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Random seed 0-32767 (positional; refusal verbatim as Parameter[8]). seed > 0 WORKS (byte-identical reruns 1.3 s apart at pshift 3; 5 vs 9 differ); 0 = CLOCK (irreproducible); inert while rand/pshift/ampcut are all 0 (seed 5 == seed 9 byte-identical). Entry default 1. Breakpoint file refused ('Cannot read parameter 8')."
+    },
+    "normalise": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "Normalise output (max out level = max in level). ONLY legal with a NON-ZERO seed: with seed 0 the binary refuses 'NORMALISATION CANNOT BE USED IF SEED VALUE IS ZERO' (verbatim; source new/iterline.c:1217). The sane antidote to the pshift auto-gain overshoot."
+    }
+  },
+  "examples": [
+    {
+      "description": "Octave rise: a hit every 0.25 s glides from 0 to +12 st over 4 s.",
+      "params": {"tdata": "line.txt", "outduration": 4.0, "delay": 0.25},
+      "expected_use": "First write_data_file('line.txt', '0 0\\n4 12'). Smooth stuttered glissando; note the first copy sounds at +12 (the first-event bug) - trim it or start the line where you want it to land."
+    },
+    {
+      "description": "Falling siren with humanised timing and shimmer, normalised, reproducible.",
+      "params": {"tdata": "fall.txt", "outduration": 6.0, "delay": 0.15, "rand": 0.2, "pshift": 1.0, "seed": 5, "normalise": true},
+      "expected_use": "fall.txt = '0 12\\n5 -12'. Copies slide down two octaves, lengthening and darkening as they fall; -n keeps the level in range despite pshift."
+    }
+  ],
+  "known_issues": [
+    "FIRST-EVENT BUG (binary, source-diagnosed): the first copy is rendered with the transposition at the LINE'S END, not at time 0 - the two-pass renderer never resets 'thistrans' between the level pass and the write pass (new/iterline.c:1361). Verified on 2- and 3-point lines in both modes. Design around it or cut the first copy.",
+    "ALL-POSITIONAL ARGV: the banner's [-d...] flag syntax is a Sound Loom leftover; the CLI takes tdata outduration delay rand pshift ampcut gain seed as required positionals (omitting any refuses 'Insufficient parameters on cmdline.'). Only -n is a real flag. The curated entry therefore REQUIRES tdata, outduration and delay and always emits the rest.",
+    "DELAY 0 HANGS: accepted past the range check, then the render loop never advances toward outduration - killed only by timeout (exit 124, junk 2 KB file left). The curated delay is required and must be positive.",
+    "Duration honesty (set_by outduration): copies start every delay strictly below outduration; actual = last onset + the last copy's TRANSPOSED length (2.0 -> 1.9618 with a +12 line end; 3.0 -> 2.8019). A line ending at -24 st can overshoot the request by up to 4x the input duration; a +24 end undershoots. The duration_row uses a flat 0-semitone line and delay = the fixture duration, where the model is exact.",
+    "Auto-gain overshoot: at pshift 3 with default gain the output peaked at 1.86 (floats written unclipped). Use -n (with a nonzero seed) or explicit gain.",
+    "Mode digit quirks: mode 3 is silently accepted and renders byte-identical to mode 2; mode 0 fails with exit 249 and no message. Seed 0 (or rand/pshift/ampcut > 0 unseeded) is the clock path - entry defaults seed to 1.",
+    "tdata transpositions are hard-limited to -24..+24 st (verbatim refusal); the line holds its final value beyond its last time. Stereo input accepted (2-channel output, same duration).",
+    "version_sensitive: CDP8-new program (no release banner); the argv shape and the first-event bug are build-specific findings."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

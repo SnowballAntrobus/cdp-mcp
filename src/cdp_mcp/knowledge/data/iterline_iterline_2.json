@@ -1,0 +1,127 @@
+{
+  "program": "iterline",
+  "mode": "iterline",
+  "submode": 2,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "outduration"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "STEP variant of iterline (mode 2): each copy jumps to the NEAREST listed transposition instead of interpolating - discrete pitch steps along the TDATA line. Step rule (source read_stepd_transposition_value, probe-verified): a copy at time t takes the transposition of whichever tdata point is closer in time; exactly half-way takes the EARLIER value (pairs '0 0 / 2 12' at delay 0.3 gave copies 0,0,0 st through t<=0.9 then 12,12,12 from t=1.2 - the switch at the 1.0 midpoint; 3-point line '0 0/1 5/2 10' stepped 0,5,5,5,5,10 with the t=1.5 midpoint copy taking 5). Everything else is submode 1's machinery, independently re-verified here: ALL-POSITIONAL argv (tdata outduration delay rand pshift ampcut gain seed; the banner's flag syntax is a Sound Loom leftover, 'Insufficient parameters on cmdline.' otherwise); the FIRST-EVENT BUG (first copy sounds at the line's END value - measured +12 on a 0->12 line, +10 on a 3-point line ending at 10); tdata rules (first time 0, strictly advancing, +-24 st, ';' comments, end-hold); delay 0 hangs; seed > 0 works / 0 = clock / inert at zero random params; -n refused with seed 0; transposition by resampling. Mode 3 is silently accepted by the binary and renders byte-identical to this mode. Duration as submode 1: copies start every delay strictly below outduration, plus the last copy's transposed length (1.9510 from a 2.0 request on the 0->12 line).",
+  "musical_use": "Melody machine: where submode 1 glides, this one PLAYS NOTES - each tdata point is a pitch the iteration snaps to, so a handful of pairs becomes a stepped motif hammered out by one source hit. Put the time points where you want note CHANGES (each copy rounds to the nearest point, so place points at phrase midpoints to control exactly where the switch lands - the change happens halfway between adjacent points). Semitone-integer lines give chiptune arpeggios and alarm figures; fractional values detune the steps. Copies still resample: low notes lengthen, high notes shorten - at coarse delays this reads as natural note-length phrasing. Same care list as submode 1: first copy sounds at the line's LAST pitch (trim or design for it), seed anything stochastic, keep delay positive, watch the auto-gain when pshift is live. Use submode 1 for glissandi, iterlinef to swap the single source for a 25-sample set.",
+  "parameters": {
+    "tdata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED transposition-line text file (any extension except .brk; write with write_data_file()): time semitone pairs; first time must be 0, times strictly increase, transpositions -24..+24, ';' comments allowed, final value holds. In THIS mode the line is read stepwise: nearest point wins, ties to the earlier point. Format refusals verbatim in the submode-1 entry."
+    },
+    "outduration": {
+      "type": "float",
+      "min": 0.0,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Requested output duration - REQUIRED positional; runtime floor = input duration (refusal verbatim as Parameter[2]). Actual = last onset below outduration + that copy's transposed length (1.9510 from 2.0 on a line ending +12). Breakpoint file refused ('Cannot read parameter 1')."
+    },
+    "delay": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 100.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Time between copy onsets - REQUIRED positional; the note-rate of the stepped melody. DELAY 0 HANGS the binary (timeout-killed) - must be positive. CDP range refusal verbatim '(0.000002 to 100.000000)'. Breakpoint-capable (re-verified in this submode: brk render distinct from both scalar endpoints at seed 5)."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Delay randomisation 0-1 (positional, Parameter[4]). Stochastic when > 0 - set a seed. Breakpoint-capable."
+    },
+    "pshift": {
+      "type": "float",
+      "min": 0.0,
+      "max": 12.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Random per-copy pitch scatter around the stepped line, 0-12 st (positional, Parameter[5]). Stochastic when > 0 - set a seed; auto-gain can overshoot full scale (1.86 observed in the sibling) - use normalise or explicit gain. Breakpoint-capable."
+    },
+    "ampcut": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Random per-copy amplitude reduction 0-1 (positional, Parameter[6]). Stochastic when > 0 - set a seed. Breakpoint-capable."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Overall gain 0-1 (positional, Parameter[7]); 0 = auto max-acceptable level. Breakpoint file refused."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Random seed 0-32767 (positional, Parameter[8]): > 0 works (byte-identical reruns), 0 = clock, inert at zero random params. Entry default 1. Breakpoint file refused."
+    },
+    "normalise": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "Normalise output level. Refused with seed 0: 'NORMALISATION CANNOT BE USED IF SEED VALUE IS ZERO' (verbatim)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Three-note stepped motif from one hit, eight hits per second.",
+      "params": {"tdata": "steps.txt", "outduration": 4.0, "delay": 0.125},
+      "expected_use": "First write_data_file('steps.txt', '0 0\\n1.5 5\\n3 10'). Copies snap to 0, +5 then +10 st, switching halfway between the listed times; the first copy sounds at +10 (first-event bug)."
+    },
+    {
+      "description": "Alarm figure: two alternating pitches by placing points densely.",
+      "params": {"tdata": "alarm.txt", "outduration": 3.0, "delay": 0.1, "seed": 2},
+      "expected_use": "alarm.txt alternates '0 0 / 0.4 7 / 0.8 0 / 1.2 7 ...'; nearest-point stepping turns the zig-zag line into a hard two-note siren."
+    }
+  ],
+  "known_issues": [
+    "Step rule: nearest tdata point in TIME wins; an exactly half-way copy takes the EARLIER value (probe-pinned on 2- and 3-point lines). Pitch changes land midway between adjacent time points - place points accordingly.",
+    "FIRST-EVENT BUG as submode 1 (shared two-pass engine): the first copy sounds at the line's final value (+12 measured on a 0->12 line). Trim it or fold it into the design.",
+    "ALL-POSITIONAL argv, required tdata/outduration/delay; delay 0 hangs (timeout-killed); mode 3 silently aliases to this mode (byte-identical render); mode 0 exits 249 with no message.",
+    "Duration honesty (set_by outduration): actual = last onset below the request + the last copy's transposed length; lines ending low overshoot (up to 4x input at -24), ending high undershoot. Row pinned on a flat 0 st line with delay = fixture duration (exact).",
+    "Seed 0 is the clock path; entry default 1. -n refused at seed 0 (verbatim). Auto-gain can exceed full scale with pshift - floats written unclipped.",
+    "version_sensitive: CDP8-new program (no release banner); argv shape and first-event bug are build-specific findings."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}
