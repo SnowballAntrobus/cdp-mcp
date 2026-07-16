@@ -74,7 +74,7 @@ async def test_list_categories_returns_sorted_unique(mcp_with_tools):
 
 async def test_list_programs_no_filter_returns_all_curated(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {})
-    assert len(payload) == 207
+    assert len(payload) == 248
     keys = {(e["program"], e["mode"]) for e in payload}
     # Spot-check representatives across phases rather than the full set
     # (the count above pins the total; per-entry presence is pinned by
@@ -118,6 +118,8 @@ async def test_list_programs_domain_filter(mcp_with_tools):
         ("blur", "chorus"), ("blur", "noise"), ("focus", "focus"),
         ("spec", "cut"), ("spec", "gain"), ("spectstr", "stretch"),
         ("strange", "waver"), ("repitch", "transpose"),
+            # --- Wave 3 (tranche 17) ---
+        ("spectrum", "fixed"),
     }
 
 

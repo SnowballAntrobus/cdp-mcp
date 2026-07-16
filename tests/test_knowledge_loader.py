@@ -80,6 +80,8 @@ def test_list_entries_by_domain_spectral(real_index):
         ("blur", "chorus"), ("blur", "noise"), ("focus", "focus"),
         ("spec", "cut"), ("spec", "gain"), ("spectstr", "stretch"),
         ("strange", "waver"), ("repitch", "transpose"),
+            # --- Wave 3 (tranche 17) ---
+        ("spectrum", "fixed"),
     }
 
 
@@ -92,8 +94,8 @@ def test_curated_only_passthrough_includes_all(real_index):
     # All curated entries are curated, so curated_only=False just returns the
     # same set. The flag's behavior is exercised; the data doesn't (yet)
     # contain uncurated entries to filter out.
-    assert len(real_index.list_entries(curated_only=False)) == 355
-    assert len(real_index.list_entries(curated_only=True)) == 207
+    assert len(real_index.list_entries(curated_only=False)) == 374
+    assert len(real_index.list_entries(curated_only=True)) == 248
 
 
 def test_get_returns_none_for_missing(real_index):

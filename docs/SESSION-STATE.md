@@ -68,9 +68,16 @@
     strans stereo-vibrato corruption -> curated as modify speed 6;
     extend freeze pshift/ampcut brk no-op; sorter esiz brk
     version-sensitive. Suite 1958 hermetic / 2107 real-CDP.
-  - Waves 3-6 pending: T16 waveset + T17 synthesis; T18
-    texture/filter + T19 grain/FOF; T20+T21 spectral tail; T22
-    pitch-data + T23 text utilities.
+  - Wave 3 DONE (2026-07-16): T16 waveset/distort (22) + T17
+    synthesis (19) -> **248 curated / 374 total** (22 stubs
+    retired). motor duration sample-exact; cascade's advertised
+    time-variable params all inert; fracture's real seed flag is
+    -S not the banner's -h; impulse chans header-relabel bug;
+    distort filter 0-frame trap confirmed. Suite 2251 hermetic /
+    2433 real-CDP (a-e/f-m/n-z thirds — the a-m half now exceeds
+    the 45 s sandbox call cap).
+  - Waves 4-6 pending: T18 texture/filter + T19 grain/FOF;
+    T20+T21 spectral tail; T22 pitch-data + T23 text utilities.
 
 ## Phase 5 wave 2 — DONE (commits 5715795 + c45b714, 2026-07-15)
 
