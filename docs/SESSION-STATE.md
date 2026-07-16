@@ -21,11 +21,16 @@
 - User verifies on macOS r8 with `CDP_PATH=... pytest` after each pull
   (expected: one red — filter bank vintage hang, forensics P5-1 — until
   the local `filter` binary is rebuilt).
-- **THE CURRENT NEXT STEP: Phase 6 reevaluation.** Walk
-  `docs/phase-6-design.md`'s end-of-doc checklist with the Phase 5
-  additions listed in the handoff's "Open items" section (blur shuffle
-  free-string gap, channel machinery triggers, grain rerhythm/reposition
-  vs timeline(), stdout-refusal error mapping).
+- **Phase 6 reevaluation DONE (2026-07-15):** `docs/phase-6-design.md`
+  rewritten as the active design — all four checklist items resolved
+  (gesture-engine curation complete; grain-vs-timeline split decided:
+  they compose; stereo seed-link → Phase 6b behind housekeep-chans
+  curation + usage trigger; texture owns clouds, timeline() stays
+  deterministic placement). timeline() gains headroom staging from
+  P5-3 (native getlevel pre-flight, headroom="auto"/"off"/"fail").
+  **THE CURRENT NEXT STEP: Phase 6 build order item 1 — stdout-refusal
+  error mapping**, then timeline(), IOI/density into segments(), the
+  Bucephalus pipeline + example recipe, free_string type.
 
 ## Phase 5 wave 2 — DONE (commits 5715795 + c45b714, 2026-07-15)
 
