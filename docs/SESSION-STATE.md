@@ -1,23 +1,31 @@
-# Session state — 2026-07-15 (pre-compaction checkpoint)
+# Session state — 2026-07-15 (Phase 5 CLOSED)
 
 > Written so a compacted/fresh conversation can resume without re-deriving
-> context. The deep record lives in: `docs/phase-*-handoff.md`,
-> `docs/phase-6-design.md` (preliminary, pre-Phase-5),
-> `docs/curation/tranche*` transcripts + findings JSONs,
-> `docs/forensics.md`, `docs/mir-gap-analysis.md`, and git log
-> (`af6962e..HEAD` — every commit message is a work record).
+> context. The deep record lives in: `docs/phase-*-handoff.md` (Phase 5:
+> `docs/phase-5-handoff.md`), `docs/phase-6-design.md` (preliminary,
+> pre-Phase-5 — reevaluation is now due), `docs/curation/tranche*`
+> transcripts + findings JSONs, `docs/forensics.md`,
+> `docs/generalization-matrix.md`, `docs/mir-gap-analysis.md`, and git
+> log (`af6962e..HEAD` — every commit message is a work record).
 
-## Where things stand (HEAD `9160225`)
+## Where things stand
 
-- **Phases 1–4 complete** (Ableton export + process-output cache deferred
-  with recorded rationale). **Phase 5 in progress**: wave 1 (tranches 5–6)
-  done — **61 curated entries**, 189 uncurated stubs (250 total), 31 tools
-  + 3 prompts, MIR v2 (13-field scorecard, trajectory/verbose block,
-  33-dim cluster vector).
-- Suite: 1063 hermetic / 1123 with `CDP_PATH=/tmp/CDP8/NewRelease`
-  (zero CDP-gated skips; rebuild substrate via
-  `scripts/build_cdp8_linux.sh`). Ruff clean.
-- User verifies on macOS r8 with `CDP_PATH=... pytest` after each pull.
+- **Phases 1–5 COMPLETE** (Ableton export + process-output cache deferred
+  with recorded rationale). **107 curated entries** on (program, mode,
+  submode) keying, 176 uncurated stubs (283 total), 32 tools + 3
+  prompts, MIR v2, generalization matrix, cdp://examples/* library.
+  Phase 5 record: `docs/phase-5-handoff.md`.
+- Suite: 1425 hermetic / 1526 with `CDP_PATH=/tmp/CDP8/NewRelease`
+  (rebuild substrate via `scripts/build_cdp8_linux.sh`; run real-CDP
+  chunked in-sandbox — see landmine below). Ruff clean.
+- User verifies on macOS r8 with `CDP_PATH=... pytest` after each pull
+  (expected: one red — filter bank vintage hang, forensics P5-1 — until
+  the local `filter` binary is rebuilt).
+- **THE CURRENT NEXT STEP: Phase 6 reevaluation.** Walk
+  `docs/phase-6-design.md`'s end-of-doc checklist with the Phase 5
+  additions listed in the handoff's "Open items" section (blur shuffle
+  free-string gap, channel machinery triggers, grain rerhythm/reposition
+  vs timeline(), stdout-refusal error mapping).
 
 ## Phase 5 wave 2 — DONE (commits 5715795 + c45b714, 2026-07-15)
 
@@ -81,19 +89,20 @@ typing can't express; duration rule pinned in the 10a transcript;
 execute()-reachable. Candidate for the Phase 6 reevaluation list.
 Suite: 1415 hermetic / 1511 real-CDP (chunked halves), ruff clean.
 
-## Phase 5 remainder (THE CURRENT NEXT STEP)
+## Phase 5 close-out — DONE (2026-07-15)
 
-- Generalization test matrix (clarinet-ish / field-recording / synth
-  one-shot / vocal proxies through the acceptance chains; real material +
-  listening is the user's half).
-- Examples library (`cdp://examples/*`, sourced from saved graphs).
-- Phase 5 handoff + README status bump (README currently says Phase 4 /
-  31 tools / 43 entries — the 43 is stale, rest accurate).
-- AFTER Phase 5 close-out (user-queued 2026-07-15): promote the wave-2
-  bug finds — newdelay feedback ±1 hang, submix mix overload WRAP,
-  quirk unipolar zero-frame silent success — from the tranche 7/8
-  transcripts into `docs/forensics.md`'s P5 section (P5-1 filter bank
-  is already there).
+- Generalization matrix shipped (`89f0dc7`): four proxies, four chains,
+  three non-generalization findings pinned (grain
+  acceptance-with-truncation; envspeak accepts swells; drift scales
+  with articulation). Real material + listening remain the user's half
+  (handoff checklist items 2–3).
+- Examples library shipped (`f0a525d`): six cdp://examples/* recipes,
+  list_examples() (tool #32), read_doc namespace dispatch, every
+  definition dry-run in CI. No wav files needed or added.
+- Handoff + README bump shipped (`08a768f`).
+- Wave-2 bug finds promoted to forensics P5-2/3/4 (newdelay feedback ±1
+  hang; submix mix overload WRAP + -g valve/-a no-op; quirk unipolar
+  zero-frame silent success) — the user-queued item, cleared.
 
 ## Phase 6 (preliminary design committed, reevaluate after Phase 5)
 
