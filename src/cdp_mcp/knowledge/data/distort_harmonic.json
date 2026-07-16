@@ -1,0 +1,58 @@
+{
+  "program": "distort",
+  "mode": "harmonic",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Harmonic distortion by superimposing time-compressed copies of each wavecycle onto itself: a harmonics datafile lists harmonic_number/amplitude pairs (source amplitude = 1.0) and each cycle gets those partials stamped on at cycle rate, i.e. genuine wavecycle-locked additive overdrive. Duration static and SAMPLE-EXACT (88200/44100 frames on tones and flat noise). Harmonic numbers CDP-enforced 2-1024 ('Error in harmonics file - harmonic number [1030] out of range 2 - 1024' verbatim). No time-variable parameters (pre_attenuation refuses breakpoints, 'Cannot read parameter 1'); the harmonics file is fixed for the run. Deterministic. MONO only.",
+  "musical_use": "A waveshaper with an exact recipe: add '2 0.5' for octave-up warmth, '3 0.3' for a hollow clarinet-ish edge, stack many high odd harmonics for buzzy transistor grit. Because the partials ride each wavecycle, pitched sources stay perfectly in tune with themselves - it reads as timbre change, not added tones; on noise it simply brightens and hardens the texture. pre_attenuation tames sources that would clip once partials stack (output peaked 0.73 from a 0.5 tone with '2 0.5/3 0.3'). Write the harmonics file with write_data_file(): one 'harmonic amplitude' pair per line. For dynamic spectral evolution chain several renders or use filter-bank recolouring downstream.",
+  "parameters": {
+    "harmonics_file": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED datafile of harmonic_number/amplitude pairs, one pair per line (e.g. '2 0.5'); source amplitude is 1.0, harmonic numbers 2-1024 (out-of-range refused verbatim). Positional, after the output slot. Write with write_data_file(); any extension except .brk."
+    },
+    "pre_attenuation": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Gain applied to the input before processing (verified: -p0.5 halves the output peak exactly, 0.3652 vs 0.7304). Use to leave headroom for stacked partials. Scalar only: breakpoint refused 'ERROR: Cannot read parameter 1 [pa.brk]: brkpnt_files not permitted.'"
+    }
+  },
+  "examples": [
+    {
+      "description": "Octave-up warmth plus a whiff of twelfth.",
+      "params": {"harmonics_file": "harm.txt"},
+      "expected_use": "First write_data_file('harm.txt', '2 0.5\\n3 0.3\\n'). Same-length output, noticeably richer; peak rises ~1.5x so consider pre_attenuation 0.6."
+    },
+    {
+      "description": "Buzzy odd-harmonic grit with headroom protection.",
+      "params": {"harmonics_file": "harmodd.txt", "pre_attenuation": 0.5},
+      "expected_use": "write_data_file('harmodd.txt', '3 0.4\\n5 0.3\\n7 0.25\\n9 0.2\\n'). Hollow, clipped-transistor color on pitched material."
+    }
+  ],
+  "known_issues": [
+    "Unipolar / zero-crossing-free material refused with a two-stage message: 'WARNING: Program assumes maximum wavelength is 0.500000 secs. / WARNING: Wavelength too long at infile time 0.000000 secs. / ERROR: CANNOT ACHIEVE TASK:' (exit 255).",
+    "Stereo refused: 'Application doesn't work with this type of infile.' (exit 255) -> mono.",
+    "Deterministic (repeat runs byte-identical); no time-variable parameter anywhere - for evolving harmonic content, render several versions and crossfade.",
+    "Output level grows with the summed harmonic amplitudes; the program does not normalize (0.5 tone -> 0.73 peak with 0.8 total added amplitude)."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

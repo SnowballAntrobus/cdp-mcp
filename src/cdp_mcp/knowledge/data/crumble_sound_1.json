@@ -1,0 +1,174 @@
+{
+  "program": "crumble",
+  "mode": "sound",
+  "submode": 1,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "DISINTEGRATION-INTO-SPACE: projects a mono source onto all 8 channels of an 8-channel output (mode 1; mode 2 = 16 channels, extra dur3 positional), then from 'stt' cuts it into segments that scatter over progressively smaller channel-groups - intact image, then 2 images (dur1 seconds), then 4 (dur2), the sound literally crumbling across the array. SEEDED and reproducible: same seed byte-identical 1.2 s apart, seeds 5 vs 9 differ; seed is REQUIRED (range 1-256, 0 refused 'out of range (1.000000 to 256.000000)') and always live (even with all scatter at 0, seeds differ). Duration approximately static minus a size-dependent tail loss: 1.6879-1.7000 from 2.0 (size 0.05-0.1, any stt/seed), 1.5000 at size 0.2, 2.6668 from 3.0 - the model over-predicts by 8-25% depending on size (no closed form; row withheld). ostrch stretches the crumbled section (3.0876 at ostrch 2); the sum stt+dur1+dur2 must fit inside the input (refusal verbatim). size and pscat verified breakpoint-capable through output time. MONO in; EIGHT-CHANNEL out.",
+  "musical_use": "The end-of-the-world gesture for multichannel work: a sound holds its center, then fractures - first into a stereo-ish split, then into four images hopping around the array, segments transposing (pscat) and scattering (iscat/oscat) as it goes. stt places the fracture moment; dur1/dur2 pace the two disintegration stages; size sets the rubble grain. ostrch > 1 opens silent gaps so the crumble also DECELERATES - crumble + timestretch in one. Because the seed is required and reproducible, variants are honest A/Bs. The 8-channel wav imports straight into a DAW for spatial mixing, or fold it down for a stereo 'shattering' bed; breakpoint size (small to large) to make the rubble coarsen as the sound dies.",
+  "parameters": {
+    "stt": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Start time of the crumbling; before it the source sits intact on the full array. stt + dur1 + dur2 must not exceed the input duration ('ERROR: Sum of durations of splitting processes extends beyond end of input file.')."
+    },
+    "dur1": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Duration of the 2-image stage (signal split onto two blocks of 4 adjacent channels)."
+    },
+    "dur2": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Duration of the 4-image stage; the remainder of the file continues at maximum disintegration."
+    },
+    "orient": {
+      "type": "int",
+      "min": 1,
+      "max": 8,
+      "unit": "channel",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Channel anchoring the first split (block 1 = this channel plus adjacent clockwise channels; CDP-enforced 1-8: 9 refused verbatim)."
+    },
+    "size": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Average duration of the cut segments - the rubble grain. Time-variable (banner '*', verified: a 0.05->0.3 breakpoint renders distinct from both endpoint scalars). Also the main driver of the duration shortfall (see known_issues)."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Randomisation of segment size (max 1: sizes roam size/2 to 3*size/2). Banner-marked time-variable; not independently brk-verified - kept scalar here."
+    },
+    "iscat": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Scatter of the READ position's advance in the source (0 = step by previous segment length; 1 = random step up to that). Banner-marked time-variable; kept scalar here."
+    },
+    "oscat": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Scatter of the WRITE position's advance in the output (always forward). Banner-marked time-variable; kept scalar here."
+    },
+    "ostrch": {
+      "type": "float",
+      "min": 1.0,
+      "max": 64.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Multiplier on output placement steps (1-64); >1 opens silent gaps and EXTENDS the output (verified 3.0876 from 2.0 at ostrch 2 - outside the static model). Banner-marked time-variable; kept scalar here."
+    },
+    "pscat": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Random per-segment transposition range: at pscat 3 pitch roams +/-3 semitones. Time-variable verified (0->6 breakpoint distinct from both endpoint scalars)."
+    },
+    "seed": {
+      "type": "int",
+      "min": 1,
+      "max": 256,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED random seed (CDP-enforced 1-256; 0 refused verbatim - there is NO unseeded mode). Same seed = byte-identical rerun (verified 1.2 s apart); always live, even with every scatter at 0."
+    },
+    "splice": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Splice length cutting the segments, in ms."
+    },
+    "tail": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Exponential tail on segments, in ms (banner-marked time-variable; kept scalar). Long tails can trip 'WARNING: Minimum segment length (after any transpositions) may be too short for splices (and any tail).' and shorten the render further (1.51 s at -t100)."
+    }
+  },
+  "examples": [
+    {
+      "description": "A sound fractures across the ring after 0.3 s.",
+      "params": {"stt": 0.3, "dur1": 0.5, "dur2": 0.7, "orient": 1, "size": 0.1, "rand": 0.3, "iscat": 0.3, "oscat": 0.3, "ostrch": 1.0, "pscat": 2.0, "seed": 5},
+      "expected_use": "8-channel output ~1.69 s from a 2 s mono source: intact, then 2 images, then 4, segments wobbling +/-2 semitones. Same seed = same render."
+    },
+    {
+      "description": "Slow-motion crumble with widening gaps and coarsening rubble.",
+      "params": {"stt": 0.3, "dur1": 0.5, "dur2": 0.7, "orient": 1, "size": [[0.0, 0.05], [2.0, 0.3]], "rand": 0.5, "iscat": 0.5, "oscat": 0.5, "ostrch": 2.0, "pscat": 4.0, "seed": 7},
+      "expected_use": "Grain grows from 50 to 300 ms while ostrch 2 opens silences - the disintegration decelerates as it spreads (output LONGER than the input)."
+    }
+  ],
+  "known_issues": [
+    "EIGHT-CHANNEL OUTPUT (mode 1; mode 2 = 16): downstream mono/stereo tools will refuse it - treat as a terminal/DAW-bound render. This is the spatial member of the tranche, curated for the gesture; fold down externally for stereo use.",
+    "Duration honesty: 'static' over-predicts - observed 1.69-1.70 from 2.0 at size 0.05-0.1 (any stt, any seed), 1.50 at size 0.2, 2.67 from 3.0; ostrch > 1 instead EXTENDS (3.09 at 2). No closed form found (size/seed-dependent tail loss); the shared flat-noise duration row is withheld with this evidence. Budget -25%/+ostrch when planning.",
+    "seed is REQUIRED and 1-256 (0 refused) - reproducible by construction; no clock path.",
+    "stt + dur1 + dur2 > indur refused (verbatim above).",
+    "size and pscat breakpoint-verified; the other starred params (rand/iscat/oscat/ostrch/tail) are banner-claimed time-variable but not independently verified - kept scalar in this entry.",
+    "Stereo input refused (must be mono)."
+  ],
+  "references": ["cdp://docs/html/crumble"]
+}

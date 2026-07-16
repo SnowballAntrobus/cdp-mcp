@@ -1,0 +1,61 @@
+{
+  "program": "distshift",
+  "mode": "distshift",
+  "submode": 1,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Shifts alternate (groups of) half-wavecycles forward in time by 'shift' waveset-groups, wrapping material pushed past the end back to time zero (mode 1). Duration static and SAMPLE-EXACT on tones, 1 s and 2 s, and flat noise (88200/44100 frames preserved). grpcnt sets the unit (1 = single half-wavesets, 2 = one waveset + a half, etc.); shift sets how far the alternate units travel. No time-variable parameters (both slots refuse breakpoint files, verbatim below). Mode 2 (SWAP alternate groups, one param) is DROPPED on this build - it writes astronomically corrupt samples on noisy material (see known_issues). Deterministic. MONO only.",
+  "musical_use": "Waveform-surgery scrambling: half-cycles leapfrog each other, so pitched material grows metallic sideband distortion (comb-like, ring-mod-adjacent) whose character is set by grpcnt - at 1 the timbre shreds into odd-harmonic buzz, larger groups displace bigger chunks and read as micro-echo/roughness rather than timbre change. shift widens the displacement: small shifts smear locally, big shifts (with wraparound) fold late material over the opening. Works best on strongly pitched or percussive sources; layer under the dry sound for edge, or push grpcnt/shift up until the source dissolves into granular hash.",
+  "parameters": {
+    "grpcnt": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "half-wavesets",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Size of the elements operated on: 1 = single half-wavesets, 2 = 1 waveset + a half-waveset, 3 = 2 wavesets + a half, etc. (CDP-enforced 1-32767: 0 refused verbatim). Breakpoint refused: 'ERROR: Cannot read parameter 1 [gc.brk]: brkpnt_files not permitted.'"
+    },
+    "shift": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "waveset-groups",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "How many waveset-groups forward the alternate groups move; material pushed beyond the file end wraps to time zero (CDP-enforced 1-32767: 0 refused verbatim). Breakpoint refused: 'Cannot read parameter 2 ... brkpnt_files not permitted.'"
+    }
+  },
+  "examples": [
+    {
+      "description": "Metallic timbre-shred of a pitched source.",
+      "params": {"grpcnt": 1, "shift": 1},
+      "expected_use": "Alternate half-cycles swap places one unit ahead: same length, buzzy sideband-rich version of the input."
+    },
+    {
+      "description": "Chunky displacement with wraparound folds.",
+      "params": {"grpcnt": 3, "shift": 8},
+      "expected_use": "Larger units travel further; late material wraps over the opening - granular self-collage at the original duration."
+    }
+  ],
+  "known_issues": [
+    "MODE 2 DROPPED - CORRUPT OUTPUT: 'distshift 2' (swap alternate groups) writes wildly out-of-range samples on noisy material (peak 1.1e17 on 2 s flat noise, 3.8e26 on 1 s; 0.07% of samples corrupt, first at t=0) while exiting 0. Tones and percussive material render fine, but the input-dependence makes it unshippable. Mode 1 showed no corruption on any probe (flat-noise peak 0.79, normal).",
+    "Unipolar / zero-crossing-free material refused cleanly: 'ERROR: INVALID DATA / ERROR: Failed to find any half-wavesets.'",
+    "Stereo refused: 'ERROR: File st2.wav is not of correct type (must be mono)'.",
+    "Deterministic (repeat runs byte-identical); no time-variable parameters - render steps for evolution.",
+    "Mode 2's duration (for the record) was static within 2% when it didn't corrupt (1.9966 tone, 1.9625 at grpcnt 6)."
+  ],
+  "references": ["cdp://docs/html/distshift"]
+}

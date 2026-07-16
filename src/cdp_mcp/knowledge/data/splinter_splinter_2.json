@@ -1,0 +1,183 @@
+{
+  "program": "splinter",
+  "mode": "splinter",
+  "submode": 2,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "target + (shrcnt + ocnt + ecnt) * (1 / p1 + 1 / p2) / 2"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "DISINTEGRATION gesture (mode 2): the source plays up to 'target', then a selected waveset-group repeats as pulses that progressively SHRINK (pitch rising, mode 2 changes pitch) over shrcnt repetitions, followed by ocnt fully-shrunken splinters - the sound shatters into accelerating slivers. Duration = target + pulse-train length; with pulse speeds p1..p2 the train is the sum of pulse periods interpolating 1/p1 -> 1/p2 across shrcnt+ocnt(+ecnt) pulses - the model is EXACT when p1 == p2 (2.8220 vs 2.822 predicted; ecnt and target shifts track to 0.02%) and ~2% high when p1 != p2 (1.8844 vs 1.92 at 10->40 Hz - the speed curve). Modes: 1/3 splinters LEAD INTO the sound (outdur ~ train + indur - target), 2/4 emerge from it; 3/4 shrink to a target DURATION (-d) instead of frequency. rand (-r) is breakpoint-capable through output time (verified against both endpoints); ALL 'randomisation' is deterministic across runs (unseeded generator, byte-identical pairs 1.2 s apart). MONO only.",
+  "musical_use": "The classic 'sound shatters as it ends' gesture in one call: pick the moment (target) just before a strong waveset-group, set p1 near the material's own pulse (or a chosen rate) and p2 faster, and the tail of the note bursts into rising, accelerating splinters. shrcnt controls how long the disintegration takes, ocnt how long the fully-shrunken glitter persists, ecnt adds a regular after-pulse. rand humanises the pulse timing (breakpointable - let it loosen as the splinters fly); shrand roughens the shrinkage. mix_none (-I) extracts ONLY the splinter train (a derived gesture generator); mix_all (-i) keeps the source under the splinters. Mode 1 (via execute) plays the shatter BEFORE the sound - a reverse-shatter riser into the attack.",
+  "parameters": {
+    "target": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time in the source immediately before the waveset-group to splinter (CDP-enforced 0 to input duration: 3.0 on a 2 s file refused 'out of range (0.000000 to 2.000000)'). The source plays intact up to here (mode 2)."
+    },
+    "wcnt": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "wavesets",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Wavesets in the splinter group (selected group should be well under a minute of sound). Larger groups keep more source identity in each splinter. (0 is accepted by the binary but meaningless; entry floors at 1.)"
+    },
+    "shrcnt": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "repetitions",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Number of repetitions over which the shrinkage happens - the length of the disintegration phase (duration model term)."
+    },
+    "ocnt": {
+      "type": "int",
+      "min": 0,
+      "max": null,
+      "unit": "splinters",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Number of maximally-shrunken splinters after the shrink phase (duration model term)."
+    },
+    "p1": {
+      "type": "float",
+      "min": 0.1,
+      "max": 50.0,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Pulse speed at the originating waveset (CDP range 0-50: 60 refused 'out of range (0.000000 to 50.000000)'; entry floors at 0.1 because the duration model divides by it - the binary's special value 0, 'derive from the waveset-group duration', is execute() territory)."
+    },
+    "p2": {
+      "type": "float",
+      "min": 0.1,
+      "max": 50.0,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Pulse speed reached shrcnt+ocnt splinters away (0-50 Hz; entry floors at 0.1 - the binary's 0 means 'same as p1', instead just set p2 = p1). Faster than p1 = accelerating shatter."
+    },
+    "ecnt": {
+      "type": "int",
+      "min": 0,
+      "max": null,
+      "unit": "pulses",
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Additional regular pulses beyond shrcnt+ocnt at the final speed (verified: -e8 at 10 Hz added exactly 0.8 s). Duration model term."
+    },
+    "scv": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Shrinkage curve: 1 linear; >1 contracts faster near the originating waveset, <1 slower."
+    },
+    "pcv": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Pulse-speed curve: 1 linear; >1 accelerates faster near the origin. Bends the p1->p2 interpolation (source of the ~2% model error when p1 != p2)."
+    },
+    "frq": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-f",
+      "flag_kind": "attached_value",
+      "description": "Approximate frequency (1/wavelen) of the maximally-shrunken splinters (default ~6000 Hz; modes 1+2 only). Must exceed the average waveset frequency of the chosen group and stay below Nyquist/2 - see the flat-noise refusal in known_issues."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Randomisation of pulse timing. Banner-confirmed time-variable and verified: a 0->0.8 breakpoint renders distinct from both -r0.8 and -r0.0001 scalars (same length). Deterministic across runs despite the name."
+    },
+    "shrand": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-v",
+      "flag_kind": "attached_value",
+      "description": "Randomisation of pulse shrinkage (banner: time-variable; not independently verified - kept scalar here). Deterministic across runs."
+    },
+    "mix_all": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-i",
+      "flag_kind": "no_value",
+      "description": "Mix ALL the source into the output (default: source only where no splinters). Same duration, fuller texture. Pass 1 to enable."
+    },
+    "mix_none": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-I",
+      "flag_kind": "no_value",
+      "description": "Mix NO source: output is only the splinter train (verified 2.4239 s = train alone vs 2.8220 with source lead-in) - the duration model's 'target' term disappears. Pass 1 to enable."
+    }
+  },
+  "examples": [
+    {
+      "description": "A held sound shatters into accelerating glitter at 0.42 s.",
+      "params": {"target": 0.42, "wcnt": 4, "shrcnt": 16, "ocnt": 8, "p1": 10.0, "p2": 40.0},
+      "expected_use": "Source intact to 0.42, then 24 shrinking splinters accelerating 10->40 Hz; ~1.9 s total (model within ~2%)."
+    },
+    {
+      "description": "Extract only the splinter gesture as a new sound.",
+      "params": {"target": 0.42, "wcnt": 4, "shrcnt": 16, "ocnt": 8, "p1": 10.0, "p2": 10.0, "ecnt": 8, "mix_none": 1},
+      "expected_use": "A free-standing 3.2 s pulse-train of rising slivers (32 pulses at 10 Hz), no source body."
+    }
+  ],
+  "known_issues": [
+    "FLAT/BRIGHT NOISE REFUSED: wavesets of broadband noise are too high-frequency to shrink toward the splinter goal - 'ERROR: INVALID DATA / ERROR: Targeted-wavesets frq (c. 17454.55) >= goal frq (6000.00): Cannot shrink.' (and -f cannot exceed Nyquist/2, so it cannot be raised enough). Splinter needs pitched/percussive material at the target. The shared flat-noise duration row is impossible by construction - row withheld with this evidence.",
+    "MODE 4 + -d SEGFAULT: 'splinter 4 ... -d40' crashes (exit 139, Segmentation fault, no output) on this build; modes 3/4 without -d run. Entry pins mode 2.",
+    "Duration model: exact at p1 == p2 (0.02-0.1%), ~+2% when p1 != p2 (pulse-speed curve integration); the model divides by p1/p2 so this entry floors both at 0.1 Hz (the binary's special 0 values are documented above, execute() only).",
+    "All randomisation is deterministic across runs (unseeded generator; -r0.5 pairs 1.2 s apart byte-identical) - no seed exists; different results require different param values.",
+    "Unipolar material refused: 'ERROR: No wavesets found after time 0.500000'. Stereo refused: 'File st2.wav is not of correct type (must be mono)'."
+  ],
+  "references": ["cdp://docs/html/splinter"]
+}

@@ -1,0 +1,72 @@
+{
+  "program": "distort",
+  "mode": "repeat2",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "distort repeat WITHOUT the timestretch: each wavecycle (group) still plays multiplier times, but the program skips ahead correspondingly so the output stays the input's length - the granular 'freeze-stutter' color of repeat at the original duration. Duration static within ~1% on tones and flat noise (1.9976 at x3, 2.0182 at x12, 2.0038 flat noise); slightly OVER input at high multipliers (repeated groups re-quantise). multiplier and cyclecnt both breakpoint-capable (each verified against both scalar endpoints). Deterministic. MONO only.",
+  "musical_use": "Pitch-bead granulation in place: the sound's timeline is preserved while its surface becomes repeating micro-loops - like a granular freeze that keeps walking forward. Because material is skipped to compensate for the repeats, higher multipliers make the output sparser and more robotic: x3 reads as roughness/flange, x12 as overt stutter sampling every 12th group. Raise cyclecnt to make each repeated unit long enough to hear as a pitch bead (noise -> pitched stutter, the repeat-family trick, without the length change). Breakpoint the multiplier to move between intact and heavily-frozen across the file - the duration stays put, so it layers perfectly against the dry source.",
+  "parameters": {
+    "multiplier": {
+      "type": "int",
+      "min": 2,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Times each wavecycle-group repeats; the read pointer skips ahead to keep the length static (CDP-enforced 2-32767: 1 refused verbatim). Breakpoint-capable, banner-confirmed and verified (2->12 ramp differs from both endpoint renders; length still ~2.0)."
+    },
+    "cyclecnt": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": true,
+      "default": 1,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Wavecycles per repeated group (default 1). Larger groups -> audibly looping beads. Breakpoint-capable (verified: -c 2->8 ramp differs from both -c2 and -c8 renders)."
+    },
+    "skipcycles": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Wavecycles to skip at the file start - DROPPED from the output (verified: -s100 on a 440 Hz tone -> 1.7727 s, minus ~100/440 s), so the static model assumes 0. Scalar only: brk refused 'Cannot read parameter 3 ... brkpnt_files not permitted.'"
+    }
+  },
+  "examples": [
+    {
+      "description": "Same-length granular roughening.",
+      "params": {"multiplier": 3},
+      "expected_use": "Every cycle triples but the timeline holds - flangey, robotic surface; layers cleanly under the dry sound."
+    },
+    {
+      "description": "In-place pitch-bead stutter from noise.",
+      "params": {"multiplier": 8, "cyclecnt": 32},
+      "expected_use": "32-cycle groups repeat 8x while sampling ever-sparser source material; noise becomes stuttering pitched beads at the original length."
+    }
+  ],
+  "known_issues": [
+    "skipcycles drops material from the output (model assumes 0).",
+    "Unipolar / zero-crossing-free material refused: 'ERROR: CANNOT ACHIEVE TASK: / ERROR: source sound too short to attempt this process.'",
+    "Stereo refused: 'Application doesn't work with this type of infile.' (exit 255) -> mono.",
+    "Deterministic (repeat runs byte-identical). Duration drifts slightly ABOVE input at high multipliers (+0.9% at x12) - re-quantised group lengths; budget the row tolerance accordingly."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

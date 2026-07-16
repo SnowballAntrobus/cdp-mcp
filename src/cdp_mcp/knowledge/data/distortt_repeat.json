@@ -1,0 +1,88 @@
+{
+  "program": "distortt",
+  "mode": "repeat",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "(dur if dur < offset / 1000 + (indur - offset / 1000) * rpt else offset / 1000 + (indur - offset / 1000) * rpt)"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Duration-targeted wavecycle repetition: skips 'offset' ms (prefixed intact to the output), then repeats each group of gpcnt wavesets rpt times until the output reaches 'dur' seconds or the waveset data is exhausted. The winning feature versus distort repeat: you specify the OUTPUT length. Duration model verified sample-exact when the target is reachable (4.0000 from dur 4 on tone and flat noise at offset 100 ms; 2.0000 at dur 2 on a 1 s tone) and equal to the material bound offset/1000 + (indur - offset/1000)*rpt when dur over-asks (5.7943 vs predicted 5.8, 0.1%). OFFSET 0 IS BROKEN on this build - always pass offset >= 1 ms (see known_issues). No time-variable parameters (gpcnt/rpt refuse breakpoints verbatim). Deterministic. MONO only.",
+  "musical_use": "Fit a wavecycle-stutter to a slot: 'give me exactly 4 seconds of this sound eating itself' - ideal for grid-locked beds and stingers where distort repeat's output length would need trimming afterwards. gpcnt groups cycles into audible beads (large values -> pitch beads from noise, the family trick); rpt sets the local stretch factor, and the process simply stops when the target duration fills. The -t telescope flag instead skips wavesets so the output roughly matches the INPUT size while still stuttering - an in-place variant (duration then ~= indur, outside the model). Chain after a gate to stutter only the sustained part of a phrase (offset past the attack).",
+  "parameters": {
+    "gpcnt": {
+      "type": "int",
+      "min": 1,
+      "max": 256,
+      "unit": "wavesets",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Wavesets per repeated group (CDP-enforced 1-256: 0 refused 'out of range (1.000000 to 256.000000)' - much tighter than distort repeat's 32767). Breakpoint refused: 'Cannot read parameter 1 ... brkpnt_files not permitted.'"
+    },
+    "rpt": {
+      "type": "int",
+      "min": 2,
+      "max": 16,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Repetitions of each group (CDP-enforced 2-16: 0 refused 'out of range (2.000000 to 16.000000)' - undocumented ceiling, far below the family's usual 32767). Bounds the reachable output at offset/1000 + (indur-offset/1000)*rpt. Breakpoint refused ('parameter 2')."
+    },
+    "offset": {
+      "type": "float",
+      "min": 1.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Milliseconds of source prefixed intact before the waveset process starts. CDP accepts 0 to indur*1000 ('Value (3000.000000) out of range (0.000000 to 2000.000000)' on a 2 s file) but 0 IS BROKEN (see known_issues) - this entry enforces min 1 ms, which renders correctly (verified: offset 1, exact 4.0000 output)."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Target output duration in seconds - reached sample-exactly when the source has enough wavesets (rpt x remaining material), else the output stops at the material bound (the model's ternary)."
+    },
+    "telescope": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-t",
+      "flag_kind": "no_value",
+      "description": "Skip wavesets so the output is similar in size to the INPUT (verified 2.0035 from a 2 s source with dur 4) - an in-place stutter. The duration model does not apply with this flag (expect ~indur). Pass 1 to enable."
+    }
+  },
+  "examples": [
+    {
+      "description": "Exactly four seconds of self-eating stutter.",
+      "params": {"gpcnt": 1, "rpt": 3, "offset": 100.0, "dur": 4.0},
+      "expected_use": "100 ms intact, then triple-repeated wavecycles until the output hits 4.0000 s sample-exactly."
+    },
+    {
+      "description": "Pitch-bead fill that stops when the material runs out.",
+      "params": {"gpcnt": 64, "rpt": 4, "offset": 50.0, "dur": 30.0},
+      "expected_use": "Asks for 30 s; delivers ~0.05 + (indur-0.05)*4 when the source exhausts first (the model's second branch)."
+    }
+  ],
+  "known_issues": [
+    "OFFSET 0 BROKEN (source-diagnosed, science/distortt.c): with offset 0 the pre-offset copy loop never reads any input, so waveset-search scans an unread buffer and streams ZEROS - short dur fails 'ERROR: CANNOT ACHIEVE TASK: / ERROR: Failed to find start of wavesets (1).' (exit 255), while larger dur exits 0 with the FIRST HALF OF THE OUTPUT AS DIGITAL SILENCE (verified: dur 8 -> first nonzero sample at 4.0055 s). Entry enforces offset >= 1 ms, which behaves perfectly.",
+    "Unipolar / zero-crossing-free material: exit 0 but the output is just the offset prefix (0.105 s from a 2 s click train at offset 100 ms) - a massive-truncation variant of the zero-output trap; check durations.",
+    "rpt's 2-16 and gpcnt's 1-256 ranges are undocumented in the banner prose (refusals verbatim).",
+    "Stereo refused: 'ERROR: File st2.wav is not of correct type (must be mono)'. Deterministic (identical re-runs)."
+  ],
+  "references": ["cdp://docs/html/distortt"]
+}

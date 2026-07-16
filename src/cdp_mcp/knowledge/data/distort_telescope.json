@@ -1,0 +1,70 @@
+{
+  "program": "distort",
+  "mode": "telescope",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur / cyclecnt"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Time-contracts by TELESCOPING every group of cyclecnt wavecycles into a single cycle whose length is the group's longest cycle (default) or its average (-a). Duration is indur / cyclecnt: on periodic material within +/-0.3% at cyclecnt 2-30 (1.0000 from 2.0 at 2; 0.5011 at 4; 0.0664 at 30); on NOISE the default longest-cycle rule runs long (+55% at cyclecnt 4) while -a (average) brings it back within ~3% (0.5158 from 2.0 at cyclecnt 4 on flat noise) - use average on noisy sources if you care about the predicted length. Unlike distort delete (which keeps one real cycle per group), telescope SUMS the group into its output cycle, preserving more spectral energy. Deterministic. MONO only.",
+  "musical_use": "Aggressive wavecycle time-compression that keeps the source's energy: halve/quarter a sound with gritty aliased edge (cyclecnt 2-8), or collapse whole phrases into granular chirps (30+). Because groups telescope rather than delete, the result sounds denser and buzzier than distort delete at the same ratio - good for turning long gestures into percussive stabs. Breakpoint cyclecnt for an accelerating swallow-itself gesture (2->30 eats the file to 1/10 length). Combine with distort repeat afterwards to re-stretch the compressed grain into a new texture.",
+  "parameters": {
+    "cyclecnt": {
+      "type": "int",
+      "min": 2,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Wavecycles telescoped into one (CDP-enforced 2-32767; 1 refused 'out of range (2.000000 to 32767.000000)'). Sets the contraction ratio indur/cyclecnt. Breakpoint-capable, banner-confirmed and verified (2->30 ramp -> 0.1968 s, between and distinct from both endpoint renders)."
+    },
+    "skipcycles": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Wavecycles to skip at the start; skipped material is DROPPED from the output (verified: -s100 at cyclecnt 4 on a 440 Hz tone, 0.5011 -> 0.4439 s = minus 100 cycles / 4), so the model assumes 0. Scalar only: breakpoint refused 'Cannot read parameter 2 ... brkpnt_files not permitted.'"
+    },
+    "average": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-a",
+      "flag_kind": "no_value",
+      "description": "Telescope to the AVERAGE cycle length of each group instead of the longest. On periodic material a subtle render change (0.4966 vs 0.5011 s at cyclecnt 4); on noise it rescues the duration model (+3% instead of +55% error). Pass 1 to enable."
+    }
+  },
+  "examples": [
+    {
+      "description": "Quarter-length gritty compression of a noisy source.",
+      "params": {"cyclecnt": 4, "average": 1},
+      "expected_use": "About indur/4 (within ~3% even on noise thanks to average); dense aliased timbre."
+    },
+    {
+      "description": "Accelerating self-swallowing gesture.",
+      "params": {"cyclecnt": [[0.0, 2], [2.0, 30]]},
+      "expected_use": "Compression deepens across the file; a 2 s source collapses to ~0.2 s."
+    }
+  ],
+  "known_issues": [
+    "Duration honesty: 'indur / cyclecnt' holds within +/-0.3% on periodic material but the default longest-cycle telescope runs +55% long on flat noise (0.7729 vs 0.5 predicted at cyclecnt 4); with average=1 the same render is 0.5158 (+3.2%). The pinned duration row uses average=1 for this reason.",
+    "skipcycles drops the skipped region from the output; model assumes skipcycles = 0.",
+    "Unipolar / zero-crossing-free material refused: 'ERROR: CANNOT ACHIEVE TASK: / ERROR: source sound too short to attempt this process.'",
+    "Stereo refused: 'Application doesn't work with this type of infile.' (exit 255) -> mono.",
+    "Deterministic: repeat runs byte-identical."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

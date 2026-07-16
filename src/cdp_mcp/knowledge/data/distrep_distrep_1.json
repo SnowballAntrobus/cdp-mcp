@@ -1,0 +1,85 @@
+{
+  "program": "distrep",
+  "mode": "distrep",
+  "submode": 1,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur * multiplier"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "SPLICED wavecycle repetition (mode 1): timestretches like distort repeat - each group of cyclecnt wavecycles plays multiplier times - but with brief crossfade splices between repeated blocks, removing the raw clicks of the classic version at the cost of some level (peak dropped 0.5 -> 0.42 at cyclecnt 1: splices shave single-cycle groups; intact at cyclecnt 40). Duration indur * multiplier verified to 0.12% on tones and 0.003% on flat noise across multipliers 2-12 and cyclecnt 1-40; a multiplier breakpoint (2->12) rendered 13.97 s (mean x7) distinct from both endpoints. Mode 2 ('repeat without timestretch') is DROPPED on this build - it hard-hangs on strongly periodic input (see known_issues). Deterministic. MONO only.",
+  "musical_use": "The polished cousin of distort repeat: use it whenever the raw version's block edges buzz or click too much - sustained pads, vocal stretches, tonal beds. Same musical geography: multiplier sets the stretch, cyclecnt the grain (large groups on noisy sources cross into pitch-bead territory), and a breakpointed multiplier or cyclecnt sculpts accelerating stretches. Note the splices soften transients slightly and shave level on very small groups - for maximum bite stay with distort repeat, for smoothness distrep.",
+  "parameters": {
+    "multiplier": {
+      "type": "int",
+      "min": 2,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Times each wavecycle-group repeats (CDP-enforced 2-32767: 1 refused verbatim). Output about indur * multiplier. Breakpoint-capable, banner-confirmed and verified against both endpoints."
+    },
+    "cyclecnt": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Wavecycles per repeated group - REQUIRED positional here, unlike distort repeat's -c flag (CDP-enforced 1-32767: 0 refused verbatim). Banner-confirmed time-variable; splice behavior depends on it (see splicelen)."
+    },
+    "skipcycles": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": "-k",
+      "flag_kind": "attached_value",
+      "description": "Wavecycles ignored at the file start - dropped from the output (verified -k100: 5.9931 -> 5.3114 s at x3 on 440 Hz, i.e. minus 100 cycles x3). NOTE the flag letter is -k here, not distort repeat's -s. Scalar only."
+    },
+    "splicelen": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 15.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Splice length between repeated blocks in ms (default 15). ONLY takes effect when the repeated group is longer than two splices (source distrep.c:1174: otherwise the splice silently clamps to half the group) - at cyclecnt 1 on a 440 Hz tone, -s5/-s30/-s50 all render byte-identical; at cyclecnt 40 they differ as expected. Scalar only."
+    }
+  },
+  "examples": [
+    {
+      "description": "Smooth triple-length wavecycle stretch.",
+      "params": {"multiplier": 3, "cyclecnt": 1},
+      "expected_use": "Like distort repeat x3 but splice-smoothed; expect ~ -1.5 dB level on single-cycle groups."
+    },
+    {
+      "description": "Clean pitch-bead chain from noise.",
+      "params": {"multiplier": 8, "cyclecnt": 40, "splicelen": 5.0},
+      "expected_use": "40-cycle groups read as pitches, short splices keep the beads articulate; ~8 x input duration."
+    }
+  ],
+  "known_issues": [
+    "MODE 2 DROPPED - HANG: 'distrep 2' (repeat cycles then skip ahead to avoid timestretch) hard-hangs (>40 s, killed; 0-frame output) on a 2 s 440 Hz tone at multiplier 3/cyclecnt 1, while the same argv works at multiplier 2, on a 1 s tone, and on noise - an input-dependent infinite loop. Use distort repeat2 (curated) for the no-stretch behavior.",
+    "splicelen is silently inert whenever repeated groups are shorter than two splices (half-group clamp, source-verified) - not a broken flag, a geometry constraint.",
+    "skipcycles' flag is -k (the -s of the distort-repeat family means splicelen here) - argv trap when porting recipes.",
+    "Splices attenuate small groups: peak 0.5 -> 0.42 at cyclecnt 1 on a full-scale-0.5 tone; negligible at cyclecnt 40.",
+    "Unipolar / zero-crossing-free material refused: 'ERROR: CANNOT ACHIEVE TASK: / ERROR: No output created.'",
+    "Stereo refused: 'ERROR: INVALID DATA / ERROR: File st2.wav is not of correct type (must be mono)'.",
+    "Deterministic: repeat runs byte-identical 1.2 s apart."
+  ],
+  "references": ["cdp://docs/html/distrep"]
+}

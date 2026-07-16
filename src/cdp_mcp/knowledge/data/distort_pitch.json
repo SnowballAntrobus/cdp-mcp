@@ -1,0 +1,74 @@
+{
+  "program": "distort",
+  "mode": "pitch",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "PITCHWARP: transposes successive runs of wavecycles by random amounts within +/-octvary octaves, re-picking the transposition every (random, at most cyclelen) cycles - drunken pitch wobble at waveset granularity. CLOCK-SEEDED STOCHASTIC with NO seed argv: runs in different seconds differ; two runs launched within the SAME second are byte-identical (verified both ways - the same srand(time(0)) construction as modify radical 2/shred). Duration is nominally static but wanders with the random transpositions: at octvary 0.1 within 0.1% (flat noise 1.9994/1.9982/1.9987 from 2.0), at 0.5 about +/-4%, at octvary 2 observed +30% on a tone - budget tolerance proportional to octvary. Both musical params are breakpoint-capable, proven with seed-matched same-second runs (brk render differs from both scalar endpoints while two identical-argv runs in the same second collide byte-identically). MONO only.",
+  "musical_use": "Instant pitch-drunkenness: small octvary (0.05-0.2) adds analog-tape warble and chorus-like instability while keeping duration essentially intact; 0.5-1 smears melody into seasick glissandi; toward 8 the source becomes a random-walk register scribble. cyclelen sets how often the pitch lurches - small values (2-8) give fizzy per-grain scatter, large (64-500) slow drunken drift. Breakpoint octvary from 0 upward to make a sound progressively lose its pitch footing. Note every render is unrepeatable (clock-seeded): render once and keep the file, or embrace the variation for texture beds.",
+  "parameters": {
+    "octvary": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 8.0,
+      "unit": "octaves",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.05, 1.0],
+      "description": "Maximum random transposition, up or down, in octaves (CDP-enforced 0.000002-8: 9 refused 'out of range (0.000002 to 8.000000)'; quirk: 0 is ACCEPTED despite the quoted floor and renders near-passthrough). Duration drift grows with it. Breakpoint-capable (banner-confirmed; seed-matched proof: 0.1->2 ramp differs from both endpoints in same-second runs)."
+    },
+    "cyclelen": {
+      "type": "int",
+      "min": 2,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": true,
+      "default": 64,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Maximum wavecycles between new transposition picks; the actual count is random below this (CDP-enforced 2-32767: 1 and 1.5 refused 'out of range (2.000000 to 32767.000000)' - banner's '>1' is exact; default 64). Breakpoint-capable (seed-matched proof: -c 4->100 ramp differs from both -c4 and -c100 in same-second runs)."
+    },
+    "skipcycles": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Wavecycles to skip at the start of the file. Scalar only: breakpoint refused 'ERROR: Cannot read parameter 3 [ov.brk]: brkpnt_files not permitted.'"
+    }
+  },
+  "examples": [
+    {
+      "description": "Tape-warble instability.",
+      "params": {"octvary": 0.1},
+      "expected_use": "Gentle drunken detune; output length within ~0.1% of the input. Unrepeatable run to run (clock seed)."
+    },
+    {
+      "description": "Progressive collapse into register scribble.",
+      "params": {"octvary": [[0.0, 0.05], [2.0, 2.0]], "cyclelen": 16},
+      "expected_use": "Starts nearly stable, ends leaping wildly; expect duration to drift several percent at the wild end."
+    }
+  ],
+  "known_issues": [
+    "CLOCK-SEEDED, UNSEEDABLE: no seed parameter exists; initrand48() = srand(time(0)). Two runs in the same second are byte-identical (collision trap for A/B tests and cache keys); runs in different seconds differ in both content and length.",
+    "Duration honesty: static within 0.1% at octvary 0.1 (pinned row), ~4% at 0.5, +30% observed at octvary 2 on a periodic tone - the model degrades as octvary grows because transposed cycles change total length stochastically.",
+    "octvary 0 is accepted despite the quoted CDP floor of 0.000002 and renders near-passthrough (1.9977 s from 2.0) - undocumented.",
+    "Unipolar / zero-crossing-free material refused: 'ERROR: CANNOT ACHIEVE TASK: / ERROR: Cycle too large for buffer at 1.486077' (whole file reads as one giant cycle).",
+    "Stereo refused: 'Application doesn't work with this type of infile.' (exit 255) -> mono."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

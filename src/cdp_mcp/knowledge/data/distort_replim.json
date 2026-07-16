@@ -1,0 +1,84 @@
+{
+  "program": "distort",
+  "mode": "replim",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur * multiplier"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Frequency-limited sibling of distort repeat: timestretches by repeating wavecycles, but cycles shorter than 1/hilim seconds are MERGED into the counted unit rather than counted individually (source distrpt.c:490: mincyclen = srate/hilim; accumulation continues until a counted 'cycle' is at least that long). Nothing is skipped, so the duration model is the same as repeat - indur * multiplier - verified to 0.11% on tones (5.9932 from 2.0 at x3), 0.05% on flat noise (5.9971), and at multipliers 2/3/12 and 1 s/2 s inputs; hilim only changes repetition GRANULARITY (counted units are guaranteed longer than 1/hilim, i.e. they read below hilim Hz). On a 440 Hz tone, hilim 800 renders byte-identical to the flag-less default (1000, CYCLIM_DFLTFRQ) because the tone's cycles are already longer than both thresholds. Deterministic (repeat runs byte-identical). MONO only.",
+  "musical_use": "Use instead of distort repeat when the source has high-frequency detail that makes plain wavecycle-counting stutter too fast: replim guarantees each repeated grain is at least 1/hilim long, so noisy or bright material repeats in audible, pitched beads instead of micro-fizz. Lower hilim (toward 440) = longer grains, more obviously granular melody; higher hilim (toward Nyquist) converges on plain distort repeat behavior. Classic move: sweep the multiplier with a breakpoint file for an accelerating/decelerating granular stretch whose grain rate stays musically tangible.",
+  "parameters": {
+    "multiplier": {
+      "type": "int",
+      "min": 2,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Number of times each counted wavecycle-group repeats (CDP-enforced 2-32767, same as distort repeat). Output duration is about indur * multiplier. Breakpoint-capable, banner-confirmed and verified: a 2->12 ramp rendered 13.97 s from 2 s (mean x7) and differs from both endpoint scalar renders."
+    },
+    "cyclecnt": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": true,
+      "default": 1,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Number of counted wavecycle-units per repeated group (CDP default 1). Breakpoint-capable (verified: -c 2->8 ramp differs from both -c2 and -c8 scalar renders; duration essentially unchanged, worst -0.8%)."
+    },
+    "skipcycles": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Wavecycles to skip at the start; skipped material is dropped from the output (distort repeat family behavior), so the duration model over-predicts when nonzero. Scalar only: breakpoint refused 'ERROR: Cannot read parameter 3 [cc.brk]: brkpnt_files not permitted.'"
+    },
+    "hilim": {
+      "type": "float",
+      "min": 440.0,
+      "max": 22050.0,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": 1000.0,
+      "flag": "-f",
+      "flag_kind": "attached_value",
+      "description": "Frequency below which counted cycles must fall: shorter (higher-frequency) zero-crossing cycles are merged into the counted unit until it is at least srate/hilim samples long. CDP-enforced 440 Hz to Nyquist, hardcoded lower bound (tklib1.c: ap->lo = 440.0; refusal verbatim 'Parameter[4] Value (200.000000) out of range (440.000000 to 22050.000000)'; upper bound is input Nyquist). Default 1000 (CYCLIM_DFLTFRQ). Scalar only: breakpoint refused 'Cannot read parameter 4 ... brkpnt_files not permitted.'"
+    }
+  },
+  "examples": [
+    {
+      "description": "Triple-length granular stretch with grains no shorter than 2.3 ms.",
+      "params": {"multiplier": 3},
+      "expected_use": "Like distort repeat x3 but bright material repeats in >= 1/1000 s beads (default hilim 1000). Output about 3 x input duration."
+    },
+    {
+      "description": "Slow pitch-bead melody from any source.",
+      "params": {"multiplier": 8, "hilim": 440.0},
+      "expected_use": "Counted grains are at least 1/440 s, so each repeated group reads at or below 440 Hz - noise turns into a chain of low pitch beads, 8 x longer."
+    }
+  ],
+  "known_issues": [
+    "hilim does NOT filter anything out: on a 220-880 Hz sweep at hilim 440 the full file is still stretched x3 (5.9966 from 2.0) - cycles above hilim are merged into longer counted units, not dropped. The banner line 'frq below which cycles are counted' is easy to misread as a filter; the real semantics are source-verified (distrpt.c distort_rpt_frqlim: 'don't count too-short cycles').",
+    "skipcycles drops the skipped material from the output entirely; the duration model assumes skipcycles = 0.",
+    "Unipolar / zero-crossing-free material refused: 'ERROR: CANNOT ACHIEVE TASK: / ERROR: source sound too short to attempt this process.' (exit 255, no output) on a positive-only click train.",
+    "Stereo refused: 'Application doesn't work with this type of infile.' (exit 255) -> mono.",
+    "Deterministic: repeat runs byte-identical (no seed, no randomness)."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

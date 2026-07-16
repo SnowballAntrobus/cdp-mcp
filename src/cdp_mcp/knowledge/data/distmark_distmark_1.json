@@ -1,0 +1,96 @@
+{
+  "program": "distmark",
+  "mode": "distmark",
+  "submode": 1,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Waveset-group MORPHING between marked points: grabs a waveset-group of ~unitlen ms at each time listed in the marklist datafile and fills the spans between marks with wavecycle-by-wavecycle interpolations from one group to the next - time-domain spectral morphing at waveset granularity (mode 1 interpolates every span; mode 2 only alternate spans, leaving the source intact between - execute()). Duration: the output runs from 0 to roughly firstmark + (lastmark - firstmark) * tstretch (verified: marks 0.25..1.75 -> 1.7589; tstretch 2 -> 3.2661; tstretch 1.5 -> 2.5326); keep_tail (-t) appends the source's remainder, bringing it to ~indur (1.9676 sweep, 1.9420 flat noise) - the static model assumes keep_tail=1 and tstretch=1 (known_issues has the full rule). unitlen is breakpoint-capable (30->100 ramp distinct from both endpoints). The rand path is DETERMINISTIC across runs (identical -r0.5 renders 1.2 s apart). MONO only.",
+  "musical_use": "Draw a slow timbre-journey through a sound with just a list of times: the material AT the marks stays recognisable while everything between becomes a smooth wavecycle morph - vowels glide into each other, textures liquefy, attacks become approaches. tstretch multiplies the distances between marks (2 = the journey at half speed) - the built-in way to make long evolving beds from short sources. unitlen sets how much context each anchor keeps (small = pure tone-morph, large = chunkier identity); rand shrinks interpolated wavesets (perceived pitch rises, texture crumbles); flip_phase (-f) adds odd-harmonic shimmer to the interpolation. Generate the marklist from onsets or a grid via write_data_file().",
+  "parameters": {
+    "marklist": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED datafile of times (seconds, one per line, within the source) where waveset-groups are anchored. Min unitlen must be < 1/2 the smallest step between times (refusal verbatim: 'Max dur of waveset-units (0.300000 secs) greater than 1/2 of min step between marks (0.250000 secs).'). write_data_file(); any extension except .brk."
+    },
+    "unitlen": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Approximate size of the waveset-group grabbed at each mark, in ms; must stay below half the minimum mark spacing (runtime-checked, verbatim above). Breakpoint-capable (banner 'Can vary over time'; verified: 30->100 ramp distinct from both endpoint renders)."
+    },
+    "tstretch": {
+      "type": "float",
+      "min": 1.0,
+      "max": 256.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Timestretch of the distances between marks in the output (CDP-enforced 1-256: 0 refused 'out of range (1.000000 to 256.000000)'; floats legal - 1.5 verified). Values ~100 can die with 'ERROR: INTERNAL ERROR: (Bug?) / Memory store for sizes of intermediate waveset-groups (104), not large enough (1221 needed).' - stay modest (<= ~20). Extends the output ~proportionally (outside the pinned static model)."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Randomises (shrinks) interpolated waveset durations - heard pitch rises, output SHORTENS (-10% at 0.5 observed; range refusal verbatim '(0.000000 to 1.000000)'). Deterministic across runs despite the name."
+    },
+    "flip_phase": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-f",
+      "flag_kind": "no_value",
+      "description": "Flip the phase of alternate wavesets in the interpolation (render change). Pass 1 to enable."
+    },
+    "keep_tail": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-t",
+      "flag_kind": "no_value",
+      "description": "Append the source's remaining tail after the last mark, bringing the output to ~the input duration (1.9420 from 2.0 on flat noise) - the pinned duration row uses this. Pass 1 to enable. (Mode-1 only flag.)"
+    }
+  },
+  "examples": [
+    {
+      "description": "Liquefy a phrase between four anchor moments.",
+      "params": {"marklist": "marks.txt", "unitlen": 40.0, "keep_tail": 1},
+      "expected_use": "First write_data_file('marks.txt', '0.25\\n0.75\\n1.25\\n1.75\\n'). Output ~= input length; material morphs smoothly between the anchored waveset-groups."
+    },
+    {
+      "description": "Half-speed timbre journey.",
+      "params": {"marklist": "marks.txt", "unitlen": 40.0, "tstretch": 2.0},
+      "expected_use": "Distances between marks double: ~3.27 s from a 2 s source with marks 0.25-1.75; the morphs glide twice as slowly."
+    }
+  ],
+  "known_issues": [
+    "Duration rule (model honesty): without keep_tail the output ends just after the last mark - empirically firstmark + (lastmark - firstmark) * tstretch (worst +0.5% across tstretch 1/1.5/2); the aux-file dependence keeps it out of the expression language, so the entry pins 'static' and the row uses keep_tail=1, tstretch=1 (flat noise -2.9%). Budget accordingly when tstretch > 1 (output GROWS beyond indur) or rand > 0 (shrinks).",
+    "tstretch ~100 can abort with the verbatim INTERNAL ERROR memory message above (build bug).",
+    "Unipolar / zero-crossing-free material refused: 'ERROR: CANNOT ACHIEVE TASK: / ERROR: No waveset-group start found (2) at time 0.250000 (Buffer too short?)'.",
+    "Stereo refused: 'ERROR: File st2.wav is not of correct type (must be mono)'.",
+    "Deterministic including the -r rand path (byte-identical re-runs 1.2 s apart)."
+  ],
+  "references": ["cdp://docs/html/distmark"]
+}

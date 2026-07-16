@@ -1,0 +1,143 @@
+{
+  "program": "distort",
+  "mode": "pulsed",
+  "submode": 1,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "(dur if stime + dur < indur else dur - 1 / frq)"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Imposes an impulse-train amplitude envelope on the source (submode 1): from stime, for dur seconds, the sound is carved into pulses at frq Hz, each shaped by the user's envelope datafile (env, time/level pairs rescaled per pulse) and per-pulse transposition contour (transp datafile, time/semitone pairs). Duration model verified exactly on tones/flat noise/unipolar clicks: output = dur when the pulse section ends before the file does, else dur - 1/frq (2.0 s file, dur 2, frq 2/3/5/10/20 -> 1.5000/1.6667/1.8002/1.9000/1.9500; dur 1 on the same file -> 1.0000). By default material BEFORE stime and AFTER stime+dur is DROPPED; keep_start (-s) prefixes the intro (adds stime), keep_end (-e) appends the tail (adds indur-(stime+dur)) - both verified to ~0.3% (splices). frq is breakpoint-capable (3->20 ramp differs from both endpoints); frand and the other randomisers refuse breakpoint files. The 'randomisation' params (frand/trand/arand/tranrand) are DETERMINISTIC across runs (unseeded generator: identical renders 1.2 s apart at frand 6, trand/arand 0.5). Content-independent (works on noise and unipolar clicks - envelope-domain, not waveset-domain). Modes 2-3 instead LOOP a grabbed segment of source as synthetic impulse content (extra cyctime param) - via execute(). MONO only.",
+  "musical_use": "Turns any sustained sound into a pulse-train gesture: choose frq in the rhythmic range (2-12 Hz) for tremolo/morse chopping, higher (20-50) for rough AM buzz. The env file draws each pulse's shape (sharp attack-decay for plucks, swells for breathing); the transp file bends pitch inside every pulse (e.g. '0 12 / 1 0' = each pulse falls an octave). frand/trand/arand/tranrand loosen frequency, timing, amplitude shape and transposition per pulse - at 0 the train is metronomic, near 1 it staggers drunkenly (but identically every run). Use keep_start/keep_end to embed the pulsed section inside the intact source instead of extracting it.",
+  "parameters": {
+    "env": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED impulse-envelope datafile: time/level pairs (any time units - rescaled to each pulse's duration), e.g. '0 0 / 0.3 1 / 1 0'. First positional after the output. write_data_file(); any extension except .brk."
+    },
+    "stime": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time in the source where impulses begin (CDP-enforced 0 to input duration: 3.0 on a 2 s file refused 'out of range (0.000000 to 2.000000)'). Material before it is dropped unless keep_start."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "How long the impulse train persists. Sets the output duration (see duration model): the pulsed section is exactly dur when stime+dur < indur, else dur - 1/frq."
+    },
+    "frq": {
+      "type": "float",
+      "min": 0.1,
+      "max": 50.0,
+      "unit": "Hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "musical_range": [2.0, 20.0],
+      "description": "Impulse frequency (CDP-enforced 0.1-50: 60 refused verbatim). Breakpoint-capable (verified: 3->20 ramp differs from both endpoint renders). The duration model divides by it - with a breakpointed frq expect the tail term to follow the local rate."
+    },
+    "frand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 12.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Randomisation of impulse frequency in semitones (0-12; 13 refused verbatim). Deterministic across runs despite the name. Scalar only: brk refused 'Cannot read parameter 4 ... brkpnt_files not permitted.'"
+    },
+    "trand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Randomisation of peak/trough time-positions per impulse (0-1; 1.5 refused verbatim). Deterministic across runs."
+    },
+    "arand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Randomisation of amplitude shape per impulse (0-1). Deterministic across runs."
+    },
+    "transp": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED transposition-contour datafile: time/semitone pairs rescaled to each impulse ('0 0 / 1 0' = no transposition). Positional, after arand. write_data_file(); any extension except .brk."
+    },
+    "tranrand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Randomisation of the transposition contour per impulse. Banner says range 0-1 but the binary ACCEPTED 1.5 (range not enforced - stay within 0-1). Deterministic across runs."
+    },
+    "keep_start": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-s",
+      "flag_kind": "no_value",
+      "description": "Keep the source before stime as a prefix (adds stime to the output duration; verified 1.0 -> 1.5012 with stime 0.5). Pass 1 to enable."
+    },
+    "keep_end": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-e",
+      "flag_kind": "no_value",
+      "description": "Keep the source after stime+dur as a tail (adds indur-(stime+dur); verified 1.5 -> 2.0058 with both flags). Pass 1 to enable."
+    }
+  },
+  "examples": [
+    {
+      "description": "Chop a sustained source into 5 Hz plucked pulses.",
+      "params": {"env": "ienv.txt", "stime": 0.0, "dur": 2.0, "frq": 5.0, "frand": 0, "trand": 0, "arand": 0, "transp": "trz.txt", "tranrand": 0},
+      "expected_use": "First write_data_file('ienv.txt', '0 0\\n0.3 1\\n1 0\\n') and write_data_file('trz.txt', '0 0\\n1 0\\n'). A 2 s source becomes a 1.8 s train of ten shaped pulses (dur - 1/frq)."
+    },
+    {
+      "description": "Pulsed island inside the intact sound, pitch falling inside each pulse.",
+      "params": {"env": "ienv.txt", "stime": 0.5, "dur": 1.0, "frq": 8.0, "frand": 2.0, "trand": 0.3, "arand": 0.3, "transp": "trf.txt", "tranrand": 0.2, "keep_start": 1, "keep_end": 1},
+      "expected_use": "write_data_file('trf.txt', '0 12\\n1 0\\n'). Source plays normally, dissolves into octave-falling pulses for a second, then resumes; total ~= indur."
+    }
+  ],
+  "known_issues": [
+    "Default (no flags) DROPS the source outside [stime, stime+dur] - the output is just the pulsed section. keep_start/keep_end restore the surroundings and add their lengths to the model (known additive terms, verified to ~0.3%).",
+    "The end-of-file corner: when the pulse section reaches the input's end (stime + dur >= indur) the last pulse is dropped, hence the '- 1/frq' branch (exact across frq 2-20 on three sources).",
+    "All 'randomisation' parameters are deterministic across runs (unseeded generator; renders 1.2 s apart byte-identical even at frand 6 / trand 0.5 / arand 0.5 / tranrand 0.5) - no seed exists.",
+    "tranrand's banner range 0-1 is not enforced (1.5 accepted); frand/trand refusals verbatim '(0.000000 to 12.000000)' / '(0.000000 to 1.000000)'.",
+    "Breakpoint refusal numbering is shifted: the frand slot refuses as 'Cannot read parameter 4'.",
+    "Stereo refused: 'Application doesn't work with this type of infile.' (exit 255) -> mono. Unipolar material accepted (envelope-domain process)."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

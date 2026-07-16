@@ -1,0 +1,50 @@
+{
+  "program": "distort",
+  "mode": "reverse",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Reverses wavecycles in groups of cyclecnt: the material inside each group plays backwards while the groups themselves stay in order. Output duration is static and SAMPLE-EXACT (88200/44100 frames preserved on 2 s / 1 s tones, enveloped noise and flat noise at cyclecnt 2-30). At cyclecnt 1 each individual cycle is flipped (legal; subtle phase-mangling); larger groups reverse longer stretches, producing audible micro-retrogrades whose grain size follows the source's pitch. Deterministic. MONO only.",
+  "musical_use": "Micro-retrograde texturing: the sound keeps its overall envelope and length but its cellular material runs backwards in beads. Small groups (2-8 cycles) give a subtle phasey 'wrongness' to pitched material; bigger groups (30-100+) chop speech and melody into clearly-reversed granules - the classic 'tape-chopped backwards' effect without any editing. A breakpointed cyclecnt morphs from intact to heavily-retrograded across the file. Pairs well before distort envel or reform when you want the reversal grain to survive further waveset mangling.",
+  "parameters": {
+    "cyclecnt": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Number of wavecycles per reversed group (CDP-enforced 1-32767; 0 refused 'Parameter[1] Value (0.000000) out of range (1.000000 to 32767.000000)'). Breakpoint-capable, banner-confirmed ('cyclecnt may vary in time') and verified: a 2->30 ramp differs from both endpoint scalar renders while staying sample-exact in length."
+    }
+  },
+  "examples": [
+    {
+      "description": "Subtle phasey grit: reverse every 4 cycles.",
+      "params": {"cyclecnt": 4},
+      "expected_use": "Same-length output; pitched sources gain a hollow, comb-like edge while remaining recognisable."
+    },
+    {
+      "description": "Progressive granular retrograde.",
+      "params": {"cyclecnt": [[0.0, 2], [2.0, 30]]},
+      "expected_use": "The file starts nearly intact and dissolves into obviously backwards granules."
+    }
+  ],
+  "known_issues": [
+    "Unipolar / zero-crossing-free material refused: 'ERROR: CANNOT ACHIEVE TASK: / ERROR: source sound too short to attempt this process.' (exit 255).",
+    "Stereo refused: 'Application doesn't work with this type of infile.' (exit 255) -> mono.",
+    "Deterministic: two runs 1.2 s apart decoded-identical.",
+    "Duration static and sample-exact in all 8 probe runs (tones, enveloped noise, flat noise, breakpointed cyclecnt)."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

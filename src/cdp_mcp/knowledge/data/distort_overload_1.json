@@ -1,0 +1,62 @@
+{
+  "program": "distort",
+  "mode": "overload",
+  "submode": 1,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Clips the signal at clip_level and writes a NOISE pattern of depth 'depth' onto the clipped stretches (submode 1; submode 2 imposes a pitched waveform instead - separate entry). Duration static and SAMPLE-EXACT on all probes. Although the clipped-region fill is 'noise', the program never seeds its generator, so every run is byte-identical (deterministic by construction, same as distort reform). Output is rescaled: peak lands at clip_level/(1+clip_level) (0.2308 at 0.3, 0.1667 at 0.2 - observed). depth IS breakpoint-capable (verified against both endpoints); clip_level's breakpoint path is BROKEN on this build (see known_issues) - keep clip_level scalar. Works on any material including unipolar (no waveset dependence). MONO only.",
+  "musical_use": "Fuzz-with-texture: everything above the clip ceiling becomes noise-crusted distortion while quieter material passes clean, so the effect dynamically keys itself to the source's loud moments. Low clip_level (0.1-0.3) crushes most of the signal into roaring grit; higher levels only singe the peaks. depth sets how audible the noise fill is - near 0 a hard clipper, near 1 a sandpaper roar. Breakpoint depth to morph from clean clipping into noisy destruction across the file. For a pitched buzz instead of noise on the clipped stretches use submode 2.",
+  "parameters": {
+    "clip_level": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.1, 0.8],
+      "description": "Clipping ceiling, 0-1 (CDP-enforced; 1.5 refused verbatim). 0 is accepted but renders DIGITAL SILENCE (peak 0.0000 - avoid). Output peak scales to about clip_level/(1+clip_level). SCALAR ONLY despite the banner's 'may vary over time': the breakpoint path is broken (see known_issues)."
+    },
+    "depth": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Depth of the noise pattern written onto clipped stretches, 0-1 (1.5 refused verbatim). Breakpoint-capable, banner-confirmed and verified (0.1->1.0 ramp differs from both endpoint renders; a near-constant brk also behaves sanely)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Self-keying fuzz on the loud moments only.",
+      "params": {"clip_level": 0.4, "depth": 0.6},
+      "expected_use": "Peaks crush into noisy grit, quiet passages stay clean; same length, peak ~0.29."
+    },
+    {
+      "description": "Clean clip dissolving into sandpaper.",
+      "params": {"clip_level": 0.3, "depth": [[0.0, 0.05], [2.0, 1.0]]},
+      "expected_use": "Starts as hard clipping, ends as full noise-crust distortion."
+    }
+  ],
+  "known_issues": [
+    "CLIP_LEVEL BREAKPOINT BROKEN (first-class): a breakpoint file in the clip_level slot exits 0 but collapses the output to a fixed near-silent buzz (peak 0.0099, uniform RMS 0.0075) REGARDLESS of the values - a 0.2->0.8 ramp and a 0.3->0.30001 near-constant ramp render byte-identical to each other and unlike any scalar render. Entry pins clip_level scalar-only.",
+    "clip_level 0 is accepted and renders digital silence (88200 frames, peak 0.0000) - the engine's silence check will flag it; not a crash.",
+    "The 'noise' fill is deterministic: unseeded generator, repeat runs byte-identical 1.2 s apart. No way to get a different noise pattern.",
+    "Unipolar / zero-crossing-free material ACCEPTED (level-domain process, no waveset dependence) - full-length output verified.",
+    "Stereo refused: 'Application doesn't work with this type of infile.' (exit 255) -> mono."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

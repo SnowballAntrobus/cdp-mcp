@@ -1,0 +1,188 @@
+{
+  "program": "fracture",
+  "mode": "fracture",
+  "submode": 1,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Disperses a mono signal into enveloped FRAGMENTS spread over N-channel space (mode 1: N-channel output, chns 2-16 - chns 2 gives ordinary stereo; mode 2: stereo render of a surround dispersal, different argv tail, execute()). An envelope-table datafile (etab: each line = a time plus SEVEN etime/level pairs describing an envelope bank) shapes fragments cut at 'pulse'-second intervals across strms spatial streams; edpth sets how deep the envelopes bite (>1 starts STACKING transposed copies at stkint semitones). Duration static and SAMPLE-EXACT with randomisation off (88200/132300 frames on 2 s/3 s tones, flat noise, unipolar clicks, chns 2 and 8); rrnd/prnd/disp shorten it up to ~12% (last fragment lands early - seed-dependent). SEED-HUNT RESULT: the banner advertises [-hseed] but the binary refuses -h ('ERROR: Unknown variant flag -h') - mode 1's REAL seed flag is -S (source set_vflgs 'rpdvestSmM'; -S5 pairs byte-identical, -S5 vs -S9 differ, -S0 == unseeded == fixed default pattern; srand(seed) feeds the drand48 shim, so seeding works). Banner's [-imax] is likewise really -M (-i refused verbatim; -m/-M accepted). pulse is breakpoint-capable (0.1->1.0 ramp distinct from both endpoints). MONO in, chns-channel out.",
+  "musical_use": "Granular spatial disintegration with a drawn envelope-language: the etab bank is your set of fragment shapes (percussive bites, swells, gates) and fracture deals them across the space at pulse rate - from slow strewn debris (pulse 1-8 s) to shimmering spatial granulation (0.05-0.2 s). edpth is the drama knob: below 1 the source merely breathes through the envelopes; past 1 fragments stack transposed copies (stkint, default octaves) into gleaming vertical shards. rrnd/prnd/disp/lrnd loosen source-reading, pulse timing, stream sync and levels; trnd adds up-to-an-octave random transposition. chns 2 makes it a first-class STEREO fragmenter for normal pipelines; 4-16 feed multichannel rigs. Reproducible variants via -S seeds.",
+  "parameters": {
+    "etab": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED envelope-table datafile: each line = TIME then 7 PAIRS 'etime level' (etime 0-1 within the envelope, level 0-1, starting and ending at 0, peaking at 1). Malformed lines refused verbatim: 'Invalid number of entries (13) on line 1: should be 15 (1 time plus 7-etime-level pairs'. write_data_file(); any extension except .brk."
+    },
+    "chns": {
+      "type": "int",
+      "min": 2,
+      "max": 16,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": 2,
+      "flag": null,
+      "description": "Output channel count (CDP-enforced 2-16: 17 refused verbatim; source default 2). chns 2 = plain stereo. NOT time-variable (banner-confirmed)."
+    },
+    "strms": {
+      "type": "int",
+      "min": 4,
+      "max": 512,
+      "unit": "streams",
+      "breakpoint_capable": false,
+      "default": 16,
+      "flag": null,
+      "description": "Number of spatial positions (streams) for the fragments (CDP-enforced 4-512: 3 refused verbatim; source default 16). NOT time-variable."
+    },
+    "pulse": {
+      "type": "float",
+      "min": 0.05,
+      "max": 8.0,
+      "unit": "s",
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": null,
+      "musical_range": [0.05, 2.0],
+      "description": "Average gap between one fragment-set and the next (CDP-enforced 0.05-8: 10 refused verbatim). Breakpoint-capable (banner-confirmed; verified 0.1->1.0 ramp distinct from both endpoint renders)."
+    },
+    "edpth": {
+      "type": "float",
+      "min": 0.0,
+      "max": 8.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Envelope depth (CDP-enforced 0-8: 9 refused verbatim): 1 cuts to zero, <1 partial, >1 stacks transposed copies (depth 2 adds the first stack element at full level). Banner-claimed time-variable; not independently brk-verified here - kept scalar. NB stkint/max/rrnd/lrnd/srnd/trnd are INACTIVE while edpth < 1."
+    },
+    "stkint": {
+      "type": "float",
+      "min": 0.0,
+      "max": 12.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Upward transposition interval of the stack (0-12 semitones; 0 is read as an octave - banner: 'NO ZEROS in stack brkpoint files'). Only audible once edpth > 1."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": "-S",
+      "flag_kind": "attached_value",
+      "description": "Random seed - the flag is -S, NOT the banner's [-hseed] (-h refused 'Unknown variant flag -h'; source range 0-32767, default 0). Nonzero: same seed = byte-identical rerun (verified); 0/omitted = the fixed default pattern (also deterministic - no clock path)."
+    },
+    "min_frag": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-m",
+      "flag_kind": "attached_value",
+      "description": "Minimum fragment duration (0 = none). Inactive while edpth < 1 (verified byte-identical with/without at edpth 0.8)."
+    },
+    "max_frag": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-M",
+      "flag_kind": "attached_value",
+      "description": "Maximum fragment duration (0 = none) - the flag is -M, NOT the banner's [-imax] (-i refused 'Unknown variant flag -i'). Inactive while edpth < 1."
+    },
+    "rrnd": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Randomisation of read-time in the source (0-1). Shortens the output a few percent (seed-dependent); deterministic per seed."
+    },
+    "prnd": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Randomisation of pulse-time in the output (0-1; max scatters +/- half a pulse). Shortens the output up to ~12% with rrnd/disp at 0.5 (last fragment placement); deterministic per seed."
+    },
+    "disp": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Dispersal (time-scatter) of fragment timing between streams (0 = all synced at the pulse, 1 = spread over +/- half a pulse)."
+    },
+    "lrnd": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-v",
+      "flag_kind": "attached_value",
+      "description": "Randomisation of fragment levels (0 all full, 1 random 0-full). Inactive while edpth < 1."
+    },
+    "trnd": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1200.0,
+      "unit": "cents",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Random transposition of fragments, 0-1200 cents. Inactive while edpth < 1."
+    }
+  },
+  "examples": [
+    {
+      "description": "Stereo fragment-field from a mono source.",
+      "params": {"etab": "etab.txt", "chns": 2, "strms": 4, "pulse": 0.25, "edpth": 0.8, "stkint": 0},
+      "expected_use": "First write_data_file('etab.txt', '0  0 0  0.1 0.5  0.25 1  0.5 0.8  0.75 0.4  0.9 0.1  1 0\\n'). Envelope-bitten fragments pulse across 4 streams in stereo; output sample-exact to the input length."
+    },
+    {
+      "description": "Seeded shard-stack dispersal, accelerating.",
+      "params": {"etab": "etab.txt", "chns": 2, "strms": 8, "pulse": [[0.0, 1.0], [2.0, 0.1]], "edpth": 2.0, "stkint": 7.0, "prnd": 0.5, "seed": 5},
+      "expected_use": "Fragments quicken across the file, each stacking a fifth-up copy; -S5 reruns are byte-identical, other seeds give sibling gestures (expect a few % length shortfall from prnd)."
+    }
+  ],
+  "known_issues": [
+    "BANNER FLAG BUGS (first-class): the usage advertises [-hseed] and [-imax], but mode 1's actual flags are -S (seed) and -M (max) - -h and -i are refused verbatim ('Unknown variant flag -h' / '-i'). Source-verified (fracture.c set_vflgs 'rpdvestSmM'; ap->lo/hi[FRAC_SEED] 0-32767).",
+    "Deterministic at every setting: unseeded runs (even with rrnd/prnd/disp at 0.5) are byte-identical 1.2 s apart - srand only runs when seed > 0, and the unseeded generator is fixed. Reproducibility is total; variation requires changing the seed.",
+    "Duration static and sample-exact with randomisation off; rrnd/prnd/disp pull the last fragment earlier (observed 1.7583 from 2.0 at 0.5/0.5/0.5, seed-dependent 1.76-1.94) - budget accordingly.",
+    "stkint/min_frag/max_frag/rrnd/lrnd/srnd/trnd are INACTIVE while edpth < 1 (banner-documented, empirically confirmed for min/max: byte-identical renders at edpth 0.8).",
+    "etab validation is strict (15 numbers per line, verbatim refusal recorded). Unipolar material accepted; stereo input refused (must be mono).",
+    "chns > 2 renders multichannel wavs (up to 16) - route those to DAW-bound terminal use; chns 2 stays pipeline-friendly."
+  ],
+  "references": ["cdp://docs/html/fracture"]
+}

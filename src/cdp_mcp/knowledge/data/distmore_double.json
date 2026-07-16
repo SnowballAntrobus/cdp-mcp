@@ -1,0 +1,50 @@
+{
+  "program": "distmore",
+  "mode": "double",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Doubles (quadruples...) the frequency of each waveset IN PLACE: every waveset is replaced by 2^mult compressed copies of itself, transposing perceived pitch up mult octaves while the duration stays put - waveset-domain octave-up without resampling artifacts or length change. FFT-verified: a 440 Hz tone renders at exactly 880 Hz at mult 1 (1696 Hz at mult 2 - slight quantisation wobble). Duration static: -0.1% at mult 1 (tones/flat noise/sweep), +3.6% at mult 2 on a tone (waveset re-quantisation) - budget more at higher mult. Deterministic, no other parameters. Part of the distmore suite (bright / double / segsbkwd / segszig). MONO only.",
+  "musical_use": "Instant octave-up shimmer that keeps the timeline: because each waveset is squeezed and repeated within its own slot, transients stay where they were - great on percussive and vocal material where a resampler would smear timing. mult 1 is the musical sweet spot (clean octave with a slight waveset glassiness); 2-4 push into whistle/ring territory as quantisation artifacts stack. Classic uses: parallel octave layer under the dry signal, or chained with distort envel/reverse to build glassy waveset counterpoint. For downward octaves use distort divide (curated).",
+  "parameters": {
+    "mult": {
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "unit": "octaves",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Octave steps up (CDP-enforced 1-4: 5 refused 'Parameter[1] Value (5.000000) out of range (1.000000 to 4.000000)'). Breakpoint refused ('Cannot read parameter 1 ... brkpnt_files not permitted.') - render steps for evolving transposition."
+    }
+  },
+  "examples": [
+    {
+      "description": "Clean in-place octave-up layer.",
+      "params": {"mult": 1},
+      "expected_use": "440 Hz reads as 880 Hz, same length (-0.1%); mix under the dry sound for shimmer."
+    },
+    {
+      "description": "Two octaves into glassy whistle.",
+      "params": {"mult": 2},
+      "expected_use": "Pitch x4 with audible waveset glass; expect up to ~4% length drift on periodic sources."
+    }
+  ],
+  "known_issues": [
+    "SEGFAULT ON UNIPOLAR MATERIAL (first-class): a positive-only click train (no zero crossings) crashes the binary outright - exit 139, Segmentation fault, no error message, no output. Gate or verify material with real zero crossings first.",
+    "Duration drift grows with mult (+3.6% at 2 on a 440 Hz tone; -0.1% at 1) - waveset re-quantisation; the pinned row uses mult 1 on flat noise (-0.005%).",
+    "Stereo refused: 'ERROR: File st2.wav is not of correct type (must be mono)'.",
+    "Deterministic (byte-identical re-runs)."
+  ],
+  "references": ["cdp://docs/html/distmore"]
+}

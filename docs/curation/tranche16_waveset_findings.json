@@ -1,0 +1,351 @@
+{
+  "generated_at": "2026-07-16",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build, -fsigned-char; distort banners 'CDP Release 7.1 2016'; standalone waveset programs print no release banner)",
+    "os": "Linux x86_64 sandbox",
+    "note": "Tranche 16 - waveset/distort extensions. Fixtures /tmp/probe16a (flat noise matching the duration-row fixture, 220-880 sweeps, tone-burst trains, unipolar click train ct2). Aux-referencing rows need _AUX_FILES additions listed under aux_files. To be re-verified on macOS r8 by the CDP-gated suite after integration."
+  },
+  "aux_files": {
+    "harm16.txt": "2 0.5\n3 0.3\n",
+    "ienv16.txt": "0 0\n0.3 1\n1 0\n",
+    "trz16.txt": "0 0\n1 0\n",
+    "marks16.txt": "0.25\n0.75\n1.25\n1.75\n",
+    "etab16.txt": "0  0 0  0.1 0.5  0.25 1  0.5 0.8  0.75 0.4  0.9 0.1  1 0\n"
+  },
+  "entries": [
+    {
+      "program": "distort",
+      "mode": "replim",
+      "submode": null,
+      "breakpoint_capable": ["multiplier", "cyclecnt"],
+      "duration_row": ["distort", "replim", null, 2.0, {"multiplier": 3}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "hilim is NOT a filter (source distrpt.c:490): cycles shorter than srate/hilim MERGE into the counted unit - a 220-880 sweep at -f440 still stretches x3 in full. Model indur*multiplier, worst 0.11% (flat noise 0.05%).",
+        "hilim hardcoded 440-nyquist (tklib1.c ap->lo = 440.0 = CONCERT_A; refusal verbatim), default 1000 (CYCLIM_DFLTFRQ); flagless == -f800 byte-identical on a 440 Hz tone.",
+        "multiplier brk 2->12 -> 13.9727, differs both endpoints; -c brk 2->8 -> 5.9659 differs both; -s/-f refuse (parameters 3/4).",
+        "ct2 unipolar refused 'source sound too short to attempt this process.'; stereo refused; deterministic."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "reverse",
+      "submode": null,
+      "breakpoint_capable": ["cyclecnt"],
+      "duration_row": ["distort", "reverse", null, 2.0, {"cyclecnt": 4}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Static SAMPLE-EXACT on all probes (cyclecnt 1-30, tones/noise/flat noise). cyclecnt 1 legal (per-cycle flip). Range 1-32767 verbatim.",
+        "cyclecnt brk 2->30 differs from both endpoints, length still sample-exact. Deterministic; ct2 refused; stereo refused -> mono."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "envel",
+      "submode": 2,
+      "breakpoint_capable": ["cyclecnt", "troughing", "exponent"],
+      "duration_row": ["distort", "envel", 2, 2.0, {"cyclecnt": 20}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Falling envelope per cyclecnt-group; static sample-exact everywhere. All three params brk-capable (each differs from both endpoints). Ranges verbatim: cyclecnt 1-1000 (small ceiling), troughing 0-1, exponent 0.02-50.",
+        "UNIPOLAR ACCEPTED (unlike most waveset distorts) - full-length output on ct2. Submode 4 argv pinned: envfile AFTER outfile. Submodes 1/3 distinct renders; 3 makes troughing a required positional.",
+        "Stereo refused 'Application doesn't work with this type of infile.'; deterministic."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "harmonic",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["distort", "harmonic", null, 2.0, {"harmonics_file": "harm16.txt"}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Static sample-exact; deterministic; no time-variable parameter (-p refuses brk, 'parameter 1'). Harmonics file range 2-1024 verbatim ('harmonic number [1030] out of range 2 - 1024').",
+        "-p0.5 exactly halves output peak. ct2 refused via 'Wavelength too long at infile time 0.000000'; stereo refused -> mono. Aux row needs harm16.txt."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "pitch",
+      "submode": null,
+      "breakpoint_capable": ["octvary", "cyclelen"],
+      "duration_row": ["distort", "pitch", null, 2.0, {"octvary": 0.1}, 0.05],
+      "stochastic": true,
+      "notes": [
+        "CLOCK-SEEDED, UNSEEDABLE (modify-shred construction): different seconds differ in content AND length; same-second runs byte-identical (verified repeatedly, both directions).",
+        "Duration static-with-spread: octvary 0.1 flat noise 1.9994/1.9982/1.9987 (row); 0.5 -> +/-4%; 2.0 -> +30% on a tone. Row pinned at 0.1, but the row is stochastic - rerun variance is sub-0.1% there.",
+        "SEED-MATCHED BRK PROOFS (new technique): run scalar-lo, scalar-hi, brk and a repeat of scalar-lo back-to-back inside one second; the repeat colliding byte-identically proves the shared seed, and the brk differing from both endpoints is then valid. octvary 0.1->2 and cyclelen -c 4->100 both proven capable this way; -s refuses brk.",
+        "octvary 0 ACCEPTED despite quoted floor 0.000002 (near-passthrough 1.9977). cyclelen 2-32767 verbatim (1 and 1.5 refused), default 64.",
+        "ct2 refused 'Cycle too large for buffer at 1.486077'; stereo refused -> mono."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "telescope",
+      "submode": null,
+      "breakpoint_capable": ["cyclecnt"],
+      "duration_row": ["distort", "telescope", null, 2.0, {"cyclecnt": 4, "average": 1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Model indur/cyclecnt: +/-0.3% on tones (cyclecnt 2-30, two indurs); flat noise +55% with the default telescope-to-LONGEST, +3.2% with -a (average) - row pinned WITH average=1.",
+        "cyclecnt brk 2->30 differs from both endpoints; -s refuses brk and DROPS material (0.5011->0.4439 = -100cyc/4 at 440 Hz).",
+        "ct2 refused; stereo refused verbatim; deterministic."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "filter",
+      "submode": 1,
+      "breakpoint_capable": ["freq"],
+      "duration_row": ["distort", "filter", 1, 2.0, {"freq": 440.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "ZERO-OUTPUT TRAP CONFIRMED (P5-4 pattern): filtering everything out -> EXIT 0 with a 0-data-frame wav, sole symptom 'WARNING: Can't close output sf-soundfile : can't truncate SFfile'. Triggered by: tone below freq (mode 1), flat noise in mode 2 at 440, unipolar ct2, and INVERTED mode-3 bounds (600 300 - NO silent swap).",
+        "Duration = time-in-band, content-dependent (sweep probes match crossing times ~1%: 1.3344/0.6758/0.9124 vs 1.333/0.667/0.909). Entry pins static as documented upper bound; row on flat noise mode 1 freq 440 (1.9999, noise cycles nearly all high).",
+        "freq brk 250->800 differs from both endpoints; -s refuses brk. freq range 10-nyquist verbatim.",
+        "Deterministic; stereo refused. Submodes 2 (omit above) and 3 (band, freq1 freq2) share the engine - execute()."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "overload",
+      "submode": 1,
+      "breakpoint_capable": ["depth"],
+      "duration_row": ["distort", "overload", 1, 2.0, {"clip_level": 0.3, "depth": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "CLIP_LEVEL BRK BROKEN (first-class): brk in slot 1 exits 0 but renders a fixed near-silent buzz (peak 0.0099, uniform RMS 0.0075) regardless of values - 0.2->0.8 and 0.3->0.30001 ramps BYTE-IDENTICAL to each other, unlike any scalar. capable=false is load-bearing.",
+        "depth brk healthy (0.1->1.0 differs from both endpoints). Mode 1's 'noise' fill is unseeded-deterministic (pairs byte-identical). clip 0 accepted -> digital silence (frames intact, peak 0.0000).",
+        "Static sample-exact; UNIPOLAR ACCEPTED (level-domain); output peak ~ clip/(1+clip); ranges 0-1 verbatim; stereo refused -> mono."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "overload",
+      "submode": 2,
+      "breakpoint_capable": ["depth", "freq"],
+      "duration_row": ["distort", "overload", 2, 2.0, {"gate": 0.3, "depth": 0.5, "freq": 880.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Waveform-fill sibling of overload 1; static sample-exact, deterministic, unipolar accepted.",
+        "freq brk healthy AND consistent: 200->2000 ramp differs from both endpoints; near-constant 880->880.01 brk renders BYTE-IDENTICAL to scalar 880. depth shares mode 1's verified slot. gate shares clip_level's broken brk path - scalar only.",
+        "freq range 0.01-nyquist verbatim (0.05 accepted - sub-audio legal); stereo refused -> mono."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "pulsed",
+      "submode": 1,
+      "breakpoint_capable": ["frq"],
+      "duration_row": ["distort", "pulsed", 1, 2.0, {"env": "ienv16.txt", "stime": 0.0, "dur": 2.0, "frq": 5.0, "frand": 0, "trand": 0, "arand": 0, "transp": "trz16.txt", "tranrand": 0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Duration model '(dur if stime + dur < indur else dur - 1/frq)' exact across frq 2-20, two indurs, three sources incl. unipolar (1.5000/1.6667/1.8002/1.9000/1.9500 from dur 2 at file end; 1.0000 when the section fits). keep_start adds stime, keep_end adds indur-(stime+dur) (verified ~0.3%; documented outside the model). Ternary verified evaluable end-to-end via process_impl (status ok).",
+        "frq brk 3->20 differs from both endpoints -> capable; frand refuses brk ('Cannot read parameter 4' - shifted numbering).",
+        "ALL randomisation deterministic (frand 6/trand .5/arand .5/tranrand .5 pairs 1.2 s apart byte-identical; no seed argv). TRANRAND RANGE UNENFORCED: 1.5 accepted despite banner 0-1.",
+        "Ranges verbatim: frq 0.1-50, frand 0-12, trand 0-1, stime 0-indur. env and transp are REQUIRED positional aux datafiles (row needs ienv16.txt + trz16.txt). Modes 2-3 (cyctime segment-loop variants) execute(). Unipolar accepted; stereo refused -> mono."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "repeat2",
+      "submode": null,
+      "breakpoint_capable": ["multiplier", "cyclecnt"],
+      "duration_row": ["distort", "repeat2", null, 2.0, {"multiplier": 3}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Repeat WITHOUT timestretch: static within ~1% (1.9976 x3; 2.0182 x12; 2.0038 flat noise); drifts slightly ABOVE input at high multipliers.",
+        "multiplier brk 2->12 differs both; -c brk 2->8 differs from -c2/-c8; -s refuses brk and drops material (-s100 -> 1.7727).",
+        "ct2 refused; stereo refused verbatim; deterministic. Engine spot-check incl. a relative-time multiplier breakpoint (ok, 2.0112)."
+      ]
+    },
+    {
+      "program": "distrep",
+      "mode": "distrep",
+      "submode": 1,
+      "breakpoint_capable": ["multiplier", "cyclecnt"],
+      "duration_row": ["distrep", "distrep", 1, 2.0, {"multiplier": 3, "cyclecnt": 1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Spliced distort-repeat: model indur*multiplier (flat noise 5.9998, 0.003%). multiplier brk 2->12 (13.9727) and cyclecnt brk 2->8 (5.9659) each differ from both endpoints.",
+        "SPLICE GEOMETRY QUIRK (source distrep.c:1174): -s splicelen is silently clamped to half the repeated group when the group < 2 splices - -s5/-s30/-s50 byte-identical at cyclecnt 1 on 440 Hz, distinct at cyclecnt 40. Not a dead flag.",
+        "SKIP FLAG IS -k here (-s means splicelen); -k100 drops material (5.3114 = (2-0.227)*3). Splices attenuate single-cycle groups (peak 0.5 -> 0.4207).",
+        "ct2 refused 'No output created.'; stereo 'File st2.wav is not of correct type (must be mono)'; deterministic."
+      ]
+    },
+    {
+      "program": "distshift",
+      "mode": "distshift",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": ["distshift", "distshift", 1, 2.0, {"grpcnt": 1, "shift": 1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Shift-alternate-half-wavesets: static SAMPLE-EXACT (tones two indurs, flat noise clean at peak 0.79). grpcnt/shift 1-32767 verbatim; both refuse brks (parameters 1/2). Deterministic; ct2 refused 'Failed to find any half-wavesets.'; mono verbatim."
+      ]
+    },
+    {
+      "program": "distortt",
+      "mode": "repeat",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["distortt", "repeat", null, 2.0, {"gpcnt": 1, "rpt": 3, "offset": 100.0, "dur": 4.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Duration-targeted repeat: output EXACTLY dur when reachable (4.0000 tone+flat noise; 2.0000 on 1 s tone) else offset/1000+(indur-offset/1000)*rpt (5.7943 vs 5.8). Model is the ternary of those two.",
+        "OFFSET 0 BROKEN (source-diagnosed, science/distortt.c): pre-offset copy loop never reads input at startsamp 0 -> zero-stream; short dur fails 'Failed to find start of wavesets (1).', long dur exits 0 with the first HALF of the output digital silence (first nonzero at 4.0055 s of 8). offset >= 1 ms behaves perfectly - entry floors it at 1.",
+        "Undocumented tight ranges verbatim: rpt 2-16, gpcnt 1-256, offset 0-indur*1000. gpcnt/rpt refuse brks. -t telescope -> ~indur (2.0035; model suspended).",
+        "ct2 + offset: exit 0 but output = offset prefix only (0.1050 s) - truncation trap. Stereo mono-verbatim; deterministic."
+      ]
+    },
+    {
+      "program": "distmark",
+      "mode": "distmark",
+      "submode": 1,
+      "breakpoint_capable": ["unitlen"],
+      "duration_row": ["distmark", "distmark", 1, 2.0, {"marklist": "marks16.txt", "unitlen": 40.0, "keep_tail": 1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Waveset-group morphing between marked times. Duration ~ firstmark + (lastmark-firstmark)*tstretch (+tail with -t): 1.7589 base, 3.2661 at -s2, 2.5326 at -s1.5, 1.9676/-t sweep, 1.9420/-t flat noise (row, aux marks16.txt). Aux-dependent -> entry pins static, row uses keep_tail=1.",
+        "unitlen brk 30->100 differs from both endpoints. Constraint verbatim: 'Max dur of waveset-units (0.300000 secs) greater than 1/2 of min step between marks (0.250000 secs).'",
+        "tstretch 1-256 verbatim but ~100 dies 'INTERNAL ERROR: (Bug?) / Memory store for sizes of intermediate waveset-groups (104), not large enough (1221 needed).' - stay modest.",
+        "-r rand shrinks output (-10% at 0.5) and is DETERMINISTIC across runs. ct2 refused 'No waveset-group start found (2) at time 0.250000 (Buffer too short?)'; mono verbatim."
+      ]
+    },
+    {
+      "program": "distmore",
+      "mode": "double",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["distmore", "double", null, 2.0, {"mult": 1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "In-place waveset octave-up: FFT-verified 440 -> exactly 880 Hz at mult 1 (x4 -> 1696 at mult 2). Static: -0.1% at mult 1 (row on flat noise 1.9999), +3.6% at mult 2 on a tone.",
+        "SEGFAULT ON UNIPOLAR (first-class): ct2 -> exit 139, Segmentation fault, no message, no output.",
+        "mult 1-4 verbatim; brk refused; deterministic; mono verbatim."
+      ]
+    },
+    {
+      "program": "distmore",
+      "mode": "segszig",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": ["distmore", "segszig", 2, 2.0, {"repets": 4}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Whole-file zigzag: model indur*2*repets*prop, worst -1.3% (15.8949 at repets 4; 31.7748 at 8; 7.9550 at 2; 7.8949 from 1 s; flat noise identical; prop 0.2 -> 3.0949 vs 3.2).",
+        "BANNER DIVERGENCE: repets and prop labelled '(timevariable)' but breakpoint files REFUSED ('Cannot read parameter 1/4 ... brkpnt_files not permitted.').",
+        "MODE 3's dur positional INERT: 'segszig 3 in out 4 5.0' byte-identical to 'segszig 2 in out 4' - duration-targeting does nothing on this build.",
+        "shrinkto -s100 shortens below the model (17.5272 at repets 8; documented, excluded). Deterministic; mono verbatim."
+      ]
+    },
+    {
+      "program": "distmore",
+      "mode": "segsbkwd",
+      "submode": 3,
+      "breakpoint_capable": [],
+      "duration_row": ["distmore", "segsbkwd", 3, 2.0, {"marklist": "marks16.txt"}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Reverse Head+Tail pairs in place: static SAMPLE-EXACT (sweep, flat noise, and UNIPOLAR ct2 accepted - mark-based cutting, not wavesets). Marklist aux is the only parameter; needs >= 4 values ('Insufficient data (1 values) in file m1.txt : Need at least 4').",
+        "Nine submodes share the argv (different reversal groupings; 1 vs 3 verified distinct). Deterministic; mono verbatim. Row needs marks16.txt."
+      ]
+    },
+    {
+      "program": "splinter",
+      "mode": "splinter",
+      "submode": 2,
+      "breakpoint_capable": ["rand"],
+      "duration_row": null,
+      "duration_row_reason": "Flat-noise fixture impossible by construction: 'ERROR: INVALID DATA / ERROR: Targeted-wavesets frq (c. 17454.55) >= goal frq (6000.00): Cannot shrink.' on both fn1 and fn2 (and -f cannot exceed nyquist/2). Model 'target + (shrcnt+ocnt+ecnt)*(1/p1+1/p2)/2' verified on tone-burst fixtures: exact at p1==p2 (2.8220/1.6220/3.6220/3.3007 vs predictions), +1.9% at p1!=p2 (pcv curve).",
+      "stochastic": false,
+      "notes": [
+        "Repeat-shrink disintegration, mode 2 (splinters emerge from the source at 'target', pitch rising). Mode 1: train + (indur-target) (1.8571 from 2 s, 2.8571 from 3 s). -I extracts the train alone (2.4239); -i mixes all source.",
+        "MODE 4 + -d SEGFAULT: 'splinter 4 ... -d40' exit 139; modes 3/4 run without -d. Entry pins mode 2.",
+        "rand -r brk 0->0.8 differs from both -r0.8/-r0.0001 -> capable (banner 'Time-variable' confirmed). ALL randomisation deterministic across runs (no seed exists; -r0.5 pairs byte-identical).",
+        "Ranges verbatim: p1/p2 0-50 Hz (60 refused), target 0-indur. Entry floors p1/p2 at 0.1 (binary's 0 = derive-from-waveset special, would zero-divide the model). ct2 refused 'No wavesets found after time 0.500000'; mono verbatim."
+      ]
+    },
+    {
+      "program": "crumble",
+      "mode": "sound",
+      "submode": 1,
+      "breakpoint_capable": ["size", "pscat"],
+      "duration_row": null,
+      "duration_row_reason": "No closed duration form: outdur is a size/seed-dependent tail-loss off indur - 1.6879-1.7000 from 2.0 at size 0.05-0.1 (any stt 0.3/0.6, seeds 5/9), 1.5000 at size 0.2, 2.6668 from 3.0, ostrch 2 -> 3.0876 (EXTENDS), -t100 -> 1.5100. Entry pins static with the -8%..-25%/+ostrch envelope documented.",
+      "stochastic": true,
+      "notes": [
+        "Spatial disintegration: mono -> EIGHT-channel output (mode 2 = 16ch, extra dur3). Curated as an explicitly-targeted prize; multichannel output documented as DAW-bound terminal render.",
+        "SEED REQUIRED, range 1-256 (0 refused '(1.000000 to 256.000000)') and ALWAYS live (zero-scatter seeds 5/9 still differ). Same seed byte-identical 1.2 s apart - reproducible, no clock path; stochastic=true only in the sense that the seed is a mandatory pattern selector.",
+        "size brk (.05->.3 -> 1.1965) and pscat brk (0->6) each differ from both scalar endpoints -> capable. Other starred params (rand/iscat/oscat/ostrch/tail) banner-claimed time-variable, not independently verified - kept scalar.",
+        "Constraint verbatim: 'Sum of durations of splitting processes extends beyond end of input file.' orient 1-8 verbatim. Mono input verbatim."
+      ]
+    },
+    {
+      "program": "cascade",
+      "mode": "cascade",
+      "submode": 3,
+      "breakpoint_capable": [],
+      "duration_row": ["cascade", "cascade", 3, 2.0, {"clipsize": 0.25, "echos": 4, "clipmax": 0.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Echo-cut cascade, mono -> STEREO (mode 3, echo-sets alternate L/R). Model indur + clipsize*echos, worst 0.85% (7 probes, two indurs, flat noise identical - content-independent). Row at clipmax 0.",
+        "BREAKPOINT FILES SILENTLY IGNORED (first-class): clipsize brk == scalar-first-value render byte-identical; echos brk likewise; rand brk (with seed) == the FLAG-LESS base byte-identical. Banner's 'Time-variable' claims are dead - every param capable=false, load-bearing.",
+        "Seed semantics: -s5 pairs byte-identical, -s5 vs -s9 differ, UNSEEDED -r0.5 pairs ALSO byte-identical (never clock-seeded; seed 0-64 verbatim selects patterns). clipmax > 0 makes duration seed-dependent (3.0712/3.7227 at seeds 5/9) - model suspended.",
+        "Ranges verbatim: clipsize 0.005-60, echos 1-64. Shred -N4 -C2 verified live. UNIPOLAR ACCEPTED. Mode-3 stereo input refused 'File st2.wav is not of correct type for Mode 3'; mode 1 = N-in N-out (mono in -> 1ch out, same duration). Modes 6-10 use a cut-times textfile (execute())."
+      ]
+    },
+    {
+      "program": "fracture",
+      "mode": "fracture",
+      "submode": 1,
+      "breakpoint_capable": ["pulse"],
+      "duration_row": ["fracture", "fracture", 1, 2.0, {"etab": "etab16.txt", "chns": 2, "strms": 4, "pulse": 0.25, "edpth": 0.8, "stkint": 0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "N-channel fragment dispersal; chns 2 gives plain stereo (row uses it - pipeline-friendly). Static SAMPLE-EXACT with rands off (2 s/3 s tones, flat noise, UNIPOLAR ct2, chns 2 and 8); -r/-p/-d 0.5 shortens seed-dependently (1.7583-1.9401).",
+        "SEED-HUNT HEADLINE (banner bugs, source-verified): usage advertises [-hseed] and [-imax] but -h/-i are refused 'Unknown variant flag -h'/'-i'. fracture.c set_vflgs 'rpdvestSmM' -> seed is -S (0-32767, srand(seed) if >0 feeds the drand48 shim - seeding WORKS), max is -M, min -m. Empirical: -S5 pairs byte-identical, -S5 vs -S9 differ, -S0 == flag-less byte-identical. Unseeded runs deterministic even with rands on (no clock path).",
+        "pulse brk 0.1->1.0 differs from both endpoints -> capable (banner: everything timevaries except chns/strms/seed; only pulse independently proven, others kept scalar).",
+        "min/max (-m/-M) INACTIVE below edpth 1 (byte-identical with/without at 0.8 - banner-consistent). Ranges verbatim: chns 2-16, strms 4-512, pulse 0.05-8, edpth 0-8. etab validation verbatim ('should be 15 (1 time plus 7-etime-level pairs'). Mode 2 (stereo surround projection, 4 extra positionals) execute(). Mono input verbatim. Row needs etab16.txt."
+      ]
+    }
+  ],
+  "dropped": [
+    {
+      "program": "distort",
+      "mode": "shuffle",
+      "submode": null,
+      "reason": "Engine free-string gap (blur shuffle precedent, tranche 10a): the REQUIRED domain-image mapping is a plain-string positional parsed straight from argv (cdp2k/tklib3.c:646 read_shuffle_data via DISTORT_SHUF) - the engine's _check_type accepts strings only for .brk and aux_file params, and an aux_file re-model is impossible (no file fallback in CDP). CLI probes retained for unblocking: 'ab-abab' -> 3.9909 (~indur*imgcnt/dmncnt), 'ab-a' -> 0.9980, 'ab-ba -c50' -> 1.8182 (trailing block dropped); 'abab' refused 'Bad string for shuffle data: separator missing'. Reachable via execute()."
+    },
+    {
+      "program": "distcut",
+      "mode": "distcut",
+      "submode": 1,
+      "reason": "Multi-output with generic outfilename, no outfile argv (standing precedent): 'distcut distcut 1 sw2.wav cutx 50 1' exit 0 wrote cutx0.wav..cutx21.wav (22 numbered files)."
+    },
+    {
+      "program": "partition",
+      "mode": "partition",
+      "submode": 1,
+      "reason": "Multi-output with generic outname, no outfile argv: 'partition partition 1 sw2.wav party 3 30' exit 0 wrote party0/1/2.wav (2.0000 s each, block-interleaved silence)."
+    },
+    {
+      "program": "distrep",
+      "mode": "distrep",
+      "submode": 2,
+      "reason": "HANG: 'distrep 2 tone2.wav out 3 1' killed at both 30 s and 40 s timeouts (exit 124, 0-frame output) while mult 2, 1 s tone, flat noise, sweep and burst inputs all run - input-dependent infinite loop; unshippable failure mode for a 30 s-budget engine. Mode 1 curated; distort repeat2 (curated) covers the no-stretch behavior."
+    },
+    {
+      "program": "distshift",
+      "mode": "distshift",
+      "submode": 2,
+      "reason": "CORRUPT OUTPUT: exit 0 with astronomically out-of-range samples on flat noise (peak 1.143e+17 on 2 s / 3.8e+26 on 1 s; 0.07% of samples, first at t=0) while tones and tone-bursts render clean - input-dependent memory bug. Mode 1 curated (clean on the same fixtures)."
+    },
+    {
+      "program": "distmore",
+      "mode": "bright",
+      "submode": null,
+      "reason": "Attrition, no defect: probed working ('bright 2 sw2 out marks4.txt' exit 0 -> 1.7500; -d changes render). Zero-crossing-rate brightness reordering over Head/Tail mark pairs - deferred as the lowest-value distmore member; probe evidence retained for a later tranche."
+    }
+  ]
+}

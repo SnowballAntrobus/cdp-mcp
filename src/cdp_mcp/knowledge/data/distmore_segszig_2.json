@@ -1,0 +1,81 @@
+{
+  "program": "distmore",
+  "mode": "segszig",
+  "submode": 2,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur * 2 * repets * prop"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Zigzags across the ENTIRE soundfile while playing it (submode 2 - the marklist-free member of the segszig trio): the read head sweeps forward and backward repets times, so the output is the source plaited with its own retrogrades. Duration = indur * 2 * repets * prop, verified to -1.3% worst case (15.8949 from 2 s at repets 4; 31.7748 at 8; 7.9550 at 2; 7.8949 from 1 s at 4; flat noise identical duration; prop 0.2 -> 3.0949 vs 3.2 predicted). shrinkto (-s, ms floor) makes successive zigs contract toward a minimum size - the output then SHORTENS below the model (17.53 vs 31.77 at repets 8/-s100) as later zigzags tighten into a stutter-vortex. Mode 1 zigzags only across marked tail segments (needs a marklist); mode 3's extra 'dur' positional was found INERT (byte-identical to mode 2 at the same repets, dur 5 ignored). Deterministic. MONO only.",
+  "musical_use": "The one-knob palindrome machine: repets 2-4 turns a phrase into a hypnotic forward-backward weave (every reversal is a seamless zero-glide, no clicks); higher counts read as scrubbing/DJ-drag. Add shrinkto to make the zigzags contract - the gesture accelerates into a churning vortex before releasing, a ready-made transition or riser-in-reverse. prop < 1 zigzags over only the first part of each pass (shorter, denser output). Deterministic, so renders are dependable building blocks; for randomised scrubbing use modify drunk instead.",
+  "parameters": {
+    "repets": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "zigzags",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Number of zigzag traversals; output grows ~linearly (x2 per repet). BANNER DIVERGENCE: the usage calls it '(timevariable)' but a breakpoint file is refused - 'ERROR: Cannot read parameter 1 [rp.brk]: brkpnt_files not permitted.' Scalar only."
+    },
+    "shrinkto": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "If nonzero, zigzags contract toward this minimum size in ms (banner: 'Range 31 upwards'; 0 = no effect). Shortens the output below the duration model (17.53 s vs 31.77 predicted at repets 8, -s100) - excluded from the model."
+    },
+    "prop": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Proportion of the material to zigzag over (default all). Scales the output (~-3.3% model error at 0.2). Banner marks it '(timevariable)' but a breakpoint file is refused ('Cannot read parameter 4 ... brkpnt_files not permitted.') - scalar only."
+    },
+    "log_shrink": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-l",
+      "flag_kind": "no_value",
+      "description": "Shrink zigzags logarithmically instead of linearly (meaningful with shrinkto > 0). Pass 1 to enable."
+    }
+  },
+  "examples": [
+    {
+      "description": "Hypnotic four-pass palindrome weave.",
+      "params": {"repets": 4},
+      "expected_use": "A 2 s source becomes ~15.9 s of seamless forward/backward plaiting (indur * 2 * 4)."
+    },
+    {
+      "description": "Contracting scrub-vortex transition.",
+      "params": {"repets": 8, "shrinkto": 100.0, "log_shrink": 1},
+      "expected_use": "Zigzags tighten toward 100 ms with a log curve - the gesture accelerates into a churn; output well below the nominal 32 s."
+    }
+  ],
+  "known_issues": [
+    "BANNER DIVERGENCE: repets and prop are labelled '(timevariable)' but both refuse breakpoint files (verbatim refusals recorded) - no time-variable parameter exists in this mode.",
+    "Mode 3's 'dur' positional is INERT on this build: 'segszig 3 in out 4 5.0' rendered byte-identical to 'segszig 2 in out 4' (15.8949 s, same sha) - the advertised duration-targeting does not function.",
+    "shrinkto > 0 pulls the output below the duration model (documented, excluded); prop scales it (included).",
+    "Stereo refused: 'ERROR: File st2.wav is not of correct type (must be mono)'. Flat noise duration matches the tone render exactly (content-independent model).",
+    "Deterministic (byte-identical re-runs 1.2 s apart)."
+  ],
+  "references": ["cdp://docs/html/distmore"]
+}

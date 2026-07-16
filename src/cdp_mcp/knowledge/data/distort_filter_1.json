@@ -1,0 +1,62 @@
+{
+  "program": "distort",
+  "mode": "filter",
+  "submode": 1,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Time-contracts by REMOVING wavecycles whose instantaneous frequency (1/cycle-length) is below freq (submode 1; submode 2 omits cycles ABOVE freq, submode 3 takes freq1 freq2 and keeps the band - same program via execute()). Removed cycles are cut out, not silenced, so output duration = the time the source spends above freq: verified almost exactly on a 220->880 Hz sweep (freq 440 keeps the last 1.3344 s of 2.0 - crossing at 0.667 s; freq 250 keeps 1.9054; freq 800 keeps 0.2567). The duration model 'static' is therefore an UPPER BOUND that is exact only when the whole file sits above freq (440 Hz tone at freq 300: 1.9977; flat noise at freq 440: 1.9999 - noise wavecycles are nearly all high-frequency). ZERO-OUTPUT TRAP: if every cycle is filtered out the program still EXITS 0, writing a 0-frame file (only symptom: 'WARNING: Can't close output sf-soundfile : can't truncate SFfile') - always check the output. Deterministic. MONO only.",
+  "musical_use": "A time-domain 'frequency gate' that eats time instead of amplitude: on gliding or speech material it excises the low-pitched moments and butts the remainder together, creating rhythmic elisions you cannot get from a filter (the classic use: strip a sweep or vocal phrase to only its high moments, shortening it). On mixed material it acts as a crude pitch-selective decimator - freq just above the fundamental removes the pitched body and leaves transient/noise fizz. Time-varying freq (breakpoint) sweeps the cut boundary through the file. Use submode 2 (via execute) to keep lows instead, submode 3 for a band.",
+  "parameters": {
+    "freq": {
+      "type": "float",
+      "min": 10.0,
+      "max": 22050.0,
+      "unit": "Hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Cycles with frequency below this are removed (CDP-enforced 10 Hz to Nyquist: 25000 refused 'out of range (10.000000 to 22050.000000)'; ceiling is input-dependent). Breakpoint-capable, banner-confirmed and verified (250->800 ramp on a sweep -> 1.8780 s, distinct from both endpoint renders 1.9054/0.2567). Setting it above all content -> 0-frame output with exit 0 (see known_issues)."
+    },
+    "skipcycles": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Wavecycles to skip at the start. Scalar only: breakpoint refused 'ERROR: Cannot read parameter 3 [frq.brk]: brkpnt_files not permitted.'"
+    }
+  },
+  "examples": [
+    {
+      "description": "Keep only the upper half of a rising gesture.",
+      "params": {"freq": 440.0},
+      "expected_use": "Material below 440 Hz is excised and the rest closes ranks - on a 220-880 sweep this keeps the last two thirds. Duration shrinks by exactly the removed time."
+    },
+    {
+      "description": "Sweep the elision boundary through the file.",
+      "params": {"freq": [[0.0, 250.0], [2.0, 800.0]]},
+      "expected_use": "Progressively hungrier low-cut: early material mostly survives, later material must be higher-pitched to remain."
+    }
+  ],
+  "known_issues": [
+    "ZERO-OUTPUT TRAP (first-class): when all cycles fall below freq (e.g. a 440 Hz tone at freq 600, or unipolar material) the program EXITS 0 and leaves a 0-data-frame wav; stdout shows only 'WARNING: Can't close output sf-soundfile : can't truncate SFfile'. Flat noise with submode 2 at 440 does the same (noise cycles are nearly all >440 Hz). Verify frames on every render.",
+    "Duration model honesty: 'static' is an upper bound - real output duration = time the source spends above freq (sweep probes match crossing times within ~1%). The pinned row uses flat noise at freq 440 where static is exact (1.9999).",
+    "Submode 3 (band) does NOT swap inverted bounds: freq1 600 freq2 300 is accepted and produces the 0-frame trap output instead of the 300-600 band (no silent swap, unlike sfedit cut).",
+    "Stereo refused: 'Application doesn't work with this type of infile.' (exit 255) -> mono.",
+    "Deterministic: repeat runs byte-identical."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

@@ -1,0 +1,150 @@
+{
+  "program": "cascade",
+  "mode": "cascade",
+  "submode": 3,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + clipsize * echos"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "ECHO-CUT CASCADE, mono to STEREO (mode 3): successive clipsize-second segments of the source are repeat-echoed and the echo-sets superimposed back onto it, with each echo-set panning alternately LEFT and RIGHT of the centered source. Duration = indur + clipsize * echos, verified to 0.85% worst (2.9749 at 0.25 x 4; 3.9549 at 0.25 x 8 = 0.03%; 3.9749 from 3 s; 3.9749 at 0.5 x 4; flat noise identical; content-independent). SEEDED and reproducible: -s5 pairs byte-identical 1.2 s apart, -s5 vs -s9 differ, unseeded (-r active, no -s) is ALSO deterministic - the generator is never clock-seeded, seed just selects the pattern. BREAKPOINT LANDMINE: despite the banner calling clipsize/echos/rand 'time-variable', breakpoint files in ANY slot are silently IGNORED (see known_issues) - all params scalar. Ten modes share the engine: 1/6 N-in N-out, 2/7 mono->stereo panning right, 3/8 alternating (this entry), 4/9 and 5/10 8-channel steppers; 6-10 take a cut-times textfile instead of clipsize (execute()). Unipolar material accepted. MONO in, STEREO out.",
+  "musical_use": "Rhythmicised granular delay that builds space: each successive chunk of the sound spawns its own echo train, thrown left and right around the dry center - somewhere between multitap delay, stutter edit and spatial canon. clipsize sets the cut grid (0.1-0.3 s reads as rhythmic dicing, 1 s+ as phrase echoes); echos sets the tail density and, with the model, the added length. clipmax > clipsize randomises the grid per segment (seed-repeatable); rand smears echo timing; the -N/-C shred options re-shuffle each echo's innards so trains decay into granular haze rather than clean repeats. Use -l for linear (slower) echo decay. A ready-made 'sound answers itself across the stereo field' gesture; mode 2 (via execute) leans all answers rightward instead.",
+  "parameters": {
+    "clipsize": {
+      "type": "float",
+      "min": 0.005,
+      "max": 60.0,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Duration of the segments to echo (CDP-enforced 0.005-60: 0.001 refused verbatim). Model term. Banner says time-variable but a breakpoint file is silently IGNORED (renders byte-identical to the no-flag base) - scalar only."
+    },
+    "echos": {
+      "type": "int",
+      "min": 1,
+      "max": 64,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Number of echoes per segment (CDP-enforced 1-64: 0 and 65 refused verbatim). Model term. Breakpoint files silently ignored - scalar only."
+    },
+    "clipmax": {
+      "type": "float",
+      "min": 0.0,
+      "max": 60.0,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "If nonzero, clipsize becomes a MINIMUM and each segment's size is a seed-repeatable random value up to clipmax - the duration then varies with the seed (3.07 vs 3.72 s at seeds 5/9, clipmax 0.5) and the model does not apply. 0 = ignored (fixed grid, model exact)."
+    },
+    "echosmax": {
+      "type": "int",
+      "min": 0,
+      "max": 64,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "If nonzero, echos becomes a minimum and the per-segment count randomises up to this (seed-repeatable). 0 = ignored."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Randomises the timesteps between echoes in each set (0-1; render change verified at 0.001 vs 1). Breakpoint files silently ignored (the render collapses to the rand-0 base) - scalar only."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 64,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Random-pattern selector (CDP-enforced 0-64: 300 refused verbatim). Same nonzero seed = byte-identical rerun (verified); omitted/0 uses the fixed default pattern - there is NO clock path, every render is reproducible."
+    },
+    "shredno": {
+      "type": "int",
+      "min": 2,
+      "max": 16,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-N",
+      "flag_kind": "attached_value",
+      "description": "Cut each previous echo into this many parts and shuffle them to make the next echo (2-16). BOTH shredno and shredcnt must be set for shredding (render change verified with -N4 -C2)."
+    },
+    "shredcnt": {
+      "type": "int",
+      "min": 1,
+      "max": 16,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-C",
+      "flag_kind": "attached_value",
+      "description": "Number of shred passes per echo element (1-16); pairs with shredno."
+    },
+    "shred_original": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-a",
+      "flag_kind": "no_value",
+      "description": "Also shred the original clip (only valid with shredno/shredcnt set). Pass 1 to enable."
+    },
+    "linear_decay": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-l",
+      "flag_kind": "no_value",
+      "description": "Echoes decay linearly in level (default: log decay - initial echoes fade faster). Pass 1 to enable."
+    },
+    "normalise_low": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "Normalise the output if it comes out low (high output is normalised by default). Pass 1 to enable."
+    }
+  },
+  "examples": [
+    {
+      "description": "Stereo answer-cascade on a mono gesture.",
+      "params": {"clipsize": 0.25, "echos": 4, "clipmax": 0.0},
+      "expected_use": "Each quarter-second chunk echoes 4x, sets alternating L/R around the dry center; output = indur + 1.0 s (model within 1%)."
+    },
+    {
+      "description": "Seeded shredding haze with a loose grid.",
+      "params": {"clipsize": 0.25, "echos": 6, "clipmax": 0.6, "rand": 0.5, "seed": 5, "shredno": 4, "shredcnt": 2},
+      "expected_use": "Segment sizes roam 0.25-0.6 s (seed-repeatable), echo innards re-shuffle each generation - granular echo-smoke; duration varies with the seed (model suspended when clipmax > 0)."
+    }
+  ],
+  "known_issues": [
+    "BREAKPOINT FILES SILENTLY IGNORED (first-class): the banner marks clipsize/echos/clipmax/echosmax/rand/shredno/shredcnt 'time-variable', but a .brk in the clipsize slot rendered byte-identical to the scalar-first-value render, an echos brk likewise, and a rand brk (with seed) rendered byte-identical to the NO-rand base - accepted argv, zero effect. Every parameter here is scalar-only; the capable=false markings are load-bearing.",
+    "Duration model exact only with clipmax = 0 (fixed grid): with clipmax > 0 the length is seed-dependent (3.0712 vs 3.7227 at seeds 5/9). Row pinned at clipmax 0.",
+    "Fully reproducible randomness: unseeded -r runs are byte-identical 1.2 s apart (never clock-seeded); seed 0-64 selects patterns.",
+    "Mode 3 requires MONO input: stereo refused 'ERROR: File st2.wav is not of correct type for Mode 3' (modes 1/6 accept N-channel). Unipolar/zero-crossing-free material ACCEPTED (time-grid cutting, not wavesets).",
+    "Modes 6-10 replace clipsize with a cut-times textfile (different argv shape) - execute() or a later entry."
+  ],
+  "references": ["cdp://docs/html/cascade"]
+}

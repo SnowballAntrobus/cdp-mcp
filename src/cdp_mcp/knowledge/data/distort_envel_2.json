@@ -1,0 +1,72 @@
+{
+  "program": "distort",
+  "mode": "envel",
+  "submode": 2,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Imposes a FALLING amplitude envelope over each group of cyclecnt wavecycles (submode 2) - waveset-rate amplitude modulation locked to the source's own zero crossings, so the 'tremolo' rate tracks the source pitch. Duration static and SAMPLE-EXACT on every probe (tones, flat noise, all parameter shapes). Sibling submodes share the argv: 1 = rising envelope, 3 = troughed (troughing becomes a REQUIRED positional), 4 = user envelope from a datafile ('distort envel 4 in out envfile cyclecnt') - reachable via execute() or later entries. All three parameters are breakpoint-capable (each verified against both scalar endpoints). Deterministic. MONO only.",
+  "musical_use": "Pitch-tracking granular AM: each group of cycles gets a percussive decay, turning sustained material into a stream of plucked/struck grains whose repetition rate is the source frequency divided by cyclecnt. Small cyclecnt (1-5) adds a hard, buzzy edge (near ring-mod roughness); mid values (10-50) read as measured tremolo/stutter; large values chop the sound into discrete falling events. exponent shapes the grain (high = snappier attack decay), troughing sets how deep the envelope cuts (default all the way to silence). Breakpoint cyclecnt to accelerate the stutter across the file. Submode 1 (rising) gives reversed-feeling grains; submode 3 adds controllable trough depth as a positional.",
+  "parameters": {
+    "cyclecnt": {
+      "type": "int",
+      "min": 1,
+      "max": 1000,
+      "unit": "wavecycles",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Wavecycles under each envelope (CDP-enforced 1-1000: 0 and 40000 refused 'out of range (1.000000 to 1000.000000)' - note the much smaller ceiling than most waveset params). Breakpoint-capable, banner-confirmed and verified (5->60 ramp differs from both endpoint renders)."
+    },
+    "troughing": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Floor of the envelope, 0-1 (CDP-enforced; 1.5 refused verbatim; default 0 = decays to silence). Higher values shallow the modulation. Breakpoint-capable (0->0.9 ramp verified against both endpoints)."
+    },
+    "exponent": {
+      "type": "float",
+      "min": 0.02,
+      "max": 50.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Envelope decay curvature (CDP-enforced 0.02-50: 0 and 60 refused verbatim; omitted = linear, i.e. 1). >1 decays faster (snappier grains), <1 slower. Breakpoint-capable (0.5->4 ramp verified against both endpoints)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Plucked-grain tremolo at the source's pitch / 20.",
+      "params": {"cyclecnt": 20},
+      "expected_use": "A 440 Hz source stutters at ~22 Hz; same output length, each grain decays linearly to silence."
+    },
+    {
+      "description": "Accelerating stutter with snappy grains.",
+      "params": {"cyclecnt": [[0.0, 60], [2.0, 5]], "exponent": 4.0},
+      "expected_use": "Grain rate rises across the file while high exponent keeps each grain percussive."
+    }
+  ],
+  "known_issues": [
+    "Submode is load-bearing: 1 = rising, 2 = falling (this entry), 3 = troughed with a REQUIRED troughing positional (different argv shape), 4 = user envelope file. Submode 4's datafile goes AFTER the output path ('distort envel 4 in out envfile cyclecnt'); putting it before the outfile fails with 'Cannot open output file ...'.",
+    "Unipolar (zero-crossing-free) material is ACCEPTED here - the whole file reads as very few giant wavesets, output stays full length (verified 88200 frames on a positive-only click train) - unlike most waveset distorts which refuse it.",
+    "Stereo refused: 'Application doesn't work with this type of infile.' (exit 255) -> mono.",
+    "Deterministic; duration sample-exact in all 17 probe runs."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

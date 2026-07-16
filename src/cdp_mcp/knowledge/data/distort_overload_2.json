@@ -1,0 +1,71 @@
+{
+  "program": "distort",
+  "mode": "overload",
+  "submode": 2,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Clips the signal at 'gate' and imposes a WAVEFORM of frequency 'freq' onto the clipped stretches (submode 2 - the pitched sibling of overload 1's noise fill). Duration static and SAMPLE-EXACT on all probes; deterministic. Output rescaled like submode 1 (peak ~ gate/(1+gate): 0.2308 at 0.3). depth and freq are both breakpoint-capable (each verified against both scalar endpoints; a near-constant freq brk renders byte-identical to the scalar - the brk path is healthy here, unlike the gate slot). gate has the same broken-breakpoint behavior as submode 1's clip_level - keep it scalar. Works on any material including unipolar. MONO only.",
+  "musical_use": "Distortion that sings: loud stretches don't just clip, they get replaced by a buzzing tone at freq - effectively an amplitude-keyed oscillator ride-along. Tune freq to the source (octave, fifth) for aggressive but pitched overdrive, or detune/sweep it for siren-like interference. Low gate values replace most of the sound with the imposed waveform (approaching hard sync-buzz); high values only colour the peaks. Breakpoint freq to gliss the buzz through the file - the classic move is a slow rise so the distortion appears to sharpen and lift. Use overload 1 when you want noise-crust instead of pitch.",
+  "parameters": {
+    "gate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.1, 0.8],
+      "description": "Clipping ceiling, 0-1 (range shared with submode 1, refusal verbatim). SCALAR ONLY: the breakpoint path in this slot collapses output to a fixed near-silent render regardless of values (verified in submode 1, same parameter machinery). 0 renders digital silence."
+    },
+    "depth": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Depth of the waveform pattern on clipped stretches, 0-1. Breakpoint-capable (verified in the shared depth slot: ramp differs from both endpoints)."
+    },
+    "freq": {
+      "type": "float",
+      "min": 0.01,
+      "max": 22050.0,
+      "unit": "Hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "musical_range": [50.0, 4000.0],
+      "description": "Frequency of the waveform imposed on clipped stretches (CDP-enforced 0.01 Hz to Nyquist: 60000 refused 'out of range (0.010000 to 22050.000000)'; 0.05 accepted - sub-audio 'gating' legal). Breakpoint-capable, banner-confirmed and verified (200->2000 ramp differs from both endpoint renders; near-constant brk == scalar byte-identical)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Pitched overdrive tuned an octave above a 440 Hz source.",
+      "params": {"gate": 0.3, "depth": 0.5, "freq": 880.0},
+      "expected_use": "Loud stretches buzz at 880 Hz; same length, peak ~0.23."
+    },
+    {
+      "description": "Rising siren inside the distortion.",
+      "params": {"gate": 0.3, "depth": 0.7, "freq": [[0.0, 200.0], [2.0, 2000.0]]},
+      "expected_use": "The imposed buzz glisses up a decade across the file while the clean quiet material is untouched."
+    }
+  ],
+  "known_issues": [
+    "gate's breakpoint path is broken (same machinery as submode 1's clip_level: value-invariant near-silent output); keep gate scalar. depth and freq breakpoints are healthy.",
+    "gate 0 renders digital silence; deterministic; unipolar material accepted; stereo refused 'Application doesn't work with this type of infile.' -> mono.",
+    "Duration static and sample-exact on tones, flat noise and unipolar clicks (88200 frames each)."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

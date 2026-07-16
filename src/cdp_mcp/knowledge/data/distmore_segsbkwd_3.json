@@ -1,0 +1,42 @@
+{
+  "program": "distmore",
+  "mode": "segsbkwd",
+  "submode": 3,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Reverses Head+Tail segment PAIRS in place (submode 3): the marklist datafile cuts the sound into alternating Head/Tail segments (first mark = a Head) and each Head+Tail pair plays backwards in its own slot - structured retrograde editing without an editor. Duration static and SAMPLE-EXACT on every probe (88200 frames preserved: sweep, flat noise, unipolar clicks). The nine submodes reverse different groupings (1 Tails only, 2 Heads only, 3 Head+Tail pairs - this entry, 4-9 progressively larger overlapping sets); submodes differ audibly (1 vs 3 renders differ, verified) and share the same argv - siblings via execute(). Needs at least 4 mark values ('ERROR: Insufficient data (1 values) in file m1.txt : Need at least 4' verbatim). Deterministic, no scalar parameters at all. MONO only.",
+  "musical_use": "Rhythm-preserving retrograde: because each reversed chunk stays in its slot, the phrase's timing grid survives while its contents run backwards - speech keeps its cadence but the syllables inhale, drums keep the pattern but every hit swells instead of striking. Mark at syllable/beat boundaries (onset detection + write_data_file) for the classic effect; marking off-grid creates lurching, seasick reversals. Submode choice = how much context flips at once: 1-2 for subtle inversions of only tails/heads, 3 for full pairwise retrograde, 5/7/9 for longer wave-like reversals. Zero parameters means renders are entirely determined by the marklist - iterate there.",
+  "parameters": {
+    "marklist": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED datafile of times (seconds, one per line) marking alternating Head/Tail boundaries; the first mark is assumed to start a Head. At least 4 values (refusal verbatim). write_data_file(); any extension except .brk."
+    }
+  },
+  "examples": [
+    {
+      "description": "Inhaled-speech retrograde that keeps the cadence.",
+      "params": {"marklist": "marks.txt"},
+      "expected_use": "First write_data_file('marks.txt', '0.25\\n0.75\\n1.25\\n1.75\\n'). Each Head+Tail pair reverses in place; output sample-identical in length."
+    }
+  ],
+  "known_issues": [
+    "Submode is load-bearing: 1-9 choose which segment-groupings reverse (identical argv). This entry pins 3 (Head+Tail pairs); 1 (Tails) and 2 (Heads) verified distinct renders.",
+    "Unipolar / zero-crossing-free material ACCEPTED (mark-based cutting, not waveset detection) - full-length output verified.",
+    "Stereo refused: 'ERROR: File st2.wav is not of correct type (must be mono)'.",
+    "Deterministic (byte-identical re-runs); duration sample-exact in all probes."
+  ],
+  "references": ["cdp://docs/html/distmore"]
+}
