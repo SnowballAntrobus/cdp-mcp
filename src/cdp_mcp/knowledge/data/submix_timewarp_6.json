@@ -1,0 +1,82 @@
+{
+  "program": "submix",
+  "mode": "timewarp",
+  "submode": 6,
+  "category": "mix",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "SCATTER ENTRY TIMES: randomises the start times in a mixfile about their original values (text -> text, a DATA output) - the 'humanise' pass for machine-generated mixes. scatter (0-1, CDP-enforced verbatim) sets the depth: 0 is a verified identity pass (output byte-equals a rewrite of the input), 0.5 moved times by up to ~0.35 s on a mix with ~1 s gaps, and displacement scales with the local timegaps. Names, levels and pans pass through untouched; times are rewritten 5-decimal. startline/endline confine the scatter to a line range (verified: '-s3 -e4' left lines 1-2 bit-unchanged). CLOCK-SEEDED AND UNSEEDABLE (first-class): runs 1.2 s apart differ, runs launched in the SAME second are byte-IDENTICAL (the tranche-2 collision trap), and there is no seed argv slot - space repeated calls > 1 s apart to get distinct variants. Chosen from timewarp's 16 submodes as the one that computes something an LLM should not hand-roll (seeded jitter preserving mixfile validity); the deterministic arithmetic submodes (sort, reverse, fixed/enlarged timegaps) are execute() recipes recorded in the tranche transcript.",
+  "musical_use": "De-quantise: atstep-style grids, geometric accelerandi, and any programmatically generated mixfile sound mechanical - one scatter pass at 0.1-0.3 loosens the timing into something played rather than plotted; 0.5-1.0 dissolves the grid entirely into a cloud. Because levels and pans survive, you can scatter the same source mixfile several times (calls spaced > 1 s!) and render each variant through submix mix for natural ensemble spread - or layer two scatterings of the SAME material for instant heterophony. Confine the jitter with startline/endline to keep an anchor section rigid while its answer phrase drifts. Times can land ahead of the first original entry; submix mix strips leading silence, so the mix still starts at the first event.",
+  "parameters": {
+    "inmixfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "The mixfile whose times get scattered (write with write_data_file(); named sound files must exist, cwd-relative). Renders in the argv BEFORE the output path. Unsorted files are processed as-is (verified) - times are jittered wherever they stand."
+    },
+    "scatter": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED scatter depth, CDP-enforced 0-1 ('1.5' refused 'out of range (0.000000 to 1.000000)' verbatim). 0 = identity (verified byte-equal); displacement grows with the value and with the local gaps between entries. Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "startline": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "line",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "First line to scatter (1-based; default: first). Lines before it pass through bit-unchanged (verified). Input-dependent bound (the file's line count). Omitted unless set."
+    },
+    "endline": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "line",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Last line to scatter (default: last). Omitted unless set."
+    }
+  },
+  "examples": [
+    {
+      "description": "Humanise a rigid generated grid.",
+      "params": {"inmixfile": "grid.mix", "scatter": 0.2},
+      "expected_use": "Subtle timing drift; render via submix mix. For several distinct variants, space the calls more than 1 second apart (clock seed)."
+    },
+    {
+      "description": "Dissolve only the tail of a phrase into a cloud.",
+      "params": {"inmixfile": "phrase.mix", "scatter": 0.8, "startline": 5},
+      "expected_use": "Lines 1-4 keep their exact times; everything from line 5 on drifts hard."
+    }
+  ],
+  "known_issues": [
+    "CLOCK-SEEDED, UNSEEDABLE: no seed parameter exists anywhere in the argv. Two runs in the same wall-clock second are byte-IDENTICAL (verified - the tranche-2 same-second collision trap); runs > 1.1 s apart differ. Batch generation of variants must space the calls.",
+    "The output is a DATA file (rewritten mixfile, .txt): consumer = submix mix's mixfile parameter (or further mixfile entries). Duration pre-flight skipped (duration_model 'static' is a placeholder); the RENDERED mix duration changes with the scattered times - predict from the output file, not this entry.",
+    "scatter 0 is a true identity (byte-equal rewrite) - unlike modify radical 2's scatter-0-still-random surprise; pinned to keep the contrast on record.",
+    "Scattered times can move ahead of the original first entry (line 1 is NOT pinned to 0 - observed 0 -> 0.599 at scatter 0.5 on an unsorted file); submix mix strips leading silence so this is usually invisible, but inter-mixfile alignment (two scattered files rendered separately) can shift relative to each other.",
+    "Names/levels/pans byte-preserved; times rewritten 5-decimal. Sibling submodes (1 sort, 2-3 reverse, 4-5 freeze gaps, 7-16 arithmetic gap warps) are DETERMINISTIC TEXT ARITHMETIC - probed and recorded in docs/curation/tranche12_submix_depth.md (mode 1 and 13 verified) but left to execute()/direct mixfile editing; NOTE mode 13 on an UNSORTED file produces NEGATIVE times (invalid downstream) - sort first (timewarp 1).",
+    "Arity-0 entry: call process() with no input argument. duration_row null in the findings (data output; stochastic)."
+  ],
+  "references": ["cdp://docs/html/cgromix2"]
+}

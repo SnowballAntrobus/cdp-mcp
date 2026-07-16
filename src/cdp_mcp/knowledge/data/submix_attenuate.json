@@ -1,0 +1,83 @@
+{
+  "program": "submix",
+  "mode": "attenuate",
+  "submode": null,
+  "category": "mix",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Rescales the LEVELS inside a mixfile, writing a new mixfile (text -> text, a DATA output): every level in lines startline..endline is multiplied by gain and written back as a 4-decimal linear value. dB-notated levels are CONVERTED to linear in the process (verified: '-6dB' at gain 0.5 -> '0.2506'), pan columns pass through untouched, comment lines are STRIPPED from the output, and times/names are preserved. gain above 1 amplifies (3.0 verified: levels 1.0/0.8 -> 3.0000/2.4000 - 'attenuate' is a misnomer, it is a level multiplier). The line-range flags make it a group fader: '-s2 -e2' rescaled only line 2, leaving line 1 bit-unchanged (verified). Output verified round-trip: submix mix accepts the rewritten file directly. Takes no audio inputs (arity 0, mixfile as pre-output aux). Deterministic.",
+  "musical_use": "The getlevel companion and the mixfile group-fader: when 'submix getlevel 3' reports a NORMALISATION REQUIRED factor below 1 you can either pass it as submix mix's atten (one render) or bake it permanently into the mixfile here (better when the mixfile will be reused, shuffled, or extended - the corrected levels travel with the file). The startline/endline range turns it into a stem fader: attenuate just the pile-up region getlevel pinpointed, duck lines 5-12 while leaving the bed alone, or push a group up with gain > 1. Also the clean way to NORMALISE NOTATION: a pass at gain 1.0 converts all dB levels to plain multipliers - do this before submix pan, whose dB handling is broken (see that entry).",
+  "parameters": {
+    "inmixfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "The mixfile to rescale (write it with write_data_file(); standard mixfile syntax - levels as multipliers or dB forms, optional pans, ';' comments). Renders in the argv BEFORE the output path. The named sound files must exist (CDP validates them - cwd-relative paths as in submix mix)."
+    },
+    "gain": {
+      "type": "float",
+      "min": 1e-06,
+      "max": 32767.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED level multiplier applied to every level in range (values > 1 amplify; banner says 'must be > 0.0' but CDP ACCEPTS 0, writing all-zero levels = a silent mix downstream - curated minimum keeps it positive; -1 and 40000 refused '(0.000000 to 32767.000000)' verbatim). Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "startline": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "line",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "First mixfile line to rescale (1-based, counting sound lines; default: first). CDP-enforced 1 to the file's line count (input-dependent: '-s0' on a 2-line file refused 'Parameter[2] Value (0.000000) out of range (1.000000 to 2.000000)' verbatim). Omitted unless set."
+    },
+    "endline": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "line",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Last mixfile line to rescale (default: last; same input-dependent 1-to-linecount bound). Set equal to startline to touch a single line (verified). Omitted unless set."
+    }
+  },
+  "examples": [
+    {
+      "description": "Bake getlevel's correction factor into the mixfile.",
+      "params": {"inmixfile": "cloud.mix", "gain": 0.34},
+      "expected_use": "Run submix getlevel 3 first; its NORMALISATION REQUIRED factor (when < 1) is the gain. The rewritten mixfile then renders clean through submix mix at default atten."
+    },
+    {
+      "description": "Duck only the middle events of a mix.",
+      "params": {"inmixfile": "phrase.mix", "gain": 0.5, "startline": 3, "endline": 6},
+      "expected_use": "Lines 3-6 halved, everything else byte-preserved. Feed the output path to submix mix's mixfile parameter as graphs/<graph_id>/<name>.txt."
+    }
+  ],
+  "known_issues": [
+    "The output is a DATA file (a rewritten mixfile, .txt): not audio - its consumer is submix mix's (or another mixfile entry's) aux parameter, referenced by session-relative path. The duration pre-flight is skipped (duration_model 'static' is a placeholder).",
+    "COMMENTS ARE STRIPPED and formatting is normalised in the output (levels rewritten as 4-decimal linear values; ';' lines dropped - verified). Keep annotated master mixfiles separate if you care about the comments.",
+    "dB level notation is CONVERTED to linear on the way through (verified '-6dB' -> 0.2506 at gain 0.5). This is the sanctioned dB-to-linear converter for the family - run gain 1.0 before submix pan (whose own dB handling corrupts levels).",
+    "gain 0 is CDP-legal but writes an all-zero-level mixfile that renders silence downstream (curated minimum 0.000001 keeps it reachable-but-nonzero). Values > 1 amplify - re-run getlevel afterwards if you push levels up.",
+    "The named sound files must exist and be valid (CDP parses the mixfile fully; missing names refuse with the 'is not a sndfile' warning family). Line numbers are 1-based and bounds are input-dependent (refusals quote the file's own line count).",
+    "Deterministic: byte-identical output run to run. gain refuses breakpoints (parameter 1).",
+    "Arity-0 entry: call process() with no input argument. Data output - duration_row null in the findings."
+  ],
+  "references": ["cdp://docs/html/cgromix2"]
+}

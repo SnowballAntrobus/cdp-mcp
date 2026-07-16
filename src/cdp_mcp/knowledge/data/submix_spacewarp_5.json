@@ -1,0 +1,92 @@
+{
+  "program": "submix",
+  "mode": "spacewarp",
+  "submode": 5,
+  "category": "mix",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "RANDOM-SCATTER POSITIONS: gives every event in a mixfile a fresh random pan drawn from [minpos, maxpos] (text -> text, a DATA output). Times and levels are byte-preserved; only the pan data is rolled (verified: pans 0.8201/0.0180 one run, 0.6809/0.9332 the next, everything else identical). Bounds are CDP-enforced to -1..+1 ('-3 3' refused 'out of range (-1.000000 to 1.000000)' verbatim - unlike raw mixfile pans, beyond-hard values are NOT available here); swapped bounds (1 0) are accepted and behave as the same interval. Output round-trips into submix mix (mono panned form, levels preserved - the clean pan path). Stereo input files become mono positioned points (banner rule for modes 3-6). startline/endline confine the roll to a line range. CLOCK-SEEDED AND UNSEEDABLE: same-second runs byte-identical (verified via parallel launch), > 1.1 s apart differ, no seed slot. Chosen from spacewarp's 8 submodes as the stochastic member; the deterministic siblings (1 same-position - use submix pan, which also takes trajectories; 2 narrow spread = pans x Q, verified; 3/4 leftward/rightward sequences; 7/8 stereo inversion) are text arithmetic - execute() or direct editing.",
+  "musical_use": "Spatial scatter for clouds and collages: every event lands somewhere new in the image, which reads as 'a natural environment' rather than a mixed arrangement - rain of grains, birds in a field, debris after an impact. Constrain the range for composed randomness: [-0.3, 0.3] is a nervous centre cluster, [0.5, 1] scatters within the right wing only, [-1, 1] is the full field. Combined with its siblings on one master mixfile - timewarp 6 jitters WHEN, shuffle 3 rolls WHAT, spacewarp 5 rolls WHERE - you get controlled-chaos variants whose depth you tune per axis. Every event acquires pan data, so the rendered mix is STEREO (or mono if the range collapses to a hard side); it also fixes up no-pan mixfiles into the explicitly-panned form that submix pan requires. Space repeated calls > 1 s apart.",
+  "parameters": {
+    "inmixfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "The mixfile whose positions get rolled (write with write_data_file(); named sound files must exist, cwd-relative). Renders in the argv BEFORE the output path. No-pan lines are legal INPUT here (each line gains explicit pan data on the way through - verified round-trip into submix mix)."
+    },
+    "minpos": {
+      "type": "float",
+      "min": -1.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED lower bound of the random pan range (-1 hard left .. +1 hard right; CDP-enforced, '-3' refused verbatim). Swapped bounds accepted (treated as the same interval, verified). Breakpoint refused (brkpnt_files not permitted)."
+    },
+    "maxpos": {
+      "type": "float",
+      "min": -1.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED upper bound of the random pan range (same -1..+1 enforcement). Set equal to minpos to place everything at one point (prefer submix pan for that - deterministic and trajectory-capable)."
+    },
+    "startline": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "line",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "First line to re-position (1-based; default: first; input-dependent bound). Omitted unless set."
+    },
+    "endline": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "line",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Last line to re-position (default: last). Omitted unless set."
+    }
+  },
+  "examples": [
+    {
+      "description": "Full-field scatter of an event cloud.",
+      "params": {"inmixfile": "cloud.mix", "minpos": -1.0, "maxpos": 1.0},
+      "expected_use": "Every event lands at a fresh random position; render via submix mix (output will be stereo). Space repeated calls > 1 s for distinct rolls."
+    },
+    {
+      "description": "Nervous centre cluster, ostinato lines locked.",
+      "params": {"inmixfile": "phrase.mix", "minpos": -0.3, "maxpos": 0.3, "startline": 5},
+      "expected_use": "Lines 1-4 keep their positions; the rest scatter tightly around centre."
+    }
+  ],
+  "known_issues": [
+    "CLOCK-SEEDED, UNSEEDABLE: same-second runs byte-identical (verified), > 1.1 s apart differ; no seed argv slot. Space batch calls.",
+    "Positions are drawn INSIDE -1..+1 only (bounds CDP-enforced verbatim) - the mixfile format's beyond-hard-side pan semantics are unreachable through this mode.",
+    "STEREO SOURCE FILES BECOME MONO POINTS (banner rule for the scatter modes) - each event is a positioned point source, the file's own stereo image is discarded at mix time. Keep wide files out of scatter passes, or accept the collapse.",
+    "The output is a DATA file (rewritten mixfile, .txt): consumer = submix mix's mixfile parameter. Any event with pan data makes the rendered mix STEREO (family channel rule). Duration pre-flight skipped ('static' is a placeholder); rendered duration is unchanged (times untouched).",
+    "Deterministic siblings recorded in the transcript: mode 2 verified as pans x Q toward centre; mode 1 duplicates submix pan's scalar case (use submix pan - it also takes trajectories and is deterministic). All are text arithmetic - execute() territory.",
+    "Arity-0 entry: call process() with no input argument. duration_row null in the findings (data output; stochastic)."
+  ],
+  "references": ["cdp://docs/html/cgromix2"]
+}

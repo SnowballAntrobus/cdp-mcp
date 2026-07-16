@@ -1,0 +1,71 @@
+{
+  "program": "submix",
+  "mode": "shuffle",
+  "submode": 3,
+  "category": "mix",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "SCATTER ORDER OF FILENAMES: randomly permutes WHICH sound plays at each mixfile entry, leaving the times, levels and pans exactly where they were (text -> text, a DATA output; verified: the time/level/pan grid is byte-preserved, only the name column re-orders). The rhythmic skeleton of the mix is untouched - the orchestration is rolled. startline/endline confine the permutation (verified: '-s2 -e3' permuted only lines 2-3, lines 1 and 4 bit-unchanged). CLOCK-SEEDED AND UNSEEDABLE: runs > 1.1 s apart differ; runs launched in the same second are byte-IDENTICAL (collision trap); no seed slot exists. Chosen from shuffle's 7 submodes as the one stochastic member; the deterministic siblings (1 duplicate lines, 2 reverse names, 4 replace-from-startline, 5/6 omit lines with gap-closing, 7 duplicate-and-rename) are trivial text edits - probed for the record (transcript) and left to direct mixfile editing or execute().",
+  "musical_use": "Re-orchestrate without re-composing: keep a phrase's exact rhythm, dynamics and spatial layout while the sounds trade places - drum-kit substitution on a groove mixfile, call-and-answer voices swapping registers, or collage material circulating through a fixed formal grid. Because each pass is a fresh permutation (space calls > 1 s apart), a handful of shuffles renders a family of variations that are rhythmically identical and timbrally distinct - strong material for A/B arrangement or for layering complementary takes. Confine with startline/endline to lock an ostinato while its upper lines rotate. Duplicate names in the input are fine (they simply enter the pool). Combine with timewarp 6 (jitter times) and spacewarp 5 (jitter positions) for full controlled-chaos passes over one master mixfile.",
+  "parameters": {
+    "inmixfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "The mixfile whose name column gets permuted (write with write_data_file(); named sound files must exist, cwd-relative). Renders in the argv BEFORE the output path. NOTE: sounds swap onto other lines' CHANS columns - keep all sources the same channel count, or a mono name landing on a chans-2 line makes the output invalid for submix mix."
+    },
+    "startline": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "line",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "First line of the permutation range (1-based; default: first). Lines outside the range are bit-preserved (verified). Input-dependent bound (the file's line count). Omitted unless set."
+    },
+    "endline": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "line",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Last line of the permutation range (default: last). Omitted unless set."
+    }
+  },
+  "examples": [
+    {
+      "description": "Roll the orchestration of a fixed groove.",
+      "params": {"inmixfile": "groove.mix"},
+      "expected_use": "Times/levels/pans identical, sounds permuted. Space repeated calls > 1 s apart for distinct rolls; render each through submix mix."
+    },
+    {
+      "description": "Rotate only the answer phrase, keep the ostinato.",
+      "params": {"inmixfile": "phrase.mix", "startline": 5, "endline": 12},
+      "expected_use": "Lines 1-4 byte-preserved; sounds in lines 5-12 trade places."
+    }
+  ],
+  "known_issues": [
+    "CLOCK-SEEDED, UNSEEDABLE: same-second runs byte-identical (verified via parallel launch), > 1.1 s apart differ; no seed argv slot. Space batch calls.",
+    "CHANS-COLUMN HAZARD: the permutation moves NAMES but not the chans column, so mixing mono and stereo sources in one shuffled mixfile can pair a name with the wrong channel count - submix mix then refuses with the 'is not a stereo sndfile' warning family. Keep shuffled pools channel-homogeneous.",
+    "The output is a DATA file (rewritten mixfile, .txt): consumer = submix mix's mixfile parameter. Duration pre-flight skipped ('static' is a placeholder); the rendered duration is unchanged only if all sources share one duration - otherwise it moves with the permutation (a long sound landing on the last entry extends the mix).",
+    "Deterministic siblings probed for the record (transcript): mode 1 duplicates every line, 2 reverses the name order (verified), 5 omits lines startline..endline closing up the timegaps (verified: each survivor keeps the gap to its original successor), 6 omits alternate lines (verified: keeps even-numbered lines) - modes 5/6 REQUIRE time-sorted input (banner; sort via timewarp 1). All are one-line text edits - execute() or write the mixfile directly.",
+    "Arity-0 entry: call process() with no input argument. duration_row null in the findings (data output; stochastic)."
+  ],
+  "references": ["cdp://docs/html/cgromix2"]
+}

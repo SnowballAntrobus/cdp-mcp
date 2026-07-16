@@ -1,0 +1,69 @@
+{
+  "program": "submix",
+  "mode": "syncattack",
+  "submode": null,
+  "category": "mix",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "SYNCHRONISE ATTACKS: scans each listed soundfile's AUDIO for its attack moment (max-sample by default; peak-power segment with -p) and writes a mixfile whose start times align those attacks (verified: two burst files -> offsets 0.00646/0.0 default, 0.00057/0.0 with -p - the flag genuinely changes the detection). The most audio-aware of the mixfile generators: this is onset detection, not arithmetic. List entries may carry TWO OPTIONAL TIMES bounding the attack search region ('p2.wav 0.4 1.2' verified - the detected attack moved to the windowed region and the alignment followed). Output levels are AUTO-SET to an anti-clip estimate (0.49998 each for two files - the banner warns it 'may be over-cautiously low: adjust with submix attenuate'); pans are 'C' (no-pan). Mixed mono/stereo lists verified fine. The intextfile may also be an existing mixfile. Deterministic (byte-identical). Round-trips into submix mix.",
+  "musical_use": "Transient-tight layering: doubling a drum with a synthetic click, reinforcing an attack with a pitched ping, stacking multisampled hits - alignment by ATTACK, not by file start, is what makes composite percussion read as one event (files with different pre-attack silence or swell defeat sync 1/2 and hand placement). The search-window times matter on real material: a file with several bursts syncs to its LOUDEST by default - window the one you mean ('name 0.4 1.2'). The auto-levels are deliberately cautious: after checking with getlevel 3, push the whole file back up with submix attenuate (that pairing is the banner's own advice). For EXACT sample alignment of two known offsets, compute times yourself into a submix mix mixfile - syncattack is for when the audio must be measured.",
+  "parameters": {
+    "intextfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "List of soundfile names, one per line (cwd-relative; write with write_data_file()); each name MAY be followed by two times bounding the attack search ('name start end' - verified working). An existing mixfile is also accepted. Renders in the argv BEFORE the output path. Missing names refuse with the 'is not a sndfile' family."
+    },
+    "attackwin": {
+      "type": "int",
+      "min": 2,
+      "max": 32,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-w",
+      "flag_kind": "attached_value",
+      "description": "Factor shortening the scanning window that locates the attack - ONLY the values 2, 4, 8, 16, 32 are legal (banner-documented and verified: -w3 and -w64 refuse 'ERROR: INCORRECT USE', -w2/-w32 run). On simple percussive material the value made no difference (w2 == w32 byte-identical); it matters on materials with competing peaks. Omitted unless set."
+    },
+    "peakpower": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-p",
+      "flag_kind": "no_value",
+      "description": "Find the PEAK-POWER SEGMENT first, then its max sample - instead of the default bare max-sample search. Verified live: the -p run detected a different attack offset (0.00057 vs 0.00646) on the same material. Better for attacks embedded in sustained energy. Omitted unless set true."
+    }
+  },
+  "examples": [
+    {
+      "description": "Attack-align a drum hit with a pitched reinforcement.",
+      "params": {"intextfile": "hits.txt"},
+      "expected_use": "write_data_file('hits.txt', 'inputs/kick.wav\\ninputs/ping.wav'). Output aligns the attacks; levels come out ~1/N (cautious) - re-level with submix attenuate after a getlevel 3 check, then render via submix mix."
+    },
+    {
+      "description": "Sync to the SECOND burst of a multi-burst file.",
+      "params": {"intextfile": "windowed.txt", "peakpower": true},
+      "expected_use": "windowed.txt = 'inputs/bursts.wav 0.4 1.2\\ninputs/snap.wav' - the two times confine the search; -p locates the energy centre rather than a stray sample."
+    }
+  ],
+  "known_issues": [
+    "Output LEVELS are auto-estimated to prevent clipping and 'may be over-cautiously low' (banner verbatim; 0.49998 each observed for two files) - the sanctioned fix is submix attenuate on the output (gain > 1 amplifies). Verify with getlevel 3 first.",
+    "attackwin accepts ONLY 2, 4, 8, 16, 32 ('It can be 2,4,8,16, or 32 ONLY.' - banner; -w3/-w64 refused 'ERROR: INCORRECT USE' with no range quote). The entry's int 2..32 bounds plus this discrete-set rule are both enforced by CDP.",
+    "Files with multiple loud events sync to whichever the detector finds - use the per-line search-window times to disambiguate (verified working). Detection is content-dependent; audition the rendered alignment.",
+    "Pan column is 'C' = NO-PAN in submix mix (all-mono lists render mono); replace with numeric pans for placement, and do so BEFORE submix pan (its no-pan path is broken).",
+    "The output is a DATA file (mixfile, .txt): consumer = submix mix's mixfile parameter. Duration pre-flight skipped ('static' placeholder); rendered duration = max(start + dur) over the aligned lines.",
+    "Deterministic: byte-identical run to run (both flag states). Arity-0 entry: call process() with no input argument; duration_row null in the findings (data output)."
+  ],
+  "references": ["cdp://docs/html/cgromix2"]
+}

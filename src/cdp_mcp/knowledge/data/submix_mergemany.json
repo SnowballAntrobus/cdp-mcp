@@ -1,0 +1,36 @@
+{
+  "program": "submix",
+  "mode": "mergemany",
+  "submode": null,
+  "category": "mix",
+  "domain": "time",
+  "input_arity": 3,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur_max"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Quick mix of several soundfiles, all starting at time zero, with AUTOMATIC PEAK NORMALISATION: a first pass ('INFO: Finding maximum level') measures the summed mix's peak, then every input gets the SAME gain so the output peaks at full scale. Verified in BOTH directions: three overlapping full-level copies (raw sum peak 2.970) rendered at gain 0.33669 each, output peak 0.99997 - no wrap, no clip; and two QUIET files (raw sum peak 0.216) were amplified to output peak 1.0000. There are NO parameters at all. Output duration = the longest input, sample-exact (3.0 from 1+2+3 s; 2.0 from a pair). All inputs must share one channel count ('ERROR: INVALID DATA / ERROR: Incompatible channel-count in input file <name>.') and one sample rate ('...Incompatible sample-rate in input file <name>.'). This entry pins THREE inputs (the mode's 'several' point - two-file jobs belong to submix merge); the binary is variadic (a 2-file run verified) - use execute() for other counts. Deterministic (identical decoded shas 1.2 s apart).",
+  "musical_use": "The instant vertical stack: audition chords of processed variants, pile sweep() outputs into a cluster, or check how N layers sit together - without writing a mixfile and without any headroom arithmetic, because the normalisation pass makes overload impossible. The tradeoff is absolute level: the output ALWAYS peaks at full scale, so a stack of whispers comes out as loud as a stack of roars (relative balance BETWEEN the files is preserved - single shared gain). That makes mergemany ideal for material you will re-level downstream and wrong for anything whose absolute quietness matters (re-attenuate with modify loudness afterwards, or use submix mix with explicit levels). All sounds start at 0: for timed entries use submix mix; for two files with offset/skew control use submix merge.",
+  "parameters": {},
+  "examples": [
+    {
+      "description": "Stack three processed variants of one source into a normalised cluster.",
+      "params": {},
+      "expected_use": "Pass exactly three references; output = the longest input's duration, peak-normalised to full scale regardless of input levels."
+    }
+  ],
+  "known_issues": [
+    "ALWAYS NORMALISES TO FULL SCALE, in both directions (first-class behavior): hot sums are scaled down (3x full-level -> per-file gain 0.33669, peak 0.99997) and quiet sums are scaled UP (sum peak 0.216 -> output peak 1.0000). Relative balance between the inputs is preserved (one shared gain), absolute level is not. Never rely on it to keep quiet material quiet.",
+    "Overload-proof by construction - the safe many-file counterpart to submix mix's WRAP. No getlevel pre-flight needed.",
+    "All inputs start at time zero and there are no parameters - no offsets, no levels, no pans. Reach for submix mix the moment you need any of those.",
+    "Channel counts must all match (refusal verbatim, names the offending file) and sample rates must all match (ditto). A stereo trio renders stereo (verified).",
+    "This entry pins input_arity 3; the binary accepts 2 or more (2-file run verified). For 4+ files use execute() - or submix mix, which scales to hundreds of events.",
+    "Multi-input entry: duration rule (indur_max) verified at 3 and 2 inputs in docs/curation/tranche12_submix_depth.md; duration_row null (tranche-11 rule)."
+  ],
+  "references": ["cdp://docs/html/cgromix2"]
+}

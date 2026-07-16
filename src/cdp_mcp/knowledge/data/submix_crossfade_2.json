@@ -1,0 +1,84 @@
+{
+  "program": "submix",
+  "mode": "crossfade",
+  "submode": 2,
+  "category": "mix",
+  "domain": "time",
+  "input_arity": 2,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "stagger + indur2"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "COSINUSOIDAL crossfade from file 1 into file 2 - the perceptually smoother sibling of submode 1's linear fade, with a powfac skew that warps the curve's pacing. Verified distinct from the linear render on identical inputs (decoded shas differ), and powfac is live (default render != -p4 render). powfac 1 = the plain cosine fade; 0.125-1 makes the fade begin rapidly then slow; 1-8 begin slowly then speed up (banner semantics; CDP-enforced range 0.125-8, refusals verbatim '(0.125000 to 8.000000)' at 0.05 and 9). All submode-1 behaviors re-verified here: output duration = stagger + indur2 (sample-exact), file 1 verbatim before the fade begins, file 2 verbatim (plays on) after it ends, stagger requires begin > stagger, equal channel counts and sample rates required, deterministic.",
+  "musical_use": "Reach for this over the linear submode whenever the transition itself is meant to be heard: the cosine curve holds perceived loudness steadier through the middle of the fade, and powfac lets you compose the fade's drama - powfac around 0.3 front-loads the change (the new sound arrives early, then settles), powfac 4-8 withholds it (the old sound lingers, then tips over quickly). Long dissolves between beds and drones benefit most; for utility butt-joins the linear submode is fine. Same assembly arithmetic as submode 1: output = stagger + indur2, so chained transitions stay predictable. For arbitrary blend trajectories use submix balance; for spectral interpolation use morph.",
+  "parameters": {
+    "stagger": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "File 2 starts this many seconds after file 1 (default 0; ~10 ms quantised; CDP-enforced 0 to INDUR1, input-dependent). Any stagger > 0 REQUIRES begin > stagger ('Crossfade begins before end of stagger: Impossible.' otherwise - re-verified in this submode's argv family). Breakpoint refused (parameter 1)."
+    },
+    "begin": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Crossfade start time (default 0; must exceed stagger when staggering). Breakpoint refused (parameter 2). Omitted unless set."
+    },
+    "end": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Crossfade end time (default: end of the shortest file; must be > begin). Breakpoint refused (parameter 3). Omitted unless set."
+    },
+    "powfac": {
+      "type": "float",
+      "min": 0.125,
+      "max": 8.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Skew of the cosinusoidal fade: 1 = normal cosine; below 1 the fade begins rapidly then slows; above 1 it begins slowly then speeds up. CDP-enforced 0.125 to 8 (0.05 and 9 refused verbatim; the banner's '0.12' understates the real floor). Verified live: -p4 renders distinct from the default. Breakpoint refused (parameter 4)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Slow equal-power dissolve between two beds.",
+      "params": {},
+      "expected_use": "input = [bedA, bedB]; cosine fade over the shorter file's span, output = indur2."
+    },
+    {
+      "description": "Lingering handoff - the old sound holds, then tips quickly.",
+      "params": {"powfac": 6.0},
+      "expected_use": "Fade energy arrives late; pair with a begin/end window to confine the tip-over."
+    }
+  ],
+  "known_issues": [
+    "Same operational constraints as submode 1, all re-verified: stagger > 0 requires begin > stagger (verbatim refusal); equal channel counts required ('Different no. of channels in input files'); equal sample rates required; output duration = stagger + indur2 sample-exact; overload-safe (complementary gains); deterministic (identical decoded shas 1.2 s apart).",
+    "powfac range is 0.125-8 (CDP-enforced, refusals quote it) - the banner's '0.12 - 1' lower band understates the floor. powfac only shapes the fade; it never changes the duration (verified).",
+    "All four parameters refuse breakpoint files (parameters 1-4). The fade trajectory is fixed per call; automate blends with submix balance instead.",
+    "Multi-input entry: duration_row null (tranche-11 rule); model shared with submode 1, verified in docs/curation/tranche12_submix_depth.md."
+  ],
+  "references": ["cdp://docs/html/cgromix2"]
+}

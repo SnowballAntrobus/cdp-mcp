@@ -1,0 +1,80 @@
+{
+  "program": "submix",
+  "mode": "crossfade",
+  "submode": 1,
+  "category": "mix",
+  "domain": "time",
+  "input_arity": 2,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "stagger + indur2"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "LINEAR crossfade from file 1 into file 2 - a direct sound-on-sound transition with no mixfile. Before the fade begins the output is file 1 VERBATIM (bit-verified, max diff 0.0 against the source); after the fade ends it is file 2 verbatim; in between the gains trade linearly (complementary, so the transition cannot overload). Fade region defaults to [0, end-of-shortest-file]; begin/end move it inside the timeline. If the fade completes before file 2 ends, the remainder of file 2 plays on. Output duration = stagger + indur2, SAMPLE-EXACT on every probe (2.0 / 1.0 / 3.0 / 2.5 across both input orders, a cropped fade, and stagger 0.5). stagger delays file 2 (quantised ~10 ms, banner-documented; for precise placement splice silence onto file 2 and use stagger 0). Inputs must share channel count (mono+stereo refused verbatim - no auto-conversion) and sample rate. Deterministic (identical decoded shas 1.2 s apart). Sibling submode 2 is the cosinusoidal version with a powfac skew.",
+  "musical_use": "The transition primitive: end one section's material inside the next, splice-like but overlapped - scene changes, timbre handoffs, extending a sound by dissolving it into another. Keep the fade short (begin/end close together) for a long-splice feel, or stretch it across the whole overlap for a slow dissolve. Since output = stagger + indur2 exactly, chains of crossfades assemble predictable timelines: each link adds its second file's length. The fade is linear - equal-power perception favours submode 2 (cosinusoidal, with powfac to bias the curve); a truly spectral transition needs morph. For a fade you can shape arbitrarily (dip, oscillate, return), use submix balance's breakpoint fader instead.",
+  "parameters": {
+    "stagger": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "File 2 starts this many seconds after file 1 (default 0; ~10 ms quantised). CDP-enforced 0 to INDUR1 (input-dependent, quoted '(0.000000 to 1.000000)' on a 1 s first file). CAUTION: any stagger > 0 with the default fade start REFUSES ('Crossfade begins before end of stagger: Impossible.') - always set begin > stagger when staggering (verified: -s0.5 alone fails; -s0.5 -b0.6 renders 2.5 s). Breakpoint refused (parameter 1)."
+    },
+    "begin": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Crossfade start time (default 0; must be STRICTLY greater than stagger when stagger > 0). Before this point the output is file 1 bit-exact. Breakpoint refused (parameter 2). Omitted unless set."
+    },
+    "end": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Crossfade end time (default: end of the shortest file; must be > begin). After this point the output is file 2 bit-exact. Values past the shortest file are accepted (verified -e1.8 with a 1 s file 1: exit 0, duration unchanged). Breakpoint refused (parameter 3). Omitted unless set."
+    }
+  },
+  "examples": [
+    {
+      "description": "Simple dissolve from one texture into a longer one.",
+      "params": {},
+      "expected_use": "input = [textureA (2 s), textureB (5 s)]. Fade runs over 0-2 s, then B plays on; output exactly 5 s."
+    },
+    {
+      "description": "Late, quick handoff: A plays alone for 1.5 s, then a 0.3 s fade into B.",
+      "params": {"begin": 1.5, "end": 1.8},
+      "expected_use": "input = [A, B] of equal length; before 1.5 s pure A (bit-exact), after 1.8 s pure B."
+    },
+    {
+      "description": "Staggered entry (begin must exceed stagger).",
+      "params": {"stagger": 0.5, "begin": 0.6},
+      "expected_use": "B enters at ~0.5 s; output = 0.5 + indur2. stagger alone REFUSES - the begin value is mandatory here."
+    }
+  ],
+  "known_issues": [
+    "STAGGER ALONE REFUSES: any stagger > 0 with the default fade start hits 'ERROR: INCORRECT USE / ERROR: Crossfade begins before end of stagger: Impossible.' (verified). Always pass begin > stagger alongside stagger. This entry leaves begin unset by default so plain calls (stagger 0) work.",
+    "Channel counts must match: 'ERROR: INCORRECT USE / ERROR: Different no. of channels in input files: can't proceed.' (exit 255) - unlike submix merge there is NO auto-conversion. Stereo pairs work with no extra flags (no merge-style default-end bug; verified 2-channel render). Sample rates must also match (same refusal family).",
+    "Output duration = stagger + indur2, sample-exact on all probes - file 1's length only matters if it is the shorter file (it bounds the default fade region). A short file 2 means a short output even when file 1 is long (2s+1s -> 1.0 s, verified).",
+    "Overload-safe: the fade gains are complementary and outside the fade the files pass verbatim - bounded by the louder input. Contrast submix mix (WRAPS on summed overs).",
+    "All three parameters refuse breakpoint files ('Cannot read parameter N [...]: brkpnt_files not permitted.', N = 1-3). The fade shape is fixed (linear here, cosinusoidal in submode 2); for an arbitrary time-varying blend use submix balance.",
+    "Multi-input entry: duration rule verified across both orders + stagger + crop in docs/curation/tranche12_submix_depth.md; duration_row null (tranche-11 rule)."
+  ],
+  "references": ["cdp://docs/html/cgromix2"]
+}

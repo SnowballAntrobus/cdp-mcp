@@ -1,0 +1,276 @@
+{
+  "generated_at": "2026-07-16",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (fresh ComposersDesktop/CDP8 clone; banner 'CDP Release 7.1 2016'; rebuilt with -fsigned-char after the aarch64 unsigned-char textfile-parse failure - see transcript SUBSTRATE FINDING; audio findings verified byte-identical across both builds)",
+    "os": "Linux aarch64 sandbox (prior tranches: x86_64)",
+    "note": "Tranche 12 - submix depth. Multi-input and arity-0/data-output entries throughout: every duration_row is null under the tranche-11 rule (multi-input rows incompatible with the single-input fixture) or the tranche-7 rule (data outputs have no audio duration). Duration models verified in the transcript tables instead; engine spot-checks ran getlevel 3 / balance-brk / mergemany-3in / pan-abs-brk end-to-end through process_impl."
+  },
+  "entries": [
+    {
+      "program": "submix",
+      "mode": "merge",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry (tranche-11 rule). Model 'max(indur1, stagger + indur2 - skip)' verified across both orders, stagger 0.5/1.5, skip 0.5, crop -b0.25 -e1.5 (end-begin); outputs quantised 0-11 ms UNDER prediction (sector granularity).",
+      "stochastic": false,
+      "notes": [
+        "Default mix == 0.5*in1 + 0.5*in2 to 1 LSB; skew gains skew/(skew+1) and 1/(skew+1) verified exactly (2 -> 0.6667/0.3333, 9 -> 0.9/0.1); gains sum to 1 - cannot overload.",
+        "STEREO REQUIRES EXPLICIT -e (first-class, source-diagnosed LP64 bug): default end 32767 s * srate * channels overflows the 32-bit iparam for any stereo path ('Mix cuts off before 2nd file enters'); mono at 44.1k just fits. -e2.0 unblocks. version_sensitive true.",
+        "_temp.wav CWD pollution: failed mixed-channel runs leave _temp.wav (session root!), poisoning the next mixed-channel merge ('Cannot open output file '_temp': Can't create SFile, already exists').",
+        "Ranges verbatim: stagger 0..indur1 (input-dep quote), skip 0-32767 + runtime 'SKIP INTO 2ND FILE exceeds length', skew 0.000031-32767, begin/end 0-32767, -b >= indur1 'Mix does not start until first file has ended.'. All five params refuse brks (parameters 1-5). Deterministic; -s0 -j0 -k1 -b0 byte-equals flag-less."
+      ]
+    },
+    {
+      "program": "submix",
+      "mode": "balance",
+      "submode": null,
+      "breakpoint_capable": ["balance"],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry. Model 'indur1' exact both orders (1s+2s -> 1.0; 2s+1s -> 2.0); end-begin under cropping (verified 1.0 from -b0.5 -e1.5).",
+      "stochastic": false,
+      "notes": [
+        "output = balance*file1 + (1-balance)*file2, verified by least-squares gain recovery (default 0.5/0.5; -k0.7 -> 0.7000/0.3000). Convex - overload-safe.",
+        "balance brk proof: 0->1 ramp sha differs from BOTH -k0 and -k1 scalar shas. Range 0-1 verbatim. breakpoint_duration_source input1 (axis = output duration).",
+        "MIXED CHANNEL COUNTS CORRUPT (first-class banner divergence): 'may or may not have different number of channels' but (2s mono, 1s stereo) -> 4.0 s mono interleave garbage, silently. Equal counts clean (mono+mono, stereo+stereo verified).",
+        "begin/end refuse brks (parameters 2-3), bounds 0..indur1 input-dependent. SR mismatch refused verbatim. Deterministic."
+      ]
+    },
+    {
+      "program": "submix",
+      "mode": "crossfade",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry. Model 'stagger + indur2' SAMPLE-EXACT on all probes (2.0/1.0/3.0/2.5 incl. both orders, crop, stagger).",
+      "stochastic": false,
+      "notes": [
+        "Linear crossfade; before -b output is file1 bit-exact (maxdiff 0.0), after -e file2 bit-exact. Convex fade - overload-safe.",
+        "stagger > 0 REQUIRES begin > stagger: '-s0.5' alone refuses 'Crossfade begins before end of stagger: Impossible.' (-s0.5 -b0.6 runs, 2.5 s).",
+        "Channel counts must match ('Different no. of channels in input files: can't proceed.' - no auto-convert); stereo pairs run WITHOUT merge's -e bug. stagger range 0..indur1 input-dependent. Brks refused params 1-3. Deterministic."
+      ]
+    },
+    {
+      "program": "submix",
+      "mode": "crossfade",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry. Same 'stagger + indur2' model as submode 1, re-verified (2.0 sample-exact).",
+      "stochastic": false,
+      "notes": [
+        "Cosinusoidal fade: renders distinct from submode 1 on identical inputs; powfac live (-p4 differs from default). powfac CDP-enforced 0.125-8 verbatim (banner's '0.12' floor wrong).",
+        "All submode-1 constraints re-verified (stagger/begin coupling, equal channels/SR, determinism). Brks refused params 1-4."
+      ]
+    },
+    {
+      "program": "submix",
+      "mode": "mergemany",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Multi-input entry (pinned arity 3; binary variadic, 2-input run verified). Model 'indur_max' sample-exact at 3 and 2 inputs. Engine spot-check: 3 inputs through process_impl, outdur 3.0, peak 1.0000.",
+      "stochastic": false,
+      "notes": [
+        "ALWAYS PEAK-NORMALISES, both directions (first-class): 3x full-level -> shared gain 0.33669, peak 0.99997; quiet pair (sum peak 0.216) -> peak 1.0000 (amplified). One shared gain - relative balance preserved, absolute level always full scale.",
+        "Overload-proof; the safe many-file counterpart to submix mix's wrap. No parameters at all.",
+        "Mixed channels / SR refused verbatim naming the offending file. Deterministic."
+      ]
+    },
+    {
+      "program": "submix",
+      "mode": "faders",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Multi-input entry (pinned arity 2; 3-input run verified) with two required aux files - doubly incompatible with the shared fixture. Model 'indur_max' exact (2.0 both orders, 3.0 trio).",
+      "stochastic": false,
+      "notes": [
+        "OVERLOAD WRAPS (P5-3 pathology, first-class): envelope 3.0 on hot material -> 100% of over-samples bit-match wrap_int16, 0% match clipping. Balance stage is convex-safe (lines auto-scaled to sum 1: '2 3' byte-equals '0.4 0.6'); the overall envelope is the risky knob (point values CDP-enforced 0-256 verbatim).",
+        "NO SAMPLE-RATE VALIDATION (first-class divergence): 44.1k+22.05k pair ACCEPTED exit 0, mismatched file read at wrong rate - only probed submix mode without the SR check.",
+        "Cross-validation: linear balance + flat envelope renders BYTE-IDENTICAL to submix crossfade 1 (sha match).",
+        "Scalar accepted in the envelope argv slot ('0.5' == 0.5x flat render to 1 LSB) - entry pins the file form. Refusals verbatim: 'must begin at time zero', 'levels are zero at line N' (off-by-one), wrong column count -> misleading 'Times ... too close', mixed channels, single input. Deterministic."
+      ]
+    },
+    {
+      "program": "submix",
+      "mode": "getlevel",
+      "submode": 3,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (.txt report) - no audio duration; preflight skips (tranche-7 rule). Arity 0 (mixfile pre_output aux).",
+      "stochastic": false,
+      "notes": [
+        "THE P5-3 PRE-FLIGHT, CURATED: report = clip-location lines + 'MAX SAMPLE ENCOUNTERED' + 'NORMALISATION REQUIRED : <factor> OR <dB>' (factor 0.336693 on the P5-3-style hot mix). timeline() headroom staging is now a curated call.",
+        "Factor = 1/peak UNCONDITIONALLY: clean mix reports factor > 1 (2.499924 at peak 0.400) - only < 1 means action needed.",
+        "Mode choice pinned: mode 1 = stdout only, NO outfile argv (engine-incompatible); mode 2 writes a ZERO-BYTE file on clean mixes (fails non-empty data verification); mode 3 always non-empty (101-byte minimum observed).",
+        "-s bound 0..mixdur input-dependent verbatim; -e0 'Mix starts after it ends.'; report times WINDOW-relative when -s used; -s brk refused; reserved-extension refusal on .wav output name. Deterministic (byte-identical). Engine spot-check end-to-end ok."
+      ]
+    },
+    {
+      "program": "submix",
+      "mode": "attenuate",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (mixfile .txt) - no audio duration; arity 0.",
+      "stochastic": false,
+      "notes": [
+        "Level multiplier over lines startline..endline: 4-dp linear rewrite, dB CONVERTED to linear ('-6dB' * 0.5 -> 0.2506), comments STRIPPED, pans preserved, gain > 1 amplifies. Round-trip into submix mix verified.",
+        "gain 0 ACCEPTED despite banner 'must be > 0.0' (writes all-zero levels); curated min 1e-6. Range verbatim 0-32767; line flags input-dependent '(1.000000 to 2.000000)' on a 2-line file. gain brk refused (parameter 1). Deterministic.",
+        "Role pinned: the getlevel companion (bake the factor into the file) and the sanctioned dB->linear converter to run before submix pan."
+      ]
+    },
+    {
+      "program": "submix",
+      "mode": "pan",
+      "submode": null,
+      "breakpoint_capable": ["pan"],
+      "duration_row": null,
+      "duration_row_reason": "Data output (mixfile .txt) - no audio duration; arity 0.",
+      "stochastic": false,
+      "notes": [
+        "Only mixfile op with a TIME-VARYING param: trajectory file sampled at each event's START time, linear interpolation verified exact (-1/-0.6 from a -1..1 ramp at events 0.0/0.5 over 2.5 s). Sounds positioned at entry only (banner).",
+        "NO-PAN MONO LINES BREAK THE OUTPUT (first-class): rewritten in the stereo column layout under chans=1 with level HALVED; submix mix REFUSES the result. Mono lines WITH numeric pan round-trip perfectly (levels preserved). Stereo short-form: valid output, levels halved (both channels one position).",
+        "dB CORRUPTION: '-6dB' -> plain '-3.0000' (negative linear level, invalid downstream). Fix: attenuate gain 1.0 first.",
+        "pan beyond +/-1 accepted end-to-end (50 verified). Engine spot-check: abs:-tuple envelope on this arity-0 entry compiled and rendered values matching the raw probe; relative-time lists refuse cleanly (no axis - documented in entry). Deterministic."
+      ]
+    },
+    {
+      "program": "submix",
+      "mode": "timewarp",
+      "submode": 6,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (mixfile .txt) - no audio duration; arity 0. Stochastic.",
+      "stochastic": true,
+      "notes": [
+        "SCATTER ENTRY TIMES (the humanizer). Q CDP-enforced 0-1 verbatim; Q=0 identity (byte-equal); -s3 -e4 left lines 1-2 bit-unchanged; names/levels/pans preserved; line 1 not pinned to 0.",
+        "CLOCK-SEEDED UNSEEDABLE: 1.2 s apart differ, same-second parallel launches byte-IDENTICAL (collision trap); no seed slot. Q brk refused (parameter 1).",
+        "Deterministic siblings recorded not curated: mode 1 sort (deterministic), mode 13 = inter-entry intervals * Q (0/1.5/2.2/3.0 x2 -> 0/3.0/4.4/6.0; Q 0-32767, Q=0 accepted); mode 13 on UNSORTED input emits NEGATIVE times (-1.5 observed) - sort first."
+      ]
+    },
+    {
+      "program": "submix",
+      "mode": "shuffle",
+      "submode": 3,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (mixfile .txt) - no audio duration; arity 0. Stochastic.",
+      "stochastic": true,
+      "notes": [
+        "SCATTER NAME ORDER: permutes the name column only; time/level/pan grid byte-preserved; -s2 -e3 permuted only lines 2-3. Clock-seeded unseedable (same-second identical).",
+        "CHANS-COLUMN HAZARD pinned in entry: names move but chans columns don't - mixed mono/stereo pools can produce mix-refused files.",
+        "Sibling probes recorded: 1 duplicate, 2 reverse (verified), 5 omit range closing gaps (survivor keeps gap to original successor - verified 0/1.0), 6 omit alternate keeping even lines (verified); 5/6 need sorted input (banner)."
+      ]
+    },
+    {
+      "program": "submix",
+      "mode": "spacewarp",
+      "submode": 5,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (mixfile .txt) - no audio duration; arity 0. Stochastic.",
+      "stochastic": true,
+      "notes": [
+        "RANDOM-SCATTER POSITIONS in [Q1,Q2]: times/levels preserved, pans rolled per event; output mix-accepted (the clean pan path - fixes no-pan files into explicit-pan form). Bounds CDP-enforced -1..1 verbatim ('-3 3' refused); swapped bounds accepted.",
+        "Clock-seeded unseedable (same-second identical, 1.2 s differ). Stereo sources become mono points (banner rule modes 3-6).",
+        "Sibling probes: mode 2 narrow = pans x Q (verified -1/+1 -> -+0.5); mode 1 redundant with submix pan."
+      ]
+    },
+    {
+      "program": "submix",
+      "mode": "sync",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (mixfile .txt) - no audio duration; arity 0 (sndfile list / mixfile as pre_output aux).",
+      "stochastic": false,
+      "notes": [
+        "MIDTIME sync, audio-aware (durations read from disk): 1/2/1.5 s files -> starts 0.5/0.0/0.25, midpoints coincide, earliest 0. Bare list -> level 1.0 pan 'C' (C = NO-PAN in mix, tranche-5); mixfile input -> levels/pans PRESERVED, lines re-sorted. Stereo entries valid ('2 1.0 L 1.0 R'). Sub-dir paths intact; mix round-trip verified.",
+        "NO SR VALIDATION: mixed-rate list accepted exit 0, refusal deferred to mix time. Missing names refuse infile-type error. Deterministic; no parameters."
+      ]
+    },
+    {
+      "program": "submix",
+      "mode": "sync",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (mixfile .txt) - no audio duration; arity 0.",
+      "stochastic": false,
+      "notes": [
+        "ENDTIME sync: starts = longest - own duration (1/2/1.5 s -> 1.0/0.0/0.5, all ending at 2.0). All submode-1 aux/format behaviors re-verified. Deterministic."
+      ]
+    },
+    {
+      "program": "submix",
+      "mode": "syncattack",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (mixfile .txt) - no audio duration; arity 0.",
+      "stochastic": false,
+      "notes": [
+        "ONSET-DETECTING mixfile generator: aligns detected attacks (max-sample default; -p = peak-power segment, verified to change the result); per-line 2-time search windows verified working. Levels auto-set to anti-clip estimate (0.49998 for 2 files; banner: may be over-cautiously low - adjust with submix attenuate).",
+        "-w accepts ONLY 2/4/8/16/32 (-w3/-w64 refused 'ERROR: INCORRECT USE'); w2 == w32 on simple bursts. Mixed mono/stereo lists fine. 'C' pans (no-pan). Deterministic both flag states."
+      ]
+    }
+  ],
+  "dropped": [
+    {
+      "program": "submix",
+      "mode": "inbetween",
+      "reason": "Multi-output, no single outfile argv (standing rule): 'submix inbetween 1 n1 tone1 ib 3' -> exit 0 writing ib001.wav/ib002.wav/ib003.wav from a generic outname.",
+      "evidence": "Probe in transcript 'Dropped' table; banner: 'New soundfiles will be called outname001 outname002 etc'."
+    },
+    {
+      "program": "submix",
+      "mode": "inbetween2",
+      "reason": "Same multi-output shape (zero-crossing interpolation variant): count 2 -> ib2001.wav ib2002.wav.",
+      "evidence": "Probe exit 0, two generic-named files."
+    },
+    {
+      "program": "submix",
+      "mode": "test",
+      "reason": "No output argv - console-only mixfile validator ('MIX SYNTAX IS CORRECT.' exit 0 / infile-type error exit 255). execute() territory.",
+      "evidence": "Probes on valid mx4.mix and a negative-time file."
+    },
+    {
+      "program": "submix",
+      "mode": "fileformat",
+      "reason": "Banner prose, not a process: prints the mixfile format help and exits.",
+      "evidence": "Banner capture in transcript."
+    },
+    {
+      "program": "submix",
+      "mode": "dummy",
+      "reason": "Trivial text generation (all modes): mode 2 verified writing each file at the previous file's end (0/1.0/3.0) - the engine already knows durations; write_data_file territory.",
+      "evidence": "dummy 2 probe, exit 0, output quoted in transcript."
+    },
+    {
+      "program": "submix",
+      "mode": "atstep",
+      "reason": "k*step arithmetic (verified 0/0.75/1.5 at step 0.75, level 1.0 pan C) - one-line mixfile generation the LLM does natively.",
+      "evidence": "atstep probe, exit 0."
+    },
+    {
+      "program": "submix",
+      "mode": "ongrid",
+      "reason": "Copies gridfile times verbatim into mixfile lines (verified 0/1.25/2.0) - writing the mixfile directly is strictly simpler than writing the gridfile.",
+      "evidence": "ongrid probe with grid.txt, exit 0."
+    },
+    {
+      "program": "submix",
+      "mode": "addtomix",
+      "reason": "Trivial append: new sounds added at max(at+dur) (verified 5.5) at level 1.0 pan C - a one-line edit given describe_workspace durations.",
+      "evidence": "addtomix probe on mx4.mix + two tones, exit 0."
+    },
+    {
+      "program": "submix",
+      "mode": "model",
+      "reason": "Name substitution preserving times/levels/pans (verified) - trivial rewrite; CDP adds only channel/SR validation of the replacements.",
+      "evidence": "model probe replacing 4 names, exit 0, output quoted in transcript."
+    }
+  ]
+}

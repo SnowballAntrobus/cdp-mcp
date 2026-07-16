@@ -1,0 +1,104 @@
+{
+  "program": "submix",
+  "mode": "merge",
+  "submode": null,
+  "category": "mix",
+  "domain": "time",
+  "input_arity": 2,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "(indur1 if indur1 > (stagger + indur2 - skip) else (stagger + indur2 - skip))"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Quick two-file mix with no mixfile: each input is scaled to HALF level and summed (verified: default output == 0.5*in1 + 0.5*in2 to 1 LSB), so the sum is bounded by the louder input and CANNOT overload - the safe counterpart to submix mix's wraparound. stagger delays file 2's entry; skip starts file 2 that many seconds into itself; skew rebalances the pair: gain1 = skew/(skew+1), gain2 = 1/(skew+1) (source formula, verified exactly at skew 2 -> 0.6667/0.3333 and skew 9 -> 0.9/0.1 - the gains always sum to 1). Output duration = max(indur1, stagger + indur2 - skip), quantised DOWN to CDP's sector granularity (up to ~11 ms short of the prediction; banner: 'Stagger and Skip are approximated to within about one hundredth of a second'). begin/end crop the mix in mix-time (end - begin when both used). Mono pairs give mono; stereo pairs and mono+stereo (auto-converted, INFO line) give stereo - but see known_issues: ALL stereo-output paths REQUIRE an explicit end value on 64-bit builds. Deterministic (identical decoded shas 1.2 s apart); rendered-defaults equivalence verified (-s0 -j0 -k1 -b0 byte-identical to flag-less).",
+  "musical_use": "The two-layer workhorse when a full mixfile is overkill: dry+wet blends, doubling a sound with its processed variant, echo-like entries via stagger, or call-and-response placement of two gestures. Because each file is automatically halved (or skew-weighted so the gains sum to 1), you can layer hot material without headroom arithmetic - contrast submix mix, where overlapping full-level events WRAP. Use skew to push one layer forward (skew 3 = 0.75/0.25); use skip to enter the second sound past its attack; use stagger for canon/echo offsets (remember both are ~10 ms-quantised - for sample-exact placement use submix mix). For more than two layers reach for submix mergemany (self-normalising) or submix mix (exact times/levels). For a smooth transition instead of a sum, use submix crossfade.",
+  "parameters": {
+    "stagger": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "File 2 enters this many seconds after file 1 starts. CDP-enforced 0 to INDUR1 (input-dependent: '-s1.5' on a 1 s first file refused 'Parameter[1] Value (1.500000) out of range (0.000000 to 1.000000)'; the same value runs with a 2 s first file). Quantised to sector granularity (~10 ms). Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "skip": {
+      "type": "float",
+      "min": 0.0,
+      "max": 32767.0,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-j",
+      "flag_kind": "attached_value",
+      "description": "Skip this many seconds into file 2 before mixing it in (its start is cut off). Validation quotes 0-32767 but the runtime bound is INDUR2: skip 3 on a 2 s second file refuses 'ERROR: INVALID DATA / ERROR: SKIP INTO 2ND FILE exceeds length of that file: cannot proceed'. Quantised like stagger. Breakpoint refused (parameter 2)."
+    },
+    "skew": {
+      "type": "float",
+      "min": 3.1e-05,
+      "max": 32767.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-k",
+      "flag_kind": "attached_value",
+      "description": "Relative gain of file 1 over file 2. Actual gains are NORMALISED: gain1 = skew/(skew+1), gain2 = 1/(skew+1) (verified exactly; default skew 1 = the half-and-half mix), so the summed gain is always 1 and the mix cannot overload. CDP-enforced 0.000031 to 32767 (-k0 and negative refused verbatim). Breakpoint refused (parameter 3)."
+    },
+    "begin": {
+      "type": "float",
+      "min": 0.0,
+      "max": 32767.0,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Start the mix at this mix-time (crops the output start). Runtime bound: begin >= indur1 refuses 'ERROR: INVALID DATA / ERROR: Mix does not start until first file has ended.'. Breakpoint refused (parameter 4). Omitted unless set."
+    },
+    "end": {
+      "type": "float",
+      "min": 0.0,
+      "max": 32767.0,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Stop the mix at this mix-time. REQUIRED whenever the output would be STEREO (stereo pair, or mono+stereo auto-conversion) - see known_issues for the 64-bit default-end overflow. With begin, output duration = end - begin (verified 1.2504 from -b0.25 -e1.5). Breakpoint refused (parameter 5)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Layer a processed take over the original at 3:1 in favour of the dry sound.",
+      "params": {"skew": 3.0},
+      "expected_use": "Pass [dry, wet]; output = 0.75*dry + 0.25*wet, duration = the longer input (~10 ms quantised)."
+    },
+    {
+      "description": "Echo-like entry: second sound enters half a second late, skipping its first 0.2 s.",
+      "params": {"stagger": 0.5, "skip": 0.2},
+      "expected_use": "Duration = max(indur1, 0.5 + indur2 - 0.2). Both offsets quantised to ~10 ms - use submix mix for sample-exact placement."
+    },
+    {
+      "description": "Stereo pair (end value mandatory).",
+      "params": {"end": 2.0},
+      "expected_use": "Two stereo inputs REFUSE without end ('Mix cuts off before 2nd file enters'); set end to the intended mix length, here max(indur1, indur2) = 2.0."
+    }
+  ],
+  "known_issues": [
+    "STEREO REQUIRES AN EXPLICIT end (64-bit build bug, source-diagnosed): the default end is 32767 s, and mixtwo_preprocess computes round(32767*srate)*channels into a 32-bit int - at 44.1 kHz mono that just fits (1.445e9), but ANY stereo path doubles it past INT_MAX, wraps negative, and every stereo/mixed-channel run refuses 'ERROR: INVALID DATA / ERROR: Mix cuts off before 2nd file enters' (verified: two identical stereo files refuse with no flags; the LONG_MAX guard in the source never fires on LP64). Passing any sane -e value unblocks it (verified: -e2.0 renders 2.0 s stereo). Affects LP64 builds (Linux/macOS); 32-bit-long builds take the guard path. version_sensitive for this reason.",
+    "TEMP-FILE POLLUTION on the mono+stereo path: differing channel counts trigger 'INFO: Files have different channel count. Converting to stereo.' via a '_temp.wav' written in the PROCESS CWD (= the session root). Successful runs clean it up (verified), but a FAILED run (e.g. missing end, above) leaves _temp.wav behind, and the NEXT mixed-channel merge then refuses 'ERROR: Cannot open output file '_temp': Can't create SFile, already exists'. If a mixed-channel merge fails, delete _temp.wav before retrying.",
+    "Levels are ALWAYS rescaled: the default mix is 0.5/0.5 (verified == 0.5*in1 + 0.5*in2 to 1 LSB) and skew keeps gain1+gain2 = 1, so merge cannot overload but also never passes either file at unity. For unity-level layering use submix mix with explicit levels.",
+    "Output duration is quantised DOWN to CDP sector granularity: probes came out 0-11 ms UNDER max(indur1, stagger+indur2-skip) (e.g. 2.499229 for a 2.5 prediction). The duration model's prediction is therefore a safe upper bound (well inside 5% tolerance on realistic material).",
+    "begin/end crop in mix-time and shorten the output (end - begin when both set); the duration model assumes no cropping and over-predicts (safe direction) when they are used.",
+    "Sample rates must match: 'ERROR: INCORRECT USE / ERROR: Different sample-rates in input files: can't proceed.' (exit 255).",
+    "All five parameters refuse breakpoint files ('Cannot read parameter N [...]: brkpnt_files not permitted.', N = 1-5). Deterministic: identical decoded shas 1.2 s apart; -s0 -j0 -k1 -b0 byte-identical to the flag-less run.",
+    "Multi-input entry: duration model verified against both input orders, stagger, skip and crop probes (see docs/curation/tranche12_submix_depth.md); incompatible with the single-input duration fixture (duration_row null, tranche-11 rule)."
+  ],
+  "references": ["cdp://docs/html/cgromix2"]
+}

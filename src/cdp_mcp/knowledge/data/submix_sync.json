@@ -1,0 +1,51 @@
+{
+  "program": "submix",
+  "mode": "sync",
+  "submode": 1,
+  "category": "mix",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "SYNC SNDFILE MIDTIMES: builds (or rebuilds) a mixfile in which every sound's MIDPOINT lands at the same instant - CDP reads each file's real duration from disk and computes the start times (verified: 1 s / 2 s / 1.5 s files -> starts 0.5 / 0.0 / 0.25, all midpoints at 1.0; earliest start is always 0). The intextfile aux is EITHER a bare list of sndfile names (one per line; output lines get level 1.0 and pan 'C') OR an existing mixfile (levels and pans are PRESERVED and the lines are re-sorted into the new time order - verified). Sub-directory paths pass through intact ('sub/n1.wav' verified) and the output renders directly through submix mix (round-trip verified, 2.0 s from a 2 s longest file). This is audio-aware text generation - the durations come from the soundfile headers, which is why it earns an entry over hand-editing. Deterministic (byte-identical). Sibling submode 2 aligns ENDTIMES instead.",
+  "musical_use": "Centre-alignment for layered stacks: swells, cymbal rolls, reversed-attack pads and other symmetric gestures read as 'together' when their CENTRES coincide, not their starts - sync 1 computes that alignment for any mix of lengths in one call. Classic uses: stack N variants of a gesture (different processings, different rates) so their energy peaks pile up at one moment; centre a short accent inside a long bed; rebuild an existing mixfile (levels/pans kept) after swapping sounds of different lengths via submix model-style edits. The output is a normal mixfile - re-level it with submix attenuate, re-position with submix pan, check headroom with getlevel 3 (midpoint pile-ups sum hot by design!), then render with submix mix.",
+  "parameters": {
+    "intextfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "EITHER a plain list of soundfile names (one per line, cwd-relative; write with write_data_file()) OR an existing mixfile whose levels/pans should survive re-timing. Renders in the argv BEFORE the output path. A missing/invalid name refuses 'Application doesn't work with this type of infile.' (exit 255). NOTE: sample rates are NOT validated here - a mixed-rate list is accepted (verified exit 0) and the refusal only surfaces downstream at submix mix time."
+    }
+  },
+  "examples": [
+    {
+      "description": "Centre-align three swell variants into one mixfile.",
+      "params": {"intextfile": "swells.txt"},
+      "expected_use": "write_data_file('swells.txt', 'inputs/sw1.wav\\ninputs/sw2.wav\\ngraphs/<gid>/sw3.wav'). Output lines carry level 1.0 - run getlevel 3 before rendering (midpoints sum hot)."
+    },
+    {
+      "description": "Re-time an existing mix so all centres coincide, keeping its levels and pans.",
+      "params": {"intextfile": "phrase.mix"},
+      "expected_use": "Levels/pans preserved, lines re-sorted into the new time order; render via submix mix."
+    }
+  ],
+  "known_issues": [
+    "Bare-list outputs use pan letter 'C' - which submix mix treats as NO-PAN, not centre (tranche-5 finding): an all-mono synced list renders MONO. That is usually what you want; for true centre-panned stereo replace C with numeric 0 (or run spacewarp/pan). Also feed such files through submix attenuate/pan only AFTER giving lines numeric pans (pan's no-pan path is broken - see that entry).",
+    "NO SAMPLE-RATE VALIDATION: a list mixing 44.1 kHz and 22.05 kHz files is accepted (exit 0, verified) and the mismatch only refuses later at submix mix. Check rates when assembling the list.",
+    "Midpoint alignment stacks every file's loudest region at one instant by design - ALWAYS pre-flight with submix getlevel 3 before rendering at the default level-1.0 lines (overload at the mix stage WRAPS).",
+    "Mixed mono/stereo lists are fine (verified: stereo entries come out in the 'name time 2 level L level R' form; mix accepts it).",
+    "The output is a DATA file (mixfile, .txt): consumer = submix mix's mixfile parameter or the other mixfile entries. Duration pre-flight skipped ('static' is a placeholder); the rendered duration = the longest file when midpoints coincide.",
+    "Deterministic: byte-identical output run to run. No numeric parameters at all.",
+    "Arity-0 entry (sources named inside the aux list): call process() with no input argument. duration_row null in the findings (data output)."
+  ],
+  "references": ["cdp://docs/html/cgromix2"]
+}

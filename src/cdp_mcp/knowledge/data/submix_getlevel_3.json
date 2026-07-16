@@ -1,0 +1,73 @@
+{
+  "program": "submix",
+  "mode": "getlevel",
+  "submode": 3,
+  "category": "mix",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "The mix-headroom pre-flight (forensics P5-3), as a curated DATA output: dry-runs the mix described in a mixfile WITHOUT writing audio and stores a text report of every clipping location plus the peak. Report format (verbatim): zero or more 'Clip at time <t> secs : sample <n> : For <k> samples' lines, a blank line, then 'MAX SAMPLE ENCOUNTERED : <peak> at <t> secs' and 'NORMALISATION REQUIRED : <factor>   OR  <dB>'. The factor is 1/peak - the gain that brings the mix to EXACTLY full scale - and is printed even when the mix is clean (peak < 1 gives a factor > 1, i.e. available amplification): only treat it as mandatory when it is < 1. Mode 3 chosen over the siblings deliberately: mode 1 prints to stdout with NO output-file argv (engine-incompatible) and mode 2 writes a ZERO-BYTE file on clean mixes (fails data-output verification); mode 3's report is always non-empty (verified: 101 bytes minimum on a clean mix). Takes NO audio inputs (arity 0): the mixfile is the pre-output aux parameter, sharing every submix-mix mixfile rule (cwd-relative source paths, one sample rate, no spaces). Deterministic (byte-identical reports).",
+  "musical_use": "Run this BEFORE any hot submix mix render: overlapping events sum linearly and overs WRAP into garbage, so the workflow is getlevel -> read the NORMALISATION REQUIRED factor from the report (last line) -> if < 1, pass it as submix mix's atten parameter (verified in P5-3 to yield a clean render at peak ~1.0). The clip-location lines tell you WHERE the pile-up happens, which is often more useful than the factor itself: instead of attenuating the whole mix you can lower or move the specific events colliding at those times (edit the mixfile and re-check - each run costs no audio rendering). start/end focus the check on one time region of a long mix. This entry makes timeline()-style headroom staging a curated call instead of an execute() escape.",
+  "parameters": {
+    "mixfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "The mixfile to analyse (write it with write_data_file(); same line syntax and rules as submix mix's mixfile - 'sndname start chans level [pan...]', cwd-relative source paths, one shared sample rate, ';' comments). Renders in the argv BEFORE the output report path. Sub-directory source paths verified working ('sub/n1.wav'). A line naming a missing file refuses with 'WARNING: If <mixfile> is a mixfile: uses <name> which is not a sndfile' plus the infile-type error."
+    },
+    "start": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Analyse from this mix-time onward. CDP-enforced 0 to the mix's duration (input-dependent: '-s9' on a 2.5 s mix refused '(0.000000 to 2.500000)' verbatim). NOTE: with start set, the report's times are relative to the WINDOW start, not the mix (verified). Breakpoint refused (parameter 1). Omitted unless set."
+    },
+    "end": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "s",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Stop analysing at this mix-time (same input-dependent bound as start). '-e0' refuses 'ERROR: Mix starts after it ends.'. Omitted unless set."
+    }
+  },
+  "examples": [
+    {
+      "description": "Headroom pre-flight before rendering a dense mixfile.",
+      "params": {"mixfile": "cloud.mix"},
+      "expected_use": "Read the report's last line 'NORMALISATION REQUIRED : <factor> ...'; if factor < 1, pass it as submix mix's atten. Clip lines pinpoint the colliding events."
+    },
+    {
+      "description": "Check only the climax region of a long mix.",
+      "params": {"mixfile": "long.mix", "start": 30.0, "end": 40.0},
+      "expected_use": "Report times are window-relative (add start back to locate events in the mixfile)."
+    }
+  ],
+  "known_issues": [
+    "The output is a DATA file (.txt report), not audio and not a mixfile: it cannot be auditioned, analyzed, or fed to another entry. Parse it as text - the machine-usable value is the NORMALISATION REQUIRED factor on the last line. The duration pre-flight is skipped (duration_model 'static' is a schema placeholder).",
+    "NORMALISATION REQUIRED is reported UNCONDITIONALLY as 1/peak - a clean mix gets a factor ABOVE 1 (verified: peak 0.400 -> 'NORMALISATION REQUIRED : 2.499924 OR 7.9585dB'). Only factors below 1 mean action is needed; factors above 1 are available amplification, not a warning.",
+    "Sibling modes pinned for the record: mode 1 (max level only) prints to stdout and takes NO output file - unreachable for the engine, use execute() when only the console line is wanted; mode 2 (clip locations only) writes a ZERO-BYTE file when nothing clips (verified) and would fail the engine's non-empty data verification - avoided.",
+    "With start set, clip/max times in the report are relative to the analysis window, not absolute mix time (verified: same peak reported at 1.436 s full-mix and 0.236 s with -s1.2).",
+    "Reserved output extensions refused ('ERROR: Cannot open a textfile (x.wav) with a reserved extension.') - the engine names the output .txt, which CDP accepts.",
+    "Deterministic: byte-identical reports run to run. start/end refuse breakpoints (parameter 1).",
+    "Arity-0 entry (the sources live inside the mixfile): call process() with no input argument; the mixfile path in params is the provenance trail. Data output - duration_row null in the findings (no audio duration)."
+  ],
+  "references": ["cdp://docs/html/cgromix2"]
+}

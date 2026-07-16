@@ -1,0 +1,62 @@
+{
+  "program": "submix",
+  "mode": "pan",
+  "submode": null,
+  "category": "mix",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Rewrites the PAN data in a mixfile (text -> text, a DATA output): every event in the file gets its start position (re)set from the pan parameter - a scalar places all events at one point; a breakpoint trajectory positions each event according to WHERE ITS START TIME falls on the trajectory (verified: a -1 -> +1 ramp over a 2.5 s mix gave the event at 0.0 pan -1.0000 and the event at 0.5 pan -0.6000 - exact linear interpolation). Sounds are positioned at entry only, they do NOT move while playing (banner-documented). CRITICAL INPUT CONSTRAINT (probe-verified, see known_issues): every line of the input mixfile must already carry explicit pan data - mono lines in the 5-column 'name time 1 level pan' form round-trip perfectly (levels preserved, pan replaced, submix mix accepts the output); NO-PAN lines take a broken code path (invalid output that submix mix REFUSES). Stereo short-form lines work but come out with both channels at one position and levels HALVED. Values beyond +/-1 are accepted (hard side + attenuation, mixfile semantics; pan 50 verified accepted and mix-consumable). Deterministic.",
+  "musical_use": "Spatial redesign of a whole mix in one pass, and the only mixfile op with a TIME-VARYING parameter: hand it an 'abs:'-timed trajectory and a scattered event cloud arranges itself along a left-to-right sweep, an arc, or a zig-zag - each event picking up the trajectory's value at its own entry time. Classic uses: sequence a rhythmic phrase across the image (accelerando mixfiles become spatial gestures), collapse a wide mix to a point for contrast, or produce several differently-panned versions of one mixfile and render them as evolving spatial variants. Workflow: keep every line explicitly panned from the start (write '0' pans - numeric, never 'C'); if levels are in dB, run submix attenuate gain 1.0 first to convert them (this mode corrupts dB forms). Then feed the output straight to submix mix.",
+  "parameters": {
+    "inmixfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "The mixfile to re-pan (write with write_data_file()). EVERY sound line must carry explicit pan data already - mono lines as 'name time 1 level pan' (numeric pan; 0 for centre), stereo lines in either stereo form. Lines WITHOUT pan columns trigger the broken output path (known_issues). Renders in the argv BEFORE the output path; named sound files must exist (cwd-relative)."
+    },
+    "pan": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "musical_range": [-1.0, 1.0],
+      "description": "REQUIRED position or trajectory: -1 hard left, 0 centre, +1 hard right; beyond +/-1 = hard side with 1/|pan| attenuation at mix time (pan 50 verified accepted end-to-end). TIME-VARIABLE: CDP accepts a breakpoint file in this slot and samples it at each event's START time with linear interpolation (verified exact). NOTE - this entry is arity-0, so relative-time envelope lists have no axis and the engine refuses them cleanly; use 'abs:'-prefixed absolute times (they ARE mix-time, the natural frame here) or a pre-written .brk path."
+    }
+  },
+  "examples": [
+    {
+      "description": "Sweep an event sequence left-to-right across its 4-second span.",
+      "params": {"inmixfile": "phrase.mix", "pan": [["abs:0.0", -1.0], ["abs:4.0", 1.0]]},
+      "expected_use": "Each event's position = the ramp's value at its start time. phrase.mix lines must already carry numeric pans (they will be replaced). Feed the output to submix mix."
+    },
+    {
+      "description": "Collapse a scattered cloud to a hard-left point.",
+      "params": {"inmixfile": "cloud.mix", "pan": -1.0},
+      "expected_use": "All events repositioned to -1; levels preserved on mono panned lines. All-hard-left mixes render MONO in submix mix (family channel rule)."
+    }
+  ],
+  "known_issues": [
+    "NO-PAN INPUT LINES BREAK THE OUTPUT (first-class, probe-verified): a mono line without pan columns ('name time 1 level') is rewritten as 'name time 1 level pan level pan' - the STEREO column layout under chans=1, which submix mix REFUSES ('Application doesn't work with this type of infile.'), and the level is also HALVED on this path. Mono lines WITH an explicit pan round-trip perfectly (levels preserved, output mix-accepted, verified). Rule: give every mono line a numeric pan (0 = centre) before calling.",
+    "dB LEVELS ARE CORRUPTED (probe-verified): a '-6dB' level came through as the plain number -6 run through the halving path ('-3.0000') - a negative linear level, which submix mix refuses. Convert dB to linear first with submix attenuate gain 1.0 (its dB conversion is correct).",
+    "Stereo short-form lines ('name time 2 level') come out as 'name time 2 level/2 pan level/2 pan' - valid and mix-accepted (verified round-trip), but both channels sit at ONE position and the level halving reflects the two channels summing there (fileformat rule 4). Full stereo lines with per-channel pans are also rewritten to the single position.",
+    "Sounds are positioned at their START only - the trajectory does not move a sound WHILE it plays (banner-documented: 'the sounds THEMSELVES will not be panned'). For within-sound movement pan the source first (modify space) and place the result with submix mix.",
+    "Engine breakpoint mechanics on this arity-0 entry: relative-time lists refuse cleanly (no input audio = no axis; 'param_breakpoint_no_source_duration'); use 'abs:' tuples (absolute mix-time - the natural frame) or a pre-existing .brk path. CDP-side, the trajectory file is accepted in the positional slot directly (verified).",
+    "The output is a DATA file (rewritten mixfile, .txt): consumer = submix mix's mixfile parameter. Duration pre-flight skipped (duration_model 'static' is a placeholder). Deterministic (byte-identical run to run).",
+    "Arity-0 entry: call process() with no input argument. duration_row null in the findings (data output)."
+  ],
+  "references": ["cdp://docs/html/cgromix2"]
+}
