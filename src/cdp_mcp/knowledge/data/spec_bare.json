@@ -1,0 +1,57 @@
+{
+  "program": "spec",
+  "mode": "bare",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Zeros the data in channels which do NOT contain harmonics of the sound's tracked pitch, stripping the spectrum to its harmonic skeleton. Requires a BINARY pitchfile extracted from the SAME analysis file (repitch getpitch mode 1, normally with -z to mark unpitched material) - it rides the pre-output argv slot ('spec bare infile pitchfile outfile', the position: pre_output engine extension shared with formants put). -x gives 'less body' (verified distinct render: -14.1 -> -17.8 dBFS on the probe). Static duration (2.0230); deterministic. Wrong or mismatched data refuses cleanly: a non-pitch file 'ERROR: <name> is not a pitch file.'; a pitchfile from another source 'ERROR: Pitchfile (525 vals) and analysisfile (698 windows) are not same length' (both verbatim). Operates on PVOC analysis files (.ana).",
+  "musical_use": "Harmonic distillation: everything inharmonic - breath, bow noise, room, transient splash - is zeroed, leaving only channels aligned with the detected pitch track. Use it to prepare ultra-clean pitched material for further spectral work, to make a 'purified' double of a vocal or instrumental line for layering under the original, or with -x for an even more skeletal, thinner result. The pitchfile workflow: run execute(['repitch', 'getpitch', '1', '<src>.ana', '<tone>.ana', '<src>.frq', '-z']) on the SAME analysis you feed here (the .frq must match the analysis window-for-window; a curated getpitch entry is planned in the pitch-data wave). Strongly pitched, cleanly monophonic sources track best - getpitch refuses 'No valid pitch found.' on dense or unpitched material.",
+  "parameters": {
+    "pitchfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Path to a BINARY pitch data file (.frq) extracted from this exact analysis file - produce it with execute(['repitch', 'getpitch', '1', '<src>.ana', '<dummy_tone>.ana', '<out>.frq', '-z']) (mode 1 writes a resynthesizable pitch-tone .ana AND the binary .frq; -z marks unpitched windows). Renders in the argv between input and output (position: pre_output). NOT writable with write_data_file() (binary). Mismatch refusals verbatim: wrong length 'Pitchfile (N vals) and analysisfile (M windows) are not same length'; wrong type '<name> is not a pitch file.'"
+    },
+    "less_body": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "'Less body in resulting spectrum' (banner) - a thinner, more skeletal harmonic strip. Verified live (render differs; -17.8 vs -14.1 dBFS on the probe)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Strip a pitched source to its harmonic skeleton.",
+      "params": {"pitchfile": "data/src.frq"},
+      "expected_use": "First extract the .frq from the SAME .ana via execute() repitch getpitch 1 with -z; output keeps only harmonic channels."
+    },
+    {
+      "description": "Extra-thin harmonic ghost.",
+      "params": {"pitchfile": "data/src.frq", "less_body": true},
+      "expected_use": "The -x variant - quieter, barer version for layering."
+    }
+  ],
+  "known_issues": [
+    "The pitchfile is BINARY and must be window-matched to the input analysis (length-mismatch refusal verbatim) - extract it from the same .ana you process here. Its producer (repitch getpitch) is not yet curated; use execute() until the pitch-data wave lands.",
+    "getpitch itself can refuse ('ERROR: No valid pitch found.') on dense, inharmonic or heavily-modulated sources - this entry is only as usable as the pitch track.",
+    "The pitchfile occupies CDP's pre-output argv slot - it is an aux parameter with position: pre_output, NOT a second input (a .frq cannot pass the engine's input domain gate; it is data, not audio).",
+    "wav input refused ('Application doesn't work with this type of infile.'); engine auto-PVOCs the audio input only.",
+    "Deterministic (repeat runs byte-identical in the data chunk)."
+  ],
+  "references": ["cdp://docs/html/cspecedi"]
+}

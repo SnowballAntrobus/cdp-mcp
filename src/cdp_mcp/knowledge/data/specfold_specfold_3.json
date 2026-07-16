@@ -1,0 +1,80 @@
+{
+  "program": "specfold",
+  "mode": "specfold",
+  "submode": 3,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "RANDOMISES the spectrum inside a chosen channel band: the len channels starting at channel stt are randomly permuted, destroying the harmonic relationship between partials while keeping their energy. Mode 3 of specfold (SoundThread's specfold_specfold_3); modes 1 (fold: split the group in two, interleave channel N to 2N with the rest descending) and 2 (invert the group) verified running with distinct outputs (execute()). The seed picks a specific permutation and is REQUIRED and REPRODUCIBLE: same seed -> byte-identical (1.3 s apart), different seeds differ; CDP-enforced 1 to 64 - seed 0 is refused ('Parameter[3] Value (-1.000000) out of range (1.000000 to 64.000000)' text at -1/100000; only 64 distinct permutations are addressable). -a processes amplitudes only (verified distinct). Static duration (2.0230 / 1.5209). Operates on PVOC analysis files (.ana).",
+  "musical_use": "Bell-maker: scrambling channel order turns pitched, harmonic material inharmonic - toward bell, gong and metallic tones - while the overall spectral energy and its evolution survive. The band controls are the musical steering: set stt above the fundamental's channels and only the OVERTONES scramble, keeping the pitch anchored under a shuffled halo (SoundThread's headline recipe); small len scrambles a narrow register for localised shimmer; full-range (stt 1, len = all) is total spectral anagram. The seed is a compositional dial - audition a handful (1-64) and keep the permutation whose 'chord' you like; -a permutes only amplitudes for a gentler recolouring that keeps each channel's frequency content in place.",
+  "parameters": {
+    "stt": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": 20,
+      "flag": null,
+      "description": "Lowest spectrum channel to process. CDP-enforced 1 to (channel count - 4) ('0'/'2000' refused verbatim quoting '(1.000000 to 509.000000)' on a 513-channel analysis). Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). Default 20 = SoundThread's seed value (keeps low fundamentals intact)."
+    },
+    "len": {
+      "type": "int",
+      "min": 4,
+      "max": null,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": 256,
+      "flag": null,
+      "description": "Number of channels to process, >= 4. CDP-enforced 4 to the channel count ('3'/'2000' refused verbatim quoting '(4.000000 to 513.000000)'). Breakpoint refused (parameter 2). Default 256 = SoundThread's value."
+    },
+    "seed": {
+      "type": "int",
+      "min": 1,
+      "max": 64,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 5,
+      "flag": null,
+      "description": "Selects a specific random permutation of the channels - reproducible (same seed byte-identical across runs; seeds 5 vs 9 differ, verified). CDP-enforced 1 to 64; 0 and negatives refused verbatim. Breakpoint refused (parameter 3)."
+    },
+    "amps_only": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-a",
+      "flag_kind": "no_value",
+      "description": "Process the amplitudes only (channel frequencies stay put). Verified live (render differs from the unflagged run)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Scramble only the overtones (SoundThread's recipe).",
+      "params": {"stt": 20, "len": 256, "seed": 5},
+      "expected_use": "Fundamental region intact, overtone field permuted - pitched source turns bell-like but keeps its root."
+    },
+    {
+      "description": "Gentler amplitude-only recolouring.",
+      "params": {"stt": 1, "len": 128, "seed": 12, "amps_only": true},
+      "expected_use": "Same frequencies, shuffled weights - inharmonic shading without full anagram."
+    }
+  ],
+  "known_issues": [
+    "The seed space is CDP-capped at 1-64 (refusal verbatim) - only 64 permutations exist per band setting; seed is a required positional with no CDP default (curated default 5 is a convenience).",
+    "stt/len bounds are analysis-dependent (quoted per-file in refusals); len must be >= 4, and mode 1 additionally requires len even (mode 1 not curated).",
+    "Modes 1 (fold) and 2 (invert) verified running and distinct - execute(['specfold', 'specfold', '1'|'2', ...]); mode 1 takes cnt (folds) instead of seed, mode 2 takes neither.",
+    "No time-variable parameters (all three positionals refuse breakpoint files, verbatim).",
+    "wav input refused ('ERROR: File <name> is not of correct type'); engine auto-PVOCs.",
+    "Seeded-deterministic; compare data chunks (RIFF date chunk differs)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

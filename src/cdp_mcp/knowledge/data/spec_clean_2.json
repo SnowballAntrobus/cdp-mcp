@@ -1,0 +1,63 @@
+{
+  "program": "spec",
+  "mode": "clean",
+  "submode": 2,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur1"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Classic spectral noise reduction: input 1 is the signal analysis, input 2 (nfile) an analysis of a noise-only stretch CUT FROM THE SAME SOURCE (spec cut); mode 2 deletes a channel anywhere (after skiptime) its level falls below the noisgain-adjusted maximum seen for that channel in the nfile. Content-verified on a tone+noise fixture: the noise-only tail dropped from -33.9 dBFS to digital silence (-240) while the tonal region was untouched (-12.5 -> -12.5). Default noisgain 2.0 PINNED (flag-less run byte-equals -g2). Pinned to mode 2 (clean anywhere); mode 1 deletes from the FIRST time a channel dips (verified distinct render), modes 3 (frequency-limited) and 4 (3-input, gfile) are execute()-reachable. Output duration follows input 1 (2.0143 from a 2.023 s pair). Deterministic.",
+  "musical_use": "The denoising workhorse for field recordings and noisy transfers: cut 0.2-0.5 s of 'silence' (room tone, hiss) from the source with spec cut, feed it as the nfile, and every channel that never rises meaningfully above that noise profile is deleted. skiptime tells the process when the good signal is established - set it just past the initial noise-only stretch. noisgain scales the aggression: 2 (default) is surgical; toward 40 it becomes an effect, eating the quiet body of the sound and leaving spectral bones (useful creatively). Cleaning artifacts sound like watery chirping ('birdies') when pushed - back noisgain off or accept some hiss. The nfile MUST come from the same recording chain to profile the actual noise.",
+  "parameters": {
+    "skiptime": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time at which good source-signal level has been established; cleaning applies AFTER this point (verified: material before skiptime passes unmodified). CDP-enforced 0 to the input's analysed duration ('5.5' refused verbatim: 'Parameter[1] Value (5.500000) out of range (0.000000 to 2.023039)' - input-dependent ceiling)."
+    },
+    "noisgain": {
+      "type": "float",
+      "min": 1.0,
+      "max": 40.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 2.0,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Multiplies the nfile's per-channel noise maxima before comparison. CDP-enforced 1 to 40 ('-g0.05'/'-g10000' refused verbatim quoting '(1.000000 to 40.000000)'). Default 2.0 pinned by rendered equivalence (flag-less byte-equals -g2). Breakpoint refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Denoise with a room-tone profile.",
+      "params": {"skiptime": 0.5, "noisgain": 2.0},
+      "expected_use": "Input 1 = the full analysis; input 2 = spec cut of a noise-only stretch from the same source. Channels below 2x the noise profile are deleted after 0.5 s."
+    },
+    {
+      "description": "Aggressive spectral skeletonising.",
+      "params": {"skiptime": 0.1, "noisgain": 20.0},
+      "expected_use": "Deliberate over-cleaning - only material well above the noise profile survives."
+    }
+  ],
+  "known_issues": [
+    "The nfile (input 2) should be cut FROM the input with spec cut to show typical noise; both must be analysis files of the same type.",
+    "Material BEFORE skiptime is never cleaned - if the file opens with the noise you want removed, keep skiptime small.",
+    "Mode 1 (delete from the time a channel first dips) verified distinct; modes 3/4 (frequency-limited / 3-input gfile form) not curated - execute().",
+    "No breakpoint-capable parameters (noisgain refusal verbatim).",
+    "wav input refused ('Application doesn't work with this type of infile.'); engine auto-PVOCs both inputs.",
+    "Deterministic (repeat runs byte-identical in the data chunk)."
+  ],
+  "references": ["cdp://docs/html/cspecedi"]
+}

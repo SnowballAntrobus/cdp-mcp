@@ -1,0 +1,60 @@
+{
+  "program": "specnu",
+  "mode": "squeeze",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Squeezes the spectrum in frequency around a specified centre: all spectral data is compressed toward centrefrq by the squeeze factor (< 1), narrowing the sound's frequency footprint. Both parameters are time-variable (banner: 'All parameters may vray over time' - CDP's own typo) and both verified breakpoint-capable (centrefrq 200-to-3000 and squeeze 0.1-to-0.9 ramps each differ from both scalar-endpoint renders). squeeze's enforced floor is analysis-dependent ('1.5' refused verbatim: 'Parameter[2] Value (1.500000) out of range (0.001949 to 1.000000)'); centrefrq runs 0 to nyquist. Static duration (2.0230 / 1.5209); deterministic. DIVERGENCE vs afta8, which marks it '[Doesn't work?]': runs cleanly here. Operates on PVOC analysis files (.ana).",
+  "musical_use": "Frequency-domain imploder: unlike a transpose (which shifts everything by a ratio), squeeze CONTRACTS the spectrum toward a focal point - partial spacing shrinks, harmonicity collapses, and pitched material congeals toward a resonant knot at centrefrq. Mild squeeze (0.7-0.9) reads as darkening/detuning; heavy (0.05-0.3) turns anything into a narrow tuned band with inharmonic clustering, halfway to ring modulation in colour. The breakpoint pair is the show: sweep centrefrq while squeezing and the whole sound funnels chasing the moving centre; ramp squeeze from 1.0 downward for a progressive spectral collapse (1.0 = essentially intact). Kin to specfnu's squeeze mode but standalone, with a freely placeable (and movable) centre.",
+  "parameters": {
+    "centrefrq": {
+      "type": "float",
+      "min": 0.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Frequency around which spectral data is squeezed. CDP-enforced 0 to nyquist ('30000' refused verbatim: 'Parameter[1] Value (30000.000000) out of range (0.000000 to 22050.000000)'). Breakpoint verified."
+    },
+    "squeeze": {
+      "type": "float",
+      "min": null,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Amount of spectral compression toward the centre (< 1; smaller = tighter). CDP-enforced with an analysis-dependent floor: '1.5' refused verbatim quoting '(0.001949 to 1.000000)'. Breakpoint verified."
+    }
+  },
+  "examples": [
+    {
+      "description": "Congeal a source toward a 500 Hz knot.",
+      "params": {"centrefrq": 500.0, "squeeze": 0.3},
+      "expected_use": "Partial spacing collapses to 30%; strong inharmonic clustering around 500 Hz."
+    },
+    {
+      "description": "Progressive collapse chasing a rising centre.",
+      "params": {"centrefrq": [[0.0, 200.0], [1.0, 3000.0]], "squeeze": [[0.0, 0.9], [1.0, 0.15]]},
+      "expected_use": "The spectrum funnels tighter and tighter while its focal point sweeps upward."
+    }
+  ],
+  "known_issues": [
+    "The banner's time-variability line carries CDP's own typo ('may vray over time') - both parameters ARE breakpoint-capable (verified).",
+    "squeeze's floor is analysis-dependent (0.001949 quoted on the probe analysis); values must be < 1 - there is no spectral EXPAND here (see stretch spectrum for that direction).",
+    "afta8 flags this program '[Doesn't work?]' - it runs cleanly on the CDP8 source build.",
+    "wav input refused; engine auto-PVOCs. Deterministic (byte-identical reruns)."
+  ],
+  "references": ["cdp://docs/html/cspecnu"]
+}

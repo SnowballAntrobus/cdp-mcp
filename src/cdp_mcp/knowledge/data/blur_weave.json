@@ -1,0 +1,48 @@
+{
+  "program": "blur",
+  "mode": "weave",
+  "submode": null,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "weavfile"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Re-orders analysis windows by repeatedly walking a step pattern (the weavfile: a list of positive/negative/zero window steps) through the input until the end is reached - a deterministic spectral shuffle/stutter engine. NOT a free-string positional: the weave lives in a text data file, so no new engine machinery is needed (contrast the dropped blur shuffle, whose domain-image string is raw argv). Duration is weavfile-dependent: outwindows ~ inwindows * len(steps) / sum(steps) - probes: steps '1 2 -1 3' (4 steps, net +5) -> 1.6167 s from a 2.023 s analysis (x4/5); '2 2 2 -3' (net +3) -> 2.6877 (x4/3); '0 1' (net +1) -> 4.0490 (x2). Whitespace and newlines in the weavfile are interchangeable (byte-identical outputs). Deterministic (runs 1.3 s apart byte-identical in the data chunk). Operates on PVOC analysis files (.ana).",
+  "musical_use": "A composable time-weave: write a step list and the sound stutters, back-tracks and leaps through its own spectral history in a strict loop. Net step sum controls time-stretch (sum < step count stretches, sum > count compresses); negative steps create echo-like returns to earlier spectra; '0' steps freeze a window for one slot. '0 1' is a clean 2x freeze-stretch; '1 2 -1 3' gives a lilting forward-back scan; long patterns approach blur shuffle territory but stay engine-expressible. Because the pattern repeats verbatim until the input is exhausted, rhythmic periodicity emerges at (step-count x frametime) - about 2.9 ms per window at the default 44.1 kHz analysis, so ~50-350 steps put the loop in gesture territory. Weaves obey three CDP rules (banner): no step may exceed the file length in windows, no step may reach before the weave start, and the pattern must progress forward overall.",
+  "parameters": {
+    "weavfile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Text file with a whitespace/newline-separated list of integer window steps (write it with write_data_file(); '1 2 -1 3' on one line byte-equals one number per line, verified). Positive = forward, negative = back, 0 = repeat current window. Refusals verbatim: a step beyond the file 'ERROR: Weave value 1 out of range (-696 to 697) for this file.' (bounds = window count, input-dependent); reaching before the start 'ERROR: You cannot weave to before weave-start.'; non-progressing pattern 'ERROR: Weave must progress aint file.' (CDP's own typo); fractional step 'ERROR: Invalid character in weave file.'; empty file 'ERROR: No data in weave file.'"
+    }
+  },
+  "examples": [
+    {
+      "description": "Clean 2x freeze-stretch: every window played twice.",
+      "params": {"weavfile": "data/weave01.txt"},
+      "expected_use": "First write_data_file('weave01.txt', '0 1') - output is ~2x the input duration, each spectrum held one extra window."
+    },
+    {
+      "description": "Forward-back lilt with mild stretch.",
+      "params": {"weavfile": "data/weave1213.txt"},
+      "expected_use": "write_data_file('weave1213.txt', '1 2 -1 3') - 4 output windows per net 5 consumed (x0.8 duration), with a one-window look-back every cycle."
+    }
+  ],
+  "known_issues": [
+    "Output duration is weavfile-dependent (outwindows ~ inwindows * steps / sum(steps), trailing partial pass truncated): the duration pre-flight skips (expression names the aux param); the disk watchdog bounds the run. Patterns with small positive net sums multiply duration fast.",
+    "Step bounds are per-file and quoted in the refusal ('out of range (-696 to 697)' on a 698-window analysis).",
+    "The banner's three weave rules are all enforced with distinct verbatim refusals, including the 'Weave must progress aint file.' typo (a pattern whose net sum is <= 0).",
+    "wav input refused: 'Application doesn't work with this type of infile.' - the engine auto-converts via PVOC.",
+    "Deterministic; compare .ana outputs by data chunk (the RIFF LIST date chunk differs run to run)."
+  ],
+  "references": ["cdp://docs/html/cblur"]
+}

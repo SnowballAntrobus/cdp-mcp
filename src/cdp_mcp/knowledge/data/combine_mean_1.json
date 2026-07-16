@@ -1,0 +1,83 @@
+{
+  "program": "combine",
+  "mode": "mean",
+  "submode": 1,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur_min"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Generates the spectral 'mean' of two sounds - mode 1 averages BOTH the channel amplitudes AND the pitches (frequencies interpreted pitchwise) of the two files, window by window: a static spectral interpolation halfway between the sources. The eight banner modes permute amp source (mean of both / file1 / file2 / max of both) x frq averaging (pitchwise / frqwise); all eight verified running with pairwise-distinct outputs; mode 1 and mode 3 are curated (SoundThread's 'Mean' and 'Mean Pitch'). Output duration = the SHORTER input ((2.023, 1.521) -> 1.5209 in both orders; expression indur_min). Deterministic. Operates on PVOC analysis files (.ana).",
+  "musical_use": "The instant hybrid: where morph glides between two sounds over time, combine mean sits permanently in between - two pitched sources yield a new sound at their mean pitch with an averaged spectral envelope, kin to both parents and identical to neither. Works best on sustained, spectrally stable material (the window-by-window mean of rapidly-moving spectra reads as chorusing/blur). Restrict the averaged register with lofrq/hifrq - e.g. average only above 300 Hz to keep file 1's bass anchored - and use zero_outside to decide whether channels outside that range pass through or are silenced. Pitchwise averaging (this mode) gives musically 'in-between' pitch; the frqwise siblings (modes 2/4/6/8, execute()) average linearly in Hz, biasing the result low. SoundThread exposes modes 1 and 3 only.",
+  "parameters": {
+    "lofrq": {
+      "type": "float",
+      "min": 5.0,
+      "max": null,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Low frequency limit of channels to average (banner LOFRQ). CDP-enforced with an analysis-dependent ceiling: '-l-5' refused verbatim 'Parameter[1] Value (-5.000000) out of range (5.000000 to 22028.466797)' (max just below nyquist). Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). afta8's 0-22050 is a UI range."
+    },
+    "hifrq": {
+      "type": "float",
+      "min": null,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "High frequency limit of channels to average. CDP-enforced with an analysis-dependent floor: '-h30000' refused verbatim 'Parameter[2] Value (30000.000000) out of range (48.066406 to 22050.000000)'. Scalar only."
+    },
+    "chans": {
+      "type": "int",
+      "min": 2,
+      "max": null,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Number of significant channels to compare (banner default: all within range). CDP-enforced 2 to the analysis channel count ('-c0'/'-c2000' refused quoting '(2.000000 to 513.000000)' on a 1024-point analysis). Observed: -c100 rendered byte-identical to the flag-less run on the probe pair - its audible effect is source-dependent."
+    },
+    "zero_outside": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-z",
+      "flag_kind": "no_value",
+      "description": "Zero channels OUTSIDE the lofrq/hifrq range (default: they pass through unaveraged). Verified live: -l300 -h5000 -z differs from -l300 -h5000."
+    }
+  },
+  "examples": [
+    {
+      "description": "Plain spectral mean of two pitched sources.",
+      "params": {},
+      "expected_use": "New hybrid at the mean pitch with averaged amplitudes; duration = the shorter input."
+    },
+    {
+      "description": "Average only the upper spectrum, silencing everything else.",
+      "params": {"lofrq": 300.0, "hifrq": 5000.0, "zero_outside": true},
+      "expected_use": "Isolated mid/high hybrid band - useful as a layer over one of the untouched parents."
+    }
+  ],
+  "known_issues": [
+    "Output duration = the SHORTER input (verified both orders); trailing material of the longer file is discarded.",
+    "No parameter accepts breakpoint files (lofrq refusal verbatim, parameter 1).",
+    "lofrq/hifrq bounds are analysis-dependent (5 to 22028.47 / 48.07 to 22050 quoted on the 1024-point 44.1 kHz probes).",
+    "-c100 was byte-identical to the default on a rich-harmonic + noise pair - document-level observation, not a bug claim.",
+    "Both inputs mono .ana; wav refused ('Application doesn't work with this type of infile.').",
+    "Deterministic; compare data chunks (RIFF date chunk differs)."
+  ],
+  "references": ["cdp://docs/html/ccombine"]
+}

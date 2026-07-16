@@ -1,0 +1,71 @@
+{
+  "program": "hilite",
+  "mode": "filter",
+  "submode": 7,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Band-pass filters the spectrum by zeroing/attenuating channels outside the frq1-frq2 band, with Q setting the width of the filter skirts in Hz. Pinned to mode 7 (band pass) of the 12-mode family: 1/3 high/low pass, 2/4/8/10 normalised variants, 5/6/11/12 add a gain positional, 9 notch - all six surveyed modes verified running with the expected spectral direction (centroids: HP 1674 Hz, LP 504, BP 1003, notch 697 on a 700 Hz-centroid probe). Reversed band edges are silently swapped (2000/500 byte-identical to 500/2000). frq1, frq2 and Q all breakpoint-capable (each ramp differs from both scalar-endpoint renders; banner-confirmed). Static duration; deterministic. Operates on PVOC analysis files (.ana).",
+  "musical_use": "Filtering INSIDE the analysis domain, which behaves differently from a time-domain EQ: channels are zeroed outright, so deep settings produce the hollow, resynthesised 'spectral filter' sound rather than an analog slope. Time-varying edges are the real attraction - breakpoint frq1/frq2 into converging or sweeping trajectories for formant-like motion and telephone-band chokes that a static EQ cannot articulate per-window. Q is the skirt width in Hz: small Q = hard spectral cliff (maximum hollowness), large Q = gentler shading. For the notch complement use mode 9 via execute(); for level-compensated variants the normalised modes (8/10) rescale output energy. On already-analysed chains it saves a resynthesis round-trip versus dropping to the time domain for EQ.",
+  "parameters": {
+    "frq1": {
+      "type": "float",
+      "min": 10.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Lower band edge. CDP-enforced 10 to nyquist ('0' refused verbatim: 'Parameter[1] Value (0.000000) out of range (10.000000 to 22050.000000)'). If frq1 > frq2 the pair is silently swapped (byte-identical output, verified). Breakpoint verified (300-to-900 ramp differs from both endpoints)."
+    },
+    "frq2": {
+      "type": "float",
+      "min": 10.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Upper band edge, same enforced range (Parameter[2] refusal verbatim at 30000). Breakpoint verified (1500-to-4000 ramp differs from both endpoints)."
+    },
+    "q": {
+      "type": "float",
+      "min": 1.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Width of the filter skirts in Hz (banner: 'Range: >0'; CDP actually enforces 1 to 22050 - '0' and '100000' refused verbatim quoting '(1.000000 to 22050.000000)'). Small = cliff edge, large = soft shading. Breakpoint verified (20-to-300 ramp differs from both endpoints)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Static mid-band isolation.",
+      "params": {"frq1": 500.0, "frq2": 2000.0, "q": 100.0},
+      "expected_use": "Telephone-band spectral choke with moderate skirts."
+    },
+    {
+      "description": "Converging band sweep.",
+      "params": {"frq1": [[0.0, 100.0], [1.0, 800.0]], "frq2": [[0.0, 8000.0], [1.0, 1200.0]], "q": 50.0},
+      "expected_use": "The pass band narrows from wide-open to a 800-1200 Hz slot across the file - formant-like focusing."
+    }
+  ],
+  "known_issues": [
+    "Reversed band edges are accepted and silently swapped (byte-identical to the ordered pair) - no warning is printed.",
+    "Q's banner claims only '> 0'; the binary enforces 1 to 22050 Hz (refusals verbatim).",
+    "Modes 1-6 and 8-12 (high/low pass, normalised, gain and notch variants) verified running - reachable via execute(['hilite', 'filter', '<mode>', ...]); the gain modes append a 4th positional.",
+    "wav input refused ('Application doesn't work with this type of infile.'); engine auto-PVOCs.",
+    "Deterministic (1.3 s-apart runs byte-identical in the data chunk)."
+  ],
+  "references": ["cdp://docs/html/chilite"]
+}

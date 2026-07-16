@@ -1,0 +1,51 @@
+{
+  "program": "hilite",
+  "mode": "pluck",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Emphasises SPECTRAL CHANGE: amplitude gain is applied to newly prominent spectral components, window to window - onsets, note changes and any fresh spectral energy get 'plucked' out of the texture. gain 1 is a byte-identical passthrough (verified); gain 0 is legal and NOT a passthrough (it suppresses the changing components' boost path - render differs from the input). Static duration (2.0230 / 1.5209); deterministic; gain breakpoint-capable (banner-confirmed 'gain may vary over time'; a 1-to-20 ramp differs from both scalar-endpoint renders). Operates on PVOC analysis files (.ana).",
+  "musical_use": "A spectral transient exciter: raise gain and every new event grows an attack halo - good for re-articulating material that spectral processing (blur, freeze, stretch) has smoothed flat, or for exaggerating note changes in legato lines into plucked/struck articulation. On steady sources it does little by design (nothing is 'newly prominent' - our sustained gliss probe barely moved at gain 20), so judge it on evolving material. The manual pairs it with spectral arpeggiation-type processes to sharpen their moving edge. A breakpoint gain lets articulation emphasis grow or fade across a phrase.",
+  "parameters": {
+    "gain": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1000.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Amplitude gain applied to newly prominent spectral components. CDP-enforced 0 to 1000 ('100000' refused verbatim: 'Parameter[1] Value (100000.000000) out of range (0.000000 to 1000.000000)'; 0 accepted). gain 1 is a verified byte-identical no-op. May vary over time via breakpoint file (verified). Required positional."
+    }
+  },
+  "examples": [
+    {
+      "description": "Moderate re-articulation of a smoothed texture.",
+      "params": {"gain": 5.0},
+      "expected_use": "New spectral components at each event jump forward; sustained material is untouched."
+    },
+    {
+      "description": "Articulation that grows across the phrase.",
+      "params": {"gain": [[0.0, 1.0], [1.0, 20.0]]},
+      "expected_use": "Starts transparent (gain 1 = verified no-op) and ends with strongly plucked onsets."
+    }
+  ],
+  "known_issues": [
+    "Effect strength is entirely source-dependent: steady spectra produce little change even at high gain (verified -14.1 dBFS at gain 20 on a sustained probe) - feed it evolving material.",
+    "gain 0 is legal but NOT a passthrough (verified distinct from the input); the identity value is 1.",
+    "Large gains on busy material can push channel amps far above full scale - trim with spec gain before resynthesis.",
+    "wav input refused ('Application doesn't work with this type of infile.'); engine auto-PVOCs.",
+    "Deterministic (1.3 s-apart runs byte-identical in the data chunk)."
+  ],
+  "references": ["cdp://docs/html/chilite"]
+}

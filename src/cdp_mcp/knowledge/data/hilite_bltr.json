@@ -1,0 +1,60 @@
+{
+  "program": "hilite",
+  "mode": "bltr",
+  "submode": null,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Time-averages AND traces the spectrum in one pass: blurring smears the spectrum over N analysis windows (as blur blur) while tracing keeps only the loudest N channels per window (as hilite trace) - the classic blur+trace composite with both parameters time-variable. Ranges are input-dependent and CDP-enforced: blurring 1 to the window count ('(1.000000 to 698.000000)' quoted on a 698-window analysis), tracing 1 to the channel count ('(1.000000 to 513.000000)' on a 1024-point analysis). Both breakpoint-capable (each ramp differs from both scalar-endpoint renders; banner-confirmed 'blurring AND tracing may vary over time'). Static duration (2.0230 / 1.5209); deterministic. Operates on PVOC analysis files (.ana).",
+  "musical_use": "The one-call 'ghost' maker: trace thins the sound to its dominant components and blur melts what survives into a slow wash - the canonical recipe for turning any source into a spectral shadow of itself (the separate blur blur -> hilite trace chain, fused, and cheaper than two passes). Both controls riding breakpoints makes trajectories the point: dissolve a full sound into a 6-channel smear (blurring up, tracing down), or crystallise a haze back into focus (both down). Sizing intuition carries over from the parents: tracing has to fall surprisingly low (below ~20) before the result turns properly skeletal, and blurring needs internal change to bite - near-static sources barely alter.",
+  "parameters": {
+    "blurring": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "windows",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Number of analysis windows over which the spectrum is averaged. CDP-enforced 1 to the input's window count ('0'/'100000' refused verbatim quoting '(1.000000 to 698.000000)' - input-dependent ceiling). May vary over time via breakpoint file (verified: a 1-to-50 ramp differs from both endpoints)."
+    },
+    "tracing": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "channels",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Number of loudest channels retained per window. CDP-enforced 1 to the analysis channel count ('0'/'40000' refused verbatim quoting '(1.000000 to 513.000000)'). May vary over time via breakpoint file (verified: a 2-to-100 ramp differs from both endpoints)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Ghost wash: strong smear, few surviving channels.",
+      "params": {"blurring": 30, "tracing": 12},
+      "expected_use": "Dominant components only, melted across ~87 ms of windows - a spectral shadow of the source."
+    },
+    {
+      "description": "Dissolve into haze across the file.",
+      "params": {"blurring": [[0.0, 1], [1.0, 80]], "tracing": [[0.0, 200], [1.0, 6]]},
+      "expected_use": "Starts nearly intact, ends as a 6-channel smear."
+    }
+  ],
+  "known_issues": [
+    "Both ranges are input-dependent (window count / channel count) and quoted in the refusals; the JSON leaves the maxima null.",
+    "Aggressive tracing collapses spectrally simple sources toward silence quickly (hilite trace family behavior) - gain-stage after resynthesis.",
+    "wav input refused ('Application doesn't work with this type of infile.'); engine auto-PVOCs.",
+    "Deterministic (1.3 s-apart runs byte-identical in the data chunk)."
+  ],
+  "references": ["cdp://docs/html/chilite"]
+}

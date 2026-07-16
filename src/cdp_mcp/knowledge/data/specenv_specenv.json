@@ -1,0 +1,87 @@
+{
+  "program": "specenv",
+  "mode": "specenv",
+  "submode": null,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "unstable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur1"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Gets the spectral envelope of file 2 and applies it to file 1 - 'equivalent to formant extraction + formant impose/replace but allows for larger spectral windows' (banner). Content-verified: flat noise shaped by a 4-formant vowel took on the vowel's exact peak/trough structure (+35 dB band contrast at the formant centres). windowsize is in analysis-channel-widths (1-513 enforced) or octave steps with -p; -i IMPOSES the envelope on file 1's own (default REPLACES it); -k keeps the imposed file's loudness contour; bal mixes the originals back in. File 2 must be at least as long as file 1 ('ERROR: First file is longer than 2nd: cannot proceed.' verbatim). EXIT-CONTRACT BUG (stability: unstable): when file 2 is STRICTLY longer the process writes a complete, resynthesisable output and then SIGABRTs at teardown ('free(): invalid size', exit 134) - equal-length pairs exit 0 cleanly. Duration = file 1's (1.5209 / 2.0230 verified). Deterministic.",
+  "musical_use": "Broad-brush spectral vocoding: file 1 provides the excitation/motion, file 2 the evolving spectral colour. Against formants get/put this trades precision for reach - windowsize is free (huge windows smear the donor's envelope into slow washes of colour; small ones track it tightly), and the -p octave-wise option follows pitch structure rather than linear frequency. Classic moves: noise or dense texture as file 1 + speech as file 2 (talking texture); bright pad as file 1 + percussive loop as file 2 with -k (the loop's loudness AND colour pump the pad). bal pulls the originals back in for parallel-blend subtlety. IMPORTANT: give the engine equal-length inputs (trim first) - a longer file 2 currently reports failure despite writing good output (see known_issues).",
+  "parameters": {
+    "windowsize": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "channel-widths",
+      "breakpoint_capable": false,
+      "default": 4,
+      "flag": null,
+      "description": "Envelope extraction window, counted in analysis-channel-widths (srate/anal-chans; ~43 Hz each at 1024/44.1k), or in OCTAVE STEPS with -p. CDP-enforced 1 to the channel count ('0'/'600' refused verbatim quoting '(1.000000 to 513.000000)'). Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). Larger = smoother, broader colour transfer."
+    },
+    "bal": {
+      "type": "float",
+      "min": -1.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Proportion of the original files mixed into the output (default 0.0 = none). BANNER DIVERGENCE: the banner describes 'bal > 1' and 'bal < 1' behaviors, but CDP enforces -1 to 1 ('-b3' refused verbatim: 'Parameter[2] Value (3.000000) out of range (-1.000000 to 1.000000)'). Positive leans toward file 1, negative toward file 2 (banner sense). Verified live at 0.5."
+    },
+    "pitchwise": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-p",
+      "flag_kind": "no_value",
+      "description": "Count windowsize in octave steps instead of channel-widths. Verified live (render differs)."
+    },
+    "impose": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-i",
+      "flag_kind": "no_value",
+      "description": "IMPOSE the spectral envelope on top of file 1's own (default: REPLACE file 1's envelope). Verified live."
+    },
+    "keep_loudness": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-k",
+      "flag_kind": "no_value",
+      "description": "Keep the loudness contour of the IMPOSED file (file 2); default keeps file 1's. Verified live."
+    }
+  },
+  "examples": [
+    {
+      "description": "Talking texture: vowel colour stamped on noise.",
+      "params": {"windowsize": 4},
+      "expected_use": "Input 1 = the texture, input 2 = the speech/vowel donor (equal lengths). Verified +35 dB formant-band contrast on the probe."
+    },
+    {
+      "description": "Slow colour wash with the donor's dynamics.",
+      "params": {"windowsize": 40, "keep_loudness": true, "bal": 0.3},
+      "expected_use": "Huge extraction window smears the donor's envelope; -k lets its loudness pump the result; 30% of the originals blended back."
+    }
+  ],
+  "known_issues": [
+    "EXIT-CONTRACT BUG (first-class): with file 2 strictly longer than file 1 the binary writes a COMPLETE resynthesisable output, then aborts at teardown ('free(): invalid size', exit 134/SIGABRT) - the engine treats nonzero exit as failure, so USE EQUAL-LENGTH INPUTS (equal pairs exit 0 cleanly). Same broken-teardown class as specfnu modes 19/21.",
+    "File 2 shorter than file 1 is a clean refusal: 'ERROR: CANNOT ACHIEVE TASK: / ERROR: First file is longer than 2nd: cannot proceed.' (verbatim).",
+    "bal's banner prose ('bal > 1' / 'bal < 1') contradicts the enforced -1..1 range (refusal verbatim) - manual/banner documentation error.",
+    "Prints the family 'WARNING: failed to write PEAK data' on some refusal paths - not a failure indicator by itself.",
+    "No breakpoint-capable parameters (windowsize refusal verbatim).",
+    "wav input refused; engine auto-PVOCs both inputs. Deterministic (byte-identical reruns)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

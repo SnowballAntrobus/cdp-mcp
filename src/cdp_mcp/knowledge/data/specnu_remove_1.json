@@ -1,0 +1,81 @@
+{
+  "program": "specnu",
+  "mode": "remove",
+  "submode": 1,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Removes a pitched component from the spectrum: channels carrying any pitch in the midimin-midimax range AND its harmonics (up to rangetop Hz) are attenuated by atten. Mode 1 removes the pitch and its harmonics; mode 2 removes EVERYTHING ELSE (keep-only complement - verified: on a harmonic gliss probe, mode 1 left -15.0 dBFS of residue while mode 2 kept only -35.3 dBFS of the tracked material; distinct renders). Banner guidance: keep the MIDI range small - a range of an octave or more removes the WHOLE spectrum between the lower pitch and rangetop. atten runs 0 to 1 with 1 = maximum removal (banner: '1 = max, 0 = none'). Static duration (2.0230); deterministic. Operates on PVOC analysis files (.ana).",
+  "musical_use": "Spectral unpitching / pitch surgery: dial in the pitch you want gone (as a narrow MIDI window around it) and its whole harmonic stack fades by atten - pull a drone out from under a field recording, thin a fundamental to leave its halo, or (mode 2, execute()) isolate one pitch's harmonic skeleton from a mixture. atten is a depth control, not a switch: intermediate values duck the pitch rather than deleting it. rangetop bounds how far up the harmonic ladder the removal reaches - stop at 3-4 kHz to keep air and noise intact. Kin to spec bare (which KEEPS harmonics of a tracked pitch); remove needs no pitchfile, just a target range, so it works on material where pitch tracking fails.",
+  "parameters": {
+    "midimin": {
+      "type": "float",
+      "min": 0.0,
+      "max": 127.0,
+      "unit": "midi",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Minimum pitch to remove (MIDI). 0 accepted on this build (afta8's 1-127 is a UI range). Keep the min-max window small (an octave or more removes everything between the lower pitch and rangetop, per banner)."
+    },
+    "midimax": {
+      "type": "float",
+      "min": 0.0,
+      "max": 127.0,
+      "unit": "midi",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Maximum pitch to remove (MIDI). A reversed pair (58 56) was accepted without complaint on this build - order tolerance, not documented."
+    },
+    "rangetop": {
+      "type": "float",
+      "min": 0.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Frequency at which the search for harmonics stops (Hz)."
+    },
+    "atten": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Attenuation of the suppressed components - 1 = maximum removal, 0 = none (banner sense). CDP-enforced 0 to 1 ('1.5' refused verbatim: 'Parameter[4] Value (1.500000) out of range (0.000000 to 1.000000)')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Pull a G#3-ish drone and its harmonics out of a texture.",
+      "params": {"midimin": 55.5, "midimax": 56.5, "rangetop": 6000.0, "atten": 1.0},
+      "expected_use": "Narrow MIDI window around the target pitch; harmonic stack removed up to 6 kHz."
+    },
+    {
+      "description": "Duck (not delete) a fundamental.",
+      "params": {"midimin": 47.0, "midimax": 49.0, "rangetop": 2000.0, "atten": 0.5},
+      "expected_use": "Half-depth removal keeps a ghost of the pitch under the rest of the material."
+    }
+  ],
+  "known_issues": [
+    "A MIDI range of an octave or more removes the WHOLE spectrum between the lower pitch and rangetop (banner warning) - keep the window narrow for surgical work.",
+    "atten's sense is inverted versus its name: 1 = fully removed, 0 = no effect (banner-confirmed, range refusal verbatim).",
+    "Mode 2 (remove everything EXCEPT the pitch and its harmonics) verified running and distinct - execute(['specnu', 'remove', '2', ...]).",
+    "No breakpoint-capable parameters observed; midimin 0 and a reversed midimin/midimax pair were accepted silently on this build.",
+    "wav input refused; engine auto-PVOCs. Deterministic (byte-identical reruns)."
+  ],
+  "references": ["cdp://docs/html/cspecnu"]
+}

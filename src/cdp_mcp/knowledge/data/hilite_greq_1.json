@@ -1,0 +1,55 @@
+{
+  "program": "hilite",
+  "mode": "greq",
+  "submode": 1,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Graphic EQ on the spectrum: a filtfile defines a bank of pass bands (mode 1: ONE bandwidth in octaves on the first line, then the centre frequencies of all bands in Hz); only spectral data inside the bands survives - or, with -r, the bands are REJECTED (notch bank; verified distinct render). Mode 2 (per-band 'centre bandwidth' pairs) verified running and distinct (execute()). Data validation happens inside the filtfile read with verbatim refusals: bandwidth outside 0.083333-14.4 octaves, centre frequency outside 10-14700 Hz - NOTE the frequency ceiling is srate/3, not nyquist. Static duration (2.0230 / 1.5209); deterministic. Operates on PVOC analysis files (.ana).",
+  "musical_use": "Chordal/formant filtering in one pass: list the frequencies you want to keep and everything else vanishes - write a harmonic series for ringing resonance, a chord's partials for tuned filtering, or 3-4 'formants' to vowelise a texture. Narrow bandwidth (toward 1/12 octave, 0.0833) rings like a resonator bank; wide (2+ octaves) shades broadly. Flip the same filtfile with band_reject for the complement - carving tuned holes instead of keeping tuned bands. Because the data file is just numbers, banks are easy to generate programmatically (scales, spectra measured from another sound via specav, tempered chords). Mode 2 (execute()) gives per-band bandwidths when a single width won't do.",
+  "parameters": {
+    "filtfile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Text file (write with write_data_file()): line 1 = ONE bandwidth in OCTAVES, following lines/values = centre frequencies of all filter bands in Hz (whitespace/newline separated). Enforced inside the file read, refusals verbatim: 'ERROR: Bandwidth value (400.000000) out of range (0.083333 to 14.4) in filter data file'; 'ERROR: Frequency value (-100.000000) out of range (10.000000 to 14700.0) in filter data file' (ceiling = srate/3)."
+    },
+    "band_reject": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-r",
+      "flag_kind": "no_value",
+      "description": "Band reject (notch) instead of bandpass (default). Verified live (render differs from the unflagged run)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Three tuned pass bands, half-octave wide.",
+      "params": {"filtfile": "data/greq.txt"},
+      "expected_use": "First write_data_file('greq.txt', '0.5\\n400\\n1200\\n2600') - only material around those centres survives."
+    },
+    {
+      "description": "The complementary notch bank.",
+      "params": {"filtfile": "data/greq.txt", "band_reject": true},
+      "expected_use": "Same bank inverted - tuned holes carved out of the spectrum."
+    }
+  ],
+  "known_issues": [
+    "Centre frequencies are capped at srate/3 (14700 Hz at 44.1 kHz - refusal verbatim), well below nyquist; bandwidth is capped at 14.4 octaves with a 1/12-octave floor.",
+    "Mode 2 (paired 'centrefrq bandwidth' lines, separate bandwidth per band) verified running and distinct - execute(['hilite', 'greq', '2', ...]).",
+    "wav input refused ('Application doesn't work with this type of infile.'); engine auto-PVOCs.",
+    "Deterministic (1.3 s-apart runs byte-identical in the data chunk)."
+  ],
+  "references": ["cdp://docs/html/chilite"]
+}

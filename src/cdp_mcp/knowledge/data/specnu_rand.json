@@ -1,0 +1,63 @@
+{
+  "program": "specnu",
+  "mode": "rand",
+  "submode": null,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Randomises the ORDER of spectral windows - a spectral-time scramble. timescale (-t, seconds) localises the shuffle: only windows within each timescale-long region are permuted among themselves (default: the whole file); grouping (-g) shuffles consecutive windows in blocks of that size, preserving local continuity. DETERMINISTIC DESPITE THE NAME on this build: no seed slot exists and every default run is byte-identical (four runs including a same-second pair and a 1.3 s-gap pair all matched) - the CDP-8 osbind.c drand48 shim runs from rand()'s fixed default seed (the blur chorus / distort reform 6 construction), hence version_sensitive. DIVERGENCE vs afta8, which marks specnu rand '[Doesn't work?]': it works cleanly here. timescale is breakpoint-capable (banner-confirmed; ramp differs from both endpoints). Static duration (2.0201 from 2.023). Operates on PVOC analysis files (.ana).",
+  "musical_use": "Spectral confetti: the sound's harmonic snapshots replay in permuted order, unmooring cause from effect while every individual window stays intact - glassy, granular-like reshuffling without leaving the analysis domain. grouping is the intelligibility dial (1 = per-window dust; 8-30 = phrase shards that still read as 'pieces of the sound'); timescale confines the chaos locally so the large-scale shape survives - 0.2-0.5 s regions scramble texture while the overall gesture still lands. A timescale breakpoint ramp moves from local jitter to whole-file anarchy (or back) across the file. Same fixed permutation every run: for variations, change grouping/timescale slightly (the permutation depends on them), or re-order windows upstream (spec cut + re-join) - there is no seed.",
+  "parameters": {
+    "timescale": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Length of the regions within which windows are locally randomised (default: all windows). CDP-enforced from one frametime to just past the analysed duration ('-t99' refused verbatim: 'Parameter[1] Value (99.000000) out of range (0.005805 to 2.025941)' - input-dependent both ends; afta8's 0-255 is a UI range). Breakpoint-capable (banner: '\"Timescale\" may vary over time'; verified 0.05-to-1.0 ramp differs from both endpoints)."
+    },
+    "grouping": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "windows",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Consecutive windows are grouped into sets of this size and the SETS are randomised (default 1 = per-window). CDP-enforced 1 to half the window count ('-g0' refused verbatim: 'Parameter[2] Value (0.000000) out of range (1.000000 to 349.000000)' on a 698-window analysis - input-dependent ceiling)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Whole-file spectral shuffle in phrase shards.",
+      "params": {"grouping": 8},
+      "expected_use": "8-window blocks (~23 ms at the default analysis) reordered across the whole file."
+    },
+    {
+      "description": "Local jitter that preserves the large-scale gesture.",
+      "params": {"timescale": 0.3, "grouping": 2},
+      "expected_use": "Windows only trade places within 0.3 s neighbourhoods - texture scrambles, shape survives."
+    }
+  ],
+  "known_issues": [
+    "NO SEED and NOT stochastic in practice: identical argv always renders byte-identically on this build (fixed-seed drand48 shim; same-second and 1.3 s-apart pairs verified identical). A rebuild with a different RNG substrate would change renders - version_sensitive.",
+    "afta8 flags this program '[Doesn't work?]' - it runs cleanly on the CDP8 source build; prior-tool defect note, not a CDP one.",
+    "timescale's bounds are input-dependent at both ends (refusal verbatim); grouping's ceiling is half the window count.",
+    "Output marginally shorter than the family round-trip (2.0201 vs 2.0230) - within static tolerance.",
+    "wav input refused; engine auto-PVOCs. Compare data chunks (RIFF date chunk differs)."
+  ],
+  "references": ["cdp://docs/html/cspecnu"]
+}

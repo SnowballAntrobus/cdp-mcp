@@ -1,0 +1,48 @@
+{
+  "program": "focus",
+  "mode": "freeze",
+  "submode": 3,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Freezes the spectrum IN PLACE over marked time spans: at each marker the current analysis window is captured and held across the span, while the file keeps its original length (static duration verified: 2.023 -> 2.0230, 1.521 -> 1.5209). Pinned to mode 3 (freeze channel amplitudes AND frequencies); modes 1 (amps only) and 2 (frqs only) verified running with distinct outputs (execute()). The datafile holds times with a/b markers: 'aT T2' captures the window at T and holds it until T2 ('a' = freeze AFTER this time); 'T1 bT2' holds the window at T2 across the span before it ('b' = freeze BEFORE). At least one marker is REQUIRED - a plain time list refuses 'ERROR: No flags given in freeze data' (verbatim). Deterministic. Operates on PVOC analysis files (.ana).",
+  "musical_use": "Momentary spectral stasis without changing the timeline: the sound walks along, locks onto one harmonic snapshot for a beat, then resumes - unlike focus hold (which EXPANDS each held window, lengthening the file) or focus step (which grid-freezes everything). Use it to pin a vowel mid-word, hold the bloom of a bell strike through its own decay, or produce glitch-freeze stutters by alternating many short a-spans. The 'b' marker freezes retroactively toward a target: '1.2 b1.5' smears the window at 1.5 back over the preceding 0.3 s, an anticipation effect. Multiple spans are legal in one file as long as all times increase ('ERROR: Time values out of sequence in file ...' otherwise, verbatim).",
+  "parameters": {
+    "freezedata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Text file of freeze spans (write with write_data_file()). Each span is a time pair; prefix one time with 'a' (use this window for the span AFTER it: 'a0.5 1.0') or 'b' (use this window for the span BEFORE it: '1.2 b1.5'). Times in seconds, strictly increasing across the whole file. Refusals verbatim: no marker anywhere 'ERROR: No flags given in freeze data'; non-increasing times 'ERROR: Time values out of sequence in file <name>.'"
+    }
+  },
+  "examples": [
+    {
+      "description": "Hold the 0.5 s spectrum until 1.0 s.",
+      "params": {"freezedata": "data/frz.txt"},
+      "expected_use": "First write_data_file('frz.txt', 'a0.5 1.0') - the sound plays normally, locks at 0.5 s, resumes at 1.0 s; total length unchanged."
+    },
+    {
+      "description": "Forward freeze plus a retroactive smear.",
+      "params": {"freezedata": "data/frz2.txt"},
+      "expected_use": "write_data_file('frz2.txt', 'a0.3 0.8\\n1.2 b1.5') - one normal freeze, then the 1.5 s window pulled back across 1.2-1.5 s."
+    }
+  ],
+  "known_issues": [
+    "The datafile REQUIRES at least one a/b marker - plain 'start end' time pairs are refused ('No flags given in freeze data'), a divergence from the banner's 'times MAY be preceded by' phrasing.",
+    "All times across all spans must increase; out-of-sequence data refused verbatim.",
+    "Modes 1 (amps) and 2 (frqs) verified running, mutually distinct and distinct from mode 3 - reachable via execute(['focus', 'freeze', '1'|'2', ...]).",
+    "wav input refused ('Application doesn't work with this type of infile.'); engine auto-PVOCs.",
+    "Deterministic (1.3 s-apart runs byte-identical in the data chunk)."
+  ],
+  "references": ["cdp://docs/html/cfocus"]
+}

@@ -1,0 +1,78 @@
+{
+  "program": "suppress",
+  "mode": "partials",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Suppresses the most prominent partials inside a frequency band, but only BETWEEN scheduled time pairs: the timeslots datafile lists start/end pairs, and within each slot the chancnt loudest channels between lofrq and hifrq are suppressed. The time-gated complement of blur suppress (which kills the N loudest everywhere, always). Timeslot validation is strict with verbatim refusals: pairs closer than one frame 'ERROR: Times (0.800000 & 0.200000) in file <name> less than 1 sampleframe (0.002902 secs) apart.' (also catches reversed pairs); odd counts 'ERROR: Data not paired correctly in file <name>'. Static duration (2.0230 / 1.5209); deterministic. Operates on PVOC analysis files (.ana).",
+  "musical_use": "Rhythmic spectral ducking: schedule slots and the sound's dominant components vanish on cue, leaving the residue - breath, noise floor, weaker partials - suddenly exposed. Used per-beat it makes a spectral sidechain/gate pattern cut from the sound's own strongest material; used structurally (one long slot) it hollows out a passage's core while the frame stays. Band-limit the suppression to sculpt where the bite happens: lofrq/hifrq around the fundamental region removes the root but keeps the shimmer; a high band removes brilliance in pulses. chancnt scales the depth per slot (a handful of channels = subtle dimming; dozens = spectral silhouette). Times are plain text - generate slot grids programmatically for tempo-locked patterns.",
+  "parameters": {
+    "timeslots": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Text file of paired times 'start end' (seconds), one pair per line, each pair at least one analysis frame apart and in order (write with write_data_file()). Refusals verbatim: reversed/too-close pairs quote both times and the frame threshold; an odd number of values refuses 'Data not paired correctly in file <name>'."
+    },
+    "lofrq": {
+      "type": "float",
+      "min": 0.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Low frequency limit of the band where partials are suppressed. CDP-enforced 0 to nyquist ('-5' refused verbatim: 'Parameter[2] Value (-5.000000) out of range (0.000000 to 22050.000000)'). Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.' - note CDP numbers the brk slot differently from the range slot)."
+    },
+    "hifrq": {
+      "type": "float",
+      "min": 0.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "High frequency limit of the suppression band ('30000' refused verbatim, Parameter[3], same 0-22050 range)."
+    },
+    "chancnt": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Number of most-prominent channels in the band to suppress per window. CDP-enforced 1 to the analysis channel count ('0'/'2000' refused verbatim quoting '(1.000000 to 513.000000)')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Two scheduled spectral duck-outs.",
+      "params": {"timeslots": "data/slots.txt", "lofrq": 300.0, "hifrq": 3000.0, "chancnt": 4},
+      "expected_use": "First write_data_file('slots.txt', '0.2 0.8\\n1.2 1.8') - the 4 loudest mid-band channels vanish during each slot."
+    },
+    {
+      "description": "Hollow out a whole passage's core.",
+      "params": {"timeslots": "data/whole.txt", "lofrq": 100.0, "hifrq": 1500.0, "chancnt": 30},
+      "expected_use": "write_data_file('whole.txt', '0.0 2.0') - deep suppression of the low-mid dominants throughout."
+    }
+  ],
+  "known_issues": [
+    "Timeslot pairs must be ordered and at least one analysis frame apart - reversed pairs are refused with the same verbatim message as too-close pairs (both times quoted).",
+    "No breakpoint-capable parameters; the temporal shaping lives entirely in the timeslots file.",
+    "Suppression targets the LOUDEST channels in the band per window (like blur suppress / hilite trace's complement) - which partials die can change window to window on evolving material.",
+    "wav input refused ('ERROR: File <name> is not of correct type'); engine auto-PVOCs.",
+    "Deterministic (1.3 s-apart runs byte-identical in the data chunk)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

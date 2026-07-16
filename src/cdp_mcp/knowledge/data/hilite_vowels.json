@@ -1,0 +1,89 @@
+{
+  "program": "hilite",
+  "mode": "vowels",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Imposes vowel formant envelopes on the sound, following a vowelfile of paired 'time vowel' entries that interpolate from one vowel to the next. Thirteen vowel names are legal (banner list): ee i e ai a ar o or oa u oo xx x - anything else refuses 'ERROR: Unrecognised vowel string zz at pair 1 in vowel datafile' (verbatim). Four shape parameters: halfwidth (formant peak half-width as a fraction of its centre frq), steepness of the peaks, range (peak height as a fraction of total signal range), threshold (windows above this proportion of the vowel-envelope level are forced TO the envelope; others stay put). The banner offers 'good defaults': 0.25, 3, 0.95, 0.5. Content-verified: flat noise takes on band structure per the vowel schedule. Static duration (2.0230 / 1.5209); deterministic. Operates on PVOC analysis files (.ana).",
+  "musical_use": "Makes anything mouth vowels: schedule 'a -> ee -> oo' across a texture and it sings the diphthong - the classic route to talking noise, whispering cymbals, or choral colouring of sustained chords, WITHOUT needing a speech donor (contrast formants put/vocode, which transplant measured envelopes; this one synthesises idealised vowels from a name). Rich broadband sources (noise, dense textures) show the formants most clearly. halfwidth/steepness trade vowel definition against naturalness (narrow+steep = nasal precision, wide+shallow = breathy hint); threshold decides how much of the source's own spectral behavior survives inside the vowel mask (1.0 = only the strongest windows are forced; lower values police more of the signal). Vowel timing is plain text - trivially generated for word-rhythms or LFO-like vowel cycling.",
+  "parameters": {
+    "vowelfile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Text file of 'time vowel' pairs, times increasing (write with write_data_file()): e.g. '0 a\\n1.0 ee\\n2.0 oo'. Legal vowels (banner): ee i e ai a ar o or oa u oo xx x. Unknown names refused verbatim ('Unrecognised vowel string ... at pair N'). The banner says times must start at zero, but a first time of 0.5 was accepted on this build (the first vowel simply governs from its time)."
+    },
+    "halfwidth": {
+      "type": "float",
+      "min": 0.01,
+      "max": 10.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.25,
+      "flag": null,
+      "description": "Half-width of formant peaks as a fraction of the formant centre frequency. CDP-enforced 0.01 to 10 ('20' refused verbatim: 'Parameter[2] Value (20.000000) out of range (0.010000 to 10.000000)'). Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). Banner-suggested default 0.25."
+    },
+    "steepness": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 3.0,
+      "flag": null,
+      "description": "Steepness of the formant peaks. CDP-enforced 0.1 to 10 ('20' refused verbatim, Parameter[3]). Banner-suggested default 3."
+    },
+    "range": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.95,
+      "flag": null,
+      "description": "Ratio of (max) peak height to (max) total signal range - how far the vowel peaks stand above the signal floor. CDP-enforced 0 to 1 ('1.5' refused verbatim, Parameter[4]). Banner-suggested default 0.95."
+    },
+    "threshold": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.5,
+      "flag": null,
+      "description": "Windows whose level exceeds this proportion of the vowel-envelope level are forced to the envelope level; others remain unchanged. CDP-enforced 0 to 1 ('1.5' refused verbatim, Parameter[5]). Banner-suggested default 0.5."
+    }
+  },
+  "examples": [
+    {
+      "description": "Noise texture singing 'ah-ee-oo'.",
+      "params": {"vowelfile": "data/vow.txt", "halfwidth": 0.25, "steepness": 3.0, "range": 0.95, "threshold": 0.5},
+      "expected_use": "First write_data_file('vow.txt', '0 a\\n1.0 ee\\n2.0 oo') - banner-recommended shape values."
+    },
+    {
+      "description": "Breathy vowel hint.",
+      "params": {"vowelfile": "data/vow.txt", "halfwidth": 1.0, "steepness": 0.5, "range": 0.5, "threshold": 0.3},
+      "expected_use": "Wide, shallow formants - the vowel colours rather than replaces the source."
+    }
+  ],
+  "known_issues": [
+    "Only the 13 banner vowel names are legal; refusal quotes the offending string and pair index verbatim.",
+    "Banner divergence: 'Times must start at zero' is NOT enforced (first time 0.5 accepted on this build).",
+    "No parameter accepts breakpoint files (halfwidth refusal verbatim: 'Cannot read parameter 1 [...]: brkpnt_files not permitted.') - vowel MOTION comes from the vowelfile itself.",
+    "The four shape values are required positionals; the curated defaults are the banner's 'good defaults might be 0.250000, 3, 0.950000, 0.5'.",
+    "wav input refused ('Application doesn't work with this type of infile.'); engine auto-PVOCs.",
+    "Deterministic (1.3 s-apart runs byte-identical in the data chunk)."
+  ],
+  "references": ["cdp://docs/html/chilite"]
+}

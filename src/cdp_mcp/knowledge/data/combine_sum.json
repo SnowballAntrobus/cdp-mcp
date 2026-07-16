@@ -1,0 +1,52 @@
+{
+  "program": "combine",
+  "mode": "sum",
+  "submode": null,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur_max"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Adds the second spectrum's channel-amplitude differences into the first ('FIND SUM OF TWO SPECTRA'): where the two files' channel amplitudes differ, that difference is added to file 1, merging timbral elements rather than simply mixing levels. crossover scales how much of the 2nd spectrum is added. Verified anchors: crossover 0 is a byte-identical passthrough of infile1; the flag-less run byte-equals -c1 (CDP default crossover = 1.0 pinned by rendered equivalence). Output duration = the LONGER input ((2.023, 1.521) -> 2.0230 in both orders; expression indur_max). Deterministic (runs 1.3 s apart byte-identical in the data chunk). Operates on PVOC analysis files (.ana).",
+  "musical_use": "The additive sibling of the curated combine diff/max/cross family: a spectral merge that leans on file 1's identity while folding in whatever file 2 does differently - good for thickening a line with a second timbre, or haunting a sound with another's residue. With a breakpoint crossover it becomes a one-parameter spectral fade-in of the second source: ramp 0 -> 1 and file 2's timbre bleeds in over the file's length (0 is a verified exact no-op, so the ramp starts from the untouched original). Contrast combine diff (subtracts the common part), combine max (per-channel winner) and combine cross (replace amplitudes only). SoundThread exposes exactly this shape ('Sum', Amount slider 0-1 default 1).",
+  "parameters": {
+    "crossover": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "max",
+      "default": 1.0,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Amount of the 2nd spectrum added to the 1st (banner: 'crossover may vary over time'). CDP-enforced 0 to 1 ('-c1.5' / '-c-0.5' refused verbatim: 'Parameter[1] Value (...) out of range (0.000000 to 1.000000)'). Default 1.0 pinned (flag-less run byte-equals -c1). 0 is a byte-identical passthrough of infile1. Breakpoint verified (0-to-1 ramp differs from both scalar endpoint renders)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Full spectral sum of two sources.",
+      "params": {"crossover": 1.0},
+      "expected_use": "File 2's amplitude differences fully added to file 1 - a timbral merge, not a level mix."
+    },
+    {
+      "description": "Spectral fade-in of the second source.",
+      "params": {"crossover": [[0.0, 0.0], [1.0, 1.0]]},
+      "expected_use": "Starts as the untouched file 1 (crossover 0 verified exact passthrough) and accumulates file 2's spectrum across the duration."
+    }
+  ],
+  "known_issues": [
+    "Output duration = the LONGER input (verified both orders on a 2.023/1.521 s pair); beyond the shorter file's end the remaining file continues alone.",
+    "Both inputs must be mono analysis files of the same type; wav input refused ('Application doesn't work with this type of infile.') - the engine auto-converts via PVOC.",
+    "crossover 0 exits 0 with a byte-identical copy of infile1 - a deliberate no-op floor for breakpoint fades, not an error.",
+    "Deterministic; compare .ana outputs by data chunk (RIFF LIST date chunk differs run to run)."
+  ],
+  "references": ["cdp://docs/html/ccombine"]
+}

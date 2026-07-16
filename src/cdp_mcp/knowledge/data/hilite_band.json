@@ -1,0 +1,47 @@
+{
+  "program": "hilite",
+  "mode": "band",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Splits the spectrum into frequency bands and processes each independently, per a datafile of band recipes: 'lofrq hifrq bitflag [amp1 amp2 [+]transpose]'. The 4-bit bitflag enables, per band: bit 1 amplitude change (amp1), bit 2 amplitude ramp amp1->amp2 across the file, bit 3 partial transposition (frq multiplier, or '+value' = Hz shift added), bit 4 ADD transposed partials to the original instead of replacing. Verified: '200 800 1000 0.5' (band attenuation) and '200 800 0010 1.5' (band transposed up a fifth) both exit 0 with distinct renders. Static duration (2.0230); deterministic. Operates on PVOC analysis files (.ana).",
+  "musical_use": "A per-register spectral mixing desk and shifter in one pass: rebalance registers (duck the low band, lift presence), ramp bands in/out over the file's length (bit 2 - written into the data, no breakpoint files needed), or detune/shift chosen registers only. Multiplicative transposes (bit 3) keep harmonicity within the band; '+Hz' shifts make a band inharmonic against the rest - selective bell-ification of just the top of a sound. Bit 4 layers the shifted copy over the original band for thickening. Because every band is one text line, complex multi-band treatments are easy to generate programmatically. For plain band ISOLATION prefer hilite filter (mode 7) or greq; band earns its keep when bands get different treatments.",
+  "parameters": {
+    "banddata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Text file, one band per line: 'lofrq hifrq bitflag [amp1 amp2 [+]transpose]' (write with write_data_file()). bitflag is 4 binary digits, e.g. '1000' amp change (needs amp1), '1100' amp ramp (needs amp1 amp2), '0010' transpose (needs multiplier, or '+200' for a 200 Hz shift), '0011' transpose ADDED to the original. Values must be present exactly as the bitflag demands (banner rule). Verified working lines: '200 800 1000 0.5' and '200 800 0010 1.5'."
+    }
+  },
+  "examples": [
+    {
+      "description": "Attenuate the low band, shift the mids up a fifth.",
+      "params": {"banddata": "data/bands.txt"},
+      "expected_use": "First write_data_file('bands.txt', '100 400 1000 0.4\\n800 3000 0010 1.5') - two independent band treatments in one pass."
+    },
+    {
+      "description": "Ramp a presence band in over the file.",
+      "params": {"banddata": "data/ramp.txt"},
+      "expected_use": "write_data_file('ramp.txt', '2000 6000 1100 0.2 2.0') - the band swells from 0.2x to 2x across the duration."
+    }
+  ],
+  "known_issues": [
+    "The bitflag dictates exactly which extra values each line must carry - missing/extra values fail the datafile read.",
+    "Amplitude ramps (bit 2) span the WHOLE file per band - for arbitrary contours use spec gain breakpoints on an isolated band instead.",
+    "wav input refused ('Application doesn't work with this type of infile.'); engine auto-PVOCs.",
+    "Deterministic (1.3 s-apart runs byte-identical in the data chunk)."
+  ],
+  "references": ["cdp://docs/html/chilite"]
+}

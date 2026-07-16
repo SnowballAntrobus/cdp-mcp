@@ -1,0 +1,50 @@
+{
+  "program": "spec",
+  "mode": "gate",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Eliminates channel data below a threshold amplitude, window by window - the noise gate of the spectral domain, keyed on per-channel level rather than overall signal level. threshold 0 is a byte-identical passthrough (verified). CALIBRATION MATTERS: the threshold compares against raw channel amplitudes, which sit far below full scale on real material - on a -14 dBFS probe, 0.01 barely bites (-14.1 dBFS out), 0.2 thins audibly (-18.8) and 0.5 renders silence. Static duration (1.9998 from a 2.023 s analysis, 1.5035 from 1.521 - marginally SHORTER than the usual round-trip, unlike most of the family). Deterministic. Operates on PVOC analysis files (.ana).",
+  "musical_use": "Quick spectral cleanup and thinning with a single knob: low values strip analysis noise-floor and reverb haze; pushing higher hollows the sound out to its loudest components - a level-keyed cousin of hilite trace (which keeps a COUNT of channels rather than a level class). Because the useful range is source-dependent and small, sweep upward gently (0.001 -> 0.1) and listen; with a breakpoint file the gate becomes a spectral erosion envelope - ramp it up across the file and the sound progressively dissolves, keeping only its spectral skeleton. Pair with spec gain upstream to place material against the fixed threshold (gain 2 halves every effective threshold).",
+  "parameters": {
+    "threshold": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Channel-amplitude floor below which data is zeroed. CDP-enforced 0 to 1 ('-0.1'/'1.5' refused verbatim: 'Parameter[1] Value (...) out of range (0.000000 to 1.000000)'). 0 is a verified byte-identical passthrough. Useful values are typically well below 0.5 (channel amps are much smaller than full scale). May vary over time via breakpoint file (verified: a 0-to-0.5 ramp differs from both scalar-endpoint renders). Required positional (omission: 'Insufficient parameters on command line.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Gentle spectral floor-strip.",
+      "params": {"threshold": 0.01},
+      "expected_use": "Removes only the quietest channel data - de-hazing without changing the sound's identity."
+    },
+    {
+      "description": "Progressive dissolution.",
+      "params": {"threshold": [[0.0, 0.0], [1.0, 0.3]]},
+      "expected_use": "Starts untouched and erodes toward the loudest components across the file."
+    }
+  ],
+  "known_issues": [
+    "Threshold is an absolute channel-amplitude, not dB or percent-of-peak: on a -14 dBFS rich source, 0.5 already produced total silence at exit 0 - silence is a legal outcome, not an error. Calibrate low.",
+    "Output is marginally SHORTER than the input round-trip (1.9998 vs 2.0230 on the shared fixture) - still within the static model's tolerance, but note the family-atypical direction.",
+    "wav input refused ('Application doesn't work with this type of infile.'); engine auto-PVOCs.",
+    "Deterministic (1.3 s-apart runs byte-identical in the data chunk)."
+  ],
+  "references": ["cdp://docs/html/cspecedi"]
+}

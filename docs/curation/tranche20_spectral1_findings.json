@@ -1,0 +1,493 @@
+{
+  "generated_at": "2026-07-16",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build, -fsigned-char; Groucho programs banner 'CDP Release 7.1 2016'; specfold/specav/specenv/specnu/suppress/subtract/caltrain/glisten/notchinvert/peakiso/cantor print no release banner)",
+    "os": "Linux x86_64 sandbox",
+    "note": "Tranche 20 - spectral tail I. Fixtures: fresh /tmp/probe20a rich-harmonic .ana pair (2.023 / 1.5209 s synth-basis), 4-formant vowel, flat noise, tone+noise denoise pair. .ana comparisons by RIFF data chunk; durations via pvoc-synth round-trips. To be re-verified on macOS r8 by the CDP-gated suite after integration."
+  },
+  "aux_files": {
+    "frz20.txt": "a0.5 1.0\n",
+    "gq20.txt": "0.5\n400\n1200\n2600\n",
+    "bd20.txt": "200 800 1000 0.5\n",
+    "vw20.txt": "0 a\n1.0 ee\n2.0 oo\n",
+    "ts20.txt": "0.2 0.8\n1.2 1.8\n"
+  },
+  "entries": [
+    {
+      "program": "blur",
+      "mode": "weave",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Duration is weavfile-dependent (sentinel expression 'weavfile'): outdur ~ indur * steps/sum(steps). Verified: '1 2 -1 3' -> 1.6167 from 2.023 (x4/5; rich15 -> 1.2161), '2 2 2 -3' -> 2.6877 (x4/3), '0 1' -> 4.0490 (x2).",
+      "stochastic": false,
+      "notes": [
+        "LANDMINE DEFUSED: the weave is a DATAFILE (aux_file), not a free-string positional - no blur-shuffle-style engine gap; curated with a standard aux param.",
+        "Whitespace vs newline separators byte-identical. Deterministic (1.3 s apart identical data chunks).",
+        "All three banner weave rules enforced with verbatim refusals, incl. the CDP typo 'Weave must progress aint file.' (net sum <= 0); step bound per-file '(-696 to 697)'; fractional steps 'Invalid character in weave file.'; empty 'No data in weave file.'; back-before-start 'You cannot weave to before weave-start.'",
+        "wav refused 'Application doesn't work with this type of infile.'"
+      ]
+    },
+    {
+      "program": "combine",
+      "mode": "sum",
+      "submode": null,
+      "breakpoint_capable": ["crossover"],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry; incompatible with the single-input duration fixture. Model 'indur_max' verified via pvoc synth round-trips: (2.023,1.521) and (1.521,2.023) both -> 2.0230.",
+      "stochastic": false,
+      "notes": [
+        "Default crossover 1.0 PINNED (flag-less byte-equals -c1); crossover 0 is a byte-identical passthrough of infile1 - exact no-op floor for breakpoint fades.",
+        "crossover CDP-enforced 0-1 (verbatim refusals at 1.5 / -0.5); brk 0->1 differs from both endpoints -> capable; breakpoint_duration_source 'max' (output spans the longer input).",
+        "SoundThread prior 'combine_sum' (Amount slider 0-1 default 1) matches CDP exactly. Deterministic."
+      ]
+    },
+    {
+      "program": "combine",
+      "mode": "mean",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry. Model 'indur_min' verified both orders ((2.023,1.521) -> 1.5209).",
+      "stochastic": false,
+      "notes": [
+        "Mean of channel amps AND pitches (mode 1 of 8; all 8 verified running, pairwise-distinct; ST covers 1 and 3).",
+        "Ranges analysis-dependent: -l '(5.000000 to 22028.466797)', -h '(48.066406 to 22050.000000)', -c '(2.000000 to 513.000000)'. -l brk refused (parameter 1).",
+        "-l/-h/-z all live; -c100 byte-identical to flag-less on the probe pair (recorded observation).",
+        "Deterministic; wav refused."
+      ]
+    },
+    {
+      "program": "combine",
+      "mode": "mean",
+      "submode": 3,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry. Model 'indur_min' verified both orders (1.5209).",
+      "stochastic": false,
+      "notes": [
+        "Amp from FILE 1 + mean pitch (ST's 'Mean Pitch'). Verified distinct from mode 1 on the same pair; -l300 -h5000 live.",
+        "Same flag set and enforced ranges as mode 1. Deterministic."
+      ]
+    },
+    {
+      "program": "focus",
+      "mode": "freeze",
+      "submode": 3,
+      "breakpoint_capable": [],
+      "duration_row": ["focus", "freeze", 3, 2.0, {"freezedata": "frz20.txt"}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "MARKER REQUIRED (banner divergence): plain time pairs refused 'ERROR: No flags given in freeze data' - at least one a/b marker must appear; 'a0.5 1.0' and multi-event 'a0.3 0.8\\n1.2 b1.5' verified.",
+        "Modes 1 (amps) / 2 (frqs) / 3 (both) all run, pairwise-distinct; mode 3 curated; static duration in place (2.0230/1.5209).",
+        "Non-increasing times refused 'Time values out of sequence in file <name>.' Deterministic; wav refused."
+      ]
+    },
+    {
+      "program": "focus",
+      "mode": "hold",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Duration is datafile-dependent (sentinel 'holddata'): outdur ~ indur + sum(holddurs). Verified: holds 0.8+0.5 -> 3.3234 from 2.023 and 2.8212 from 1.521.",
+      "stochastic": false,
+      "notes": [
+        "Each 'time holddur' pair expands one window to the given duration - output LONGER than input by the hold sum.",
+        "REFUSAL QUIRK: 'Invalid freeze location : 1722.656282' quotes the offending time in ANALYSIS WINDOWS (5.0 s x 344.5), not seconds; unpaired data 'Freeze times not paired correctly.'",
+        "Deterministic; wav refused."
+      ]
+    },
+    {
+      "program": "spec",
+      "mode": "gate",
+      "submode": null,
+      "breakpoint_capable": ["threshold"],
+      "duration_row": ["spec", "gate", null, 2.0, {"threshold": 0.005}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "threshold 0 = byte-identical passthrough; enforced 0-1 (verbatim). Brk 0->0.5 capable (differs from both endpoints).",
+        "CALIBRATION: absolute channel-amplitude threshold - 0.5 already renders silence at exit 0 on a -14 dBFS source (0.003/0.01 ~untouched, 0.2 -18.8). Silence is a legal outcome.",
+        "Static but marginally SHORTER than the family round-trip (1.9998 from 2.023; flat-noise row 2.0085) - atypical direction, within tolerance.",
+        "Deterministic; wav refused."
+      ]
+    },
+    {
+      "program": "spec",
+      "mode": "bare",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Requires a BINARY .frq pitchfile window-matched to the input analysis (pre_output aux); not producible by the fixture's text aux mechanism. Static verified via synth round-trip (2.0230).",
+      "stochastic": false,
+      "notes": [
+        "Pitchfile rides the pre-output argv slot ('spec bare infile pitchfile outfile') - position: pre_output aux, formants put precedent; producer repitch getpitch 1 documented as execute()-only until T22.",
+        "Refusals verbatim: 'Pitchfile (525 vals) and analysisfile (698 windows) are not same length'; 'rich2f.for is not a pitch file.'",
+        "-x ('less body') live: -14.1 -> -17.8 dBFS. Deterministic; wav refused.",
+        "T22 note: repitch getpitch refused the synthetic 4-formant vowel with 'ERROR: No valid pitch found.' even at relaxed -n3 -g1 -t2; the rich-harmonic gliss tracked fine."
+      ]
+    },
+    {
+      "program": "spec",
+      "mode": "clean",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry (sigfile + noise-profile nfile cut from it). Model 'indur1' verified (2.0143 from a 2.023 s pair).",
+      "stochastic": false,
+      "notes": [
+        "Content-verified denoise: noise-only tail -33.9 dBFS -> -240 (deleted), tonal region untouched. Cleaning applies only AFTER skiptime (verified: pre-skiptime material unchanged).",
+        "Default noisgain 2.0 PINNED (flag-less byte-equals -g2); -g enforced 1-40; -g brk refused (parameter 2). skiptime enforced 0 to the analysed duration (input-dependent, verbatim).",
+        "Modes 1 (delete from first dip) verified distinct; 3 (frq-limited) and 4 (3-input gfile) not curated - execute().",
+        "Deterministic; wav refused."
+      ]
+    },
+    {
+      "program": "hilite",
+      "mode": "filter",
+      "submode": 7,
+      "breakpoint_capable": ["frq1", "frq2", "q"],
+      "duration_row": ["hilite", "filter", 7, 2.0, {"frq1": 500.0, "frq2": 2000.0, "q": 100.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "BAND PASS pinned from the 12-mode family (survey: HP/LP/BP/notch/gain variants all run, centroids move as documented).",
+        "SILENT SWAP: frq1 > frq2 accepted, byte-identical to the ordered pair.",
+        "Ranges: frq1/frq2 10-22050; Q enforced 1-22050 Hz (banner claims only '> 0' - divergence). All three brk-capable (each ramp differs from both endpoints; banner-confirmed).",
+        "Deterministic; wav refused."
+      ]
+    },
+    {
+      "program": "hilite",
+      "mode": "greq",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": ["hilite", "greq", 1, 2.0, {"filtfile": "gq20.txt"}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Graphic EQ from a filtfile (line 1 = one bandwidth in octaves, then centre frqs); -r band-reject live.",
+        "DATAFILE VALIDATION verbatim: bandwidth '(0.083333 to 14.4)'; frequency '(10.000000 to 14700.0)' - CEILING = srate/3, not nyquist (divergence worth pinning).",
+        "Mode 2 (per-band 'centre bandwidth' pairs) verified running/distinct - execute(). Deterministic; static."
+      ]
+    },
+    {
+      "program": "hilite",
+      "mode": "band",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["hilite", "band", null, 2.0, {"banddata": "bd20.txt"}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Per-band recipes 'lofrq hifrq bitflag [amp1 amp2 [+]transpose]' - amp line '200 800 1000 0.5' and transpose line '200 800 0010 1.5' verified, distinct renders.",
+        "Static; deterministic; wav refused."
+      ]
+    },
+    {
+      "program": "hilite",
+      "mode": "pluck",
+      "submode": null,
+      "breakpoint_capable": ["gain"],
+      "duration_row": ["hilite", "pluck", null, 2.0, {"gain": 5.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "gain 1 = byte-identical passthrough; gain 0 legal and NOT a passthrough. Enforced 0-1000 (verbatim). Brk 1->20 capable.",
+        "Change-detector: steady sources barely move even at gain 20 (by design - emphasises NEWLY prominent components).",
+        "Static; deterministic; wav refused."
+      ]
+    },
+    {
+      "program": "hilite",
+      "mode": "bltr",
+      "submode": null,
+      "breakpoint_capable": ["blurring", "tracing"],
+      "duration_row": ["hilite", "bltr", null, 2.0, {"blurring": 10, "tracing": 20}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "blur blur + hilite trace fused; both params brk-capable (verified; banner-confirmed).",
+        "Ranges input-dependent: blurring 1..window count ('(1.000000 to 698.000000)'), tracing 1..channel count ('(1.000000 to 513.000000)').",
+        "Static; deterministic; wav refused. Engine spot-check ran the tracing BREAKPOINT end-to-end (PASS)."
+      ]
+    },
+    {
+      "program": "hilite",
+      "mode": "vowels",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["hilite", "vowels", null, 2.0, {"vowelfile": "vw20.txt", "halfwidth": 0.25, "steepness": 3.0, "range": 0.95, "threshold": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "13 legal vowel names; bad name refused verbatim ('Unrecognised vowel string zz at pair 1 in vowel datafile').",
+        "BANNER DIVERGENCE: 'Times must start at zero' NOT enforced (first time 0.5 accepted).",
+        "Ranges verbatim: halfwidth 0.01-10 [Param 2], steepness 0.1-10 [3], range 0-1 [4], threshold 0-1 [5]; halfwidth brk refused ('Cannot read parameter 1'). Curated defaults = the banner's 'good defaults' 0.25/3/0.95/0.5.",
+        "Content: flat noise takes vowel band structure. Static; deterministic."
+      ]
+    },
+    {
+      "program": "specfold",
+      "mode": "specfold",
+      "submode": 3,
+      "breakpoint_capable": [],
+      "duration_row": ["specfold", "specfold", 3, 2.0, {"stt": 20, "len": 64, "seed": 5}, 0.05],
+      "stochastic": true,
+      "notes": [
+        "RANDOMISE SPECTRUM band-wise (ST's specfold_specfold_3). Seed REQUIRED and reproducible: seed 5 twice byte-identical, 5 vs 9 differ; CDP-enforced 1-64 (seed 0 REFUSED) - only 64 permutations addressable.",
+        "stt enforced 1-509, len 4-513 (analysis-dependent); -a (amps only) live; no brks (parameters 1-3 refused).",
+        "Modes 1 (fold; needs even len + cnt) and 2 (invert) verified running/distinct - dropped (execute()). Static; wav refused."
+      ]
+    },
+    {
+      "program": "specav",
+      "mode": "specav",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (.txt of 513 tab-separated frq/amp pairs) - no audio duration; static model is a placeholder (brktoenv precedent).",
+      "stochastic": false,
+      "notes": [
+        "BANNER DIVERGENCE: starttime 0 REFUSED - minimum is one frametime ('(0.002902 to 2.023038)', input-dependent); endtime ceiling '(0.005805 to 2.025941)'.",
+        "-n normalises the amp column to exactly 1.000000 (verified). Byte-identical reruns.",
+        "Output format = the frq/amp text notchinvert/peakiso consume (chain ready if those are ever unblocked).",
+        "Mode 3 verified MULTI-OUTPUT ('<stem>_1.txt...', nothing at the declared name) - standing-rule drop; mode 2 variadic multi-input - drop (execute())."
+      ]
+    },
+    {
+      "program": "specenv",
+      "mode": "specenv",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry. Model 'indur1' verified (1.5209 / 2.0230).",
+      "stochastic": false,
+      "notes": [
+        "EXIT-CONTRACT BUG (first-class): file2 strictly longer than file1 -> COMPLETE resynthesisable output then SIGABRT at teardown ('free(): invalid size', exit 134); equal lengths exit 0 clean; file2 shorter refused 'First file is longer than 2nd: cannot proceed.' Curated stability: unstable with equal-length guidance. Same broken-teardown class as specfnu 19/21.",
+        "Content verified: flat noise takes a vowel donor's formants (+35 dB band contrast at 650/1080/2650 Hz).",
+        "BANNER DIVERGENCE: -b (bal) prose describes 'bal > 1' but CDP enforces -1..1 ('-b3' refused verbatim).",
+        "windowsize 1-513, brk refused; -p/-i/-k all live. Deterministic; wav refused."
+      ]
+    },
+    {
+      "program": "specnu",
+      "mode": "remove",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": ["specnu", "remove", 1, 2.0, {"midimin": 56.0, "midimax": 58.0, "rangetop": 4000.0, "atten": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Removes a pitch + its harmonics up to rangetop; mode 2 = keep-only complement (verified: residues -15.0 vs -35.3 dBFS, distinct) - execute().",
+        "atten enforced 0-1 with INVERTED sense vs its name (1 = max removal, banner-confirmed). midimin 0 and reversed midimin/midimax accepted silently.",
+        "Static; deterministic; wav refused."
+      ]
+    },
+    {
+      "program": "specnu",
+      "mode": "subtract",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry (sigfile + noisfile). Model 'indur1' verified (1.9998 from a 2.023 s pair).",
+      "stochastic": false,
+      "notes": [
+        "Gate + SPECTRAL SUBTRACTION: noise tail -33.9 -> -240 dBFS AND kept signal dried (-12.5 -> -12.8). The strongest of the family's three denoisers - curated over speclean clean and specnu clean (see dropped).",
+        "persist in MILLISECONDS 0-1000 (verbatim; sibling speclean takes SECONDS 0.0029-1.0 despite near-identical banner prose - pinned divergence); noisgain 1-40 positional.",
+        "Deterministic; wav refused."
+      ]
+    },
+    {
+      "program": "specnu",
+      "mode": "rand",
+      "submode": null,
+      "breakpoint_capable": ["timescale"],
+      "duration_row": ["specnu", "rand", null, 2.0, {"grouping": 4}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Window-order randomiser with NO seed slot; DETERMINISTIC in practice (default runs byte-identical incl. a same-second pair) - fixed-seed drand48 shim; version_sensitive true.",
+        "DIVERGENCE vs afta8: marked '[Doesn't work?]' there; runs cleanly on this build (as does squeeze).",
+        "-t enforced one-frametime..analysed-duration (input-dependent both ends, verbatim); -g 1..windows/2 ('(1.000000 to 349.000000)'). -t brk capable (banner-confirmed, differs from both endpoints).",
+        "Static (2.0201). wav refused."
+      ]
+    },
+    {
+      "program": "specnu",
+      "mode": "squeeze",
+      "submode": null,
+      "breakpoint_capable": ["centrefrq", "squeeze"],
+      "duration_row": ["specnu", "squeeze", null, 2.0, {"centrefrq": 500.0, "squeeze": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Spectral compression toward a movable centre; both params brk-capable (verified; banner 'All parameters may vray over time' - CDP typo).",
+        "squeeze floor analysis-dependent ('(0.001949 to 1.000000)'); centrefrq 0-nyquist. afta8 '[Doesn't work?]' contradicted.",
+        "Static; deterministic; wav refused."
+      ]
+    },
+    {
+      "program": "suppress",
+      "mode": "partials",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["suppress", "partials", null, 2.0, {"timeslots": "ts20.txt", "lofrq": 300.0, "hifrq": 3000.0, "chancnt": 4}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Time-gated blur suppress: the chancnt loudest channels in the lofrq-hifrq band are suppressed only inside scheduled time pairs.",
+        "Timeslot validation verbatim: pairs < 1 frame apart (also reversed) 'Times (0.800000 & 0.200000) in file <name> less than 1 sampleframe (0.002902 secs) apart.'; odd counts 'Data not paired correctly in file <name>'.",
+        "Ranges: lofrq/hifrq 0-22050 [Params 2/3], chancnt 1-513 [4]; lofrq brk refused as 'parameter 1' (brk numbering differs from range numbering - recorded).",
+        "Static; deterministic; wav refused."
+      ]
+    },
+    {
+      "program": "subtract",
+      "mode": "subtract",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "2-input TIME-DOMAIN entry. Model 'indur_max' verified: (2.0,1.5) and (1.5,2.0) both -> 2.0 (sample-exact).",
+      "stochastic": false,
+      "notes": [
+        "TIME-DOMAIN despite the spectral-wave target list: .ana refused 'File rich2.ana is not of correct type'; takes wavs.",
+        "Sample-exact file1 - file2 (maxdiff 0.0 in range); self-subtract = digital silence; OVERFLOW WRAPS bit-exactly (6 out-of-range probe samples == integer wraparound; the submix mix pathology) - headroom before, not after.",
+        "file2 must be mono; -c picks file1's target channel, runtime-bounded ('Channel to subtract cannot be greater than number of channels in 1st infile.'). channel_constraint any; phase_sensitive true.",
+        "Deterministic."
+      ]
+    },
+    {
+      "program": "caltrain",
+      "mode": "caltrain",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["caltrain", "caltrain", null, 2.0, {"blurfact": 0.5, "blurabov": 2000.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Upper-spectrum-only time blur (blur blur with a crossover frequency); -l locut live; banner typo 'defalut'.",
+        "blurfact enforced 2-frames..analysed-duration ('(0.002902 to 2.025941)', input-dependent both ends); blurabov/locut 0-22050. No brks (parameters 1/2 refused).",
+        "Static; deterministic; wav refused."
+      ]
+    },
+    {
+      "program": "glisten",
+      "mode": "glisten",
+      "submode": null,
+      "breakpoint_capable": ["grpdiv", "setdur"],
+      "duration_row": ["glisten", "glisten", null, 2.0, {"grpdiv": 4, "setdur": 30}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Random channel-partition flicker, DETERMINISTIC (same-second + 1.3 s pairs byte-identical; -p6 pair identical; dev/new/glisten.c drand48 with no seeding = fixed shim); version_sensitive true.",
+        "DIVERGENCE: grpdiv refusal text 'must be a multiple of 2' is WRONG - 6 refused, 8/512 accepted; the real rule is the banner's exact-divisor-of-channel-count (powers of 2 on a 1024-point analysis). Range '(2.000000 to 512.000000)'.",
+        "setdur 1-1024 brk-capable; grpdiv brk also accepted + distinct (sweeps through non-divisors without complaint - noted as adventurous); -p 0-12, -d/-v 0-1 all live.",
+        "Static; wav refused."
+      ]
+    }
+  ],
+  "dropped": [
+    {
+      "program": "hilite",
+      "mode": "arpeg",
+      "submode": null,
+      "reason": "NONDETERMINISTIC BINARY BUG, source-diagnosed (all 8 modes share specarpe): ap_hilite.c:820 mallocs the per-channel ARPE_KEEP sustain array WITHOUT initialisation and hilite.c:492/506 read it to choose sustain-vs-new-note from the first window - per-process heap garbage steers the render. Empirical: four identical invocations -> four distinct data chunks; SAME-SECOND pair differs (not clock seeding; no rand in dev/hilite at all); rate 0.25 (wavetable never wraps) still differs; resyntheses of identical argv swing from pure silence (-240 dBFS) to full-scale clipping (0 dBFS). Second latent OOB: hilite.c:1191 fmod(pos,1024) + hilite.c:452 round(pos) can index ARPE_TAB[1024], one past the 1024-double table (ap_hilite.c:780). Ranges recorded pre-drop: wave 1-4, rate 0-344.53 (= window rate), -p 0-1; all nine flags live; rate brk accepted. Reachable via execute() at user's risk; afta8's amplitude-overflow warning corroborates."
+    },
+    {
+      "program": "combine",
+      "mode": "make",
+      "submode": null,
+      "reason": "WORKS end-to-end (transcript section 14: getpitch .frq + formants get .for -> .ana, synth 2.0230, deterministic) but both inputs are BINARY data files: an entry would be arity-0 with two binary pre_output aux params whose .frq producer (repitch getpitch, T22) is uncurated - every process() call would depend on execute() for its primary input. Deferred to the pitch-data wave with this transcript as the unblocking evidence. Banner quirk recorded: '** Do not use output filenames which end in 1'."
+    },
+    {
+      "program": "combine",
+      "mode": "make2",
+      "submode": null,
+      "reason": "Blocked even via curated-adjacent paths: requires a binary envelope file at the ANALYSIS frame rate - envel extract 1's .evl refused verbatim 'ERROR: Incompatible sample-rate (57) in envelope file rich2.evl (must be 344).', and envel extract's wsize floor (5 ms = 200 Hz) cannot reach 344 Hz. Producer gap is structural (repitch analenv territory, T22)."
+    },
+    {
+      "program": "cantor",
+      "mode": "set",
+      "submode": null,
+      "reason": "MULTI-OUTPUT with stem naming: the banner's argv order is itself wrong ('cantor set infile outfile 1 ...' -> exit 249 'Invalid mode of program entered.'; working order is standard 'cantor set 1 infile outfile ...'), and the declared outfile becomes a STEM - 'can2.wav' wrote can20.wav..can23.wav (one per hole-cutting generation) with NO file at the declared path. Engine output verification cannot succeed; standing-rule drop (multi-output, no honored outfile argv). Modes 2/3 likewise."
+    },
+    {
+      "program": "notchinvert",
+      "mode": null,
+      "submode": null,
+      "reason": "SINGLE-TOKEN ARGV - engine rule pinned: the binary takes NO verb token ('notchinvert datafile outdatafile srate [minnotch]', exit 0), but build_cdp_argv (processing.py:296) unconditionally emits [program, mode, ...]; the doubled-token form misparses (peakiso analogue verbatim: 'INVALID MINIMUM NOTCH pk3.txt (range 0 - 1)' - the output name lands in the minnotch slot). Missing machinery = a 'no mode token' entry capability (same class as tranche 10a's blur shuffle drop). Pure data->data besides (frq/amp text in/out; srate restricted '44100,48000,88200,96000 only'). specav 1 (curated) emits exactly its input format; execute() reaches it today."
+    },
+    {
+      "program": "peakiso",
+      "mode": null,
+      "submode": null,
+      "reason": "Same single-token-argv gap as notchinvert, misparse verbatim pinned from this binary: 'peakiso peakiso savy.txt pk3.txt 44100' -> 'INVALID MINIMUM NOTCH pk3.txt (range 0 - 1)'. Verified working without a verb token (513-line frq/amp in -> out, minnotch 0-1, srate set restricted). execute()-reachable."
+    },
+    {
+      "program": "speclean",
+      "mode": "clean",
+      "submode": null,
+      "reason": "Weakest of three near-identical denoisers, with a unit trap: persist is in SECONDS 0.0029-1.0 (refusal verbatim 'Parameter[1] Value (100.000000) out of range (0.002902 to 1.000000)') while its banner-twin specnu clean takes 0-1000 ms; on the reference fixture (persist 0.1 s / noisgain 2) it LEFT the noise-only tail at -33.9 dBFS where specnu clean and specnu subtract both silenced it (-240). specnu subtract curated instead; execute() reaches this one."
+    },
+    {
+      "program": "specnu",
+      "mode": "clean",
+      "submode": null,
+      "reason": "Verified working (ms persist; noise tail -> -240 dBFS) but strictly dominated by curated siblings: identical shape to specnu subtract minus the amplitude subtraction, and spec clean 2 covers the skiptime-style variant. Dropped as a redundancy; execute() reaches it."
+    },
+    {
+      "program": "specnu",
+      "mode": "slice",
+      "submode": null,
+      "reason": "Modes 1-4 are MULTI-OUTPUT ('outanalfiles'; afta8 marks them 'Doesn't work - multiple outs') - standing-rule drop. Mode 5 (invert around a frq) is single-output and verified running (exit 0, 2.0230) but left uncurated: overlaps specfold mode 2's spectral inversion; execute()-reachable, probe recorded."
+    },
+    {
+      "program": "specav",
+      "mode": "specav",
+      "submode": 2,
+      "reason": "Variadic multi-input average (2+ analysis files) of a DATA output - out of the fixture's reach and low marginal value over curated mode 1; execute()-reachable."
+    },
+    {
+      "program": "specav",
+      "mode": "specav",
+      "submode": 3,
+      "reason": "MULTI-OUTPUT verified: 'specav specav 3 rich2.ana sav3out -g100' wrote sav3out_1.txt..sav3out_4.txt and nothing at the declared name - standing-rule drop."
+    },
+    {
+      "program": "specfold",
+      "mode": "specfold",
+      "submode": 1,
+      "reason": "FOLD mode verified running ('20 64 4', distinct from modes 2/3) with extra constraints (len even, cnt < len); not ST-covered (ST exposes exactly mode 3); execute()-reachable."
+    },
+    {
+      "program": "specfold",
+      "mode": "specfold",
+      "submode": 2,
+      "reason": "INVERT mode verified running ('20 64', distinct); not ST-covered; execute()-reachable."
+    },
+    {
+      "program": "focus",
+      "mode": "freeze",
+      "submode": 1,
+      "reason": "Freeze-amps-only verified running and distinct from modes 2/3 on the same datafile; mode 3 (amps+frqs) curated as the flagship; execute()-reachable."
+    },
+    {
+      "program": "focus",
+      "mode": "freeze",
+      "submode": 2,
+      "reason": "Freeze-frqs-only verified running and distinct; execute()-reachable."
+    },
+    {
+      "program": "combine",
+      "mode": "mean",
+      "submode": null,
+      "reason": "Modes 2, 4, 5, 6, 7, 8 (frqwise averaging and amp-source permutations) all verified running with pairwise-distinct outputs; SoundThread covers exactly modes 1 and 3, which are curated; the rest execute()-reachable."
+    },
+    {
+      "program": "hilite",
+      "mode": "filter",
+      "submode": null,
+      "reason": "Modes 1-6 and 8-12 verified running with documented spectral direction (survey table in transcript); mode 7 (band pass) curated as the flagship shape covering frq1/frq2/Q; the notch (9), gain (5/6/11/12) and normalised (2/4/8/10) variants execute()-reachable."
+    },
+    {
+      "program": "hilite",
+      "mode": "greq",
+      "submode": 2,
+      "reason": "Per-band-bandwidth variant verified running and distinct from mode 1 on the paired-format filtfile; mode 1 curated; execute()-reachable."
+    },
+    {
+      "program": "spec",
+      "mode": "clean",
+      "submode": null,
+      "reason": "Modes 1 (delete from first dip - verified distinct), 3 (mode 2 + frequency limit) and 4 (3-input infile/nfile/gfile form - exceeds the 2-input entry shape) not curated; mode 2 curated; execute()-reachable."
+    }
+  ]
+}

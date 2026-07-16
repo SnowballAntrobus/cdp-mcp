@@ -1,0 +1,61 @@
+{
+  "program": "specnu",
+  "mode": "subtract",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur1"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Noise-profile denoiser with spectral SUBTRACTION: eliminates frequency bands in the sigfile (input 1) that fall below the noisgain-adjusted per-channel maxima found in the noisfile (input 2, a noise-only sample cut from the sigfile), AND subtracts the noise amplitudes from the signal that passes - the gate+subtract big sibling of specnu clean / spec clean. Content-verified: noise-only tail -33.9 dBFS -> digital silence, tonal region kept with the noise floor subtracted (-12.5 -> -12.8 dBFS, slightly drier than the gate-only variants). persist (0-1000 ms) is the minimum time a channel must exceed the noise level to be retained - a chatter guard. Duration follows input 1 (1.9998 from a 2.023 s pair). Deterministic. Operates on PVOC analysis files (.ana).",
+  "musical_use": "The most complete of the family's three denoisers: where spec clean 2 and specnu clean only DELETE below-profile channels, subtract also pulls the noise magnitude out of surviving channels, drying the retained signal itself - the closest thing here to classic broadband spectral subtraction. Workflow: spec cut a noise-only stretch (room tone, hiss bed) from the source analysis, feed it as input 2, start at persist 100 / noisgain 2 and raise noisgain to taste. Longer persist suppresses musical-noise chatter (channels must stay above profile for that long to live) at the cost of eating short quiet details. Pushed hard (noisgain toward 40) it becomes a creative eroder, like its siblings.",
+  "parameters": {
+    "persist": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 100.0,
+      "flag": null,
+      "description": "Minimum time (milliseconds) a channel's signal must exceed the noise level to be retained. CDP-enforced 0 to 1000 ('2000' refused verbatim: 'Parameter[1] Value (2000.000000) out of range (0.000000 to 1000.000000)'). NOTE the sibling program speclean clean takes this in SECONDS (0.0029-1.0) despite near-identical banner prose."
+    },
+    "noisgain": {
+      "type": "float",
+      "min": 1.0,
+      "max": 40.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 2.0,
+      "flag": null,
+      "description": "Multiplies the noisfile's per-channel maxima before comparison. CDP-enforced 1 to 40 ('50' refused verbatim: 'Parameter[2] Value (50.000000) out of range (1.000000 to 40.000000)'). Banner default 2. A required positional here (contrast spec clean's -g flag)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Standard denoise with subtraction.",
+      "params": {"persist": 100.0, "noisgain": 2.0},
+      "expected_use": "Input 1 = the source analysis, input 2 = a spec cut noise-only stretch from the same source. Below-profile bands deleted, noise floor subtracted from the rest."
+    },
+    {
+      "description": "Chatter-free aggressive clean.",
+      "params": {"persist": 400.0, "noisgain": 8.0},
+      "expected_use": "Only material that stays well above the profile for 0.4 s survives - dry, stable core."
+    }
+  ],
+  "known_issues": [
+    "The noisfile (input 2) should be cut from the sigfile (spec cut) to profile the actual noise; both are analysis files.",
+    "Sibling divergence pinned: specnu clean (gate-only twin, same banner prose) verified working with ms-persist; speclean clean takes persist in SECONDS (0.0029-1.0 refusal verbatim) and on the same fixture failed to remove the noise-only tail that both specnu variants silenced - speclean is dropped in favour of this entry.",
+    "No breakpoint-capable parameters.",
+    "Long persist values eat short quiet details by design (retention requires persistence).",
+    "wav input refused; engine auto-PVOCs both inputs. Deterministic (byte-identical reruns)."
+  ],
+  "references": ["cdp://docs/html/cspecnu"]
+}

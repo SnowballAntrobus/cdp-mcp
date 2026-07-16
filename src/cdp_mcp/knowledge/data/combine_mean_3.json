@@ -1,0 +1,76 @@
+{
+  "program": "combine",
+  "mode": "mean",
+  "submode": 3,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur_min"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Spectral 'mean' of two sounds, mode 3: channel amplitudes come FROM FILE 1 while pitches are averaged (pitchwise) between the two files - the hybrid pitch of mode 1 wearing file 1's dynamic envelope and spectral weighting. Verified distinct from mode 1 on the same input pair, with the same flag set (-l/-h live: -l300 -h5000 render differs from flag-less). Output duration = the SHORTER input (1.5209 from the (2.023, 1.521) pair, both orders). Deterministic. Operates on PVOC analysis files (.ana).",
+  "musical_use": "SoundThread's 'Mean Pitch': use it when you want the in-between pitch world of combine mean but file 1's identity to lead - the amplitude contour, attack shading and channel weighting stay with the first source, so the result reads as 'file 1 bent toward file 2' rather than an even-handed hybrid. Practical recipe: put the rhythmically/dynamically interesting source first and the pitch donor second. lofrq/hifrq restrict which register is averaged; zero_outside silences everything else for an isolated hybrid band. The amp-from-file2 mirror (mode 5) and the frqwise variants are execute()-reachable.",
+  "parameters": {
+    "lofrq": {
+      "type": "float",
+      "min": 5.0,
+      "max": null,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Low frequency limit of channels to average - same CDP-enforced analysis-dependent range as mode 1 ('(5.000000 to 22028.466797)' quoted). Scalar only (family refusal 'brkpnt_files not permitted', parameter 1)."
+    },
+    "hifrq": {
+      "type": "float",
+      "min": null,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "High frequency limit of channels to average (analysis-dependent floor, '(48.066406 to 22050.000000)' quoted in mode 1). Scalar only."
+    },
+    "chans": {
+      "type": "int",
+      "min": 2,
+      "max": null,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Number of significant channels to compare (default: all within range; CDP-enforced 2 to the analysis channel count, '(2.000000 to 513.000000)' quoted in mode 1)."
+    },
+    "zero_outside": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-z",
+      "flag_kind": "no_value",
+      "description": "Zero channels OUTSIDE the lofrq/hifrq range (default: pass through unaveraged)."
+    }
+  },
+  "examples": [
+    {
+      "description": "File 1's envelope carrying the averaged pitch of both sources.",
+      "params": {},
+      "expected_use": "Put the gesture/dynamics source first, the pitch donor second."
+    }
+  ],
+  "known_issues": [
+    "Output duration = the SHORTER input (verified both orders).",
+    "No breakpoint-capable parameters (family refusals verbatim).",
+    "Modes 2, 4, 5, 6, 7, 8 verified running and pairwise-distinct - not curated (execute()); SoundThread covers exactly modes 1 and 3.",
+    "Both inputs mono .ana; wav refused. Deterministic; compare data chunks."
+  ],
+  "references": ["cdp://docs/html/ccombine"]
+}

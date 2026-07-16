@@ -1,0 +1,95 @@
+{
+  "program": "glisten",
+  "mode": "glisten",
+  "submode": null,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Randomly partitions the analysis channels into grpdiv mutually exclusive sets, then plays the sets ONE AT A TIME - each set sounds for setdur windows while all other channels are zeroed, cycling through the group before a new random partition is drawn. The file's timeline runs at its original rate; only WHICH channels sound changes. grpdiv must exactly divide the channel count: on a 1024-point analysis (512 usable) that means POWERS OF 2 - 6 is refused even though the refusal text says 'ERROR: Number of channel-sets must be a multiple of 2' (misleading; 8 and 512 accepted, banner's 'exact divisor' rule is the real one). DETERMINISTIC despite the randomness: no seed slot, and same-second + 1.3 s-apart pairs render byte-identically (fixed-seed drand48 shim; dev/new/glisten.c calls drand48 with no seeding) - hence version_sensitive. setdur and grpdiv both breakpoint-capable (each brk render differs from both scalar endpoints). Static duration (2.0230 / 1.5209). Operates on PVOC analysis files (.ana).",
+  "musical_use": "Spectral scintillation - the sound flickers between complementary slices of itself, like light through leaves: at short setdur (1-10 windows, 3-30 ms) it is a shimmering grain-cloud in frequency; at long setdur (100+) it becomes slow chordal breathing as different channel families take turns. grpdiv sets how thin each slice is (2 = halves alternating, richer; 64 = sparse glittering threads). The three randomisers animate it: pitchshift scatters each set's pitch by up to +/-N semitones (chorus-to-cluster), durrand jitters the switching rhythm, divrand makes unequal set sizes so slices vary in weight. A setdur breakpoint sweeps from shimmer to breathing across the file. Fixed permutation per argv on this build - vary params slightly for a new draw; there is no seed.",
+  "parameters": {
+    "grpdiv": {
+      "type": "int",
+      "min": 2,
+      "max": null,
+      "unit": "sets",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Number of channel-sets to divide the analysis channels into; MUST exactly divide the channel count - powers of 2 on a standard 1024-point analysis ('6' refused with the misleading 'must be a multiple of 2' text; '0' refused quoting the range '(2.000000 to 512.000000)'). Breakpoint accepted and verified distinct from both endpoints (2-to-8 ramp) - intermediate non-divisor values are apparently tolerated inside a brk."
+    },
+    "setdur": {
+      "type": "int",
+      "min": 1,
+      "max": 1024,
+      "unit": "windows",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Number of windows each channel-set persists before switching (Range 1-1024, banner and refusal agree: '0'/'2000' refused verbatim quoting '(1.000000 to 1024.000000)'). ~2.9 ms per window at the default analysis. Breakpoint verified (10-to-60 ramp differs from both endpoints)."
+    },
+    "pitchshift": {
+      "type": "float",
+      "min": 0.0,
+      "max": 12.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Maximum random +/- pitch shift applied per channel-set (Range 0-12, default 0; '-p13' refused verbatim: 'Parameter[3] Value (13.000000) out of range (0.000000 to 12.000000)'). Verified live and still deterministic (fixed shim)."
+    },
+    "durrand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Randomisation of setdur between 1 and setdur (Range 0-1; '-d1.5' refused verbatim, Parameter[4]). Verified live."
+    },
+    "divrand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-v",
+      "flag_kind": "attached_value",
+      "description": "Randomises the number of channels per set within a group (Range 0-1; '-v1.5' refused verbatim, Parameter[5]); 0 = equal-sized sets. Verified live."
+    }
+  },
+  "examples": [
+    {
+      "description": "Fast spectral shimmer.",
+      "params": {"grpdiv": 8, "setdur": 4},
+      "expected_use": "Eight thin channel families flickering every ~12 ms - glittering, granular light."
+    },
+    {
+      "description": "Slow chordal breathing with pitch scatter.",
+      "params": {"grpdiv": 2, "setdur": 200, "pitchshift": 3.0, "durrand": 0.4},
+      "expected_use": "Two halves of the spectrum alternate in ~0.6 s waves, each draw shifted up to +/-3 semitones with jittered timing."
+    }
+  ],
+  "known_issues": [
+    "grpdiv's real rule is the banner's 'exact divisor of the channel count' (powers of 2 on a 1024-point analysis: 6 refused, 8/512 accepted); the refusal text 'must be a multiple of 2' is misleading - pinned divergence.",
+    "NO SEED and deterministic in practice: same argv renders byte-identically (same-second and 1.3 s-apart pairs verified; source uses the fixed-seed drand48 shim, no srand/initrand48 in dev/new/glisten.c). A different RNG substrate would change renders - version_sensitive.",
+    "grpdiv accepts breakpoint files (verified distinct render) even though a swept value passes through non-divisors - treat grpdiv brks as adventurous; setdur brks are the safe animation channel.",
+    "Zeroed-channel flicker can expose analysis artifacts on very tonal sources at extreme grpdiv - audition.",
+    "wav input refused ('ERROR: File <name> is not of correct type'); engine auto-PVOCs.",
+    "Compare data chunks when hashing (RIFF date chunk differs)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

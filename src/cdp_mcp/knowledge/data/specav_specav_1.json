@@ -1,0 +1,69 @@
+{
+  "program": "specav",
+  "mode": "specav",
+  "submode": 1,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "DATA-OUT entry: finds the average spectrum of a section of an analysis file and writes it as a TEXTFILE of tab-separated frequency/amplitude pairs (one line per analysis channel - 513 lines from a 1024-point analysis, verified). -n normalises the amplitude column to peak at 1.0 (verified: max amp exactly 1.000000). Mode 1 of three: mode 2 averages several analysis files (variadic multi-input), mode 3 dumps the changing spectrum as a SET of numbered textfiles (verified multi-output naming '<stem>_1.txt, _2.txt, ...') - both dropped. BANNER DIVERGENCE: starttime 0 is REFUSED - the enforced minimum is one frametime ('0' refused verbatim: 'Parameter[1] Value (0.000000) out of range (0.002902 to 2.023038)'); endtime's ceiling is just past the analysed duration ('(0.005805 to 2.025941)'). Deterministic (byte-identical reruns).",
+  "musical_use": "The spectrum probe of the toolkit: extract a sound's average spectral fingerprint as plain text - inspect it, plot it, or feed it back into synthesis and filtering. The banner's own suggestion: with -n it displays the formant contour of a source. Downstream uses: pick the strongest frequencies from the list to build a hilite greq filtfile or filter userbank tuned to another sound's resonances (a poor-man's cross-synthesis via data); track how a sound's centre of mass sits before choosing spectral-frequency treatments. Windowed sections (starttime/endtime) let you fingerprint just an attack or just the steady state. Pure data output - nothing to audition; read the file.",
+  "parameters": {
+    "starttime": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Start of the averaged section. CDP-enforced from ONE FRAMETIME (not 0 - banner divergence, refusal verbatim '(0.002902 to 2.023038)') to just short of the analysed duration; input-dependent bounds. Use e.g. 0.01 for 'the start'."
+    },
+    "endtime": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "End of the averaged section; must exceed starttime. CDP-enforced up to the sfprops duration ('99' refused verbatim quoting '(0.005805 to 2.025941)')."
+    },
+    "normalise": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "Normalise the output data to peak at 1.0 (banner: useful to display the formant contour of the source). Verified: amplitude column max exactly 1.000000."
+    }
+  },
+  "examples": [
+    {
+      "description": "Whole-file spectral fingerprint, normalised.",
+      "params": {"starttime": 0.01, "endtime": 2.0, "normalise": true},
+      "expected_use": "513 'frq amp' lines; strongest lines = the source's formant/resonance centres."
+    },
+    {
+      "description": "Attack-only fingerprint.",
+      "params": {"starttime": 0.01, "endtime": 0.15},
+      "expected_use": "Average spectrum of just the onset - compare against the steady state."
+    }
+  ],
+  "known_issues": [
+    "DATA-TO-DATA OUTPUT (.txt): no audio verification or audition; the duration model is a placeholder and the findings duration row is null.",
+    "starttime 0 is refused (minimum = one analysis frametime, input-dependent) - the banner's 'Start time of section' does not mention this.",
+    "Mode 2 (average of SEVERAL analysis files, variadic inputs) and mode 3 (set of numbered textfiles per groupcnt windows - verified writes '<stem>_1.txt' etc., no file at the declared name) are not curated; mode 3 is a standing-rule multi-output drop.",
+    "Output format: tab-separated 'frequency<TAB>amplitude', one line per channel, frequencies ascending - directly consumable by scripts and by hand-built filter banks.",
+    "wav input refused; engine auto-PVOCs. Deterministic (byte-identical reruns)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}
