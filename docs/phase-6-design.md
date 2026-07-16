@@ -115,9 +115,73 @@ adversarial drifting-bed proxy.
       transcript; entry promotion is mechanical once the type exists.
       Low priority, high certainty.
 5. **Phase 6b (contingent, not critical path):** tranche 11 mini-sweep
-   (housekeep chans, texture decorated retry, blur shuffle promotion
-   after 4b) and the stereo seed-link dual-mono machinery behind its
-   usage trigger (item 3 above).
+   (see the survey below), and the stereo seed-link dual-mono machinery
+   behind its usage trigger (item 3 above).
+
+## Uncurated-program survey for Phase 6 (2026-07-15, banner-level)
+
+A pass over the 176 uncurated stubs plus the uncurated MODES of curated
+binaries (invisible to the stub list — the stub generator only covers
+programs with no curated entry). Banner-verified against the sandbox
+binaries; no probing yet.
+
+**Two finds that bear on the timeline() design itself:**
+
+- **`extend sequence2`** — multi-source score renderer: a sequence file
+  of `(input-sound-number, output-time, midi-pitch, loudness, duration)`
+  rows over N inputs. This is a *pitch-aware* timeline with no pan;
+  `submix mix` is *pan-aware* with no pitch. Decide during the
+  timeline() build: either timeline() stays submix-only (pan, no
+  pitch) and sequence2 is curated as the sibling for pitch-bearing
+  event lists, or timeline() grows a per-event `pitch?` field and
+  routes to sequence2 when any event carries one. Either way sequence2
+  is tranche-11 priority #1.
+- **`retime`** — a 12-mode event-timing suite on silence-separated
+  events: position at specified times/beats (modes 6/7 — within-file
+  timeline), regularize to a tempo (1/4), speed-change events (5),
+  accent-level events (10), silence-pattern events (9). Covers the
+  within-file half of the grain/timeline split with much less gate
+  sensitivity than the grain family (silence-separated, not
+  amplitude-gated). Priority #2.
+
+**Tranche-11 candidates, gesture-relevant (curation order):**
+
+1. `extend sequence2` (+ `extend iterate` — seeded per-event-unique
+   repetition, and `iterline`/`iterlinef` — iteration along a
+   transposition line; the Bucephalus per-event-evolution primitives).
+2. `retime` (the event-timing modes: 1, 4–7, 9, 10).
+3. `shrink` — repeat-while-shortening (modes 1–3 gap-contraction):
+   the bouncing-ball accelerando as a single native op.
+4. `peakfind` (peak times → textfile) + `clicknew` (textfile →
+   clicktrack): timefile glue between analysis and the grain
+   reposition/rerhythm aux inputs, plus audible verification of
+   constructed rhythm.
+5. `sorter` (chop to elements, reorder by loudness/duration/random
+   with seed) + `stutter` (seeded slice-and-stutter with silences) —
+   event-level reorganizers.
+6. `refocus` — generates per-source envelope sets that bring each
+   sound into focus in turn pre-mix ("instruments affecting each
+   other's tone" at gesture scale; composes with timeline()).
+7. Channel machinery for Phase 6b: `housekeep chans` (split; modes
+   1–5 confirmed) + `repair` (join N mono → stereo/multi) — split and
+   merge for the seed-link wiring.
+8. Previously queued: texture decorated retry, blur shuffle promotion.
+
+**Second tier (pattern-render engines, banner-plausible, defer until a
+gesture session wants them):** `motor` (nested pulse-streams, seeded),
+`ceracu` (polyrhythmic resync cyclestreams), `splinter`
+(repeat-and-shrink waveset splinters), `tesselate`, `madrid`,
+`crumble`/`cascade`, `repeater`, `freeze`, `sfecho`, `flatten`,
+`isolate`/`rejoin`, `grainex`. These don't violate the
+pattern-generator non-goal — they're render engines, not event-list
+constructors; the LLM still authors the numbers.
+
+**Out of Phase 6 scope:** the multichannel spatial family (mchanpan,
+mchstereo, panorama, tangent, transit, spin, flutter, wrappage,
+texmchan, mchiter — arrangement/spatialization is the DAW's side of
+the boundary), the synthesis long tail (newsynth, multisynth, chirikov,
+fractal, ts...), and the spectral long tail (specross, spectwin,
+superaccu... — Phase 7+ material).
 
 ## Non-goals (with reactivation triggers) — UNCHANGED
 
