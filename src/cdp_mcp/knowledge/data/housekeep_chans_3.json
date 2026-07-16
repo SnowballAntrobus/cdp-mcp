@@ -1,0 +1,51 @@
+{
+  "program": "housekeep",
+  "mode": "chans",
+  "submode": 3,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Zeroes ONE channel of a multichannel file, in place: on stereo input with channo 2 the output is still stereo with L bit-equal to the source and R all-zero (verified sample-exact). channo's legal range is the INPUT's channel count, runtime-quoted ('(1.000000 to 2.000000)' on stereo, '(1.000000 to 1.000000)' on mono). MONO input takes a special path (banner: 'mono file goes to just one side of stereo outfile'): channo 1 yields a STEREO file with channel 1 zeroed and the mono signal on channel 2 - but this path has a verified BUG: one sample is dropped to 0.0 every 16384 frames (zeros found at frames 16384/32768/49152/65536/98304 where the source is nonzero; the stereo-input path is artifact-free) - hence version_sensitive. Duration static, sample-exact; deterministic. This is the curatable 'channel surgery' member of the chans family - the true split modes (1: extract one channel, 2: extract all) take no outfile argv and are engine-dropped with naming records (input stem + '_c<n>', harvestable via execute()).",
+  "musical_use": "One-sided placement without a mixer: silence the right channel to park a stereo element hard left while keeping a 2-channel file that slots straight into stereo chains (no mono/stereo mismatch errors downstream). Zero one side of a stereo render, process the survivor, and re-merge with submix interleave for independent-channel processing that stays sample-aligned. The mono path (mono in, one-sided stereo out) is the quick 'put this voice on the right only' move - mind the 16384-frame dropped-sample bug on that path: inaudible on most material (isolated single-sample zeros) but real; prefer housekeep chans 5 + this mode's stereo path when bit-cleanliness matters.",
+  "parameters": {
+    "channo": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "channel",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "The channel to ZERO (1-based). CDP-enforced 1 to the input's channel count, runtime-quoted ('Parameter[1] Value (3.000000) out of range (1.000000 to 2.000000)' on stereo; on mono only 1 is legal and selects the mono-to-one-side-of-stereo path)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Silence the right channel of a stereo file.",
+      "params": {"channo": 2},
+      "expected_use": "Output stereo: L bit-equal to source, R digital silence. Duration unchanged."
+    },
+    {
+      "description": "Put a mono sound on the right side of a fresh stereo file.",
+      "params": {"channo": 1},
+      "expected_use": "Mono input -> stereo output with ch1 zeroed, source on ch2 (subject to the 16384-frame single-sample bug on this path)."
+    }
+  ],
+  "known_issues": [
+    "MONO-PATH BUG (first-class, version_sensitive): mono input -> one-sided stereo drops ONE sample to 0.0 every 16384 frames (verified at 16384/32768/49152/65536/98304; ~2.7 zeros/second at 44.1 kHz). The stereo-input path is verified artifact-free. For bit-clean one-sided stereo: housekeep chans 5 (mono->stereo) then this mode's stereo path.",
+    "channo range is input-dependent (1..channels) - the refusal quotes the per-file bound.",
+    "Multichannel (>2) inputs: banner says one channel is zeroed in place (stereo verified; >2 unprobed beyond acceptance elsewhere in the family).",
+    "Deterministic; static duration sample-exact.",
+    "Split modes 1 (extract channo) and 2 (extract all) have NO outfile argv (auto-named '<input_stem>_c<n>.wav' in cwd, content verified bit-equal to the channel) - engine-incompatible, reachable via execute() with cwd control (tranche 11b drop records)."
+  ],
+  "references": ["cdp://docs/html/cgrohous"]
+}

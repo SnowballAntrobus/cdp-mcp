@@ -1,0 +1,64 @@
+{
+  "program": "sorter",
+  "mode": "sorter",
+  "submode": 1,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Chops a mono source into roughly esiz-second elements (esiz 0 = individual wavesets) and reassembles them sorted QUIETEST-FIRST - a crescendo built from the sound's own fragments. Content verified: output RMS across thirds rises 0.037 -> 0.065 -> 0.161 on a 4-event fixture (submode 2 is the exact mirror decrescendo, verified 0.161 -> 0.065 -> 0.037 - execute() sibling, as are 3 accelerando and 4 ritardando, both probed running with identical durations and distinct renders). Elements are cut at positive-peak-derived minima, so duration is static-with-losses: -2.4% on flat noise (the duration row), -7.9% on the event fixture at esiz 0.1, worst -22% observed on a fixture with a long tail silence (element quantization folds/drops boundary material). Fully deterministic - no seed, no randomness on this mode (identical decoded shas 1.2 s apart). MONO ONLY ('File ev4st.wav is not of correct type (must be mono)'). The waveset-scale cousin of scramble's level-sort submodes, with a free element-size dial.",
+  "musical_use": "Crescendo-as-collage: any phrase reassembles into a rise that peaks at its loudest material - the emergence gesture, built from silence upward. esiz is the identity dial: at 0.2-0.5 s the source stays recognisable (words/hits reordered by loudness into a build); at 0.02-0.05 s it granulates into a swelling texture; at 0 (wavesets) it becomes pure spectral-ish grit that assembles itself. Smooth (5-15 ms) removes clicks at element joins on sustained material - leave it 0 for percussive sources where the joins ARE the rhythm. Chain into its mirror (sorter 2 via execute(), or reverse the file) for arch shapes; feed level-evened material (retime 10) for a more gradual slope, or dynamic material for a stepped one. For seeded random order use curated submode 5; for loudness-sorts of WAVESETS with transposition/attenuation randomness use scramble 9/10.",
+  "parameters": {
+    "esiz": {
+      "type": "float",
+      "min": 0.0,
+      "max": 2000.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.02, 0.5],
+      "description": "Approximate element size in seconds; 0 = individual wavesets (verified). CDP-enforced '(0.000000 to 2000.000000)'; too big for the file refuses 'ERROR: Elementsize too big for infile. (If meant to be frq, set flag).' Breakpoint refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.' - CDP quotes parameter 2 for this slot)."
+    },
+    "smooth": {
+      "type": "float",
+      "min": 0.0,
+      "max": 50.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "musical_range": [3.0, 15.0],
+      "description": "Fade in/out splice on each segment, ms (CDP-enforced '(0.000000 to 50.000000)', refusal quotes 'Parameter[2]' - numbering quirk). Changes the render, never the duration (verified). Ignored when esiz is 0 (banner)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Word-scale crescendo from a spoken phrase.",
+      "params": {"esiz": 0.3, "smooth": 10.0},
+      "expected_use": "Elements ~0.3 s sorted quiet-to-loud; output slightly shorter than the input (element quantization)."
+    },
+    {
+      "description": "Waveset-level self-assembling grit.",
+      "params": {"esiz": 0.0},
+      "expected_use": "Individual wavesets sorted by loudness; smooth ignored at esiz 0."
+    }
+  ],
+  "known_issues": [
+    "Duration static-with-losses: flat noise -2.4% (inside the row tolerance); event material -7.9% at esiz 0.1; WORST -22% on a source with a long tail silence - boundary elements and silence get folded/dropped. Plan chains with slack, or trim silence first (sfedit) for tighter predictions.",
+    "MONO ONLY (stereo refused verbatim). Stereo sources: split with housekeep chans, sort each side (identical params give identical orderings - deterministic), rejoin with submix interleave.",
+    "Submodes 2 (decrescendo - verified exact mirror), 3 (accelerando), 4 (ritardando) share this argv shape and are reachable via execute(); submode 5 (random order, seeded) is curated separately - its extra seed positional changes the argv shape.",
+    "The -f/opch/pch/metagrp pitch machinery (element size as frequency trace, pitch-mapped output) is uncurated - execute() territory.",
+    "Deterministic: no seed slot in modes 1-4, no clock path (identical decoded shas 1.2 s apart)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

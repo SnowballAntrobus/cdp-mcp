@@ -1,0 +1,75 @@
+{
+  "program": "retime",
+  "mode": "retime",
+  "submode": 10,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Adjusts the LEVELS of silence-separated events - evening them out or imposing an accent pattern - without moving anything ('INFO: Extracting events envelope / INFO: Adjusting events loudness'). Duration genuinely static (sample-exact). Two régimes: with meter 0 (default), evening 0..1 scales how much event loudnesses are pulled toward equal - BUT this path has NO headroom management and boosts quiet events past full scale (verified: evening 1 on events at peak gains 1.0/0.3/0.6/0.15 drove output peaks to 1.0/3.35/1.43/6.45 - up to 6.4x over 0 dBFS in the float file, no warning). With meter N > 0, every Nth event (starting at the first) is accented and the others are scaled to exactly evening x the accent level (verified: meter 3, evening 0.3 -> unaccented peaks exactly 0.3x) - this path only attenuates and is clip-safe. The banner's second flag '[-mpregain]' is a typo for -p, and -p is a verified NO-OP in this mode (byte-identical at 0.1/0.5/default). Event detection = runs of >= minsil ms of EXACT digital zeros; no-silence material refuses 'NO SILENCE-GAPS FOUND IN FILE.' Deterministic; stereo accepted.",
+  "musical_use": "The dynamics half of event surgery: after quantising with mode 4 or re-rhythmicising with 6/7, use meter to write the accent pattern - meter 3, evening 0.3 turns any even stream into a waltz (STRONG-weak-weak); meter 2 gives a backbeat feel; meter 4 marks bar lines. Evening mode (meter 0) at moderate values (0.3-0.6) tames wild level differences in a phrase so later granular/sorting processes see comparable events - but stage attenuation after it (see known_issues) because it normalises by loudness and will push short quiet events far past full scale at evening near 1. The two-pass combo mode 9 -> mode 10 (thin, then accent) gets drum-machine-like programming out of any event train.",
+  "parameters": {
+    "minsil": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [20.0, 500.0],
+      "description": "Minimum run of EXACT-ZERO samples that separates events (CDP-enforced '(0.045351 to 10000.000000)' at 44.1 kHz). Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "evening": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.2, 0.6],
+      "description": "With meter 0: 0 = no effect, 1 = drive event loudnesses to equal (CLIPS - see known_issues); intermediate = partial evening. With meter > 0: the level of UNACCENTED events relative to accented ones (0.3 = one-third level, verified exact on peaks). CDP-enforced '(0.000000 to 1.000000)' (Parameter[2]); breakpoint refused (parameter 2)."
+    },
+    "meter": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": "events",
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": "-m",
+      "flag_kind": "attached_value",
+      "musical_range": [2, 8],
+      "description": "Accent pattern: 0 = evening mode; N = every Nth event accented starting at event 1, others scaled to evening x accent level (verified exact at -m3). Source range 0-32767 (int slot). Breakpoint refused (parameter 3)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Waltz accents on an even event stream.",
+      "params": {"minsil": 50.0, "evening": 0.3, "meter": 3},
+      "expected_use": "Events 1,4,7,... keep their level; the rest drop to exactly 30% - attenuation only, clip-safe."
+    },
+    {
+      "description": "Moderate level evening before granular processing.",
+      "params": {"minsil": 50.0, "evening": 0.4},
+      "expected_use": "Loudness differences reduced ~partially; follow with modify loudness gain < 1 if the source had very quiet events (boost path can exceed 0 dBFS)."
+    }
+  ],
+  "known_issues": [
+    "EVENING MODE CLIPS (first-class): meter 0 loudness-equalisation boosts quiet events with NO headroom management - verified peaks up to 6.45x full scale in the float output at evening 1 (3.28x at 0.5), no warning from CDP. The engine's float pipeline preserves the overs; attenuate downstream (modify loudness) or prefer the meter path, which only attenuates.",
+    "PREGAIN -p IS A NO-OP (first-class): -p0.1 and -p0.5 render byte-identical to flag-less. The banner usage line '[-mmeter] [-mpregain]' shows -m twice - the real flag is -p (source flag string \"mp\") and it does nothing in this mode; the entry omits it.",
+    "EVENT DETECTION = EXACT ZEROS (no threshold). No-silence material refuses 'ERROR: INVALID DATA / ERROR: NO SILENCE-GAPS FOUND IN FILE.'",
+    "Duration genuinely static (sample-exact, level-only edit); deterministic; stereo accepted (2.5 s 2-ch).",
+    "Accents start at event 1 and repeat every meter events (1, 1+N, 1+2N, ... verified at N=3)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

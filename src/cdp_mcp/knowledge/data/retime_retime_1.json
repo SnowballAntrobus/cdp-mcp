@@ -1,0 +1,59 @@
+{
+  "program": "retime",
+  "mode": "retime",
+  "submode": 1,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "refpoints"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Moves USER-SPECIFIED peaks in a sound onto a regular pulse at a given tempo - the one retime mode that needs NO silence detection, so it works on ANY material (verified on continuous noise). You supply a text datafile of peak times (>= 2 ascending times in seconds); retime edits the file (removing sound or adding silence) so those peaks land on the grid first_peak + k*beat, aligning events by their PEAK, not their onset (verified: refpoints at 0.30/0.925/1.575/2.21 with tempo 120 put peaks at ~0.30/0.80/1.30/1.80). Output duration is refpoints-file-driven (the duration_model expression names the aux param, which skips the pre-flight; the engine watchdog is the guard): on well-separated events it is first_ref + (n-1)*beat + (indur - last_ref), but inter-peak segments truncate when they collide, so no closed form is curated. Deterministic (retime.c contains no randomness; identical decoded shas 1.2 s apart); stereo accepted. Best applied to files with clear peaks - the peakfind program (curated) generates exactly this file format from any sound.",
+  "musical_use": "Quantise found rhythm to a grid without touching pitch or timbre: mark the syllable stresses of a spoken phrase (run peakfind, or type times by hand) and lock them to a tempo so speech sits on a beat - the purpose retime was built for (Wishart's idealised-rhythmic-frame trick). Because detection is manual, this is the escape hatch for material the other retime modes refuse: sounds with a noise floor, reverb tails, or no true silences. Chain: peakfind -> (edit the times if needed) -> retime 1 at your session tempo; layer the result against a clicknew click track rendered from the SAME times to hear the quantisation. Tempo below 1.0 is read as a beat length in seconds instead of MM - tempo 0.5 renders byte-identically to tempo 120 (verified) - so you can specify grids directly in seconds. Peaks that the pulse would push past each other merge/truncate; give the grid room (slower tempo) if events smear.",
+  "parameters": {
+    "refpoints": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text datafile of peak times in seconds (produce with write_data_file(); peakfind's .txt output is exactly this format - one ascending time per line). At least 2 times ('ERROR: TOO FEW ENTERED TIMES (MUST BE AT LEAST 2).'); must ascend ('ERROR: TIME (0.500000) OUT OF SEQUENCE OR INVALID, IN FILE ...'); times beyond the file end are silently DISCARDED before the count check (a 2-time file with one late time refuses as too-few). A scalar in this slot is refused ('Failed to open file 0.3 for input.')."
+    },
+    "tempo": {
+      "type": "float",
+      "min": 20.0,
+      "max": 400.0,
+      "unit": "MM",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [40.0, 240.0],
+      "description": "Output pulse as a metronome mark (CDP range quote '(0.000000 to 400.000000)' plus the runtime rule 'Output tempo vals must be > 0 AND less than 1 (beat duration) OR >= 20 (MM)' - values in [1, 20) refused). DUAL-UNIT: CDP also reads values < 1.0 as a beat DURATION in seconds; tempo 0.5 verified byte-identical to tempo 120. The curated bounds pin the MM form; use execute() for the sub-1.0 seconds form. Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Lock a spoken phrase's stresses to 120 MM using hand-marked peaks.",
+      "params": {"refpoints": "peaks.txt", "tempo": 120.0},
+      "expected_use": "First write_data_file('peaks.txt', '0.30 0.925 1.575 2.21'). Peaks land 0.5 s apart; the material between them is silence-edited, not time-stretched."
+    },
+    {
+      "description": "Peakfind-to-retime chain: quantise to a 100 MM grid from measured peaks.",
+      "params": {"refpoints": "found_peaks.txt", "tempo": 100.0},
+      "expected_use": "found_peaks.txt is a peakfind output copied into the session data/ dir - the formats are directly compatible (verified round-trip)."
+    }
+  ],
+  "known_issues": [
+    "Duration is refpoints-driven and data-dependent: the expression duration_model names the aux param, so the duration pre-flight SKIPS (submix mix pattern) and the engine watchdog is the guard. On well-separated events outdur = first_ref + (n-1)*(60/tempo) + (indur - last_ref) (verified 4-dp at two tempi); when the grid forces peak-to-peak segments to overlap they truncate (verified on continuous noise: predicted 2.0, actual 1.5).",
+    "Events are aligned by PEAK (the refpoint), not onset - a long attack before the marked peak eats into the previous grid slot.",
+    "The other event-timing retime modes (4-10) detect events as runs of EXACT digital zeros; mode 1 is the only one that works on material with a noise floor, because you mark the times yourself.",
+    "Deterministic: no seed, no clock path (verified identical decoded shas 1.2 s apart). Stereo accepted (2-ch output, duration matches mono).",
+    "tempo values in [1, 20) are refused at runtime; values < 1.0 mean beat-duration seconds (byte-identical equivalence verified) - curated entry pins the MM form."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

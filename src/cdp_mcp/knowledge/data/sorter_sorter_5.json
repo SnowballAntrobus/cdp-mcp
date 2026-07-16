@@ -1,0 +1,74 @@
+{
+  "program": "sorter",
+  "mode": "sorter",
+  "submode": 5,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": "related",
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Chops a mono source into roughly esiz-second elements (esiz 0 = wavesets) and plays them in SEEDED RANDOM order - the shuffle sibling of the curated crescendo sort (submode 1). The seed WORKS but the banner lies about zero (first-class): 'Zero seed-value gives different random ordering on each run' is FALSE - source is 'if(mode==RAND && seed > 0) srand(seed)', so seed 0 never seeds the generator and glibc's untouched state equals srand(1). Verified: seed 0 twice 1.3 s apart BYTE-IDENTICAL and identical to seed 1; seed 42 reproducible byte-identically 1.2 s apart; 42 vs 43 differ. There is NO clock path - sorter is ALWAYS reproducible; the usable distinct-seed space is 1-256. Duration behavior identical to submode 1: static-with-losses (-2.4% flat noise = the duration row; -7.9% event material at esiz 0.1; worst -22% with long tail silence). MONO ONLY.",
+  "musical_use": "Reproducible shuffle: scatter a phrase's words, a break's hits, or (at esiz ~0.02-0.05) its grains into a new order you can recall exactly by seed - audition seeds like takes, keep the one that grooves. Where scramble 1/2 shuffles WAVESETS with its own duration argument, sorter 5 shuffles at any element scale with the source's own length. The permutation respects element boundaries, so at word scale the result reads as cut-up poetry, at grain scale as texture. Change the seed VALUE for variants (reruns can never differ); render L and R with seed and seed+1 for a wide decorrelated stereo shuffle from a mono source (the entry's related stereo-link default). Pair with retime 4 afterwards to force the shuffle onto a grid.",
+  "parameters": {
+    "esiz": {
+      "type": "float",
+      "min": 0.0,
+      "max": 2000.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.02, 0.5],
+      "description": "Approximate element size in seconds; 0 = individual wavesets. CDP-enforced '(0.000000 to 2000.000000)'; oversize refused 'Elementsize too big for infile. (If meant to be frq, set flag).' Breakpoint refused."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 256,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "REQUIRED positional random seed (CDP-enforced '(0.000000 to 256.000000)', Parameter[2]). Same seed = byte-identical output (verified 1.2 s apart); different seeds differ. SEED 0 IS NOT A CLOCK PATH: banner claims it 'gives different random ordering on each run' but seed 0 renders byte-identical every run and equal to seed 1 (source: srand only called when seed > 0). Usable distinct-seed space 1-256; entry default 1. Breakpoint refused ('Cannot read parameter 2')."
+    },
+    "smooth": {
+      "type": "float",
+      "min": 0.0,
+      "max": 50.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "musical_range": [3.0, 15.0],
+      "description": "Fade in/out splice per segment, ms (CDP-enforced '(0.000000 to 50.000000)'); render-only, never duration. Ignored at esiz 0 (banner)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Word-scale cut-up, reproducible.",
+      "params": {"esiz": 0.3, "seed": 42, "smooth": 10.0},
+      "expected_use": "Elements shuffled in seed-42 order; rerun with 42 for the identical take, change the seed for variants."
+    },
+    {
+      "description": "Granular scatter texture.",
+      "params": {"esiz": 0.03, "seed": 7},
+      "expected_use": "~30 ms grains in seeded random order - texture rather than phrase."
+    }
+  ],
+  "known_issues": [
+    "BANNER DIVERGENCE (first-class): seed 0 does NOT vary per run - it is byte-identical to seed 1 (glibc srand-never-called == srand(1); verified twice 1.3 s apart). No clock path exists anywhere in sorter; use different seed VALUES for variants.",
+    "Duration static-with-losses, as submode 1: -2.4% flat noise, -7.9% event material, worst -22% with long tail silences - plan chains with slack.",
+    "MONO ONLY ('File ... is not of correct type (must be mono)'). stereo_link_default 'related' records the intended per-channel-seed default (seed and seed+1) for engine stereo splits.",
+    "Same-duration guarantee across submodes: modes 1-5 on the same input render identical lengths with distinct orderings (verified all five).",
+    "-f/opch/pch/metagrp pitch machinery uncurated - execute()."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

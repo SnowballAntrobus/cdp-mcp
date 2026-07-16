@@ -1,0 +1,79 @@
+{
+  "program": "retime",
+  "mode": "retime",
+  "submode": 7,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "retempodata"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Positions each silence-separated event at a specified TIME in seconds: the retempodata datafile lists one onset time per event (pattern assumed to start at time zero), offset shifts the whole pattern. Verified: times 0/0.4/0.8/1.6 with offset 0.2 put onsets at exactly 0.2/0.6/1.0/1.8. Output duration = offset + last_time + last_event_length - datafile-driven (the expression names the aux param, skipping the pre-flight; the watchdog is the guard). Same STRICT COUNT CONTRACT as mode 6: fewer datafile entries than detected events refuses verbatim ('Found 4 events, but only 2 out-event-beat-placements specified.'); more entries warns and ignores the surplus. Event detection = runs of >= minsil ms of EXACT digital zeros (no threshold); no-silence material refuses 'NO SILENCE-GAPS FOUND IN FILE.' This is the absolute-time twin of mode 6 (beats) and the event-scale sibling of grain reposition (which repositions GRAINS by timefile and silently drops the surplus - opposite contract). Deterministic; stereo accepted.",
+  "musical_use": "Absolute-time event placement - the timefile glue mode. Feed it times harvested by peakfind from ANOTHER sound and the phrase adopts that sound's rhythm: peakfind a drum break, retime 7 a spoken phrase onto those times, and the voice hits with the drums (the cross-rhythm copy trick, at event scale instead of grain scale). Or write times by hand for exact hit points against picture/click. offset delays the whole pattern for flams and staggered layers of the same material. Use mode 6 instead when you want the pattern expressed in beats so tempo stays a single knob. Count contract cuts both ways: too few times is a refusal, so pad the file with extra times (surplus is ignored with a warning) when the event count is uncertain.",
+  "parameters": {
+    "retempodata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text datafile of event onset TIMES in seconds (pattern starts at time zero), one per detected event, whitespace/newline separated (write_data_file(); peakfind output is format-compatible). COUNT >= detected events or refused verbatim; surplus entries ignored with a WARNING."
+    },
+    "offset": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1000.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Time of the first sounding event in the output - added to every datafile time (CDP-enforced '(0.000000 to 1000.000000)', Parameter[2]). Entry default 0.0. Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.' when substituted; family numbering)."
+    },
+    "minsil": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [20.0, 500.0],
+      "description": "Minimum run of EXACT-ZERO samples that separates events (CDP-enforced '(0.045351 to 10000.000000)' at 44.1 kHz). Breakpoint refused (parameter 2)."
+    },
+    "pregain": {
+      "type": "float",
+      "min": 0.01,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Input gain (CDP range 0-1; near-zero refused 'Pregain is (effectively) zero: output will be silence.'). Entry default 1.0. Breakpoint refused (parameter 3)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Place 4 events at explicit times.",
+      "params": {"retempodata": "times.txt", "offset": 0.0, "minsil": 50.0, "pregain": 1.0},
+      "expected_use": "First write_data_file('times.txt', '0 0.4 0.8 1.6'). Output ends at 1.6 + last event length."
+    },
+    {
+      "description": "Rhythm transplant: syllables onto a drum break's peakfind times.",
+      "params": {"retempodata": "break_peaks.txt", "offset": 0.0, "minsil": 50.0, "pregain": 1.0},
+      "expected_use": "break_peaks.txt = peakfind output copied into data/ (formats compatible); the phrase now pulses with the break. Pad with extra times if the phrase may have more events than the break has peaks."
+    }
+  ],
+  "known_issues": [
+    "EVENT DETECTION = EXACT ZEROS (no threshold). No-silence material refuses 'ERROR: INVALID DATA / ERROR: NO SILENCE-GAPS FOUND IN FILE.'",
+    "Count contract: fewer times than events = hard refusal; more = warning + surplus ignored (both verbatim, verified). Contrast grain reposition, which silently DROPS surplus grains.",
+    "Duration is datafile-driven: offset + last_used_time + last_event_length (verified exact); the pre-flight skips via the aux-name expression - the engine watchdog guards runaway time values.",
+    "Times may place events so close they merge (no overlap possible - silence editing only).",
+    "Deterministic (pair verified); stereo accepted (2.22 s 2-ch matches mono)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

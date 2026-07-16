@@ -1,0 +1,59 @@
+{
+  "program": "clicknew",
+  "mode": "clicks",
+  "submode": null,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": "none",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "clicktimes"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Renders a CLICK TRACK from a text datafile of times - a pure generator with NO audio input (input_arity 0). Each listed time gets a short click (~18 samples wide, peak ~0.96); output is mono, duration = last listed time + the click tail (~21 samples; verified 1.902336 -> 1.902812 s). ROUND-TRIP WITH PEAKFIND VERIFIED: peakfind's output fed verbatim as clicktimes renders clicks whose onsets sit within 2 samples of each peakfind time. The click WAVESHAPE is clock-randomized per run (source: initrand48() = srand(time(0)) + drand48 in generate_clicktable; no seed argv): runs > 1.2 s apart differ in decoded samples at identical durations, and runs within the same second collide byte-identical - click TIMES are deterministic, only the shape jitters. BANNER SRATE LIST IS FALSE (first-class): despite the 8 listed rates, the enforced range gate '(44100.000000 to 96000.000000)' intersected with the LEGAL_SRATE set {16000,24000,22050,32000,44100,48000} leaves exactly TWO legal values - 44100 and 48000 (88200 and 96000 refused 'ERROR: Illegal Sampling Rate.'). The duration_model expression names the aux param, so the pre-flight skips (submix-mix pattern) and the engine watchdog guards runaway time values.",
+  "musical_use": "The audible proof of any timefile: render the times you are about to feed retime/grain/stutter and HEAR the rhythm before committing - peakfind a source, clicknew its output, and the click track plays that source's rhythmic skeleton (mix them to audit the analysis). Also a metronome factory for arbitrary grids: write times by hand (or generate them) for swing, accelerandi, or additive meters no DAW click offers, then use the render as a sync reference or as raw material - clicks through filter bank ring into pitched percussion, through revecho into rhythmic space. Keep times ascending per line (the per-line legality quirk in known_issues) and remember every render's click timbre differs slightly run to run: render once and reuse the file when layering.",
+  "parameters": {
+    "clicktimes": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text datafile of click times in seconds, ascending, >= 0, whitespace/newline separated; ';' comment lines allowed (verified). peakfind output is directly compatible. Max time 32767 s ('ERROR: Maximum time is excessive : 40000.000000'). LEGALITY QUIRK (source: the ascending check resets per LINE): non-ascending times on SEPARATE lines are ACCEPTED and the render silently truncates at the out-of-order point ('1.0\\n0.5\\n' -> 0.50 s output); the same values on one line refuse 'ERROR: Times do not advance at time ...'. A single time works (0.5 -> 0.5005 s)."
+    },
+    "srate": {
+      "type": "int",
+      "min": 44100,
+      "max": 48000,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 44100,
+      "flag": null,
+      "description": "Output sample rate - ONLY 44100 and 48000 are legal (banner's list of 8 rates is wrong: 16000/22050/24000/32000 refused by the range gate '(44100.000000 to 96000.000000)'; 88200/96000 in-range but refused 'ERROR: Illegal Sampling Rate.' by the LEGAL_SRATE check). Entry default 44100 (positional, always emitted)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Audible check of a peakfind analysis.",
+      "params": {"clicktimes": "found_peaks.txt", "srate": 44100},
+      "expected_use": "found_peaks.txt is peakfind's .txt copied into data/. Clicks land within 2 samples of each analyzed peak; mix under the source to audit."
+    },
+    {
+      "description": "Hand-written swing click at 120 MM.",
+      "params": {"clicktimes": "swing_grid.txt", "srate": 44100},
+      "expected_use": "First write_data_file('swing_grid.txt', '0 0.33 0.5 0.83 1.0 1.33 1.5 1.83'). Output ends ~0.5 ms after the last click."
+    }
+  ],
+  "known_issues": [
+    "CLOCK-RANDOMIZED CLICK SHAPE, UNSEEDABLE: no seed parameter exists; identical commands render different click waveshapes (times identical) unless launched within the same second (byte-identical collision, verified). Render once and reuse rather than re-rendering for layers. A/B of anything downstream must reuse one render.",
+    "Only srates 44100 and 48000 work (both refusal styles verified verbatim); the banner's other rates are unreachable.",
+    "Duration = last clicktime + ~21 samples; the pre-flight skips (aux-name expression), and a large last time renders huge silence-padded files (32766 s accepted -> ~1.9 GB) - the engine duration cap/watchdog is the guard. Keep the last time honest.",
+    "Per-line ascending-check quirk: newline-separated out-of-order times are accepted and SILENTLY TRUNCATE the render at the reversal; keep the file sorted (peakfind output always is).",
+    "Output mono only; click peak ~0.96 - near full scale, attenuate before dense mixing.",
+    "Generator entry: process() takes no input argument; graph()/batch()/sweep() refuse arity-0 entries (arity_zero_unsupported)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

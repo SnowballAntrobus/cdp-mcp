@@ -1,0 +1,59 @@
+{
+  "program": "retime",
+  "mode": "retime",
+  "submode": 9,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Replaces silence-separated events with silence according to a 0/1 mask pattern - a rhythmic event gate. The maskdata datafile is a sequence of 0s and 1s (0 masks the event, 1 keeps it); the pattern CYCLES when it runs out (banner-confirmed, verified: a 2-entry mask '0 1' on 4 events silenced events 1 and 3). Masking happens IN PLACE: kept events are untouched at their original positions, masked events become digital silence (per-event RMS verified 0.0000), so duration is GENUINELY STATIC (2.5 s -> 2.5 s sample-exact) - the one event-timing retime mode with an exact static model. Event detection = runs of >= minsil ms of EXACT digital zeros (no threshold); no-silence material refuses 'NO SILENCE-GAPS FOUND IN FILE.' Mask values other than 0/1 refused verbatim ('ERROR: MASK VALUE (2.000000) INVALID IN FILE mask2.txt.'). Deterministic; stereo accepted.",
+  "musical_use": "Pattern-based thinning: write '1 0' to keep every other word/hit, '1 0 0' for one-in-three, '0 1 1 0' for composed hockets - the phrase keeps its exact timing but breathes in the pattern you wrote. Because the gaps stay (silence replaces sound), the rhythm's skeleton remains audible as rests: this reads as syncopation, not compression. Two complementary masks ('1 0' and '0 1') on the same file give interlocking parts that sum back to the original - instant call-and-response from one recording, or split across the stereo field. Cycling means short masks impose periodic meter on long event trains. Combine with retime 4 first (quantise, then mask) for drum-machine-like programming of found sound.",
+  "parameters": {
+    "maskdata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text datafile: sequence of 0s and 1s separated by spaces or newlines (write_data_file()); 0 masks (silences) an event, 1 reveals it; the pattern repeats once its end is reached (verified). Values other than 0/1 refused ('MASK VALUE (2.000000) INVALID IN FILE ...'). An ALL-ZERO mask exits 0 and writes a full-length silent file - the engine's RMS output verification is the only guard."
+    },
+    "minsil": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [20.0, 500.0],
+      "description": "Minimum run of EXACT-ZERO samples that separates events (CDP-enforced '(0.045351 to 10000.000000)' at 44.1 kHz, srate-dependent floor). Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Keep every other event.",
+      "params": {"maskdata": "mask.txt", "minsil": 50.0},
+      "expected_use": "First write_data_file('mask.txt', '1 0'). Events 1,3,5,... kept in place; 2,4,6,... become silence; duration unchanged."
+    },
+    {
+      "description": "Complementary part for hocketing (run on the same input).",
+      "params": {"maskdata": "mask_inv.txt", "minsil": 50.0},
+      "expected_use": "write_data_file('mask_inv.txt', '0 1'). Mixing this render with the '1 0' render reconstructs the original phrase."
+    }
+  ],
+  "known_issues": [
+    "EVENT DETECTION = EXACT ZEROS (no threshold; source ibuf[i]==0.0). No-silence material refuses 'ERROR: INVALID DATA / ERROR: NO SILENCE-GAPS FOUND IN FILE.'",
+    "Static duration is GENUINE here (sample-exact; masking is in-place) - unlike modes 4/5 where static is only the flat-material baseline.",
+    "ALL-ZERO mask renders a silent full-length file with exit 0 (engine RMS verification catches it); make sure at least one 1 appears per cycle.",
+    "Mask cycles (2 entries drive any number of events); mask values restricted to 0/1 (fractional/other refused verbatim).",
+    "Deterministic (identical decoded shas 1.2 s apart); stereo accepted (2.5 s 2-ch)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

@@ -1,0 +1,85 @@
+{
+  "program": "retime",
+  "mode": "retime",
+  "submode": 6,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "retempodata"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Positions each silence-separated event at a specified BEAT position: the retempodata datafile lists one beat value per event (starting at beat 0), tempo converts beats to seconds, offset delays the first event. Verified: beats 0/1.5/2/3 at 120 MM, offset 0.2 put onsets at exactly 0.2/0.95/1.2/1.7. Output duration = offset + last_beat*(60/tempo) + last_event_length - datafile-driven (the expression names the aux param, which skips the pre-flight; the watchdog is the guard). STRICT COUNT CONTRACT (unlike grain reposition's silent drop): fewer datafile entries than events REFUSES ('ERROR: Found 4 events, but only 2 out-event-beat-placements specified.'); more entries warns and ignores the surplus. Event detection = runs of >= minsil ms of EXACT digital zeros (no threshold); material without true silences refuses 'NO SILENCE-GAPS FOUND IN FILE.' Deterministic; stereo accepted.",
+  "musical_use": "Compose the rhythm, keep the sounds: write any beat pattern - swing (0/1.66/2/3.66), clave, additive meters - and the events of a phrase snap onto it. This is retime 4's regular grid generalised to arbitrary rhythm: same tempo framework, but YOU place every event. The classic move is re-rhythmicising speech: 4 syllables onto '0 0.75 1 1.75' makes spoken words swing at 120 MM. Sibling mode 7 takes raw seconds instead of beats - use 6 when you think in meter (retargeting tempo later is one parameter), 7 when you think in absolute time. Offset shifts the whole pattern for layering staggered copies. Because the count must match exactly, run retime 11 via execute() (or count zero-gaps) to learn how many events CDP sees before writing the datafile.",
+  "parameters": {
+    "retempodata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text datafile of event positions in BEATS (events assumed to start at beat zero), one value per detected event, whitespace/newline separated (produce with write_data_file()). COUNT MUST BE >= the number of detected events: fewer refuses verbatim ('Found N events, but only M out-event-beat-placements specified.'), more warns ('WARNING: Found 4 events : 6 out-event-beat-placements specified.') and ignores the extras."
+    },
+    "tempo": {
+      "type": "float",
+      "min": 20.0,
+      "max": 1000.0,
+      "unit": "MM",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [40.0, 300.0],
+      "description": "Beat duration = 60/tempo s (CDP-enforced '(0.010000 to 1000.000000)', Parameter[2]; values < 1.0 are read as beat-duration seconds - dual-unit as in the rest of the family; curated bounds pin the MM form). Breakpoint refused (parameter 1)."
+    },
+    "offset": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1000.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Time of the first sounding event in the output (CDP-enforced '(0.000000 to 1000.000000)', Parameter[3]). Entry default 0.0 (positional, always emitted). Breakpoint refused."
+    },
+    "minsil": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [20.0, 500.0],
+      "description": "Minimum run of EXACT-ZERO samples that separates events (CDP-enforced '(0.045351 to 10000.000000)' at 44.1 kHz, srate-dependent floor). Breakpoint refused (parameter 3)."
+    },
+    "pregain": {
+      "type": "float",
+      "min": 0.01,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Input gain (CDP range 0-1; near-zero refused at runtime 'ERROR: Pregain is (effectively) zero: output will be silence.'). Entry default 1.0. Breakpoint refused (parameter 4)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Swing a 4-event phrase at 120 MM.",
+      "params": {"retempodata": "swing.txt", "tempo": 120.0, "offset": 0.2, "minsil": 50.0, "pregain": 1.0},
+      "expected_use": "First write_data_file('swing.txt', '0 1.5 2 3'). Onsets land at 0.2/0.95/1.2/1.7 s; output = 0.2 + 3*0.5 + last event length."
+    }
+  ],
+  "known_issues": [
+    "EVENT DETECTION = EXACT ZEROS (no threshold; source ibuf[i]==0.0). Material without true digital silences refuses 'ERROR: INVALID DATA / ERROR: NO SILENCE-GAPS FOUND IN FILE.' - gate first or use retime 1.",
+    "Datafile count contract: entries < events is a hard refusal (verbatim above); entries > events is a warning + surplus ignored. Count events beforehand (retime 11 via execute(), or count the zero-gaps).",
+    "Duration is datafile-driven: offset + last_used_beat*(60/tempo) + last_event_length (verified exact). The expression duration_model names the aux param so the pre-flight skips; large beat values expand the file - the engine watchdog is the guard.",
+    "Beat values may be fractional and non-monotonic spacing is allowed (swing verified); events longer than the slot to the next beat will overrun and merge, as in mode 4.",
+    "Deterministic (pair verified); stereo accepted (2-ch, same duration)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

@@ -1,0 +1,36 @@
+{
+  "program": "retime",
+  "mode": "retime",
+  "submode": 12,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Finds the start of the sound in a file - the time of the FIRST NON-ZERO SAMPLE - and writes it to a text DATA file (not audio): one line, '<time><TAB><input filename as given>' (verified '0.050023\\tev4.wav' on a fixture with a 0.05 s digital-silence lead). Parameterless. The outfile must have a .txt extension or none ('ERROR: Output textfile (r12b.wav) must have a '.txt' extension, or none.'). If the target file already EXISTS the line is APPENDED (source opens with mode 'a' - 'permits bulk-processing of files to same outfile'); under the engine's fresh-output-name contract this never triggers, but it is a trap for execute() users reusing names. MONO pinned because of a stereo bug: on stereo input the reported time is the first nonzero INTERLEAVED-sample index divided by the sample rate - exactly 2x the true time (verified 0.100045 reported for a 0.05 s stereo lead). The duration_model 'static' is a schema placeholder - data outputs skip the audio duration pre-flight. Deterministic.",
+  "musical_use": "Measures leading silence so chains can compensate for it: harvest the onset time of a rendered event or imported sample, then feed it to sfedit cut (trim the lead), to grain reposition / retime 7 timefiles (align several one-shots to a common zero), or subtract it when computing hit points. The tab-separated filename column makes accumulated files self-documenting when several sounds are bulk-processed to one list via execute(). For peak times rather than the first sample, use peakfind; for event-length statistics use retime 11 via execute() (info only, no file). Zero-based detection means a single dither sample defeats it - this tool believes in digital silence as literally as the rest of the retime family.",
+  "parameters": {},
+  "examples": [
+    {
+      "description": "Measure a sample's leading silence.",
+      "params": {},
+      "expected_use": "Output .txt contains one line: '<first_nonzero_time>\\t<input name>'. Feed the time to sfedit cut's start to trim the lead."
+    }
+  ],
+  "known_issues": [
+    "DATA OUTPUT (.txt), not audio: cannot be auditioned or fed to audio inputs; the duration pre-flight is skipped (static is a placeholder). Consumers read the first whitespace-separated field as the time.",
+    "STEREO BUG (first-class): stereo input is accepted but the time is computed on the interleaved sample stream - reported values are 2x the true time (verified). Entry pinned MONO; split first (housekeep chans) if you must measure a stereo file.",
+    "The output line includes the input filename AS GIVEN on the command line (session-relative path in engine use).",
+    "APPEND semantics when the outfile pre-exists (source fopen 'a') - moot under engine fresh names; real for execute() reuse.",
+    "Detects the first sample that is not exactly 0.0 - any noise floor reads as time ~0.",
+    "Deterministic (identical text 1.2 s apart)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

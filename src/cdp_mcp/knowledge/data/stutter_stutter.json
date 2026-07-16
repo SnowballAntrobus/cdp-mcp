@@ -1,0 +1,163 @@
+{
+  "program": "stutter",
+  "mode": "stutter",
+  "submode": null,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Slices the source into elements at USER-SPECIFIED times (no silence detection - works on any material, flat noise verified), cuts random-length segments from element starts, and plays them in random order with optional inserted silences, until dur seconds are filled. Duration is set_by dur with an up-to-one-segment overshoot: the render finishes the segment in flight (verified: dur 4 seed 5 -> 4.0001; dur 2.5 -> 2.854; dur 6 -> 6.257; seed 9 at dur 4 -> 4.238 - overshoot is seed-dependent). SEED WORKS with no clock path (source: unconditional srand(seed)): seed 5 byte-identical 1.2 s apart, 5 vs 9 differ in samples AND duration, seed 0 == seed 1 (glibc), range 0-256. trans (-t) and atten (-a) are BREAKPOINT-CAPABLE at fixed seed (each brk render differs from both scalar endpoints; -t0/-a0 byte-equal flag-less); all six numeric positionals refuse brks. Stereo accepted (2-ch output). Built for speech (banner: elements = words or syllables) but the time-slicing is material-agnostic.",
+  "musical_use": "Stochastic re-speaking: slice a phrase at its word boundaries (peakfind or by ear) and stutter re-utters it - fragments always start at element STARTS, so attacks and consonants survive and the result babbles convincingly rather than granulating. dur decouples output length from the source: fill 30 s from a 2-second phrase. segjoins > 1 lets cuts span joined element pairs/triples (longer quasi-phrases); silprop/silmin/silmax compose the pausing - speech-like at 0.2-0.4/0.05/0.3, telegraphic at higher silprop; bias pushes toward short fragments (-1, nervous) or whole elements (+1, deliberate). -t adds per-segment random transposition (0-3 semitones, pitch instability like excited speech), -a random level scatter; both time-variable, so a brk can make the stutter progressively wilder. -p permutes (every element used before reuse) for even coverage. Same seed = same take, guaranteed.",
+  "parameters": {
+    "slicedata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text datafile of times (seconds, ascending) at which to slice the source into elements (write_data_file(); peakfind output format-compatible). Real floor rule: times must sit >= 2 splice-durations (0.006 s) from the start and step by the same ('Invalid time (0.001000) (closer to start than 2 splicedurs = 0.006) at line 1...'; 'Times (0.630000 & 0.620000) not increasing by 2 splicedurs (0.006)...') - the banner's 'MT = 0.016 secs' is NOT the enforced value (0.01 steps accepted, verified). LANDMINE: a time BEYOND the file end is accepted SILENTLY and changes the render (verified 2.6 on a 2.5 s file -> 5.84 s output at dur 4)."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.1,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [2.0, 60.0],
+      "description": "Output duration target - the render fills to dur then finishes the segment in flight (overshoot up to ~one segment + silmax, seed-dependent; +0.35 s worst observed). Breakpoint refused ('Cannot read parameter 1')."
+    },
+    "segjoins": {
+      "type": "int",
+      "min": 1,
+      "max": 8,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "1 = cut only within single elements; N = also use runs of 2..N joined elements as cut sources (cuts end in the last joined element). CDP-enforced '(1.000000 to 8.000000)' (Parameter[3]). Breakpoint refused (parameter 2)."
+    },
+    "silprop": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.1, 0.5],
+      "description": "Proportion of joins that get inserted silence (CDP-enforced '(0.000000 to 1.000000)', Parameter[4]; apart from none, minimum is 1 in 20 per banner). Breakpoint refused (parameter 3)."
+    },
+    "silmin": {
+      "type": "float",
+      "min": 0.0,
+      "max": 10.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Minimum inserted-silence duration (CDP-enforced '(0.000000 to 10.000000)', Parameter[5]). silmin > silmax is accepted SILENTLY (runs; no swap message) - keep them ordered yourself. Breakpoint refused (parameter 4)."
+    },
+    "silmax": {
+      "type": "float",
+      "min": 0.0,
+      "max": 10.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Maximum inserted-silence duration (CDP-enforced '(0.000000 to 10.000000)', Parameter[6]). Breakpoint refused (parameter 5)."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 256,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "REQUIRED positional seed (CDP-enforced '(0.000000 to 256.000000)', Parameter[7]). WORKING and clock-free: same seed byte-identical (1.2 s apart), different seeds differ in content AND overshoot; seed 0 == seed 1 (glibc srand(0)==srand(1), verified byte-identical) - distinct-seed space 1-256. Entry default 1. Breakpoint refused (parameter 6)."
+    },
+    "trans": {
+      "type": "float",
+      "min": 0.0,
+      "max": 3.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Range of random per-segment transposition (CDP-enforced '(0.000000 to 3.000000)', Parameter[8] - the banner gives NO bound; 3 st is the real cap). -t0 verified byte-equal to flag-less. BREAKPOINT-CAPABLE (verified at seed 5: 0->3 ramp differs from both -t0 and -t3 renders); transposed segments change length, so trans alters the overshoot too."
+    },
+    "atten": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Range of random per-segment attenuation (CDP-enforced '(0.000000 to 1.000000)', Parameter[9]). -a0 verified byte-equal to flag-less. BREAKPOINT-CAPABLE (verified: 0->1 ramp differs from both endpoint renders at seed 5)."
+    },
+    "bias": {
+      "type": "float",
+      "min": -1.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Bias of cut-segment sizes: negative favors shorter cuts, positive longer (CDP-enforced '(-1.000000 to 1.000000)', Parameter[10]). Breakpoint refused ('Cannot read parameter 10')."
+    },
+    "mindur": {
+      "type": "float",
+      "min": 8.0,
+      "max": 250.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-m",
+      "flag_kind": "attached_value",
+      "description": "Minimum cut-segment duration in ms (CDP-enforced '(8.000000 to 250.000000)', Parameter[11]). Breakpoint refused (refusal also quotes 'parameter 10' - CDP numbering quirk)."
+    },
+    "permute": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-p",
+      "flag_kind": "no_value",
+      "description": "Permute elements: all elements used before any repeats (default: elements picked entirely at random). Verified live (render and overshoot change)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Re-babble a 2.5 s phrase into 8 seconds of speech-like stutter.",
+      "params": {"slicedata": "words.txt", "dur": 8.0, "segjoins": 1, "silprop": 0.3, "silmin": 0.05, "silmax": 0.2, "seed": 5},
+      "expected_use": "First write_data_file('words.txt', '0.62 1.22 1.92') - the inter-word boundaries. Output ~8.0-8.4 s; rerun with seed 5 for the identical take."
+    },
+    {
+      "description": "Progressively wilder: pitch scatter ramps in over the output.",
+      "params": {"slicedata": "words.txt", "dur": 10.0, "segjoins": 2, "silprop": 0.2, "silmin": 0.05, "silmax": 0.3, "seed": 9, "trans": [[0.0, 0.0], [10.0, 3.0]], "atten": 0.3, "permute": true},
+      "expected_use": "Steady start disintegrating into transposed fragments; -p guarantees every word appears before any repeats."
+    }
+  ],
+  "known_issues": [
+    "Duration overshoots dur by up to ~one segment + silmax (seed-dependent; +0.35 s worst observed at dur 2.5) - the set_by pre-flight under-predicts by that much; keep dur below the cap with margin.",
+    "Slice times BEYOND the input's end are accepted SILENTLY and materially change the render (landmine, verified). silmin > silmax also accepted silently. Validate the datafile yourself.",
+    "The banner's 'Minimum timestep (MT) = 0.016 secs' is wrong: the enforced rule is 2 splice-durations = 0.006 s (both refusal messages quote 0.006, and a 0.01 step runs) - DIVERGENCE.",
+    "Seed 0 equals seed 1 (glibc; verified byte-identical) - no clock path anywhere; use seed VALUES for variants. trans/atten randomness rides the same seed, so brk-ramped -t/-a at a fixed seed is fully reproducible.",
+    "trans hard cap is 3 semitones (banner silent); refusals for -b and -m both quote 'parameter 10' (CDP numbering quirk, recorded).",
+    "Stereo accepted (2-ch output, same duration behavior); phase_sensitive true - on engine stereo splits use linked seeds for imaging, different seeds for decorrelated width."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

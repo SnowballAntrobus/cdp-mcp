@@ -1,0 +1,65 @@
+{
+  "program": "peakfind",
+  "mode": "peakfind",
+  "submode": null,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Finds the times of loudness PEAKS in a sound and writes them to a text DATA file: one ascending time per line, C '%lf' format (6 decimals), no header (verified: bursts synthesized at 0.10/0.60/1.20/1.90 s -> '0.106871 / 0.601043 / 1.202993 / 1.902336' - each within ~7 ms of the true burst peak). Originally built to track syllables in speech. The sound is scanned in windowsize-ms windows; with threshold unset (or 0) an ADAPTIVE gate applies - peak windows below 1/5 of the local maximum (measured over 10 windows) are ignored; a nonzero threshold additionally discards peaks below that absolute level. Output extension is data-typed: naming it .wav is refused ('ERROR: Cannot open a textfile (pk_o.wav) with a reserved extension.'). Stereo input accepted with CHANNEL-CORRECT times (mono and stereo renders of the same material return identical times - verified). Deterministic. The duration_model 'static' is a schema placeholder - data outputs skip the audio pre-flight.",
+  "musical_use": "The rhythm-harvesting half of the timefile glue: peakfind's output IS the input format of clicknew (render an audible click track at the found peaks - round-trip verified sample-tight), of retime 1's refpoints and retime 7's retempodata (re-time other material onto this sound's rhythm), and of grain reposition/rerhythm timefiles - one analysis feeds the whole event-timing toolkit. Window size is the musical zoom: large windows (100-200 ms) find only the main stresses of speech or the downbeats of a phrase; small windows (5-20 ms) catch every transient but risk confusing waveform-level amplitude ripple with the loudness envelope (excessive peaks). The adaptive default is right for material with a level arc; set an absolute threshold (0.2-0.5) to pull only the accents out of a dense texture, or when the file is too short for the adaptive gate (< 10 windows refuses without one).",
+  "parameters": {
+    "windowsize": {
+      "type": "float",
+      "min": 1.0,
+      "max": 500.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [20.0, 200.0],
+      "description": "Window for locating successive peaks, in ms (CDP-enforced '(1.000000 to 500.000000)', Parameter[1]). Large = only major accents; very small = amplitude ripple mistaken for peaks (excessive times). Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "threshold": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "musical_range": [0.1, 0.5],
+      "description": "Absolute level below which peaks are ignored (CDP-enforced '(0.000000 to 1.000000)', Parameter[2]). Unset or 0 = adaptive gate only (windows below 1/5 of the 10-window local maximum ignored). REQUIRED (> 0) for files shorter than 10 windows: 'ERROR: File too short to scan peaks without a threshold value (> 0.0) being entered.' Breakpoint refused (parameter 2)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Harvest the main stresses of a spoken phrase.",
+      "params": {"windowsize": 100.0},
+      "expected_use": "Output .txt: one peak time per line, ascending. Copy into data/ and feed to clicknew (audible check), retime 1/7, or grain reposition."
+    },
+    {
+      "description": "Accents only, from a dense texture.",
+      "params": {"windowsize": 50.0, "threshold": 0.4},
+      "expected_use": "Local peaks below 0.4 absolute level discarded on top of the adaptive gate."
+    }
+  ],
+  "known_issues": [
+    "DATA OUTPUT (.txt): one '%lf' time per line, no header, ascending - the exact input format of clicknew's clicktimes (round-trip verified: clicks land within 2 samples of each listed time), retime 1 refpoints, retime 7 retempodata, and grain reposition timefiles. Cannot be auditioned or fed to audio inputs; duration pre-flight skipped.",
+    "Adaptive default (threshold unset/0): peak windows below 1/5 of the local max over 10 windows are ignored - quiet-passage peaks survive; an absolute threshold kills them.",
+    "Files shorter than 10 windows refuse without a positive threshold (verbatim above); with one they run (single peak verified on a 0.1 s file).",
+    "Stereo accepted, times channel-correct (verified identical mono vs stereo) - contrast retime mode 12's interleaved-sample stereo bug.",
+    "A silent input yields no peaks and an empty file (engine non-empty verification is the guard).",
+    "Deterministic (byte-identical text 1.2 s apart)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

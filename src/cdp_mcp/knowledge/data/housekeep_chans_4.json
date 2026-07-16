@@ -1,0 +1,48 @@
+{
+  "program": "housekeep",
+  "mode": "chans",
+  "submode": 4,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "stereo",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Mixes a stereo file DOWN TO MONO - verified sample-exact (L+R)/2 (max deviation 3e-8). The -p switch phase-inverts the second channel before the mix, verified sample-exact (L-R)/2 - the SIDE signal, i.e. everything panned off-center. Mono input refused ('ERROR: CANNOT ACHIEVE TASK: / ERROR: This file is already mono!!'). Inputs with MORE than 2 channels are accepted: a 4-channel file mixed to mono at sum/2 with automatic renormalization when that would clip (verified: output = sum x 0.357, peak-matched to the input's peak) - the entry pins the exact stereo case; >2-channel behavior documented here. Duration static, sample-exact; deterministic (identical decoded shas 1.2 s apart). Phase 6b note: this is the fold-DOWN half of the channel machinery - re-merging two mono files into stereo is submix interleave (curated); the repair program was dropped for self-naming outputs.",
+  "musical_use": "The mono-fold utility every stereo-refusing CDP program needs: sorter, scramble, distort and friends demand mono - fold your stereo source here first, process, then re-widen (chans 5, or interleave two differently-processed renders). Mono-compatibility check: if the mixdown loses a sound, that element was phase-suspect. The -p form is mid/side surgery's S half: (L-R)/2 isolates reverb, width and out-of-phase content - process the side alone (filter it, gate it) and re-combine with the plain mixdown's mid via submix for engineered width, or listen to it to diagnose what a stereo effect actually added. Note the classic M/S caveat baked into the math: on a dual-mono (identical-channels) file -p yields digital silence.",
+  "parameters": {
+    "phase": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-p",
+      "flag_kind": "no_value",
+      "description": "Invert the phase of the 2nd stereo channel before mixing: output = (L-R)/2, verified sample-exact - the side/difference signal. Banner: no effect on non-stereo files. Default off -> (L+R)/2."
+    }
+  },
+  "examples": [
+    {
+      "description": "Fold stereo to mono before a mono-only process (sorter, scramble...).",
+      "params": {},
+      "expected_use": "Output = (L+R)/2, sample-exact; duration unchanged."
+    },
+    {
+      "description": "Extract the side signal for M/S surgery.",
+      "params": {"phase": true},
+      "expected_use": "Output = (L-R)/2 - reverb/width/off-center content only; silent if the input is dual-mono."
+    }
+  ],
+  "known_issues": [
+    "STEREO-ONLY input constraint for the curated case: mono refused verbatim ('This file is already mono!!'). No duration row - the shared duration fixture writes mono (static verified on stereo: 2.5 -> 2.5 s mono out).",
+    ">2-channel inputs accepted: mixed at sum/2 with automatic peak renormalization when that clips (verified x0.357 on a 4-channel fixture = output peak matched to input peak) - level is content-dependent there; the stereo case is always exactly (L+R)/2.",
+    "-p on a dual-mono file renders digital silence (fails output RMS verification) - expected M/S math, not a bug.",
+    "Deterministic; static duration sample-exact."
+  ],
+  "references": ["cdp://docs/html/cgrohous"]
+}

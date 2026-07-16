@@ -1,0 +1,95 @@
+{
+  "program": "retime",
+  "mode": "retime",
+  "submode": 5,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Changes the SPEED of a train of silence-separated events without changing the events: inter-onset intervals are divided by factor (silence edited in or out), event content untouched. Verified: factor 2 moved onsets 0.05/0.70/1.30/2.00 to 0.05/0.375/0.675/1.025 (intervals exactly halved); factor 0.5 doubled them. Real duration = lead + (last_onset - first_onset)/factor + last_event_len - data-dependent, so the static model is the flat-material baseline (on no-silence material the mode WARNS 'only 1 event found' and near-passes-through, 1.9999773 s from 2.0 - the duration row rides that path). Event detection = runs of >= minsil ms of EXACT digital zeros (no threshold exists). factor is the family's only BREAKPOINT-CAPABLE parameter (banner: 'can vary over time'; verified: a 0.5->2 ramp renders 2.057 s, distinct from both scalar endpoints) - accelerando/rallentando of the event train. Deterministic; stereo accepted.",
+  "musical_use": "Tempo-change without timestretch artifacts: double-time a drum phrase or speech rhythm while every hit keeps its exact original timbre and length - only the air between events moves. factor > 1 compresses the rhythm (up to audibly frantic before events start touching), factor < 1 relaxes it into spacious slow-motion where each event hangs in silence. The breakpoint form is the star: ramp factor 0.5 -> 2 for a phrase that starts dragging and ends rushing (a written-out accelerando cut from the real performance), or spike it briefly for a stumble. -s/-e confine the speed-change to a time window (verified live) so you can rush only the middle of a phrase; -a picks which event stays anchored in place. Needs true digital silence between events - gate first, or hand-time with retime 1/6/7.",
+  "parameters": {
+    "factor": {
+      "type": "float",
+      "min": 0.01,
+      "max": 100.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.25, 4.0],
+      "description": "Speed-change factor for the event rhythm: inter-onset intervals are divided by it (2 = twice as fast, 0.5 = half speed). CDP-enforced '(0.010000 to 100.000000)'; factor 1 refused 'ERROR: INVALID DATA / ERROR: No change in tempo.' BREAKPOINT-CAPABLE (verified: 0.5->2 ramp differs from both scalar-endpoint renders; banner 'can vary over time'). Time axis = input time."
+    },
+    "minsil": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [20.0, 500.0],
+      "description": "Minimum run of EXACT-ZERO samples that separates events (CDP-enforced '(0.045351 to 10000.000000)' at 44.1 kHz, srate-dependent floor). Breakpoint refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    },
+    "start": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Time at which speed changing begins (CDP-enforced 0 to the input duration - refusal quotes '(0.000000 to 2.500000)' on a 2.5 s file; Parameter[3]). Verified live with -e (render and duration change)."
+    },
+    "end": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Time at which speed changing ends (runtime-bounded by the input duration). Events outside [start, end] keep their original spacing."
+    },
+    "sync": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Approximate time of the infile event that stays synchronised with its copy in the output (banner: time must be WITHIN the event; 0 = sync at first event). Verified live (changes both render and duration)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Double-time the event rhythm.",
+      "params": {"factor": 2.0, "minsil": 50.0},
+      "expected_use": "Inter-onset gaps halved, events untouched; 2.5 s 4-event fixture renders 1.445 s."
+    },
+    {
+      "description": "Written-out accelerando: drag to rush over the phrase.",
+      "params": {"factor": [[0.0, 0.5], [2.5, 2.0]], "minsil": 50.0},
+      "expected_use": "Event spacing starts stretched, ends compressed (verified distinct from both constant-factor renders)."
+    }
+  ],
+  "known_issues": [
+    "EVENT DETECTION = EXACT ZEROS (no threshold; source ibuf[i]==0.0). No-silence material does not refuse: 'WARNING: WARNING: only 1 event found: Change inter-event silence ??' + near-passthrough (one frame short, residual <= 3.5e-4) - this baseline IS the static duration model.",
+    "REAL duration on event material: lead + (last_onset - first_onset)/factor + last_event_len (verified exact at factor 2/0.5 on two fixtures). Small factors expand hugely (factor 0.01 -> ~100x the event span) - the static pre-flight under-predicts; the engine watchdog/duration cap is the guard.",
+    "factor 1 is refused ('No change in tempo.') - for a no-op just copy the file.",
+    "Deterministic (identical decoded shas 1.2 s apart); stereo accepted (1.4450 s 2-ch matches mono)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

@@ -1,0 +1,73 @@
+{
+  "program": "retime",
+  "mode": "retime",
+  "submode": 4,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Finds silence-separated events and re-spaces them onto a REGULAR metronome grid: event ONSETS are placed at lead_silence + k*(60/tempo), by editing silence only - the events themselves are untouched ('INFO: 4 events found'). Detection is EXACT digital zeros (source: ibuf[i]==0.0, no threshold): a run of >= minsil ms of true zeros separates events. On material with NO such silences this mode does NOT refuse - it warns 'WARNING: WARNING: only 1 event found: Change inter-event silence ??' and emits a near-passthrough (2 s in -> 1.9999773 s out, one frame short, max residual 3.5e-4; the static duration row rides this path). On event material the real duration is lead + (n_events-1)*beat + last_event_len, verified 4-dp exact on five probes (two fixtures, three tempi) - it can be longer OR shorter than the input, so treat the static model as the flat-material baseline. Events longer than one beat overrun into the next slot and merge (no gap in the output). Deterministic; stereo accepted.",
+  "musical_use": "The rhythm-quantiser: turn an unevenly-played phrase of separated notes, words or hits into a strict pulse at the tempo of your session - prosody becomes meter without any pitch or timbre change. It was built to lock spoken phrases to a beat so several takes align rhythmically; it works just as well to mechanise sloppy percussion or to force a rubato phrase into loop-ready time. Choose tempo so the beat exceeds your longest event or successive events will run into each other (beat >= longest event keeps every gap audible). Pair with retime 10 to even the levels after re-spacing, or render a clicknew track at the same tempo to check the lock. Material must have TRUE digital silence between events - gate first if it doesn't, or use retime 1 with hand-marked peaks.",
+  "parameters": {
+    "tempo": {
+      "type": "float",
+      "min": 20.0,
+      "max": 6000.0,
+      "unit": "MM",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [40.0, 300.0],
+      "description": "Output grid as a metronome mark; beat = 60/tempo s (CDP quote '(0.000000 to 6000.000000)' plus runtime rule 'Output tempo vals must be > 0 AND less than 1 (beat duration) OR >= 20 (MM)'). DUAL-UNIT: values < 1.0 are read as beat DURATION in seconds (0.7 verified = 0.7 s beat); curated bounds pin the MM form, use execute() for the seconds form. Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "minsil": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [20.0, 500.0],
+      "description": "Minimum run of EXACT-ZERO samples that separates events (CDP-enforced '(0.045351 to 10000.000000)' at 44.1 kHz, floor = 2 sample periods, srate-dependent). Breakpoint refused (parameter 2)."
+    },
+    "pregain": {
+      "type": "float",
+      "min": 0.01,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Gain applied to the input signal (CDP-enforced '(0.000000 to 1.000000)'; 0 refused at runtime 'ERROR: Pregain parameter of zero, will produce silent output.'). Attenuation only - it cannot create the zero-runs detection needs. Entry default 1.0 (positional, always emitted). Breakpoint refused (parameter 3)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Quantise a 4-syllable phrase to 120 MM.",
+      "params": {"tempo": 120.0, "minsil": 50.0, "pregain": 1.0},
+      "expected_use": "Onsets land 0.5 s apart after the original lead-in; output = lead + 3*0.5 + last event length (1.97 s from the 2.5 s reference fixture)."
+    },
+    {
+      "description": "Slow grid: one event per second.",
+      "params": {"tempo": 60.0, "minsil": 50.0, "pregain": 1.0},
+      "expected_use": "Every gap stretched/shrunk to put onsets 1.0 s apart; events shorter than 1 s keep audible silence between them."
+    }
+  ],
+  "known_issues": [
+    "EVENT DETECTION = EXACT ZEROS (source ibuf[i]==0.0; no threshold exists). Noise-floored recordings are ONE event: this mode then warns ('WARNING: WARNING: only 1 event found: Change inter-event silence ??', doubled verbatim) and near-passes-through instead of refusing - exit 0, output ~= input (one frame short, residual <= 3.5e-4). The declared static duration model is exactly this baseline.",
+    "REAL duration on event material: lead_silence + (n_events-1)*(60/tempo) + last_event_length, verified 4-dp on 5 probes - slower tempi EXPAND the file well past indur (the engine watchdog is the guard; the static pre-flight under-predicts).",
+    "Events longer than one beat overrun their slot and merge with the next event (verified: no zero-gap in the output where a 0.55 s event met a 0.5 s beat).",
+    "tempo < 1.0 switches units to beat-seconds (dual-unit, verified); [1, 20) refused at runtime.",
+    "Deterministic (identical decoded shas 1.2 s apart); stereo accepted (2-ch, duration matches mono prediction)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

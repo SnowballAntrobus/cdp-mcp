@@ -1,0 +1,77 @@
+{
+  "program": "retime",
+  "mode": "retime",
+  "submode": 3,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Shortens every silence-separated event to a fixed width, IN PLACE: event onsets stay exactly where they were, each event is cut to outevwidth ms (plus the splice), and the gaps between events widen accordingly ('INFO: 4 of 4 events will be shortened'). An 'event' is a run of samples bounded by >= minsil ms of EXACT digital zeros - there is no threshold (source: ibuf[i] == 0.0); material with a noise floor is one event and the process refuses it ('ERROR: NO SILENCE-GAPS FOUND IN FILE.'). Actual output duration = last_event_onset + (outevwidth + splicelen)/1000, verified exact on three probes across two fixtures (trailing silence after the last shortened event is dropped) - always <= indur + 1.001 s, so the static model is a safe ceiling. Deterministic; stereo accepted.",
+  "musical_use": "Turns sustained events into their attacks: clip every word of a phrase to its first 80 ms and the speech becomes a rhythm track of consonant hits at the ORIGINAL timing - unlike mode 4/5 nothing moves, so the groove is preserved while the sustain vanishes. Great for making percussive skeletons of melodic phrases (feed the result to sorter or stutter), for de-blurring over-reverberant event trains before further retiming, or as a pre-pass that exaggerates the silence gaps so later retime modes have more room to edit. inevwidth acts as a filter: events shorter than it are still counted, so keep it at or below your shortest real event. Larger splicelen values soften the cuts into fade-outs (the splice is INSIDE the kept width's tail, verified duration includes it).",
+  "parameters": {
+    "minsil": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [20.0, 500.0],
+      "description": "Minimum duration of EXACT-ZERO samples that counts as an inter-event silence (CDP-enforced '(0.045351 to 10000.000000)' at 44.1 kHz - floor is 2 sample periods, srate-dependent; curated min 0.1 stays above it at all rates). Must be <= the real gaps or events merge. Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "inevwidth": {
+      "type": "float",
+      "min": 1.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "(Minimum) width of events in the INFILE in ms (CDP-enforced '(1.000000 to 1000.000000)', refusal quotes Parameter[2]). Breakpoint refused (parameter 2)."
+    },
+    "outevwidth": {
+      "type": "float",
+      "min": 1.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [30.0, 300.0],
+      "description": "Width events are cut to in the OUTFILE, in ms (CDP-enforced '(1.000000 to 1000.000000)', Parameter[3]). A value longer than some events still runs ('4 of 4 events will be shortened' printed regardless). Breakpoint refused (parameter 3)."
+    },
+    "splicelen": {
+      "type": "float",
+      "min": 1.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Duration of the splice that ends each shortened event, in ms (CDP-enforced '(1.000000 to 1000.000000)', Parameter[4]); adds to the kept width (outdur reflects outevwidth + splicelen, verified). Breakpoint refused (parameter 4)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Reduce a syllable train to 80 ms attack hits at the original timing.",
+      "params": {"minsil": 50.0, "inevwidth": 100.0, "outevwidth": 80.0, "splicelen": 10.0},
+      "expected_use": "Onsets unchanged; each event now 90 ms including the fade; output ends 90 ms after the last onset (trailing silence dropped)."
+    }
+  ],
+  "known_issues": [
+    "EVENT DETECTION = EXACT ZEROS: a 'silence' is a run of >= minsil ms of samples that are literally 0.0 (source-verified, no threshold parameter exists). Material with any noise floor refuses 'ERROR: INVALID DATA / ERROR: NO SILENCE-GAPS FOUND IN FILE.' - gate or edit true zeros into the sound first, or use retime mode 1 (manual peak times) instead.",
+    "Static duration_model is a ceiling, not exact: actual outdur = last_event_onset + (outevwidth + splicelen)/1000 (verified exact on 3 probes) - output SHRINKS when the source has a long tail after its last event (2.5 s fixture -> 2.09 s). Safe direction for the pre-flight (never longer than indur + 1.001 s).",
+    "The shared-fixture duration row is not pinned for this mode (flat noise refuses); the duration rule is pinned in docs/curation/tranche11b_event_timing.md instead.",
+    "Deterministic (identical decoded shas 1.2 s apart); stereo accepted (2-ch output, same duration rule)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

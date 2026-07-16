@@ -1,0 +1,93 @@
+{
+  "program": "retime",
+  "mode": "retime",
+  "submode": 8,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + repeats * cnt * 60 / tempo"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Marks ONE silence-separated event (or the first of cnt consecutive events) inside the file and REPEATS it at a given tempo WITHIN the original sound: copies are inserted at beat spacing after the marked event, everything later shifts right ('INFO: Repeating Events.'; zero-run proof: repeats 3 at 120 MM inserted copies at 1.2/1.7/2.2 after the 0.70 s event of the reference fixture). Duration model 'indur + repeats * cnt * 60/tempo' verified on 5/5 probes (two fixtures, MM 60/120, beat-dur 0.8 form, cnt 1-2). NB the banner's own arithmetic: 2 repeats of A produces AAA. eventtime must fall INSIDE a sounding event ('ERROR: Time indicating event position does not lie within a sounding event.' when it lands in a gap). Event detection = runs of >= minsil ms of EXACT digital zeros; no-silence material refuses 'NO SILENCE-GAPS FOUND IN FILE.' Deterministic; stereo accepted.",
+  "musical_use": "The word-stutter/beat-repeat edit: point at one syllable or hit and it machine-guns at your tempo while the rest of the phrase waits, then resumes - the classic DJ/vocal-edit repeat performed as a clean silence-respecting file edit rather than a loop. cnt > 1 captures a multi-event group (a two-word cell, a bar of hits) and repeats the whole group. Because the repeats are ON the tempo grid, the result locks against a click or against retime-4-quantised material at the same MM. Keep beat >= the captured event's length or the repeats overlap into a smear (sometimes the point). For repeats of the FIRST event only with everything else discarded, cut it out with sfedit and use extend loop instead - mode 8 always keeps the whole original around the insertion.",
+  "parameters": {
+    "tempo": {
+      "type": "float",
+      "min": 20.0,
+      "max": 1000.0,
+      "unit": "MM",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [60.0, 480.0],
+      "description": "Repeat rate as a metronome mark; repeat spacing = 60/tempo s (CDP-enforced '(0.010000 to 1000.000000)', Parameter[1]; values < 1.0 are beat-duration seconds - dual-unit verified at 0.8; curated bounds pin the MM form so the duration expression stays valid). Breakpoint refused (parameter 1)."
+    },
+    "eventtime": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Approximate time of the (first) event to repeat - MUST lie inside a sounding event, not a gap ('Time indicating event position does not lie within a sounding event.' refused verbatim). CDP range 0 to the input duration (runtime-quoted '(0.000000 to 2.500000)' on a 2.5 s file, Parameter[2]). Breakpoint refused (parameter 2)."
+    },
+    "cnt": {
+      "type": "int",
+      "min": 1,
+      "max": 24,
+      "unit": "events",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Number of consecutive silence-separated events to capture as the repeat unit (CDP-enforced '(1.000000 to 24.000000)', Parameter[3]). Multiplies the inserted time: each repeat adds cnt beats (verified: cnt 2, repeats 2 @120 -> +2.0 s). Breakpoint refused (parameter 3)."
+    },
+    "repeats": {
+      "type": "int",
+      "min": 1,
+      "max": 1000,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [1, 16],
+      "description": "Number of times to repeat the captured event(s) - banner: '2 repeats of A produces AAA' (CDP-enforced '(1.000000 to 1000.000000)', Parameter[4]). Breakpoint refused (parameter 4)."
+    },
+    "minsil": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [20.0, 500.0],
+      "description": "Minimum run of EXACT-ZERO samples that separates events (CDP-enforced '(0.045351 to 10000.000000)' at 44.1 kHz). Breakpoint refused (parameter 5)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Repeat the second syllable 3 extra times at 120 MM.",
+      "params": {"tempo": 120.0, "eventtime": 0.9, "cnt": 1, "repeats": 3, "minsil": 50.0},
+      "expected_use": "eventtime 0.9 sits inside the 0.70-1.15 s event of the reference fixture; output = indur + 3*0.5 = 4.0 s from 2.5 s (verified)."
+    },
+    {
+      "description": "Repeat a two-event group twice at 120 MM.",
+      "params": {"tempo": 120.0, "eventtime": 0.9, "cnt": 2, "repeats": 2, "minsil": 50.0},
+      "expected_use": "Each repeat adds cnt*beat = 1.0 s; output 4.5 s from 2.5 s (verified)."
+    }
+  ],
+  "known_issues": [
+    "EVENT DETECTION = EXACT ZEROS (no threshold; source ibuf[i]==0.0). No-silence material refuses 'ERROR: INVALID DATA / ERROR: NO SILENCE-GAPS FOUND IN FILE.'",
+    "eventtime in a silence gap is refused verbatim - aim for the middle of the event, not its onset.",
+    "Duration expression verified 5/5 (worst error 0.0 s at 4 dp) with the tempo in MM; tempo values < 1.0 switch units to beat-seconds (expression then over-predicts hugely) - curated tempo min 20 keeps the model valid; use execute() for the seconds form.",
+    "Deterministic (identical decoded shas 1.2 s apart); stereo accepted (4.0 s 2-ch matches mono)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

@@ -1,0 +1,339 @@
+{
+  "generated_at": "2026-07-15",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build; housekeep banners 'CDP Release 7.1 2016'; retime/peakfind/clicknew/sorter/stutter/refocus/repair print no release banner)",
+    "os": "Linux x86_64 sandbox",
+    "note": "Tranche 11b - event-timing surgery (retime), timefile glue (peakfind/clicknew/stutter/sorter), Phase 6b channel machinery (housekeep chans/repair). No SoundThread coverage for any target; afta8 covers peakfind + retime 1/6/7/9-14. To be re-verified on macOS r8 by the CDP-gated suite after integration.",
+    "headline": "retime's 'silence-separated event' detection is LITERAL DIGITAL ZEROS (source: ibuf[i]==0.0, no threshold, no configurability) - a run of >= minsil ms of exact zeros. Real recordings with a noise floor are ONE event. No-silence behavior differs by mode: 1 needs no detection (user refpoints); 4/5 warn 'only 1 event found' + near-passthrough; 3/6/7/8/9/10 refuse 'NO SILENCE-GAPS FOUND IN FILE.' peakfind->clicknew round-trip verified sample-tight (clicks within 2 samples of each peakfind time)."
+  },
+  "entries": [
+    {
+      "program": "retime",
+      "mode": "retime",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Requires the refpoints aux datafile the shared single-input duration fixture cannot supply (grain rerhythm/reposition precedent). Duration is data-dependent: fits first_ref + (n-1)*beat + (indur - last_ref) on the event fixture at 2 tempi (2.09/3.59) but not on flat noise (segments truncate on collision); duration_model expression 'refpoints' engages the aux-param preflight skip (submix mix precedent).",
+      "stochastic": false,
+      "notes": [
+        "Mode 1 needs NO silence detection - user supplies peak times; works on any material (flat noise verified). Events aligned by PEAK onto first_ref + k*beat grid.",
+        "refpoints is a required datafile (scalar refused 'Failed to open file 0.3 for input.'); >= 2 ascending times ('TOO FEW ENTERED TIMES (MUST BE AT LEAST 2).', 'TIME (0.500000) OUT OF SEQUENCE OR INVALID'); times past EOF discarded before the count check.",
+        "tempo (0 to 400) + runtime rule 'Output tempo vals must be > 0 AND less than 1 (beat duration) OR >= 20 (MM)'; DUAL-UNIT VERIFIED BYTE-EXACT: tempo 0.5 (beat secs) == tempo 120 (MM). tempo brk refused (parameter 1).",
+        "Deterministic (1.2 s-apart pair identical; retime.c has no rand anywhere); stereo accepted -> any."
+      ]
+    },
+    {
+      "program": "retime",
+      "mode": "retime",
+      "submode": 3,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Flat-noise fixture refused 'NO SILENCE-GAPS FOUND IN FILE.' (mode 3 uses the refusing count_events path, unlike 4/5). Real rule exact on 3 probes: outdur = last_event_onset + (outevwidth + splicelen)/1000; static declared as the safe baseline (actual <= indur + 1.001 always).",
+      "stochastic": false,
+      "notes": [
+        "Shorten events IN PLACE: onsets unchanged, each event cut to outevwidth(+splice), trailing silence dropped ('INFO: 4 of 4 events will be shortened').",
+        "inevwidth/outevwidth/splicelen (1.000000 to 1000.000000) Parameters 2/3/4; minsil (0.045351 to 10000.000000); all 4 refuse brks (parameters 1-4).",
+        "Deterministic; stereo accepted."
+      ]
+    },
+    {
+      "program": "retime",
+      "mode": "retime",
+      "submode": 4,
+      "breakpoint_capable": [],
+      "duration_row": ["retime", "retime", 4, 2.0, {"tempo": 120.0, "minsil": 50.0, "pregain": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Event onsets placed at lead_silence + k*beat; duration = lead + (n-1)*beat + last_event_len, 4-dp exact on 5 probes (2 fixtures, 3 tempi incl. beat-dur form). Zero-run proof at beat 1.0: onsets 0.05/1.05/2.05/3.05.",
+        "NO-SILENCE MATERIAL: exit 0 with 'WARNING: WARNING: only 1 event found: Change inter-event silence ??' and near-passthrough (1.9999773 s from 2.0, one frame short, max residual 3.5e-4) - the duration row rides this path.",
+        "tempo (0 to 6000) + '>0 AND less than 1 OR >= 20' runtime rule; minsil (0.045351 to 10000.000000) P2; pregain (0 to 1) P3, 0 refused 'Pregain parameter of zero, will produce silent output.' All 3 refuse brks (parameters 1-3).",
+        "Deterministic; stereo accepted (1.97 s 2ch matches mono)."
+      ]
+    },
+    {
+      "program": "retime",
+      "mode": "retime",
+      "submode": 5,
+      "breakpoint_capable": ["factor"],
+      "duration_row": ["retime", "retime", 5, 2.0, {"factor": 2.0, "minsil": 50.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Inter-onset intervals scaled by 1/factor, event content untouched: factor 2 -> onsets 0.05/0.375/0.675/1.025 (1.445 exact); factor 0.5 -> 4.37 exact; ev3 -> 1.025 exact. Duration = lead + (last_onset - first_onset)/factor + last_len (data-dependent; static row rides the flat-noise warn+passthrough path).",
+        "factor BREAKPOINT-CAPABLE (banner-confirmed 'can vary over time'): brk 0.5->2 -> 2.057 s, differs from both scalar endpoints. minsil brk refused (parameter 2).",
+        "factor (0.010000 to 100.000000); factor 1 refused 'No change in tempo.'; -s start (0 to indur) runtime-quoted; -s/-e zone and -a sync verified live (renders + durations change).",
+        "Deterministic; stereo accepted. WATCHDOG NOTE: factor 0.01 on wide-spaced events can expand duration ~100x past the static prediction - engine cap is the guard."
+      ]
+    },
+    {
+      "program": "retime",
+      "mode": "retime",
+      "submode": 6,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Requires the retempodata aux datafile; flat-noise fixture also refuses ('NO SILENCE-GAPS FOUND IN FILE.'). Duration exact on probes: offset + last_beat*beatdur + last_event_len; duration_model expression 'retempodata' engages the aux-param preflight skip.",
+      "stochastic": false,
+      "notes": [
+        "Events positioned at offset + beat_k * beatdur (swing file 0/1.5/2/3 @120 -> onsets 0.2/0.95/1.2/1.7, verified by zero runs).",
+        "DATAFILE-COUNT CONTRACT (contrast grain reposition's silent drop): fewer entries than events REFUSED 'Found 4 events, but only 2 out-event-beat-placements specified.'; more entries -> WARNING + surplus ignored.",
+        "tempo (0.010000 to 1000.000000) P2; offset (0 to 1000) P3; pregain ~0 refused 'Pregain is (effectively) zero: output will be silence.'; tempo/minsil/pregain refuse brks (parameters 1/3/4).",
+        "Deterministic (pair verified); stereo accepted."
+      ]
+    },
+    {
+      "program": "retime",
+      "mode": "retime",
+      "submode": 7,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Requires the retempodata aux datafile; flat noise refused. Duration exact on probes: offset + last_time + last_event_len; expression 'retempodata' preflight skip.",
+      "stochastic": false,
+      "notes": [
+        "Events positioned at offset + time_k seconds (times 0/0.4/0.8/1.6 offset 0.2 -> onsets 0.2/0.6/1.0/1.8 verified; outdur 2.22 = 1.8 + 0.42).",
+        "Same datafile-count contract as mode 6 (refuse-on-fewer / warn-on-more).",
+        "offset (0.000000 to 1000.000000) P2; offset/minsil/pregain refuse brks (parameters 1/2/3).",
+        "Deterministic; stereo accepted (2.22, 2ch)."
+      ]
+    },
+    {
+      "program": "retime",
+      "mode": "retime",
+      "submode": 8,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Flat-noise fixture refused 'NO SILENCE-GAPS FOUND IN FILE.' Expression model 'indur + repeats * cnt * 60 / tempo' fits 5/5 probes across 2 fixtures, 2 MM tempi, beat-dur form, cnt 1-2 (4.0/4.5/3.3/4.1/4.5); curated tempo min pinned to 20 MM so the expression stays unit-valid.",
+      "stochastic": false,
+      "notes": [
+        "Copies of the marked event(s) INSERTED at beat spacing within the original sound (zero-run proof: inserted copies at 1.2/1.7/2.2 for @120 repeats 3).",
+        "eventtime must lie INSIDE a sounding event: 'Time indicating event position does not lie within a sounding event.' (0.62, a gap, refused); range (0 to indur) runtime-quoted.",
+        "tempo (0.010000 to 1000.000000) P1; cnt (1 to 24) P3; repeats (1 to 1000) P4; all 5 params refuse brks (parameters 1-5).",
+        "Deterministic; stereo accepted (4.0, 2ch)."
+      ]
+    },
+    {
+      "program": "retime",
+      "mode": "retime",
+      "submode": 9,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Requires the maskdata aux datafile; flat noise refused. Duration genuinely STATIC (sample-exact 2.5 -> 2.5: masking replaces events with silence in place).",
+      "stochastic": false,
+      "notes": [
+        "Verified textbook: mask '1 0 1 0' zeros events 2/4 in place (per-event RMS -> 0.0000), keeps 1/3 untouched; PATTERN CYCLES (2-entry mask '0 1' on 4 events masks 1&3).",
+        "Mask values 0/1 only: 'MASK VALUE (2.000000) INVALID IN FILE mask2.txt.' ALL-ZERO mask exits 0 and writes a full-length silent file - engine RMS verification is the only guard.",
+        "minsil brk refused (parameter 1). Deterministic; stereo accepted."
+      ]
+    },
+    {
+      "program": "retime",
+      "mode": "retime",
+      "submode": 10,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Flat-noise fixture refused 'NO SILENCE-GAPS FOUND IN FILE.' Duration genuinely static (sample-exact) on all event-fixture probes.",
+      "stochastic": false,
+      "notes": [
+        "METER path exact: -m3 scales unaccented events to exactly evening x accent level (peaks 0.204/0.68 = 0.3 at evening 0.3).",
+        "EVENING (meter 0) PATH CLIPS (first-class): evening 1 on event gains 1.0/0.3/0.6/0.15 drives peaks to 1.0/3.35/1.43/6.45 - up to 6.4x OVER full scale in the float output, no warning, no headroom management.",
+        "PREGAIN -p IS A NO-OP (first-class): -p0.5 and -p0.1 byte-identical to flag-less. Banner usage '[-mmeter] [-mpregain]' is a typo - the flag is -p (source set_vflgs \"mp\"), and it does nothing in this mode.",
+        "evening (0 to 1) P2, brk refused (parameter 2); meter brk refused (parameter 3). Deterministic; stereo accepted."
+      ]
+    },
+    {
+      "program": "retime",
+      "mode": "retime",
+      "submode": 12,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (.txt) - no audio duration; duration_model static is a schema placeholder (envel extract precedent).",
+      "stochastic": false,
+      "notes": [
+        "Writes ONE line: '<time_of_first_nonzero_sample>\\t<input filename as given>' (e.g. '0.050023\\tev4.wav').",
+        "Extension enforced: 'Output textfile (r12b.wav) must have a '.txt' extension, or none.' Existing file is APPENDED to (source fopen 'a', 'permits bulk-processing') - moot under the engine's fresh-name contract but a trap for execute() users.",
+        "STEREO BUG (first-class): reports first nonzero INTERLEAVED-sample index / srate - stereo times are 2x wrong (ev4st first nonzero frame 0.05 reported as 0.100045). Entry pinned MONO.",
+        "No parameters; deterministic."
+      ]
+    },
+    {
+      "program": "peakfind",
+      "mode": "peakfind",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (.txt) - no audio duration; static is a schema placeholder.",
+      "stochastic": false,
+      "notes": [
+        "OUTPUT FORMAT (Phase 6 contract): plain text, one peak time per line, C %lf (6 decimals), no header, ascending. burst fixture (0.10/0.60/1.20/1.90) -> 0.106871/0.601043/1.202993/1.902336.",
+        "Reserved output extension refused ('Cannot open a textfile (pk_o.wav) with a reserved extension.') -> output_format .txt.",
+        "windowsize (1.000000 to 500.000000) ms P1; threshold -t (0 to 1) P2; both refuse brks. Default threshold 0 = adaptive (windows below 1/5 of local max over 10 windows ignored).",
+        "Short-file rule verbatim: 'File too short to scan peaks without a threshold value (> 0.0) being entered.' (< 10 windows, no -t); same file runs with -t0.1.",
+        "Stereo accepted with CHANNEL-CORRECT times (mono vs stereo of the same material -> identical times; contrast retime 12's 2x bug). Deterministic."
+      ]
+    },
+    {
+      "program": "clicknew",
+      "mode": "clicks",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Arity-0 with duration driven by the clicktimes aux datafile (outdur = last time + ~21-sample click tail); duration_model expression 'clicktimes' engages the aux-param preflight skip (submix mix precedent).",
+      "stochastic": true,
+      "notes": [
+        "ROUND-TRIP WITH PEAKFIND VERIFIED: peakfind's .txt fed verbatim as clicktimes renders clicks whose onsets sit within 2 samples of each peakfind time (4/4). Formats directly compatible; clicknew additionally allows ';' comment lines (verified).",
+        "BANNER SRATE LIST FALSE (first-class): banner lists 8 rates (88200 twice); enforced = range gate (44100.000000 to 96000.000000) THEN LEGAL_SRATE {16000,24000,22050,32000,44100,48000} (globcon.h:94) - 88200/96000 refused 'Illegal Sampling Rate.' Intersection: ONLY 44100 and 48000.",
+        "CLOCK-SEEDED CLICK SHAPE, UNSEEDABLE (first-class): generate_clicktable() calls initrand48() (= srand(time(0)), osbind.c) + drand48 in the waveshape; no seed slot. Runs > 1.2 s apart differ in samples (same duration); same-second runs byte-identical (collision trap). TIMES deterministic, SHAPE jitters.",
+        "Datafile: ascending >= 0 times, but the check RESETS PER LINE (source lasttime=-1.0 inside the fgets loop): newline-separated non-ascending times ACCEPTED, render silently truncates at the out-of-order point ('1.0\\n0.5\\n' -> 0.50 s output); same values on one line refuse 'Times do not advance at time ...'. Max time 32767 ('Maximum time is excessive : 40000.000000'); 32766 ACCEPTED -> ~1.9 GB render - engine duration cap is the only guard.",
+        "Output mono; clicks ~18 samples wide, peak ~0.96; single-time file works (0.5 -> 0.5005 s)."
+      ]
+    },
+    {
+      "program": "sorter",
+      "mode": "sorter",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": ["sorter", "sorter", 1, 2.0, {"esiz": 0.1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Crescendo sort verified: output RMS thirds 0.037/0.065/0.161 rising (mode 2 is the exact mirror 0.161/0.065/0.037 - execute() sibling; modes 3/4 accel/rit run with same duration, distinct shas).",
+        "esiz 0 = individual wavesets (verified, closer-to-input duration 2.419 from 2.5). esiz (0.000000 to 2000.000000); too big -> 'Elementsize too big for infile. (If meant to be frq, set flag).'",
+        "Duration static-with-losses: flat noise -2.4% (row); event material -7.9%; worst -22% on a fixture with long tail silence (element quantization + silence folding). Honest bounds in entry known_issues.",
+        "smooth -s (0.000000 to 50.000000) ms (refusal quotes 'Parameter[2]' - numbering quirk); esiz brk refused ('Cannot read parameter 2'). MONO ONLY ('File ev4st.wav is not of correct type (must be mono)').",
+        "Deterministic (pair verified). -f/opch/pch/meta pitch machinery left to execute()."
+      ]
+    },
+    {
+      "program": "sorter",
+      "mode": "sorter",
+      "submode": 5,
+      "breakpoint_capable": [],
+      "duration_row": ["sorter", "sorter", 5, 2.0, {"esiz": 0.1, "seed": 5}, 0.05],
+      "stochastic": true,
+      "notes": [
+        "Random element order, seed positional. BANNER FALSE (first-class): 'Zero seed-value gives different random ordering on each run' - source is 'if(mode==RAND && seed > 0) srand(seed)', so seed 0 never seeds and glibc's default state == srand(1). Verified: seed 0 twice 1.3 s apart BYTE-IDENTICAL and equal to seed 1. No clock path; sorter is always reproducible; distinct-seed space 1-256.",
+        "seed 42 twice 1.2 s apart byte-identical; 42 vs 43 differ. seed (0.000000 to 256.000000) P2; seed brk refused ('Cannot read parameter 2').",
+        "Same duration behavior/ranges/mono-only as submode 1 (2.3023 from 2.5 at esiz 0.1 on the event fixture; -2.4% on flat noise)."
+      ]
+    },
+    {
+      "program": "stutter",
+      "mode": "stutter",
+      "submode": null,
+      "breakpoint_capable": ["trans", "atten"],
+      "duration_row": null,
+      "duration_row_reason": "Requires the slice-times aux datafile the shared fixture cannot supply. set_by dur verified with up-to-one-segment overshoot: dur 4 seed 5 -> 4.0001; dur 2.5 -> 2.854; dur 6 -> 6.257; seed 9 at dur 4 -> 4.238 (overshoot seed-dependent).",
+      "stochastic": true,
+      "notes": [
+        "MATERIAL-AGNOSTIC: slicing is by user times, not silence detection - flat noise works. SEED WORKS (srand(seed) unconditional, stutter.c:1235): seed 5 byte-identical 1.2 s apart, 5 vs 9 differ (samples AND duration), seed 0 == seed 1 (glibc); range (0.000000 to 256.000000) P7; no clock path.",
+        "Datafile rules: real floor is 2*splicedur = 0.006 s ('Invalid time (0.001000) (closer to start than 2 splicedurs = 0.006) at line 1...'), NOT the banner's 'MT = 0.016 secs' (0.01 step accepted - DIVERGENCE); non-increasing refused verbatim; time BEYOND EOF accepted SILENTLY and changes the render (landmine).",
+        "trans -t and atten -a BREAKPOINT-CAPABLE at fixed seed (each brk render differs from both scalar endpoints; -t0/-a0 byte-equal flag-less); dur/segjoins/silprop/silmin/silmax/seed refuse brks (parameters 1-6); -b and -m refuse (both quoted 'parameter 10' - numbering quirk).",
+        "Ranges verbatim: segjoins (1 to 8) P3; silprop (0 to 1) P4; silmin/silmax (0 to 10) P5/P6 - silmin > silmax accepted SILENTLY; trans (0.000000 to 3.000000) P8 (banner gives no bound); atten (0 to 1) P9; bias (-1 to 1) P10; mindur (8 to 250) P11 ms.",
+        "-p permute switch live. Stereo accepted (2ch out) -> any."
+      ]
+    },
+    {
+      "program": "housekeep",
+      "mode": "chans",
+      "submode": 3,
+      "breakpoint_capable": [],
+      "duration_row": ["housekeep", "chans", 3, 2.0, {"channo": 1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "ZERO ONE CHANNEL: stereo channo 2 -> L bit-equal to input, R all-zero (verified). Static duration; deterministic.",
+        "channo range = INPUT channel count, runtime-quoted ('(1.000000 to 2.000000)' stereo, '(1.000000 to 1.000000)' mono).",
+        "MONO INPUT path (banner: 'mono file goes to just one side of stereo outfile'): channo 1 -> stereo out, ch1 zeroed, source on ch2 - WITH A BUG: one sample dropped to 0.0 every 16384 frames (verified at 16384/32768/49152/65536/98304; stereo input clean). version_sensitive true.",
+        "Phase 6b note: this is the curatable 'channel surgery' mode; the true SPLIT modes (1: extract channo, 2: extract all) have no outfile argv and are dropped with naming records."
+      ]
+    },
+    {
+      "program": "housekeep",
+      "mode": "chans",
+      "submode": 4,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "STEREO-ONLY input ('ERROR: CANNOT ACHIEVE TASK: / ERROR: This file is already mono!!' on the mono fixture); the shared duration fixture writes one mono in.wav. Static verified on stereo (2.5 -> 2.5 mono out).",
+      "stochastic": false,
+      "notes": [
+        "MIXDOWN verified sample-exact: output == (L+R)/2 (maxdiff 3e-8); -p verified (L-R)/2 exact (phase-invert R before the mix).",
+        "4-CHANNEL input ACCEPTED: mono out at sum/2 with automatic renormalization when that clips (fit x0.357 on the 4ch fixture = peak matched to input peak). Entry pins the stereo case; >2ch documented.",
+        "Deterministic (pair verified). Phase 6b MERGE-half note: this puts split channels BACK to mono; the stereo re-merge of two mono files is submix interleave (curated) - repair dropped (self-naming)."
+      ]
+    },
+    {
+      "program": "housekeep",
+      "mode": "chans",
+      "submode": 5,
+      "breakpoint_capable": [],
+      "duration_row": ["housekeep", "chans", 5, 2.0, {}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "MONO -> STEREO: both output channels bit-equal to the source (verified). Static, sample-exact; deterministic (pair verified).",
+        "Stereo input refused 'ERROR: CANNOT ACHIEVE TASK: / ERROR: This file is already stereo!!' -> mono-only.",
+        "No parameters."
+      ]
+    }
+  ],
+  "dropped": [
+    {
+      "program": "retime",
+      "mode": "retime",
+      "submode": 2,
+      "reason": "Not reachable from the command line at all.",
+      "evidence": [
+        "'retime retime 2' prints verbatim: 'Mode only accessible via Sound Loom Properties Files' (exit 255). Absent from the mode list in the bare banner."
+      ]
+    },
+    {
+      "program": "retime",
+      "mode": "retime",
+      "submode": 11,
+      "reason": "Info mode with NO outfile argv ('retime retime 11 infile minsil') - results go to stdout only; the engine's contract needs one verified output file.",
+      "evidence": [
+        "On ev4/minsil 50: 'INFO: Shortest event = 0.419977 secs ::  = 419.977324 mS' / 'INFO: Longest event = 0.549977 secs' (matches the fixture's known event lengths 0.42/0.55 - the detector works; there is just no file). Reachable via execute()."
+      ]
+    },
+    {
+      "program": "refocus",
+      "mode": "refocus",
+      "submode": null,
+      "reason": "MULTI-OUTPUT BY CONSTRUCTION with self-generated names: bandcnt (number of envelope files) has a hard CDP floor of 2, so no single-output configuration exists, and the argv outname is never created as a file.",
+      "evidence": [
+        "bandcnt 1 refused verbatim: 'ERROR: Parameter[2] Value (1.000000) out of range (2.000000 to 900.000000)' - the tranche question ('does bandcnt=1 yield a single predictable filename?') is answered: NO, it is refused.",
+        "Naming: outname 'rf_c' + bandcnt 3 -> rf_c0.txt/rf_c1.txt/rf_c2.txt; outname 'rf_m.txt' -> rf_m0.txt/rf_m1.txt (index inserted before .txt; source open_the_outfile/create_next_outfile).",
+        "Output content verified useful for Phase 6: breakpoint text (time TAB level) at tstep intervals; focratio 3 -> in-focus 1.000000 vs 0.333333 rows.",
+        "Seed semantics recorded: -s5 twice -> identical file sets; seedless (default 0; 'if(seed>0) srand') 1.2 s apart -> identical - no clock path, glibc-default == seeded-1 behavior.",
+        "Argv trap recorded: default -o/-e refused 'ERROR: Refocus offset is beyond start of refocus end.' until -e <= dur passed explicitly. Reachable via execute() with cwd control."
+      ]
+    },
+    {
+      "program": "repair",
+      "mode": "repair",
+      "submode": null,
+      "reason": "SELF-NAMING EVEN FOR A SINGLE OUTPUT: the argv outfilename is never created - CDP inserts '_<index>' before the extension starting at 0, so the minimal 2-mono->1-stereo case writes '<stem>_0.wav'. No engine-verifiable output at the declared path.",
+      "evidence": [
+        "'repair repair ev4.wav ev4b.wav rp_out.wav 2' -> exit 0, writes rp_out_0.wav (rp_out.wav absent). Content verified sample-exact interleave: ch1 = infile1, ch2 = infile2.",
+        "4 inputs + channels 2 -> rp4_0.wav + rp4_1.wav (all ch-1 sources listed first; files 0,1 = ch1 of outputs 0,1).",
+        "Constraints verbatim: 'INVALID CHANNEL COUNT (2,4,5,7,8,16 only)' (3 refused); 'NUMBER OF INPUT FILES IS NOT A MULTIPLE OF 2'; 'FILES 0 AND 1 ARE NOT THE SAME SIZE'; mono inputs only.",
+        "Phase 6b MERGE half: the curated stereo-merge path remains submix interleave; repair via execute() with cwd control covers >2-channel merges."
+      ]
+    },
+    {
+      "program": "housekeep",
+      "mode": "chans",
+      "submode": 1,
+      "reason": "NO OUTFILE ARGV ('housekeep chans 1 infile channo'): output auto-named from the INPUT stem in cwd - same engine-incompatibility class as housekeep extract 1 (tranche 10b).",
+      "evidence": [
+        "'housekeep chans 1 ev4st.wav 1' -> exit 0, writes ev4st_c1.wav; content verified bit-equal to the input's channel 1.",
+        "Phase 6b SPLIT half: naming IS predictable ('<input_stem>_c<channo>.wav' in the process cwd) - execute() with cwd control can harvest it deterministically."
+      ]
+    },
+    {
+      "program": "housekeep",
+      "mode": "chans",
+      "submode": 2,
+      "reason": "MULTI-OUTPUT with no outfile argv: one self-named file per channel.",
+      "evidence": [
+        "'housekeep chans 2 ev4st.wav' -> exit 0, writes ev4st_c1.wav + ev4st_c2.wav (input stem + _c<n>).",
+        "Same predictable-naming note as mode 1 for execute() harvesting; the engine's single-output contract cannot host it."
+      ]
+    }
+  ]
+}
