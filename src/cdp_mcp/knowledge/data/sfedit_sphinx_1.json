@@ -1,0 +1,72 @@
+{
+  "program": "sfedit",
+  "mode": "sphinx",
+  "submode": 1,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 2,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "switchtimes"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "twixt with PER-FILE switch-times: the times file has one COLUMN per input, and the Nth switch-time in one file corresponds to the Nth in another - so the process hops between files at DIFFERENT absolute positions in each, re-composing rather than just switching a multitrack. Mode 1 (IN SEQUENCE) pinned; variadic upstream, entry pins 2 inputs. Content verified: with columns (0, 0.4, 0.9, 1.4) for file 1 and (0, 0.6, 1.1, 1.6) for file 2, segment 1 is bit-equal to file1[0:0.4]. Output duration is the sum of the chosen inter-time spans (1.4000 s on the probe) - switch-file-dependent, so the model is the aux-param pre-flight skip sentinel. Column count must match the infile count ('Number of data-items per line (1) does not tally with number of infiles (2).' verbatim). Modes 2/3 ('Permuted'/'Random Choice') share twixt's deterministic-random construction: byte-identical runs 1.2 s apart (verified). Deterministic.",
+  "musical_use": "Asymmetric splice-collage: switch from bar 1 of take A into bar 3 of take B and back into bar 2 of A - because each file has its OWN column of times, phrases of different lengths interleave naturally (twixt can only cut between time-aligned parallels). This is the tool for re-composing between two performances with different timings, building a chimera voice from two speakers, or interleaving verses of unequal length. Segment N of the output always comes from between times N and N+1 of whichever file is current, so the columns are effectively a splice score. Column lengths must agree; times ascend per column. For the time-aligned multitrack version use sfedit twixt.",
+  "parameters": {
+    "switchtimes": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Text file with ONE COLUMN of ascending times per input file, equal row counts ('0.0 0.0' / '0.4 0.6' / '0.9 1.1' / '1.4 1.6' for two files; write with write_data_file(); include a 0 row to use file starts). Mismatched column count refused verbatim: 'Number of data-items per line (1) does not tally with number of infiles (2).'. Resolved against the session's data/ directory."
+    },
+    "splicelen": {
+      "type": "float",
+      "min": 2.0,
+      "max": 15.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Splice duration at each switch in milliseconds (the twixt-family 2-15 ms enforced range; breakpoint file refused 'Cannot read parameter 1 [...]: brkpnt_files not permitted.'). Required."
+    },
+    "weight": {
+      "type": "int",
+      "min": 1,
+      "max": 10,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-w",
+      "flag_kind": "attached_value",
+      "description": "File 1 occurs WEIGHT times more often than the other files (twixt-family flag, enforced 1-10)."
+    },
+    "randomize_order": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-r",
+      "flag_kind": "no_value",
+      "description": "'Randomly' permute the file order - drawn from the unseeded drand48 shim, so identical on every run of this build (twixt-family finding). Version-sensitive."
+    }
+  },
+  "examples": [
+    {
+      "description": "Interleave two takes with independent phrase boundaries.",
+      "params": {"switchtimes": "data/cols.txt", "splicelen": 15.0},
+      "expected_use": "Two columns of four ascending times: output = A-phrase 1, B-phrase 2, A-phrase 3 - phrases of different lengths, duration = sum of chosen spans."
+    }
+  ],
+  "known_issues": [
+    "Output duration depends on the switch-times columns (sum of the traversed spans; 1.4000 s on the pinned probe): the duration pre-flight skips; the watchdog bounds the run.",
+    "The times file must have exactly one column per input and equal column lengths ('Number of data-items per line (N) does not tally with number of infiles (M).').",
+    "Modes 2/3 are 'random' in the banner but fully deterministic on this build (unseeded drand48 shim, no seed argv; byte-identical runs 1.2 s apart verified) - same first-class finding as twixt; version_sensitive for that reason.",
+    "All inputs must share channel count; entry pins 2 inputs, binary variadic (execute() for more).",
+    "splicelen range 2-15 ms; its breakpoint refusal quotes 'parameter 1'. Mode 1 verified deterministic."
+  ],
+  "references": ["cdp://docs/html/cgroedit"]
+}

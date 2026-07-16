@@ -1,0 +1,62 @@
+{
+  "program": "sfedit",
+  "mode": "cutend",
+  "submode": 1,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "length"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Cuts and keeps the END portion of a sound: the last `length` seconds, ending at the file's end. Pinned to submode 1 (time in seconds); submodes 2/3 take sample / grouped-sample counts (both verified working). Duration model 'length' is SAMPLE-EXACT on every probe (0.75 -> 33075 frames, 1.5 -> 66150, 0.4 on a 1 s file -> 17640; stereo identical). With splice 0 the output is a verbatim sample-exact copy of the input's tail (allclose, max diff 0.0); the default 15 ms splice fades the block's leading edge in place (first sample 0.0, interior bit-equal) and never changes duration. Deterministic; mono and stereo accepted.",
+  "musical_use": "The keep-the-tail edit: save a decay, a reverb tail, or the last gesture of a phrase without computing start times (sfedit cut needs both bounds; cutend just needs how much to keep). Classic moves: keep the final N seconds of a long granulation and dovetail it into the next section; extract matching-length tails from several renders for A/B comparison; or chop a fixed-length ending off every take in a batch. Combine with sfedit cut for arbitrary regions, or envel dovetail when you want a shaped fade rather than a straight splice at the kept block's start.",
+  "parameters": {
+    "length": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Length of sound to keep, measured back from the end of the input. Runtime-enforced 0 to the input duration ('Parameter[1] Value (2.500000) out of range (0.000000 to 2.000000)' on a 2 s file - refused, not clamped). 0 passes the range check but aborts 'Edited portion is too short for specified splicelen.'. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). Required."
+    },
+    "splice": {
+      "type": "float",
+      "min": 0.0,
+      "max": 5000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 15.0,
+      "flag": "-w",
+      "flag_kind": "attached_value",
+      "description": "Splice window in milliseconds faded into the kept block's start (CDP internal default 15; enforced 0-5000, '-w-1'/'-w5001' refused quoting 'Parameter[2] ... (0.000000 to 5000.000000)'). Never changes duration (0/15/100 ms all sample-identical length). Must fit the block: -w600 around a 0.5 s keep aborts 'Edited portion is too short for specified splicelen.'. 0 = verbatim tail copy (verified sample-exact). Breakpoint refused - note the numbering mismatch: range refusal says Parameter[2], breakpoint refusal says 'Cannot read parameter 3'."
+    }
+  },
+  "examples": [
+    {
+      "description": "Keep the last three-quarter second of a sound.",
+      "params": {"length": 0.75},
+      "expected_use": "Output exactly 0.75 s (sample-exact); 15 ms fade-in at the block start, tail bit-equal to the source."
+    },
+    {
+      "description": "Verbatim splice-less tail for sample-exact downstream work.",
+      "params": {"length": 1.5, "splice": 0.0},
+      "expected_use": "Bit-faithful copy of the input's last 1.5 s (may click at the cut point)."
+    }
+  ],
+  "known_issues": [
+    "length is runtime-checked against the input duration; longer-than-file values are refused ('out of range (0.000000 to 2.000000)' on a 2 s file), never clamped. length 0 passes the range check but aborts on the splice fit.",
+    "The splice must fit inside the kept block ('Edited portion is too short for specified splicelen.', runtime- and parameter-dependent).",
+    "Both parameters reject breakpoint files; the splice's refusal numbering is inconsistent (range refusal 'Parameter[2]', breakpoint refusal 'parameter 3') - both verbatim-verified.",
+    "Duration model sample-exact on all probes (two input durations, stereo, three splice values); deterministic (identical decoded shas 1.2 s apart).",
+    "Submodes 2 (sample counts) and 3 (grouped-sample counts) verified working and uncurated - reach them via execute()."
+  ],
+  "references": ["cdp://docs/html/cgroedit"]
+}

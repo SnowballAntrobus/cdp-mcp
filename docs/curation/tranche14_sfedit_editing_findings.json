@@ -1,0 +1,365 @@
+{
+  "generated_at": "2026-07-16",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (rebuilt 2026-07-15 with -fsigned-char, forensics P6-1 - textfile inputs parse)",
+    "os": "Linux sandbox",
+    "note": "Tranche 14: sfedit depth + editing utilities. Fixtures in /tmp/probe14a (see transcript). To be re-verified on macOS r8 by the CDP-gated suite after integration. Aux files referenced by rows, for _AUX_FILES: exc14.txt = '0.3 0.5\\n1.0 1.4\\n'."
+  },
+  "entries": [
+    {
+      "program": "sfedit",
+      "mode": "cutend",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": ["sfedit", "cutend", 1, 2.0, {"length": 0.75}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration = length, SAMPLE-EXACT (0.75/1.5/0.4 on two indurs; stereo; -w0/-w100). -w0 output allclose to input tail (max diff 0.0); default splice fades in place (first sample 0.0, interior bit-equal).",
+        "Ranges verbatim: length 0..indur (2.5 on 2 s refused); length 0 aborts on splice fit; splice 0-5000. Splice numbering mismatch: range refusal Parameter[2], brk refusal parameter 3.",
+        "Both params refuse brks. Submodes 2/3 (sample/grouped-sample counts) verified working, uncurated. Deterministic; stereo accepted."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "zcut",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": ["sfedit", "zcut", 1, 2.0, {"start": 0.5, "end": 1.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Zero-crossing cut, NO splices. duration = end - start within one sample (tone exact 44100; noise 44099).",
+        "SWAP DIVERGENCE from sfedit cut: reversed bounds WARN ('WARNING: end cut before startcut: reversing these times.') then swap, byte-identical output; cut swaps silently. start==end refused 'endcut = startcut: No cutting possible.'.",
+        "MONO only ('Application doesn't work with this type of infile.'). Brks refused params 1-2. Submode 2 (sample counts) verified. Deterministic."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "excises",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Aux-datafile-driven duration (indur - sum of excised spans; sample-exact 2.0-0.6 -> 1.4000/61740 frames, 3.0 -> 2.4000, stereo identical) - the expression is the aux-param preflight skip sentinel ('excisefile'), so the row cannot assert a prediction.",
+      "stochastic": false,
+      "notes": [
+        "-w0 output allclose to numpy concat of kept regions (max diff 0.0).",
+        "DIVERGENCE from single excise: end beyond EOF CLAMPED ('0.3 2.5' on 2 s -> exit 0, 0.3075 s; excise refuses).",
+        "Datafile refusals verbatim: 'Start and end of excised portions 1 & 2 overlap.'; 'Start and End times not paired correctly in textfile ...'. splice brk refused parameter 3; range 0-5000. Submode 2 verified. Deterministic; stereo ok."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "masks",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": ["sfedit", "masks", 1, 2.0, {"excisefile": "exc14.txt"}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "STATIC, sample-exact (2.0/1.0/stereo; region past EOF tolerated, exit 0, 2.0). Row references aux exc14.txt ('0.3 0.5\\n1.0 1.4\\n') - static model is assertable despite the aux param.",
+        "-w0: masked zones exactly 0.0, unmasked bit-equal (verified). Reversed pair refused 'starttime <= endtime for excise 1' (says 'excise' - shared reader). '-w300' on 0.2 s region: 'Excised segment 1 too short for splices (shorten splices?)'.",
+        "splice 0-5000, brk refused parameter 3. Deterministic."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "insert",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry; incompatible with the single-input duration fixture. Model 'indur1 + indur2 - splice / 1000' verified sample-exact: (2,1)@15ms -> 2.985/131638 frames, (3,1) -> 3.985, -w0 -> 3.0000, -w100 -> 2.9, stereo pair -> 3.985. -o (overwrite) excluded: output = indur1 (2.0000) while insert fits inside host.",
+      "stochastic": false,
+      "notes": [
+        "-w0 output allclose to host[0:t]+insert+host[t:]. Time near end refused 'Insert time beyond end of infile (allowing for splice)'.",
+        "level -l range verbatim (0.000002 to 128.000000); channel mismatch 'Incompatible channel-count in input file ...'.",
+        "Brks refused: time parameter 1, splice 3, level 4. Deterministic."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "replace",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry. Model 'indur1 - (endtime - time) + indur2' sample-exact (2.3000/101430 frames; 3 s host -> 3.3) and SPLICE-INDEPENDENT (-w0/-w15/-w100 identical length).",
+      "stochastic": false,
+      "notes": [
+        "REVERSED-BOUNDS LANDMINE (first-class): endtime < time accepted with exit 0, NO warning - negative span EXTENDS the file ('1.2 0.5' -> 3.7000 s = indur1 + 0.7 + indur2, host material duplicated). No sibling shares this (cut/excise silent swap, zcut warn+swap).",
+        "-w0 allclose to host[0:time]+insert+host[endtime:]. endtime at file end refused 'Overwrite endtime is beyond end of infile (allowing for splice)'.",
+        "level range (0.000002 to 128.000000) verbatim; brks refused params 1-4; stereo+stereo ok. Deterministic."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "insil",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": ["sfedit", "insil", 1, 2.0, {"time": 0.8, "duration": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration = indur + duration - splice/1000, sample-exact (2.485/109588 frames; 1.985; -w0 -> 2.5000; -w100 -> 2.4; stereo identical). Row relies on splice default 15 seeded by the preflight.",
+        "END-PAD BUG (first-class, version_sensitive): time == indur (2.0) -> exit 0 but 4.0000 s out (appended silence = INDUR not duration; 1.99 -> 3.99; 1.95 normal). Keep time <= indur - splice.",
+        "-o -> static (2.0000, model excluded); -o near end refused 'Insertion will cut off entire end of file: use sfedit cut' unless -s ('Insertion will cut sound at end of file: leaving a silent section there.' WARNING, exit 0).",
+        "duration 0 refused 'Inserted silence is too short for splices.'. -w0 inserted zone exactly 0.0, flanks bit-equal. Brks refused params 1-3. DIVERGENCE: manysil consumes NO splice; insil consumes one. Deterministic."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "noisecut",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Static and sample-exact on material with tonal content (2.0999 -> 2.0999; 2.0 -> 2.0), but the suite's flat-noise fixture is ALL noise and collapses to a ZERO-FRAME output (exit 0, 0 frames, verified) - row excluded.",
+      "stochastic": false,
+      "notes": [
+        "Content verified: hiss zone replaced by an exact zero run (1.116-1.403 s); tones bit-preserved; -n inverts (zero fraction 0.14 -> 0.76).",
+        "MONO only ('Application doesn't work with this type of infile.').",
+        "Ranges verbatim: splicelen (0.000000 to 50.000000) - unusually tight; noisfrq (1000.000000 to 22050.000000) input-dependent ceiling; maxnoise (0.000000 to 50.000000); mintone (0.000000 to 1000.000000). Brks refused params 1-4. Deterministic."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "joinseq",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Pattern-file-driven duration (sum of item durations - one splice per seam; sample-exact: 4x1s@15ms -> 3.9550/174414 frames; -w0 -> 2.0000 exactly) - aux sentinel expr 'pattern' engages the preflight skip; also pins 2 inputs.",
+      "stochastic": false,
+      "notes": [
+        "-w0 output allclose to numpy concat. Pattern numbers 1-based; 'Number '3' in sequence data does not correspond to any input soundfile' / same for '0' (verbatim). Whitespace/newlines interchangeable (byte-identical).",
+        "-m maxlen 1-32767 (verified -m2 truncates); -b/-e content-only; splice range refusal Parameter[2] vs brk refusal parameter 3 (verbatim); channel mismatch refused; stereo+stereo verified.",
+        "BANNER QUIRK: usage line headed 'sfedit join'; working verb joinseq. Deterministic."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "joindyn",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Pattern-file-driven duration (3 items -> 2.9700/130976 frames, seam rule sample-exact) - aux sentinel expr 'pattern'; pins 2 inputs.",
+      "stochastic": false,
+      "notes": [
+        "Paired pattern 'fileno gain': gain verified applied (0.25 item peaks at exactly 0.25x source); gains > 1 ACCEPTED (3.0 ran).",
+        "Odd item count refused 'Data incorrectly paired in file <name>' (verbatim). Deterministic."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "twixt",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Multi-input entry (pins 2). Rule pinned: duration = indur_min (equal pairs -> exactly that length; 3s+2s and 2s+1s -> the shorter; switch-times past EOF overrun +0.6%).",
+      "stochastic": false,
+      "notes": [
+        "Mode 1 content sample-exact: alternating blocks bit-equal outside splices (in1/in2/in1/in2 at 0/0.5/1/1.5).",
+        "splicelen enforced 2-15 ms verbatim - tightest in the family; brk refusal 'parameter 1' vs range 'Parameter[2]'. weight -w 1-10; segcnt (modes 2/3) 1-10000.",
+        "DETERMINISTIC-RANDOM (first-class, source-diagnosed): modes 2/3 and -r draw from osbind.c's drand48 shim (rand()/RAND_MAX) with NO srand on this path (initrand48 only on randcuts/randchunks paths: ap_edit.c:966, cut.c:2709) - byte-identical runs 1.2 s apart verified twice; -r byte-equals unflagged; no seed argv. version_sensitive.",
+        "Unordered times refused 'Times 1 (1.000000) and 2 (0.500000) are not in ascending order'. Mode 4 dropped (see dropped[])."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "sphinx",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Multi-input entry (pins 2) with switch-file-driven duration (sum of traversed spans; 1.4000 s on the pinned probe) - aux sentinel expr 'switchtimes'.",
+      "stochastic": false,
+      "notes": [
+        "Per-file time columns: 'Number of data-items per line (1) does not tally with number of infiles (2).' (verbatim). Segment 1 bit-equal to file1[0:0.4].",
+        "Modes 2/3 share twixt's deterministic-random construction (mode 2 byte-identical 1.2 s apart, segcnt 6 -> 3.185 s both runs). version_sensitive.",
+        "splicelen 2-15 ms family range; brk refused parameter 1; channel mismatch refused. Mode 1 deterministic."
+      ]
+    },
+    {
+      "program": "rejoin",
+      "mode": "rejoin",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Multi-input entry (pins 2; variadic upstream). Rule pinned: duration = indur_max (1.615 = longest segment file; round-trip 2.0).",
+      "stochastic": false,
+      "notes": [
+        "BANNER BUG (first-class): usage line 'rejoin rejoin 1-2 infile infile2 [infile3 ....]' omits the outfile - the last argv IS a required output (verified created; single input + outfile refused 'Insufficient input files for this process').",
+        "ISOLATE CONTRACT PINNED: isolate writes '<outnam>0.wav'..'<outnam>N.wav' (numbered from 0, remnant LAST in modes 1-3; extension re-inserted if outnam ends .wav); the argv name itself is NEVER created; mode 3's 'ONE output' = outnam0.wav + remnant outnam1.wav -> no single-output configuration exists; isolate dropped in all 5 modes, rejoin curated as the pair's face.",
+        "ROUND TRIP SAMPLE-EXACT: isolate 1 -> rejoin 2 reproduces the source, max sample diff 2.98e-08 (float32 epsilon), equal length. Mode 1 = time-aligned sum (allclose vs numpy sum); modes 1/2 byte-identical on the same list (-r's remnant exemption is the difference; -r changes render).",
+        "gain -g 0-1 verbatim ('Parameter[1] Value (3.000000) out of range (0.000000 to 1.000000)'); gain brk refused parameter 1; channel mismatch refused; two-pass anti-clip (unity when sum < 1.0, verified peak exactly 2x). Deterministic."
+      ]
+    },
+    {
+      "program": "manysil",
+      "mode": "manysil",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Aux-datafile-driven duration (indur + sum of inserted durations; sample-exact 2.0+0.8 -> 2.8000/123480 frames, 3.0 -> 3.8, stereo identical) - aux sentinel expr 'silencedata'.",
+      "stochastic": false,
+      "notes": [
+        "Splices consume NO duration (splicelen 0 == 15 in length, verified) - DIVERGENCE from sfedit insil. splice-0 output allclose to numpy source/zero interleave.",
+        "Out-of-order times refused 'TIME (0.500000) OUT OF SEQUENCE OR INVALID, IN FILE ...' (verbatim). LANDMINE: time beyond EOF silently IGNORED (exit 0, output unchanged 2.0000).",
+        "splicelen 0-1000 ('Parameter[2] ... (0.000000 to 1000.000000)'); brk refused parameter 1 (numbering mismatch). Deterministic."
+      ]
+    },
+    {
+      "program": "prefix",
+      "mode": "silence",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["prefix", "silence", null, 2.0, {"dur": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration = indur + dur, sample-exact (2.5000/110250 frames; 1+1.5 -> 2.5; 1+0.3 -> 1.3; stereo identical). Prepended block exactly 0.0; source bit-equal after (no splice).",
+        "dur range verbatim (0.000000 to 23767.000000) - a 4000 s probe legally wrote 706 MB (engine duration cap is the guard). dur 0 refused 'Zero-length silence added: There will be no change to the nput sound.' (CDP typo verbatim).",
+        "brk refused parameter 1. Deterministic."
+      ]
+    },
+    {
+      "program": "constrict",
+      "mode": "constrict",
+      "submode": null,
+      "breakpoint_capable": ["constriction"],
+      "duration_row": ["constrict", "constrict", null, 2.0, {"constriction": 50.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Shortens zero-level sections by a percentage; >100 overlaps flanking sound. Content-dependent duration: ev4 (3.0 s) -> 2.2749/1.6998/0.7496 at 50/100/200; NO-SILENCE material passes at indur - 1 frame (flat/stereo 88199) - the static model's fixture regime.",
+        "BREAKPOINT-CAPABLE (first-class - the editing family otherwise refuses brks): brk 10->190 -> 0.45 s, sha differs from both scalar endpoints (2.735/0.8446).",
+        "Range verbatim (0.000000 to 200.000000). Deterministic; stereo accepted. Only EXACT zeros count as silence."
+      ]
+    },
+    {
+      "program": "dvdwind",
+      "mode": "dvdwind",
+      "submode": null,
+      "breakpoint_capable": ["contraction", "clipsize"],
+      "duration_row": ["dvdwind", "dvdwind", null, 2.0, {"contraction": 2.0, "clipsize": 50.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration = (indur/contraction)*(1 - 5/clipsize); the 5 is source-confirmed DVD_SPLICELEN (5 mS, dev/science/dvdwind.c) consumed per clip. Fits 7 probes (contraction 1.5-4, clipsize 20-100, indur 2-3 s, stereo) to worst +1.6%.",
+        "BOTH params breakpoint-capable (differs-from-both-endpoints proofs: contraction brk 1.5->4 -> 0.7543 vs 1.2194/0.4549; clipsize brk 20->100 -> 0.9083 vs 0.7544/0.9549). In-brk range check verbatim: 'Value (0.400000) out of range (...) in brkpntfile b_len.brk.'.",
+        "Ranges verbatim: contraction (1.000000 to 3600.000000) but exactly 1 refused 'No significant stretch (1.000000)' (INVALID DATA); clipsize (10.000000 to 2000.000000). Deterministic; stereo accepted."
+      ]
+    },
+    {
+      "program": "flatten",
+      "mode": "flatten",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["flatten", "flatten", null, 2.0, {"elementsize": 0.3, "shoulder": 20.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Static, sample-exact (3.0/2.0/flat all pass through). Levels: bursts 0.48/0.55/0.39 -> 0.950; the 0.25 burst -> 0.495 (boost cap ~2x observed).",
+        "MONO only ('File st2.wav is not a mono soundfile'). BANNER DIVERGENCE: shoulder's 'ELEMENTSIZE/2' ceiling NOT enforced (200 ms at elementsize 0.3 runs); CDP-enforced 20-50000 ms; elementsize 0.001-100 s (both verbatim).",
+        "-t tail works. Brks refused params 1-3. Deterministic."
+      ]
+    },
+    {
+      "program": "housekeep",
+      "mode": "copy",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": ["housekeep", "copy", 1, 2.0, {}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "BIT-IDENTICAL copy verified: decoded sha256 equal to source on mono AND stereo. Static; no parameters.",
+        "Submode 2 (COPY MANY) drop-noted in the entry: no outfile argv, self-names '<stem>_001.wav'... in cwd (verified n1_001/002/003), halts on pre-existing files unless -i."
+      ]
+    },
+    {
+      "program": "housekeep",
+      "mode": "endclicks",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["housekeep", "endclicks", null, 2.0, {"gate": 0.1, "splicelen": 15.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "A TRIM, not a de-clicker: output = indur - content-dependent trimmed spans (click fixture 2.0 -> 1.8867 with both clicks gone, head max 0.0; flat suite-style noise -> 1.9849, -0.75% - the static row's regime; stereo 1.9495 accepted).",
+        "One of -b/-e REQUIRED: flagless refused 'Input file will be UNCHANGED.' (exit 255) - entry defaults both true. Content/parameter abort verbatim: 'At this gate level and splice length, entire file will be removed.' (-b alone on the click fixture).",
+        "Ranges verbatim: gate (0.000000 to 1.000000); splicelen (0.000000 to 200.000000). Brks refused params 1-2. Deterministic."
+      ]
+    },
+    {
+      "program": "housekeep",
+      "mode": "deglitch",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Static and sample-exact where it runs (2.0 -> 2.0, mono and stereo), but the flat-noise suite fixture has no silence-flanked glitches and refuses 'None of the sound will be gated.' (exit 255) - content refusal, row excluded (retime 3/8/10 precedent).",
+      "stochastic": false,
+      "notes": [
+        "Verified surgical: 'glitches found = 1', 4 ms click at 0.9 s replaced by exact silence, tones bit-preserved. -s report verbatim: 'GLITCH length 5.96 ms : val 0.889873 : at (grouped)sample 39690 : time 0.900000 secs'.",
+        "Stereo ACCEPTED when a glitch exists (dual-mono fixture found + gated, 2 ch out); glitch-free stereo refused with 'glitches found = 0' + the gating refusal -> channel any.",
+        "Ranges verbatim: glitch (0.022676 to 1000.000000); sil (0.300000 to 1000.000000); thresh (0.000000 to 1.000000); splice (0.000000 to 50.000000); window (0.022676 to 4.000000) mono / (0.045351 ...) stereo - floor is the grouped-sample period, input-dependent; banner's 'ms' with a 4.0 ceiling (15 refused). Brks refused params 1-5. Deterministic."
+      ]
+    }
+  ],
+  "dropped": [
+    {
+      "program": "sfedit",
+      "mode": "zcuts",
+      "submode": 1,
+      "reason": "MULTI-OUTPUT: one numbered file per time-pair; the argv outfile is never created.",
+      "evidence": [
+        "'sfedit zcuts 1 n2.wav zcs_out.wav zcts.txt' (3 pairs) -> exit 0, writes zcs_out1.wav/zcs_out2.wav/zcs_out3.wav (0.3/0.4/0.4 s, index inserted before .wav, numbered from 1); ls: zcs_out.wav 'No such file or directory'. Reachable via execute() with cwd control."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "cutmany",
+      "submode": 1,
+      "reason": "MULTI-OUTPUT: 'CUT & KEEP SEVERAL SEGMENTS' writes one numbered file per segment; argv outfile never created.",
+      "evidence": [
+        "'sfedit cutmany 1 n2.wav cm_a.wav cm.txt 15' (3 pairs) -> exit 0, writes cm_a1/2/3.wav (0.3/0.4/0.4 s); cm_a.wav absent. Splice-slot brk refused 'Cannot read parameter 1'. execute() only."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "syllables",
+      "submode": 1,
+      "reason": "MULTI-OUTPUT: one numbered file per syllable; argv outfile never created.",
+      "evidence": [
+        "'sfedit syllables 1 n2.wav sylo.wav sylc.txt 20 15' (4 cut times) -> exit 0, writes sylo1/2/3.wav (0.33/0.33/0.43 s - dovetail overlaps applied); sylo.wav absent. execute() only."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "randcuts",
+      "submode": null,
+      "reason": "NO outfile argv at all ('sfedit randcuts infile average-chunklen scattering') - self-names '<stem>_<N>.wav' from 0 next to the input; also clock-seeded with no seed argv.",
+      "evidence": [
+        "Run -> exit 0, 'INFO: creating file n2_0' ... n2_0..n2_3.wav written beside the input. BANNER LIE: claims 'infilename truncated by 1 character' - actual naming is stem + '_N'.",
+        "CLOCK SEED verified both ways: two same-second runs -> identical chunk frame sets (32640/38760/6532/10268 twice); 1.3 s later -> different (36052/8354/23044/20750). Source: randcuts_pconsistency calls initrand48() = srand(time(0)) (ap_edit.c:966, osbind.c). Same-second collision trap applies to execute() callers."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "randchunks",
+      "submode": null,
+      "reason": "NO outfile argv; self-naming ('<stem-minus-1-char><N>.wav' from 0) can COLLIDE WITH THE INPUT FILE, killing the run mid-write.",
+      "evidence": [
+        "'sfedit randchunks n2.wav 3 0.3' -> writes n0.wav, n1.wav, then chunk 3 tries to open n2.wav (the input) and dies 'ERROR: Cannot open output file n2.wav' (exit 255 after 2 chunks) - any input named '<x>2.wav' cannot yield 3 chunks.",
+        "Clock-seeded like randcuts (do_randchunks calls initrand48(), cut.c:2709). execute() only, with naming care."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "twixt",
+      "submode": 4,
+      "reason": "Mode 4 (Edit only) is multi-output with a misleading twist: the argv outfile IS created but holds only chunk 1; chunks 2..N land at '<argv-stem-minus-1-char><N>.wav' - orphan files the engine cannot track.",
+      "evidence": [
+        "'sfedit twixt 4 n2.wav tone2.wav tw4_out.wav sw.txt 15' -> exit 0: tw4_out.wav (0.5 s, chunk 1) + tw4_ou1.wav/tw4_ou2.wav/tw4_ou3.wav (0.515 s each).",
+        "Also requires >= 2 infiles despite cutting only file 1 ('Insufficient input files for this process' with one). execute() with cwd control."
+      ]
+    },
+    {
+      "program": "isolate",
+      "mode": "isolate",
+      "submode": null,
+      "reason": "MULTI-OUTPUT in all 5 modes with self-generated names: outputs at '<outnam>N.wav' numbered from 0 (remnant LAST in modes 1-3); the argv outname is NEVER created as a file; NO single-output configuration exists.",
+      "evidence": [
+        "Mode 1 ('isolate 1 n2.wav iso_a cuts.txt', cuts 0.3-0.7/1.1-1.6) -> iso_a0.wav (0.715 s, silent until 0.285 = start - splice, segment bit-equal), iso_a1.wav (1.615), iso_a2.wav = remnant (2.0, kept zones silenced). outnam with '.wav' extension: iso_b.wav -> iso_b0.wav... (index before extension).",
+        "TRANCHE QUESTION ANSWERED - mode 3, the 'ONE output file' mode ('isolate 3 ev4.wav iso_c -30 -40'): writes iso_c0.wav (2.865 s) PLUS remnant iso_c1.wav (3.0) - two files, and the single output is at outnam0.wav, not the argv path. Modes 4/5 (slicefile): N slices -> N+1 numbered segment files (0.5075/1.0075/1.5075/2.0; mode 5 adds the 5 ms dovetail), no remnant.",
+        "ROUND-TRIP CONTRACT (the pair's headline): rejoin mode 2 over iso_a0+iso_a1+iso_a2 reconstructs n2.wav bit-faithfully (max sample diff 2.98e-08 = float32 epsilon). isolate reachable via execute() with cwd control; rejoin curated (rejoin_rejoin_2.json) as the pair's engine face."
+      ]
+    }
+  ]
+}

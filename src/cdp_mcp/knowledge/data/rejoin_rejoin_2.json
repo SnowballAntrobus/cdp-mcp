@@ -1,0 +1,61 @@
+{
+  "program": "rejoin",
+  "mode": "rejoin",
+  "submode": 2,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 2,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur_max"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Remixes segment files from the ISOLATE process back into one sound - the reassembly half of the isolate/rejoin pair, and the pair's only engine-compatible face (isolate itself is multi-output, see known_issues). Mode 2 (pinned) remixes segment files PLUS the remnant file, which must be the LAST input. THE BANNER LIES: its usage line shows no outfile, but the last argv IS a required output path (verified - undocumented argv). Because isolate's segment files retain their silent surrounds, rejoin is a plain time-aligned sum: mode 1 on two segment files verified sample-exact against the numpy sum, and the full round trip isolate mode 1 -> rejoin mode 2 reconstructs the source BIT-FAITHFULLY (max sample diff 3e-08 = float32 epsilon on a 2 s noise probe). Duration = indur_max (the longest input; 1.615 s and 2.0 s probes exact). Modes 1 and 2 render byte-identically on the same file list; they differ only in how -r treats the last file. Two-pass level check ('Pass 1: Test output level'): output is auto-attenuated only if the sum would clip. Deterministic; channel counts must match across inputs.",
+  "musical_use": "The reassembler: after isolate has split a performance into addressable events (each padded to its original timeline position), process any subset - reverse one syllable, filter another, drop a third - and rejoin snaps the survivors back into the original timing. Skip segments for composed absence; feed the remnant last (mode 2) to restore the material between events, or omit it (mode 1 semantics) for events-only versions floating in silence. Because it is a straight aligned sum, level relationships are preserved and the auto-gain only intervenes on clipping. Contract with isolate: outnam 'seg' yields seg0.wav ... segN-1.wav (the events) and segN.wav (the remnant, modes 1-3) - list them in order with the remnant LAST. gain trims the whole remix (0-1).",
+  "parameters": {
+    "gain": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Output level trim, enforced 0-1 verbatim ('Parameter[1] Value (3.000000) out of range (0.000000 to 1.000000)'). Independent of the automatic anti-clip attenuation (which engages only when the sum would clip). Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "reverse": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-r",
+      "flag_kind": "no_value",
+      "description": "Reverse the segment files before mixing - in mode 2 the remnant (last infile) is NOT reversed (banner semantics; changes the render, verified sha differs)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Round-trip reconstruction after isolate.",
+      "params": {},
+      "expected_use": "Inputs = seg0.wav, seg1.wav (remnant last). Output duration = the longest input; content bit-faithful to the pre-isolate source (verified to float32 epsilon)."
+    },
+    {
+      "description": "Events-only remix at reduced level.",
+      "params": {"gain": 0.7},
+      "expected_use": "Feed only the segment files (no remnant): the events sit in their original positions surrounded by silence, trimmed to 0.7."
+    }
+  ],
+  "known_issues": [
+    "BANNER BUG (first-class): the usage line 'rejoin rejoin 1-2 infile infile2 [infile3 ....] [-ggain] [-r]' omits the outfile - the final argv is a REQUIRED output path (verified: it is created; with only one input + outfile CDP refuses 'Insufficient input files for this process').",
+    "ISOLATE PAIR CONTRACT: isolate never creates its argv outname - it writes '<outnam>0.wav'..'<outnam>N.wav' (extension inserted correctly if outnam ends '.wav'), segments numbered from 0 with the remnant LAST (modes 1-3); even mode 3's 'ONE output file' arrives as outnam0.wav + remnant outnam1.wav. Isolate is therefore engine-dropped in all 5 modes (execute() with cwd control to run it); rejoin is the pair's curated face.",
+    "Mode 2 expects the remnant as the LAST infile; modes 1/2 render byte-identically on the same list (verified) - the distinction only matters with -r (mode 2 exempts the remnant from reversal).",
+    "Round trip verified sample-exact: isolate 1 (2 cuts) -> rejoin 2 reproduced the source with max diff 3e-08. Output duration = longest input (multi-input entry: rule pinned here, no single-input duration row).",
+    "Anti-clip auto-attenuation: 'output level is automatically turned down if output clips' (two-pass); a non-clipping sum is passed through at unity (verified: peak exactly 2x on a doubled input summing to <1.0).",
+    "All inputs must share channel count ('Incompatible channel-count in input file ...'). Entry pins 2 inputs; the binary is variadic - use execute() for bigger remixes. Deterministic (identical decoded shas 1.2 s apart)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

@@ -1,0 +1,45 @@
+{
+  "program": "prefix",
+  "mode": "silence",
+  "submode": null,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + dur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Adds silence to the START of a sound - the simplest re-timing primitive. Note the argv verb: the program is 'prefix' but its mode name is 'silence' ('prefix silence infile outfile dur'). Duration model 'indur + dur' is SAMPLE-EXACT (2 s + 0.5 -> 2.5000 / 110250 frames; 1 s + 1.5 -> 2.5000; 1 s + 0.3 -> 1.3000; stereo identical), the prepended block is EXACTLY zero (max |sample| = 0.0) and the original material is bit-equal after it (verified allclose, no splice, no fade). dur's enforced ceiling is enormous - 23767 seconds ('Parameter[1] Value (-0.500000) out of range (0.000000 to 23767.000000)') - so a typo can legally demand a multi-hour file (a 4000 s probe wrote 706 MB); the engine's duration cap is the real guard. dur 0 is refused with CDP's typo verbatim: 'Zero-length silence added: There will be no change to the nput sound.'. Deterministic; mono and stereo accepted.",
+  "musical_use": "Offset without a mixer: delay an element by an exact amount before summing (two prefixed copies + submix mix = a timing offset with sample accuracy), pad a sound so process onsets land on a grid, or give an attack-heavy sample pre-roll so a downstream envelope or reverb has room to breathe. Because the prepend is verbatim digital silence with no splice, arithmetic is exact and the original samples are untouched - safe in bit-faithful chains. It only does the START: for silence at the end use sfedit insil (mind its end-pad bug) or sfedit join with a silence file; for silence inside, insil/manysil.",
+  "parameters": {
+    "dur": {
+      "type": "float",
+      "min": 0.0,
+      "max": 23767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Duration of silence to prepend. Enforced 0-23767 s (verbatim); 0 itself refused 'Zero-length silence added: There will be no change to the nput sound.' (CDP's own typo, verbatim). Values are honoured literally - large values legally create enormous files (verified 4000 s -> 706 MB), so keep it musical. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). Required."
+    }
+  },
+  "examples": [
+    {
+      "description": "Half-second pre-roll before an attack.",
+      "params": {"dur": 0.5},
+      "expected_use": "Output exactly indur + 0.5 s; first 0.5 s digital silence, source bit-equal after (verified)."
+    }
+  ],
+  "known_issues": [
+    "dur's enforced ceiling is 23767 s - CDP happily writes hours of silence (706 MB from a 4000 s probe); the engine's predicted-duration cap is the practical guard.",
+    "dur 0 refused verbatim 'Zero-length silence added: There will be no change to the nput sound.' (typo is CDP's).",
+    "No splice and no fade: the join is a hard sample boundary (silence to source) - inaudible by construction since the silence side is zero.",
+    "Sample-exact and bit-faithful on all probes (two input durations, three dur values, stereo). Deterministic (identical decoded shas 1.2 s apart)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

@@ -1,0 +1,60 @@
+{
+  "program": "dvdwind",
+  "mode": "dvdwind",
+  "submode": null,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "(indur / contraction) * (1 - 5 / clipsize)"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Shortens a sound by a read-skip-read-skip scan - the DVD fast-wind effect: small clips of the source are kept at regular intervals and spliced together, so the result races through the material at 'contraction' times speed WITHOUT pitch change. Duration model '(indur / contraction) * (1 - 5 / clipsize)' - the 5 is DVD_SPLICELEN, the program's hard-coded 5 ms splice consumed per clip (source: dvdwind.c '#define DVD_SPLICELEN (5)') - fits all probes to within 1.6% (2 s / contraction 2 / clip 50 ms -> 0.9048 vs 0.9 predicted; contraction 4 -> 0.4549 vs 0.45; clip 20 -> 0.7544 vs 0.75; clip 100 -> 0.9549 vs 0.95; 3 s input -> 1.3547 vs 1.35). BOTH parameters are BREAKPOINT-CAPABLE (verified: contraction brk 1.5->4 and clipsize brk 20->100 each render distinct from both scalar endpoints). Deterministic; mono and stereo accepted.",
+  "musical_use": "Time-compression that keeps pitch AND grain-level realism: unlike a granular timestretch there is no texture change - you literally hear every Nth moment of the performance, so speech stays speech-like (a gabber of syllable fragments) and long field recordings collapse into fast-forward summaries. Musical sweet spots: contraction 2-8 with clips 30-80 ms for intelligible skimming; tiny clips (10-20 ms) push toward buzzy AM-flavoured textures as the 5 ms splices dominate; huge clips (500+ ms) make jump-cut montage. Time-varying contraction is a written accelerando - ramp 1.5 to 8 and the source audibly winds up; ramp clipsize against it for evolving chop-grain. For pitch-preserving stretch WITHOUT discarding material use modify speed 2 / stretch time.",
+  "parameters": {
+    "contraction": {
+      "type": "float",
+      "min": 1.0,
+      "max": 3600.0,
+      "unit": "ratio",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Time-contraction factor (> 1), enforced 1-3600 verbatim ('Parameter[1] Value (0.500000) out of range (1.000000 to 3600.000000)') - but exactly 1 is refused at runtime 'No significant stretch (1.000000)' (INVALID DATA), so the practical floor is just above 1. BREAKPOINT-CAPABLE (verified distinct from both endpoint scalars; in-brk values range-checked: 'Value (0.400000) out of range (1.000000 to 3600.000000) in brkpntfile <name>.'). Required."
+    },
+    "clipsize": {
+      "type": "float",
+      "min": 10.0,
+      "max": 2000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Duration of each retained clip in milliseconds, enforced 10-2000 verbatim ('Parameter[2] Value (-5.000000) out of range (10.000000 to 2000.000000)'). Each clip loses the fixed 5 ms internal splice, hence the (1 - 5/clipsize) duration factor - small clips waste proportionally more. BREAKPOINT-CAPABLE (verified distinct from both endpoint scalars). Required."
+    }
+  },
+  "examples": [
+    {
+      "description": "Fast-forward a recording to half length.",
+      "params": {"contraction": 2.0, "clipsize": 50.0},
+      "expected_use": "Output ~= (indur/2) * 0.9 (verified 0.9048 s from 2 s); pitch unchanged, every other moment audible."
+    },
+    {
+      "description": "Written-in wind-up.",
+      "params": {"contraction": [[0.0, 1.5], [2.0, 6.0]], "clipsize": 40.0},
+      "expected_use": "The scan accelerates across the file - a composed fast-wind gesture (breakpoint verified live)."
+    }
+  ],
+  "known_issues": [
+    "The hard-coded 5 ms per-clip splice (DVD_SPLICELEN, source-confirmed) is why output is shorter than indur/contraction; the curated expression models it, worst observed error 1.6%.",
+    "contraction exactly 1 is refused at runtime ('No significant stretch (1.000000)') despite the quoted range floor of 1.0.",
+    "Both parameters are breakpoint-capable (verified with the differs-from-both-endpoints proof); values inside a brk are range-checked with the '... in brkpntfile' refusal form.",
+    "Deterministic (identical decoded shas 1.2 s apart); stereo accepted (duration matches the mono prediction exactly)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

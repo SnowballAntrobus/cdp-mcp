@@ -1,0 +1,57 @@
+{
+  "program": "sfedit",
+  "mode": "zcut",
+  "submode": 1,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "end - start"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Cuts and keeps the segment between start and end, snapping both cut points to ZERO-CROSSINGS instead of splicing - the click-free cut with NO fades at all. Pinned to submode 1 (times in seconds); submode 2 takes sample counts (verified working). MONO only (stereo refused 'Application doesn't work with this type of infile.'). Duration model 'end - start' holds to within one sample: exact on a 440 Hz tone (0.5-1.5 -> 44100 frames), one frame short on noise (44099 - the crossing snap), exact via submode 2 sample counts. Unlike sfedit cut's SILENT bound swap, zcut WARNS: 'WARNING: end cut before startcut: reversing these times.' then swaps (output byte-identical to the ordered call). Deterministic.",
+  "musical_use": "The splice-free surgical cut: because both edges land on zero-crossings there is no fade at either end - nothing is lost to a splice window - so it is the edit of choice before loop-building, wavecycle work (distort family) or any process where a 15 ms fade would soften the attack you are trying to keep. On periodic material the snap is inaudible and the cut is essentially sample-exact; on noisy material expect the bounds to move by up to a few samples to find a crossing. It is also the honest way to excerpt for measurement: no splice energy contaminates an RMS or spectrum reading. Needs mono input - split stereo first (housekeep chans) or use sfedit cut with splice 0 and accept the possible click.",
+  "parameters": {
+    "start": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Approximate time where the kept segment begins - CDP moves it to the nearest zero-crossing. Runtime-enforced 0 to the input duration. start > end is accepted WITH a warning ('WARNING: end cut before startcut: reversing these times.') and swapped - verified byte-identical to the ordered call; start == end refused 'endcut = startcut: No cutting possible.'. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). Required."
+    },
+    "end": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Approximate time where the kept segment ends, snapped to a zero-crossing. Runtime-enforced 0 to the input duration ('Parameter[2] Value (2.500000) out of range (0.000000 to 2.000000)' on a 2 s file - refused, not clamped). Output duration is end - start to within one sample. Breakpoint file refused ('Cannot read parameter 2 [...]'). Required."
+    }
+  },
+  "examples": [
+    {
+      "description": "Click-free extraction of the middle second of a mono sound.",
+      "params": {"start": 0.5, "end": 1.5},
+      "expected_use": "Output ~1.0 s (within a sample); both edges at zero-crossings, no fades anywhere - the interior is verbatim source."
+    }
+  ],
+  "known_issues": [
+    "MONO ONLY: stereo refused 'Application doesn't work with this type of infile.' (exit 255).",
+    "Reversed bounds are swapped WITH a warning (unlike sfedit cut, which swaps silently) - 'WARNING: end cut before startcut: reversing these times.', output byte-identical to the ordered call. start == end refused 'endcut = startcut: No cutting possible.'.",
+    "Cut points move to the nearest zero-crossing, so the duration can be a sample or two off the requested span (verified: tone exact, noise -1 frame) and edge samples are whatever follows the crossing - on wideband noise the first sample can be large.",
+    "There is no splice parameter at all: no fades, no splice-length failure modes.",
+    "Both parameters reject breakpoint files ('Cannot read parameter N [...]: brkpnt_files not permitted.', N = 1-2). Deterministic (identical decoded shas 1.2 s apart).",
+    "Submode 2 (sample counts) verified working, uncurated. The multi-segment sibling 'sfedit zcuts' is engine-dropped: it writes one numbered file per time-pair ('<outstem>1.wav'...) and never creates the argv outfile - reach it via execute()."
+  ],
+  "references": ["cdp://docs/html/cgroedit"]
+}

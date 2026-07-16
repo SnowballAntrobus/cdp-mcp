@@ -1,0 +1,59 @@
+{
+  "program": "sfedit",
+  "mode": "excises",
+  "submode": 1,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "excisefile"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Discards SEVERAL chunks of a sound in one pass and closes up every gap - the multi-region form of sfedit excise. Pinned to submode 1 (times in seconds); submodes 2/3 take sample / grouped-sample counts (submode 2 verified). The excisefile lists paired start/end times in increasing order. Output duration = indur minus the sum of excised spans, SAMPLE-EXACT (2.0 s minus [0.3,0.5]+[1.0,1.4] -> 1.4000 / 61740 frames; 3.0 s same file -> 2.4000; stereo identical) - data-dependent, so the model is the aux-param pre-flight skip sentinel. With splice 0 the output is a verbatim sample-exact concatenation of the kept regions (allclose, max diff 0.0). Unlike single excise (which refuses bounds past EOF), an end time beyond the file is CLAMPED: excising 0.3-2.5 of a 2 s file runs and leaves 0.3075 s. Deterministic; mono and stereo accepted.",
+  "musical_use": "Batch remove-and-heal: strip all the coughs from a take, every silence from an interview, or every other beat from a rhythm loop in ONE pass instead of chaining single excises (whose times would shift after each cut - excises' times all refer to the ORIGINAL file, which is the whole point). The default 15 ms splice hides each seam; splice 0 gives hard jump-cuts at every join (the multi-chop groove machine); long splices morph across each removed region. Write the cut list with write_data_file() - pairs in increasing time order. For KEEPING listed regions instead of discarding them, the sibling cutmany writes one file per segment (engine-dropped, execute() only); for silencing regions in place without shortening, use sfedit masks.",
+  "parameters": {
+    "excisefile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Text file of paired start & end times (seconds) of the chunks to remove, in increasing time order (write it with write_data_file()). Format errors are verbatim INVALID DATA refusals: out-of-order/overlapping pairs 'Start and end of excised portions 1 & 2 overlap.'; an odd count of values 'Start and End times not paired correctly in textfile <name>'. End times beyond the file end are CLAMPED (verified: '0.3 2.5' on a 2 s file exits 0, output 0.3075 s) - the one sfedit editor that does not refuse past-EOF times. Resolved against the session's data/ directory."
+    },
+    "splice": {
+      "type": "float",
+      "min": 0.0,
+      "max": 5000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 15.0,
+      "flag": "-w",
+      "flag_kind": "attached_value",
+      "description": "Crossfade window in milliseconds at every closed-up seam (CDP internal default 15; enforced 0-5000, '-w-1' refused quoting '(0.000000 to 5000.000000)'). Does not change the output duration. 0 gives verbatim jump-cuts (verified sample-exact concatenation). Breakpoint file refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Remove two interior regions and heal both seams.",
+      "params": {"excisefile": "data/cuts.txt"},
+      "expected_use": "With '0.3 0.5' and '1.0 1.4' in the file, a 2 s input becomes exactly 1.4 s; 15 ms crossfades at both joins."
+    },
+    {
+      "description": "Hard multi-chop with no fades.",
+      "params": {"excisefile": "data/beats.txt", "splice": 0.0},
+      "expected_use": "Bit-faithful concatenation of the kept regions (verified); clicks at the seams are part of the aesthetic."
+    }
+  ],
+  "known_issues": [
+    "Output duration = indur - sum(end_i - start_i), sample-exact but data-dependent: the duration pre-flight skips (aux-file model); the disk watchdog still bounds the run.",
+    "Pairs must be in increasing time order and non-overlapping ('Start and end of excised portions 1 & 2 overlap.'); values must be paired ('Start and End times not paired correctly in textfile ...') - both verbatim.",
+    "DIVERGENCE from single excise: end times past the file end are silently CLAMPED here (0.3-2.5 on 2 s -> 0.3075 s output), where sfedit excise refuses them outright.",
+    "splice rejects breakpoint files ('Cannot read parameter 3'); enforced 0-5000 ms; must fit the surrounding material.",
+    "Deterministic (identical decoded shas 1.2 s apart); mono and stereo verified with identical arithmetic."
+  ],
+  "references": ["cdp://docs/html/cgroedit"]
+}

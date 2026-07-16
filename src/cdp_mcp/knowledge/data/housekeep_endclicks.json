@@ -1,0 +1,77 @@
+{
+  "program": "housekeep",
+  "mode": "endclicks",
+  "submode": null,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Removes clicks from the START and/or END of a file by TRIMMING: material outside the first/last sustained signal above `gate` is cut away (the file gets shorter - this is a trim, not a de-clicker). Both trim flags default ON in this entry; CDP REFUSES a flagless call ('Input file will be UNCHANGED.', exit 255). Verified on a click-silence-body-silence-click fixture: -b -e cuts to 1.8867 s from 2.0 with both clicks gone (head max 0.0); on near-flat noise the trim is negligible (1.9849 from 2.0, -0.75% - the static model's regime). The trim amount is CONTENT-DEPENDENT: how much low-level material precedes/follows the real signal. Certain gate/content combinations abort verbatim 'At this gate level and splice length, entire file will be removed.' (observed with -b alone on the click fixture). Deterministic; mono and stereo accepted (stereo verified, same arithmetic).",
+  "musical_use": "The take-cleaner: strip the record-button click, the headphone spill before the downbeat, or the thump of the stop from every captured take before it enters a processing chain - clicks at file edges otherwise survive EVERY downstream process and reappear at full level after normalisation. Run it as takes' first stop; the splice eases the new edges so the trim itself cannot click. gate is the sensitivity: low values (0.01-0.05) only remove near-silence and spikes, higher values eat into quiet intros - if a piece genuinely fades in, trim only the end (trim_start false). For interior clicks use housekeep deglitch; for shaped fades after trimming, envel dovetail.",
+  "parameters": {
+    "gate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Level ABOVE which signal is accepted as real (enforced 0-1 verbatim: 'Parameter[1] Value (1.500000) out of range (0.000000 to 1.000000)'). Everything before the first / after the last accepted signal is trimmed. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). Required."
+    },
+    "splicelen": {
+      "type": "float",
+      "min": 0.0,
+      "max": 200.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Splice length in milliseconds applied at the trimmed edges (enforced 0-200 verbatim: 'Parameter[2] Value (-5.000000) out of range (0.000000 to 200.000000)'). Breakpoint file refused ('Cannot read parameter 2 [...]'). Required."
+    },
+    "trim_start": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": true,
+      "flag": "-b",
+      "flag_kind": "no_value",
+      "description": "Trim the start (default ON here: CDP refuses a call with neither flag - 'Input file will be UNCHANGED.'). Set false to protect a genuine fade-in."
+    },
+    "trim_end": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": true,
+      "flag": "-e",
+      "flag_kind": "no_value",
+      "description": "Trim the end (default ON here). Set false to protect a natural decay."
+    }
+  },
+  "examples": [
+    {
+      "description": "Clean both ends of a captured take.",
+      "params": {"gate": 0.1, "splicelen": 15.0},
+      "expected_use": "Edge clicks and surrounding near-silence removed (verified head max 0.0); output slightly shorter than the input, edges spliced."
+    },
+    {
+      "description": "Trim only the tail, preserving a quiet intro.",
+      "params": {"gate": 0.05, "splicelen": 15.0, "trim_start": false},
+      "expected_use": "Start untouched; end trimmed back to the last signal above 0.05."
+    }
+  ],
+  "known_issues": [
+    "This is a TRIM: output duration = indur minus the content-dependent trimmed spans. The static model is the near-flat-material bound (-0.75% on flat noise); on padded takes the shortening equals the padding (verified -0.11 s on the click fixture).",
+    "At least one of -b/-e is required: a flagless call refuses 'Input file will be UNCHANGED.' (exit 255) - both default ON in this entry.",
+    "Gate/content combinations that would delete everything abort verbatim: 'At this gate level and splice length, entire file will be removed.' (observed with trim_start alone on a fixture whose body followed a long quiet stretch).",
+    "Both numeric parameters reject breakpoint files ('Cannot read parameter N', N = 1-2). splicelen enforced 0-200 ms.",
+    "Deterministic (identical decoded shas 1.2 s apart); stereo verified."
+  ],
+  "references": ["cdp://docs/html/cgrohous"]
+}

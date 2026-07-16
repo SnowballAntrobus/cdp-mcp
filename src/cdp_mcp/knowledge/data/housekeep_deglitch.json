@@ -1,0 +1,93 @@
+{
+  "program": "housekeep",
+  "mode": "deglitch",
+  "submode": null,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Finds and removes short GLITCHES: brief loud events flanked by 'silence' (level below thresh) are gated out in place. Duration static and sample-exact (2.0 -> 2.0, mono and stereo). Verified surgical on a tone/click/tone fixture: 'glitches found = 1', the 4 ms click at 0.9 s replaced by exact silence (zone max 0.0), tonal material bit-preserved; -s reports each find verbatim ('GLITCH length 5.96 ms : val 0.889873 : at (grouped)sample 39690 : time 0.900000 secs'). CONTENT REFUSAL: material with no silence-flanked glitches aborts 'None of the sound will be gated.' (exit 255 - flat noise and clean stereo both refused), so this only runs on files that actually contain candidates. window's enforced range is 1 sample-period to 4.0 (quoted '0.022676 to 4.000000' on mono 44.1 kHz, '0.045351 ...' on stereo - floor is the grouped-sample period, input-dependent). Deterministic; stereo accepted (glitch found and gated on a stereo fixture).",
+  "musical_use": "Interior click surgery: kill dropout spikes, edit-point ticks and digital clicks that sit in otherwise silent gaps - the classic restoration pass before a recording enters granular or spectral processing (where one click becomes a thousand). The detector wants contrast: a glitch is a SHORT event (< glitch ms) surrounded by sil ms of near-silence below thresh, so tune thresh just above the noise floor and keep sil shorter than your real inter-event gaps. It will not touch clicks embedded in continuous material (nothing flanks them) - that is a job for filtering. Use -s first as a dry-run report of what it would call a glitch. For clicks at the file EDGES use housekeep endclicks.",
+  "parameters": {
+    "glitch": {
+      "type": "float",
+      "min": 0.022676,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Maximum duration of any glitch to find, in milliseconds (enforced verbatim '(0.022676 to 1000.000000)' - the floor is one sample period, srate-dependent). Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). Required."
+    },
+    "sil": {
+      "type": "float",
+      "min": 0.3,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Minimum duration of 'silence' required on either side of a glitch (enforced verbatim '(0.300000 to 1000.000000)'). Breakpoint file refused ('Cannot read parameter 2 [...]'). Required."
+    },
+    "thresh": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Maximum level counted as 'silence' around a glitch (enforced 0-1 verbatim). With thresh 0 use splice 0 (banner: 'Otherwise SPLICE 0 makes clicks.'). Breakpoint file refused ('Cannot read parameter 3 [...]'). Required."
+    },
+    "splice": {
+      "type": "float",
+      "min": 0.0,
+      "max": 50.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Splice length used to cut out each glitch (enforced 0-50 verbatim '(0.000000 to 50.000000)'; banner: must be < half of sil). Breakpoint file refused ('Cannot read parameter 4 [...]'). Required."
+    },
+    "window": {
+      "type": "float",
+      "min": 0.022676,
+      "max": 4.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Search window for glitches and flanking silence - NOTE the tiny enforced ceiling, verbatim '(0.022676 to 4.000000)' on mono at 44.1 kHz (floor = one grouped-sample period, so '(0.045351 ...)' on stereo; input-dependent). The banner's 'use larger windows to see larger features' is bounded by 4. Breakpoint file refused ('Cannot read parameter 5 [...]'). Required."
+    },
+    "report": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-s",
+      "flag_kind": "no_value",
+      "description": "Print details of the glitches found (verbatim form: 'GLITCH length 5.96 ms : val 0.889873 : at (grouped)sample 39690 : time 0.900000 secs') - the dry-run diagnostic."
+    }
+  },
+  "examples": [
+    {
+      "description": "Remove a click sitting in a silent gap.",
+      "params": {"glitch": 10.0, "sil": 100.0, "thresh": 0.001, "splice": 5.0, "window": 2.0},
+      "expected_use": "The glitch zone becomes exact silence (verified 0.0), everything else bit-preserved; duration unchanged."
+    }
+  ],
+  "known_issues": [
+    "CONTENT REFUSAL: if nothing qualifies (no short events flanked by sub-thresh silence) CDP aborts 'None of the sound will be gated.' (exit 255) - verified on flat noise and on glitch-free stereo. Run -s to preview candidates.",
+    "window is capped at 4.0 with a floor of one grouped-sample period ('0.022676' mono / '0.045351' stereo at 44.1 kHz, input-dependent quoting) - the banner's ms description with this range is the binary's own arithmetic; treat 1-4 as the usable band.",
+    "All five numeric parameters reject breakpoint files ('Cannot read parameter N', N = 1-5).",
+    "Static duration sample-exact (glitches are replaced, not excised). Deterministic (identical decoded shas 1.2 s apart); stereo verified end-to-end (found + gated)."
+  ],
+  "references": ["cdp://docs/html/cgrohous"]
+}

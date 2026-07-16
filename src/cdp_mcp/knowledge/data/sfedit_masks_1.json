@@ -1,0 +1,59 @@
+{
+  "program": "sfedit",
+  "mode": "masks",
+  "submode": 1,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Replaces the listed chunks of a sound with SILENCE, in place - excises' non-destructive twin: same paired-times excisefile, but the file's length never changes (static duration, sample-exact on all probes: 2.0 -> 2.0, 1.0 -> 1.0, stereo identical). Pinned to submode 1 (times in seconds); submodes 2/3 take sample / grouped-sample counts. With splice 0 the masked zones are EXACTLY zero (max |sample| = 0.0) and everything outside them is bit-equal to the source (verified); the default 15 ms splice ramps into and out of each silent zone. A region reaching past the file end is tolerated (exit 0, duration unchanged). Deterministic; mono and stereo accepted.",
+  "musical_use": "Rhythmic and structural silencing without time-shift: punch holes in a texture on a beat grid (the gaps stay in time - excise would close them and wreck the grid), censor words while keeping speech rhythm intact, or carve breathing space into a wall of sound before layering. Because timing is preserved, masked outputs stay sample-aligned with the original - mask a copy, process only the holes' complement, and submix the two for surgical parallel processing. The splice sets the gate character: 0 ms is a hard mute (verified digital silence), 15 ms a click-free duck, hundreds of ms a composed swell into and out of each hole. Write the region list with write_data_file(); for actually REMOVING the regions use sfedit excises.",
+  "parameters": {
+    "excisefile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Text file of paired start & end times (seconds) of the chunks to mask with silence, in increasing time order (write it with write_data_file(); the banner calls it an excisefile - masks shares excises' reader). Reversed pairs refused 'starttime <= endtime for excise 1' (verbatim - note the error says 'excise'); a region extending past the file end is tolerated (exit 0). Resolved against the session's data/ directory."
+    },
+    "splice": {
+      "type": "float",
+      "min": 0.0,
+      "max": 5000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 15.0,
+      "flag": "-w",
+      "flag_kind": "attached_value",
+      "description": "Ramp length in milliseconds into and out of each silent zone (CDP internal default 15; enforced 0-5000, '-w5001' refused quoting '(0.000000 to 5000.000000)'). Never changes duration. Must fit inside each masked region: -w300 around a 0.2 s region refused 'Excised segment 1 too short for splices (shorten splices?)' (verbatim). 0 = hard mute, masked samples exactly 0.0 (verified). Breakpoint file refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Silence two interior regions, keeping the timeline intact.",
+      "params": {"excisefile": "data/holes.txt"},
+      "expected_use": "With '0.3 0.5' and '1.0 1.4' in the file, output duration is unchanged; both zones duck to silence over 15 ms ramps."
+    },
+    {
+      "description": "Hard rhythmic mutes.",
+      "params": {"excisefile": "data/grid.txt", "splice": 0.0},
+      "expected_use": "Masked zones are digital silence (verified 0.0), unmasked samples bit-equal to the source - a gate pattern with sample-exact timing."
+    }
+  ],
+  "known_issues": [
+    "Duration is static and sample-exact - masking never shortens the file (that is excises' job).",
+    "Reversed pairs refused 'starttime <= endtime for excise 1' (the message says 'excise' - shared reader); pairs must ascend.",
+    "The splice must fit twice inside each masked region ('Excised segment 1 too short for splices (shorten splices?)').",
+    "splice rejects breakpoint files ('Cannot read parameter 3'). Regions reaching past EOF are tolerated (exit 0, duration unchanged).",
+    "Deterministic (identical decoded shas 1.2 s apart); with splice 0 masked zones verified exactly zero and unmasked zones bit-equal."
+  ],
+  "references": ["cdp://docs/html/cgroedit"]
+}

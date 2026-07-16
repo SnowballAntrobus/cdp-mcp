@@ -1,0 +1,33 @@
+{
+  "program": "housekeep",
+  "mode": "copy",
+  "submode": 1,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Makes ONE copy of the input soundfile - CDP's own cp, verified BIT-IDENTICAL: decoded-sample sha256 equal to the source on both mono and stereo probes, duration static and sample-exact. No parameters at all. Submode 1 pinned; submode 2 (COPY MANY) is engine-dropped: it takes a COUNT instead of an outfile and self-names its outputs '<stem>_001.wav'... in the cwd (verified n1.wav -> n1_001/002/003.wav, exit 0, no argv output) - reach it via execute() with cwd control.",
+  "musical_use": "The provenance anchor: materialise a session-owned copy of a source before destructive experiments, fork one lineage into two named branches that later diverge (copy first, then process each), or duplicate a reference render for A/B work where both files must live side by side. Since the copy is bit-identical (verified), it is safe anywhere in a bit-faithful chain - unlike re-encoding routes. Within this engine most duplication needs are covered by caching and lineage, but an explicit copy gives you a stable, user-visible file that later graph edits cannot invalidate.",
+  "parameters": {},
+  "examples": [
+    {
+      "description": "Snapshot a source before a destructive experiment.",
+      "params": {},
+      "expected_use": "Output is a bit-identical duplicate (verified equal decoded sha256); duration unchanged."
+    }
+  ],
+  "known_issues": [
+    "No parameters; nothing to range-check. Output verified bit-identical to the input (mono and stereo).",
+    "Submode 2 (COPY MANY) has NO outfile argv - 'housekeep copy 2 infile count [-i]' self-names '<stem>_001.wav'..'<stem>_00N.wav' in the cwd (verified) and halts on pre-existing duplicates unless -i is set. Engine-incompatible; execute() with cwd control if needed.",
+    "Deterministic by construction."
+  ],
+  "references": ["cdp://docs/html/cgrohous"]
+}

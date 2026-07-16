@@ -1,0 +1,81 @@
+{
+  "program": "sfedit",
+  "mode": "insert",
+  "submode": 1,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 2,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur1 + indur2 - splice / 1000"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Inserts a second sound INTO the first at a given time, pushing the first file apart (default) or overwriting it (-o). Input 1 is the host, input 2 the insert. Pinned to submode 1 (time in seconds); submodes 2/3 take sample / grouped-sample counts. Duration model 'indur1 + indur2 - splice/1000' verified sample-exact in default mode: 2 s + 1 s at 15 ms -> 2.985 (131638 frames); 3 s + 1 s -> 3.985; -w0 -> 3.0000 exactly, and the -w0 output is a verbatim sample-exact interpolation host[0:t] + insert + host[t:] (allclose vs numpy concat); -w100 -> 2.9. With -o (overwrite) the insert replaces host material instead: 2 s host, 1 s insert at 0.8 -> 2.0000 exactly (excluded from the model). Both inputs must share channel count ('Incompatible channel-count in input file ...'); stereo+stereo verified with the same arithmetic. Deterministic.",
+  "musical_use": "Drop a new event INTO a timeline: punch a hit, a word, a whoosh into an existing phrase and let everything after it slide later (default), or stamp it on top without changing length (-o - the tape-splice vs the punch-in). Since the seam consumes exactly one splice length, the arithmetic is dependable for grid work (or use splice 0 for exact sums). level trims the insert without a separate pass - duck a spoken word into a texture at 0.3, or slam an accent in at full scale. Chain inserts to assemble a collage from inside out. For replacing a SPECIFIC region (not just overwriting from a point), use sfedit replace; for silence instead of a sound, sfedit insil.",
+  "parameters": {
+    "time": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time in the host (input 1) where the insert lands. Runtime-enforced 0 to the host duration ('Parameter[1] Value (2.500000) out of range (0.000000 to 2.000000)'), and additionally refused near the end: 1.99 on a 2 s host aborts 'Insert time beyond end of infile (allowing for splice)' (verbatim). Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). Required."
+    },
+    "splice": {
+      "type": "float",
+      "min": 0.0,
+      "max": 5000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 15.0,
+      "flag": "-w",
+      "flag_kind": "attached_value",
+      "description": "Splice window in milliseconds at the joins (CDP internal default 15; enforced 0-5000, '-w5001' refused quoting 'Parameter[2] ... (0.000000 to 5000.000000)'). The output loses exactly one splice length overall (sample-exact at 0/15/100 ms); 0 = verbatim interpolation. Breakpoint refused ('Cannot read parameter 3 [...]')."
+    },
+    "level": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 128.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Gain multiplier on the inserted file (CDP default 1.0; enforced range verbatim 'Parameter[3] Value (-1.000000) out of range (0.000002 to 128.000000)' - gains above 1 are legal). Breakpoint file refused ('Cannot read parameter 4 [...]'). Scalar only."
+    },
+    "overwrite": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-o",
+      "flag_kind": "no_value",
+      "description": "Overwrite the equivalent duration of the host with the insert instead of pushing it apart. Verified: 2 s host + 1 s insert at 0.8 -> exactly 2.0000 s (host length preserved when time + insert length fits inside it). The duration model covers the DEFAULT (push-apart) mode only."
+    }
+  },
+  "examples": [
+    {
+      "description": "Push a 1 s event into a phrase at 0.8 s.",
+      "params": {"time": 0.8},
+      "expected_use": "Everything after 0.8 s slides later; output = indur1 + indur2 - 0.015 s (sample-exact)."
+    },
+    {
+      "description": "Punch the event on top without changing length.",
+      "params": {"time": 0.8, "overwrite": true, "level": 0.5},
+      "expected_use": "Host duration preserved (verified exactly indur1); the insert replaces host material at half level."
+    }
+  ],
+  "known_issues": [
+    "Duration model covers the default push-apart mode: indur1 + indur2 - splice/1000, sample-exact. With overwrite=true the output stays at indur1 while the insert fits inside the host (verified) - the model over-predicts there.",
+    "Insert times too close to the host's end are refused 'Insert time beyond end of infile (allowing for splice)' - the usable range shrinks by the splice length.",
+    "Both inputs must share channel count ('Incompatible channel-count in input file <name>.'); mono+mono and stereo+stereo verified.",
+    "All four parameters reject breakpoint files ('Cannot read parameter N', N = 1 time, 3 splice, 4 level).",
+    "Deterministic (identical decoded shas 1.2 s apart). Splice refusal numbering: range refusals quote Parameter[2]/[3] for splice/level, breakpoint refusals parameter 3/4."
+  ],
+  "references": ["cdp://docs/html/cgroedit"]
+}

@@ -1,0 +1,72 @@
+{
+  "program": "flatten",
+  "mode": "flatten",
+  "submode": null,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Equalises the level of successive sound ELEMENTS (syllables, events) in a mono source: the file is scanned in elementsize chunks, each element's level is adjusted toward a common target, then the overall level is normalised. Duration static and sample-exact (3.0 -> 3.0, 2.0 -> 2.0, flat noise 2.0 -> 2.0). Content verified on a 4-burst fixture at peaks 0.48/0.25/0.55/0.39: three bursts land at 0.950 and the quietest at 0.495 - the boost appears capped (~2x observed), so deeply buried material may not fully flatten. MONO only ('File st2.wav is not a mono soundfile' verbatim). shoulder's banner range ('20 to ELEMENTSIZE/2') is NOT enforced - 200 ms with elementsize 0.3 s runs; the CDP-enforced range is 20-50000 ms. Deterministic.",
+  "musical_use": "Dynamic levelling as a creative primitive: even out a syllable-lumpy voice take before vocoding or granulation (level-uniform grains behave far more predictably downstream), flatten a percussion pass so every hit drives a resonator equally, or deliberately over-flatten a dynamic phrase to get that compressed, all-foreground CDP texture. elementsize is the musical tuning: match it to the event rate (0.1-0.3 s for speech syllables, longer for phrases) - too small and it irons out tremolo; too large and it misses events. shoulder sets how fast the gain moves at element edges (short = pumpy, long = smooth). tail treats the file's final stretch as one element so a decay isn't chopped into rising steps. A macro-scale companion to envel attack/dovetail; for true compression semantics use modify loudness.",
+  "parameters": {
+    "elementsize": {
+      "type": "float",
+      "min": 0.001,
+      "max": 100.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Approximate size of the elements to equalise (e.g. syllables). Enforced 0.001-100 verbatim ('Parameter[1] Value (0.000500) out of range (0.001000 to 100.000000)'). Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). Required."
+    },
+    "shoulder": {
+      "type": "float",
+      "min": 20.0,
+      "max": 50000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Risetime within each segment to the changed level, in milliseconds. CDP-enforced 20-50000 verbatim ('Parameter[2] Value (5.000000) out of range (20.000000 to 50000.000000)'); the banner's 'ELEMENTSIZE/2' ceiling is NOT enforced (200 ms with a 0.3 s elementsize runs - CDP notes it 'will never be longer than distance from seg edge to peak'). Breakpoint file refused ('Cannot read parameter 2 [...]'). Required."
+    },
+    "tail": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Portion of the file's END treated as a single whole segment (banner range 0 to < duration; -t0.5 verified working). Keeps a final decay from being re-levelled step by step. Breakpoint file refused ('Cannot read parameter 3 [...]')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Even out syllable levels in a speech take.",
+      "params": {"elementsize": 0.3, "shoulder": 20.0},
+      "expected_use": "Events converge toward a common peak (verified 0.95 on three of four probe bursts); duration untouched."
+    },
+    {
+      "description": "Flatten a phrase but protect its final decay.",
+      "params": {"elementsize": 0.2, "shoulder": 40.0, "tail": 0.5},
+      "expected_use": "Body levelled element by element; the last 0.5 s treated as one unit so the fade survives."
+    }
+  ],
+  "known_issues": [
+    "MONO only: 'File st2.wav is not a mono soundfile' (verbatim, exit 255).",
+    "The boost applied to quiet elements appears capped (~2x observed: a 0.25-peak burst reached 0.495 while louder bursts hit 0.950) - deeply buried events may stay below the common level.",
+    "BANNER DIVERGENCE: shoulder's documented ceiling 'ELEMENTSIZE/2' is not enforced (200 ms against a 0.3 s elementsize runs; the binary enforces 20-50000 ms).",
+    "All three parameters reject breakpoint files ('Cannot read parameter N', N = 1-3).",
+    "Static duration sample-exact on all probes (with and without events; flat noise passes through). Deterministic (identical decoded shas 1.2 s apart)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

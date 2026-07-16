@@ -1,0 +1,89 @@
+{
+  "program": "sfedit",
+  "mode": "noisecut",
+  "submode": null,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Suppresses NOISE in a mono sound by replacing noisy stretches with silence, keeping tonal material - a spectral-slope gate driven by a noise-frequency threshold. No submode dimension. Duration is static and sample-exact on mixed material (2.0999 -> 2.0999; 2.0 -> 2.0), but an ALL-NOISE input collapses to a ZERO-FRAME output (verified: flat noise -> exit 0, 0 frames) - see known_issues. Content verified on a tone/hiss/tone fixture: the detected hiss zone is replaced by exact digital silence (a >10 ms zero run at 1.116-1.403 s), tonal zones bit-preserved (RMS unchanged); -n inverts the logic and keeps the noise instead (zero fraction flips from 0.14 to 0.76 on the same fixture). MONO only ('Application doesn't work with this type of infile.' on stereo). Deterministic.",
+  "musical_use": "De-hissing as composition: strip breath and hiss from a vocal leaving only voiced material, keep just the pitched resonances of a machine recording, or turn a field recording into tone-islands separated by true silence (feed those gaps to retime/constrict for rhythm work downstream). The -n flag is the creative inversion - discard the notes and keep the noise floor, breaths and transients: an instant 'consonants only' texture from speech. maxnoise sets how much short noise survives (raise it to keep articulation noise between notes); mintone stops brief tonal flickers from punching holes in the suppression. Detection needs a real spectral contrast: on uniformly noisy material everything is 'noise' and the output vanishes (see known_issues).",
+  "parameters": {
+    "splicelen": {
+      "type": "float",
+      "min": 0.0,
+      "max": 50.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Splice length at each silence boundary in milliseconds - note the UNUSUALLY TIGHT enforced range 0-50 ('Parameter[1] Value (-1.000000) out of range (0.000000 to 50.000000)'), not the family's usual 0-5000. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). Required."
+    },
+    "noisfrq": {
+      "type": "float",
+      "min": 1000.0,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Frequency above which signal is regarded as noise (banner suggests 6000 Hz). CDP-enforced 1000 to the input's Nyquist ('Parameter[2] Value (30000.000000) out of range (1000.000000 to 22050.000000)' at 44.1 kHz - ceiling input-dependent). Breakpoint file refused ('Cannot read parameter 2 [...]'). Required."
+    },
+    "maxnoise": {
+      "type": "float",
+      "min": 0.0,
+      "max": 50.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Maximum duration of noise segments permitted to REMAIN (shorter noise bursts survive; longer ones are silenced). Enforced 0-50 ('Parameter[3] ... (0.000000 to 50.000000)'). Breakpoint file refused ('Cannot read parameter 3 [...]'). Required."
+    },
+    "mintone": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1000.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Minimum duration of non-noise segments to be retained (shorter tonal flickers are treated as part of the surrounding noise). Enforced 0-1000 ('Parameter[4] ... (0.000000 to 1000.000000)'). Breakpoint file refused ('Cannot read parameter 4 [...]'). Required."
+    },
+    "keep_noise": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "Invert: retain the noise and silence the non-noise (verified: zero fraction flips from 0.14 to 0.76 on the tone/hiss/tone fixture)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Strip hiss from a mixed tonal/noisy mono source.",
+      "params": {"splicelen": 15.0, "noisfrq": 6000.0, "maxnoise": 0.05, "mintone": 0.05},
+      "expected_use": "Noisy stretches longer than 50 ms become exact digital silence; tonal material and duration untouched."
+    },
+    {
+      "description": "Keep only the noise - consonants-and-breath texture.",
+      "params": {"splicelen": 15.0, "noisfrq": 6000.0, "maxnoise": 0.05, "mintone": 0.05, "keep_noise": true},
+      "expected_use": "The tonal islands are silenced instead; rhythm of the source preserved in its noise skeleton."
+    }
+  ],
+  "known_issues": [
+    "ALL-NOISE INPUT COLLAPSES: on a uniformly noisy file the process exits 0 but writes a ZERO-FRAME wav (verified on flat noise) - not static duration there; the engine's output verification will flag the empty file. The static model holds on material with tonal content (sample-exact on both probe fixtures).",
+    "MONO only: stereo refused 'Application doesn't work with this type of infile.'.",
+    "Detection is windowed: onset of a noise zone may survive (verified: hiss zone 0.7-1.4 s had its first ~0.4 s retained, the rest silenced) - tune maxnoise/mintone rather than expecting sample-accurate noise boundaries.",
+    "splicelen's enforced range is 0-50 ms - far tighter than the sfedit family's usual 0-5000.",
+    "All four parameters reject breakpoint files ('Cannot read parameter N', N = 1-4). Deterministic (identical decoded shas 1.2 s apart)."
+  ],
+  "references": ["cdp://docs/html/cgroedit"]
+}

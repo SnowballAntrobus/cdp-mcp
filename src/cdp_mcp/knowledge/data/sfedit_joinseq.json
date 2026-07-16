@@ -1,0 +1,87 @@
+{
+  "program": "sfedit",
+  "mode": "joinseq",
+  "submode": null,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 2,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "pattern"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Joins input files end to end following a PATTERN file - sfedit join with a repeatable score: '1 2 1 1' plays input1, input2, input1, input1 with a crossfade splice at each seam. Variadic upstream ('infile1 [infile2 ....] outfile pattern'); this entry pins 2 inputs. Duration = sum of the pattern items' durations minus one splice per seam, verified sample-exact (4 items of 1 s at 15 ms -> 3.9550 s / 174414 frames; 2 items -> 1.9850; -w0 -> 2.0000 exactly and the -w0 output is a verbatim sample-exact concatenation) - pattern-data-dependent, so the model is the aux-param pre-flight skip sentinel. Pattern numbers are 1-based ('Number '3' in sequence data does not correspond to any input soundfile' / same for '0', both verbatim); whitespace and line breaks are interchangeable (verified byte-identical). All inputs must share channel count; stereo+stereo verified with the same arithmetic. Deterministic. Banner quirk: the usage line is headed 'sfedit join' but the working verb is 'joinseq'.",
+  "musical_use": "The pattern sequencer of the editing family: build A/B/A forms, ostinati and mosaics from a small pool of cells by writing a number list instead of chaining joins - '1 2 1 1 2' is a five-event phrase from two samples in one call, and re-rolling the pattern re-composes the piece without touching audio. Each seam consumes one splice length (account for it on a grid, or use splice 0 for exact sums); long splices dissolve cell boundaries into a continuous morphing stream. maxlen auditions just the first N pattern items - preview a long score cheaply. -b/-e fade the outer edges in the same pass. For per-item GAIN control use the sibling joindyn; for a one-off end-to-end join, sfedit join.",
+  "parameters": {
+    "pattern": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Text file with the sequence of 1-based input-file numbers to play (write it with write_data_file(); separators are any whitespace - '1 2 1 1' on one line byte-equals one number per line, verified). Out-of-range numbers refused verbatim: 'Number '3' in sequence data does not correspond to any input soundfile'; 0 likewise. Resolved against the session's data/ directory."
+    },
+    "splice": {
+      "type": "float",
+      "min": 0.0,
+      "max": 5000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 15.0,
+      "flag": "-w",
+      "flag_kind": "attached_value",
+      "description": "Crossfade at each seam in milliseconds (CDP default 15; enforced 0-5000, '-w5001' refused quoting 'Parameter[2] ... (0.000000 to 5000.000000)'). Each seam shortens the output by exactly this amount (sample-exact); 0 = verbatim butt-joins. Breakpoint file refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.' - numbering mismatch verbatim-verified)."
+    },
+    "maxlen": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "items",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-m",
+      "flag_kind": "attached_value",
+      "description": "Use only the first N items of the pattern (verified: -m2 on a 4-item pattern renders the 2-item result exactly). Enforced 1-32767 ('-m0' refused quoting 'Parameter[3] Value (0.000000) out of range (1.000000 to 32767.000000)')."
+    },
+    "splice_start": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-b",
+      "flag_kind": "no_value",
+      "description": "Also splice (fade) the start of the first item. Changes content, never duration (verified)."
+    },
+    "splice_end": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-e",
+      "flag_kind": "no_value",
+      "description": "Also splice (fade) the end of the last item. Changes content, never duration (verified)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Five-cell phrase from two sources.",
+      "params": {"pattern": "data/pat.txt"},
+      "expected_use": "With '1 2 1 1 2' in the file: five cells butt-joined with 15 ms crossfades; duration = sum of cell lengths - 4 splices (sample-exact)."
+    },
+    {
+      "description": "Audition the opening of a long score with hard cuts.",
+      "params": {"pattern": "data/score.txt", "maxlen": 4, "splice": 0.0},
+      "expected_use": "First four items only, verbatim butt-joins - exact duration arithmetic for grid work."
+    }
+  ],
+  "known_issues": [
+    "Output duration is pattern-file-dependent (sum of item durations - one splice per seam, verified sample-exact): the duration pre-flight skips; the disk watchdog bounds the run. A long pattern on long files multiplies duration fast.",
+    "Pattern numbers are 1-based; 0 and out-of-range values are refused verbatim ('Number 'N' in sequence data does not correspond to any input soundfile').",
+    "All inputs must share channel count ('Incompatible channel-count in input file ...'); the entry pins 2 inputs - the binary is variadic (use execute() for more).",
+    "Splice refusal numbering is inconsistent (range 'Parameter[2]', breakpoint 'parameter 3') - both verbatim.",
+    "BANNER QUIRK: 'sfedit joinseq' prints a usage line headed 'sfedit join' - the verb on the command line must be joinseq.",
+    "Deterministic (identical decoded shas 1.2 s apart)."
+  ],
+  "references": ["cdp://docs/html/cgroedit"]
+}

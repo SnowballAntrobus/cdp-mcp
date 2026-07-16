@@ -1,0 +1,73 @@
+{
+  "program": "sfedit",
+  "mode": "twixt",
+  "submode": 1,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 2,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur_min"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Switches between files 'running in parallel on a multitrack' at listed switch-times: mode 1 (IN SEQUENCE, pinned here) cycles through the inputs in order at each boundary. Variadic upstream; this entry pins 2 inputs. Content verified sample-exact: with times 0/0.5/1/1.5 on two 2 s files the output is in1[0:0.5]+in2[0.5:1]+in1[1:1.5]+in2[1.5:2] with material bit-equal outside the splice zones. Duration = indur_min: equal-length inputs -> exactly that length (2.0/1.0 verified); unequal (3 s + 2 s, 2 s + 1 s) -> the shorter input's duration; switch-times past the end tolerated (2.0118 s, +0.6%). Splicelen's enforced range is unusually tight: 2-15 ms (verbatim refusal). Siblings pinned: modes 2 (Permuted) and 3 (Random Choice) are 'random' in the banner but FULLY DETERMINISTIC on this build - byte-identical runs 1.2 s apart, twice - because twixt.c draws from the osbind.c drand48 shim (rand()/RAND_MAX) with no srand on this path; the -r flag draws from the same fixed sequence. Mode 4 is engine-dropped (multi-output). Deterministic.",
+  "musical_use": "The multitrack switcher: cut between two parallel takes on a time grid - verse/chorus alternation between two textures, channel-hopping between a dry and a processed version of the same phrase (they stay time-aligned, so the switches read as timbre changes, not edits), or splice-collage between two performances of the same material. Times come from a text file, so a beat grid is one write_data_file() away; include 0 to start on file 1. The 2-15 ms splice keeps switches click-free but tight. With N inputs the cycle rotates 1-2-3-1...; -w weights file 1 to recur more often; -r permutes the file order (deterministically on this build - see known_issues). For per-file INDEPENDENT switch-times use sfedit sphinx.",
+  "parameters": {
+    "switchtimes": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Text file of ascending times (seconds) that divide every file into segments (write with write_data_file(); include 0.0 to use material from time zero). Out-of-order times refused verbatim: 'Times 1 (1.000000) and 2 (0.500000) are not in ascending order'. Times beyond the shorter file tolerated (slight overrun, +0.6% observed). Resolved against the session's data/ directory."
+    },
+    "splicelen": {
+      "type": "float",
+      "min": 2.0,
+      "max": 15.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Splice duration at each switch in milliseconds - enforced range verbatim 'Parameter[2] Value (-1.000000) out of range (2.000000 to 15.000000)': far tighter than the sfedit norm. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.' - note the numbering mismatch). Required."
+    },
+    "weight": {
+      "type": "int",
+      "min": 1,
+      "max": 10,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-w",
+      "flag_kind": "attached_value",
+      "description": "File 1 occurs WEIGHT times more often than the other files (enforced 1-10, verbatim 'Parameter[3] Value (0.000000) out of range (1.000000 to 10.000000)'; changes the render, verified)."
+    },
+    "randomize_order": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-r",
+      "flag_kind": "no_value",
+      "description": "'Randomly' permute the order of files used - but the random source is the unseeded drand48 shim, so the permutation is IDENTICAL on every run of this build (verified: -r output byte-equal to the unflagged render on the 2-file probe). Version-sensitive."
+    }
+  },
+  "examples": [
+    {
+      "description": "Grid-switch between two time-aligned textures every half second.",
+      "params": {"switchtimes": "data/grid.txt", "splicelen": 15.0},
+      "expected_use": "With '0.0 0.5 1.0 1.5' (one per line): alternating half-second blocks, sample-exact outside the 15 ms splices; duration = the shorter input."
+    }
+  ],
+  "known_issues": [
+    "Multi-input entry: the single-input duration fixture doesn't apply. Rule pinned by probes: duration = indur_min (equal-length pairs -> that length exactly; 3s+2s and 2s+1s -> the shorter; times beyond the end overrun by <1%).",
+    "splicelen enforced 2-15 ms (verbatim) - much tighter than other sfedit splices; its breakpoint refusal says 'parameter 1' while its range refusal says 'Parameter[2]'.",
+    "DETERMINISTIC-RANDOM FAMILY (first-class, source-diagnosed): modes 2/3 and the -r flag use osbind.c's drand48 shim (rand()/RAND_MAX) with NO srand call on this path - every run produces the same 'random' result (byte-identical 1.2 s apart, verified twice); there is no seed argv. Build/link-order dependent, hence version_sensitive.",
+    "Mode 4 (Edit only) is engine-dropped: it writes chunk 1 at the argv name but chunks 2..N to '<argv-stem-minus-1-char><N>.wav' - orphan outputs; use execute() with cwd control.",
+    "All inputs must share channel count ('Incompatible channel-count in input file ...'); entry pins 2 inputs, binary variadic.",
+    "Mode 1 verified deterministic and sample-exact in content; segcnt applies only to modes 2/3 (enforced 1-10000 there)."
+  ],
+  "references": ["cdp://docs/html/cgroedit"]
+}

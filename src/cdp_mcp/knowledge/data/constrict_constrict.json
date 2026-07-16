@@ -1,0 +1,51 @@
+{
+  "program": "constrict",
+  "mode": "constrict",
+  "submode": null,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Shortens the ZERO-LEVEL sections of a sound by a percentage - silence liposuction. 0-100 removes that percentage of each silent stretch; values above 100 additionally OVERLAP the sound on either side by (constriction - 100)%. Verified on a 4-event fixture with real silences (3.0 s): 50 -> 2.2749 s, 100 -> 1.6998 s (all detected silence gone), 200 -> 0.7496 s (events overlapping); material with NO zero-level sections passes through at indur minus ONE frame (flat noise 88200 -> 88199). The duration is content-dependent (how much silence the file contains), so the model is pinned static for the no-silence bound - real shrinkage is documented here, not modelled. CONSTRICTION IS BREAKPOINT-CAPABLE - the only time-variable parameter found in this tranche's editing family (brk 10->190 renders distinct from both scalar endpoints, verified). Deterministic; mono and stereo accepted.",
+  "musical_use": "Tighten performance timing without touching the sound itself: pull the dead air out of a spoken take (50-80% keeps natural breathing; 100% is broadcast-tight), compress the gaps of a sparse texture until events start to converse, or push past 100 so events physically overlap and a phrase becomes a chord-cloud - 200% halves the space AND collides neighbours. Time-varying constriction is the composed accelerando of silence: a 0-to-200 breakpoint ramp leaves the opening spacious and piles the ending into itself. Note it only acts on EXACT zero-level samples - gate or noisecut first if your 'silences' have a floor. The inverse move (adding gaps) is manysil.",
+  "parameters": {
+    "constriction": {
+      "type": "float",
+      "min": 0.0,
+      "max": 200.0,
+      "unit": "percent",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Percentage deletion of zero-level areas, enforced 0-200 verbatim ('Parameter[1] Value (250.000000) out of range (0.000000 to 200.000000)'; -10 likewise). 0-100 shortens each silence by that fraction; >100 also overlaps the flanking sound by (value - 100)%. BREAKPOINT-CAPABLE (verified: a 10->190 brk over the file renders distinct from both scalar endpoints; out-of-range values inside a brk are refused 'Value (...) out of range (...) in brkpntfile <name>.'). Required."
+    }
+  },
+  "examples": [
+    {
+      "description": "Halve every silence in a spoken phrase.",
+      "params": {"constriction": 50.0},
+      "expected_use": "Each zero-level stretch loses half its length (4-event probe: 3.0 s -> 2.2749 s); the sounding material is untouched."
+    },
+    {
+      "description": "Progressive collapse from spacious to colliding.",
+      "params": {"constriction": [[0.0, 0.0], [3.0, 200.0]]},
+      "expected_use": "Early gaps keep their length; later ones vanish and events overlap - a written-in accelerando of density."
+    }
+  ],
+  "known_issues": [
+    "Duration is CONTENT-DEPENDENT: the static model is exact only for material without zero-level sections (flat noise loses a single frame, 88200 -> 88199 - the model's fixture case); with real silences the output shrinks by up to the whole silent budget (verified 3.0 -> 0.75 at 200%). The engine's prediction is an upper bound on silent material.",
+    "Only EXACT digital zeros count as silence - low-level noise floors defeat it (pre-gate if needed).",
+    "constriction > 100 overlaps material; expect summation level rises at the joins.",
+    "constriction is breakpoint-capable (first-class: the tranche's editing family otherwise refuses brks everywhere); in-brk values are range-checked verbatim.",
+    "Deterministic (identical decoded shas 1.2 s apart); stereo accepted (same single-frame quirk)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

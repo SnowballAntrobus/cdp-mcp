@@ -1,0 +1,58 @@
+{
+  "program": "manysil",
+  "mode": "manysil",
+  "submode": null,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "silencedata"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Inserts MANY silences into a file in one pass, from a textfile of time/duration pairs. Output duration = indur + sum of inserted durations, verified SAMPLE-EXACT (2.0 s + 0.3 + 0.5 -> 2.8000 / 123480 frames; 3.0 s -> 3.8000; stereo identical) - and unlike sfedit insil, the splices consume NOTHING (splicelen 0 and 15 both 2.8000 exactly). Data-dependent, so the model is the aux-param pre-flight skip sentinel. With splicelen 0 the output is a verbatim sample-exact interleave of source blocks and zero blocks (allclose vs numpy reference). Insertion times must ascend ('TIME (0.500000) OUT OF SEQUENCE OR INVALID, IN FILE <name>.' verbatim); LANDMINE: a time beyond the file end is silently IGNORED (2.5 on a 2 s file -> exit 0, output unchanged at 2.0000). Deterministic; mono and stereo accepted.",
+  "musical_use": "Whole-form re-spacing in one call: open a rest after every phrase of a reading, put composed air between every event of a dense texture, or stretch a rhythm by inserting exact gaps on a grid - all insertion times refer to the ORIGINAL file, so one datafile re-times the entire piece (chaining sfedit insil would need recalculated times after every insert). Because splices consume no time, the arithmetic is pure addition: new duration = old + sum of gaps, sample-exact - dependable for click-track work. Pair with retime or gate detection upstream to generate the time list programmatically, then write it with write_data_file(). For a single silence use sfedit insil; to SHORTEN existing silences instead, constrict.",
+  "parameters": {
+    "silencedata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Textfile of time-duration pairs: 'time' = insertion point in the original file (seconds, ascending), 'duration' = length of silence inserted there (write with write_data_file()). Out-of-order times refused verbatim ('TIME (...) OUT OF SEQUENCE OR INVALID, IN FILE ...'); times beyond the file end are silently ignored (verified - no error, no insertion). Resolved against the session's data/ directory."
+    },
+    "splicelen": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Splice length at each silence boundary in milliseconds (enforced 0-1000, verbatim 'Parameter[2] Value (5001.000000) out of range (0.000000 to 1000.000000)'). Does NOT change the output duration (verified 0 vs 15 identical length - divergent from sfedit insil). 0 = verbatim zero-blocks (sample-exact, may click). Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.' - numbering mismatch verbatim). Required."
+    }
+  },
+  "examples": [
+    {
+      "description": "Open two rests inside a phrase.",
+      "params": {"silencedata": "data/gaps.txt", "splicelen": 15.0},
+      "expected_use": "With '0.5 0.3' and '1.2 0.5': output exactly 0.8 s longer than the input; 15 ms easing at each gap edge."
+    },
+    {
+      "description": "Exact grid re-spacing with hard gaps.",
+      "params": {"silencedata": "data/grid.txt", "splicelen": 0.0},
+      "expected_use": "Verbatim source blocks separated by exact zero blocks (verified sample-exact) - pure addition for beat arithmetic."
+    }
+  ],
+  "known_issues": [
+    "Output duration = indur + sum(durations), sample-exact but data-dependent: the duration pre-flight skips (aux model); the watchdog bounds the run.",
+    "Splices consume NO duration (verified) - divergent from sfedit insil, which loses one splice length per call.",
+    "Insertion times must ascend ('TIME (...) OUT OF SEQUENCE OR INVALID, IN FILE ...'); a time past the file end is SILENTLY IGNORED (exit 0, output unchanged) - callers wanting end-padding must use sfedit insil -o -s or pad via join.",
+    "splicelen's refusal numbering is inconsistent (range 'Parameter[2]', breakpoint 'parameter 1') - both verbatim.",
+    "Deterministic (identical decoded shas 1.2 s apart); mono and stereo verified with identical arithmetic."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}
