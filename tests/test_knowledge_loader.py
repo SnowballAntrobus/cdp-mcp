@@ -73,26 +73,30 @@ def test_list_entries_by_domain_spectral(real_index):
         # (new spectral entry, domain flip) still fails here.
         ("analjoin", "join"), ("blur", "avrg"), ("blur", "blur"),
         ("blur", "chorus"), ("blur", "drunk"), ("blur", "noise"),
-        ("blur", "scatter"), ("blur", "spread"), ("blur", "suppress"),
-        ("blur", "weave"), ("caltrain", "caltrain"), ("combine", "cross"),
-        ("combine", "diff"), ("combine", "interleave"), ("combine", "max"),
-        ("combine", "mean"), ("combine", "sum"), ("focus", "accu"),
-        ("focus", "exag"), ("focus", "focus"), ("focus", "fold"),
-        ("focus", "freeze"), ("focus", "hold"), ("focus", "step"),
-        ("formants", "get"), ("formants", "put"), ("formants", "vocode"),
-        ("fturanal", "anal"), ("get_partials", "harmonic"),
-        ("glisten", "glisten"), ("hilite", "band"), ("hilite", "bltr"),
-        ("hilite", "filter"), ("hilite", "greq"), ("hilite", "pluck"),
-        ("hilite", "trace"), ("hilite", "vowels"), ("morph", "bridge"),
-        ("morph", "glide"), ("morph", "morph"), ("newmorph", "newmorph"),
+        ("blur", "scatter"), ("blur", "shuffle"), ("blur", "spread"),
+        ("blur", "suppress"), ("blur", "weave"), ("caltrain", "caltrain"),
+        ("combine", "cross"), ("combine", "diff"), ("combine", "interleave"),
+        ("combine", "max"), ("combine", "mean"), ("combine", "sum"),
+        ("focus", "accu"), ("focus", "exag"), ("focus", "focus"),
+        ("focus", "fold"), ("focus", "freeze"), ("focus", "hold"),
+        ("focus", "step"), ("formants", "get"), ("formants", "put"),
+        ("formants", "vocode"), ("fturanal", "anal"),
+        ("get_partials", "harmonic"), ("glisten", "glisten"),
+        ("hilite", "band"), ("hilite", "bltr"), ("hilite", "filter"),
+        ("hilite", "greq"), ("hilite", "pluck"), ("hilite", "trace"),
+        ("hilite", "vowels"), ("morph", "bridge"), ("morph", "glide"),
+        ("morph", "morph"), ("newmorph", "newmorph"),
         ("newmorph", "newmorph2"), ("oneform", "get"), ("oneform", "put"),
         ("peak", "extract"), ("pitch", "pick"), ("pitch", "transp"),
         ("pitch", "tune"), ("ptobrk", "withzeros"), ("repitch", "analenv"),
-        ("repitch", "combineb"), ("repitch", "getpitch"),
-        ("repitch", "synth"), ("repitch", "transpose"),
-        ("repitch", "transposef"), ("repitch", "vowels"),
-        ("selfsim", "selfsim"), ("spec", "bare"), ("spec", "clean"),
-        ("spec", "cut"), ("spec", "gain"), ("spec", "gate"), ("spec", "grab"),
+        ("repitch", "approx"), ("repitch", "combineb"), ("repitch", "exag"),
+        ("repitch", "getpitch"), ("repitch", "invert"),
+        ("repitch", "pchshift"), ("repitch", "quantise"),
+        ("repitch", "randomise"), ("repitch", "smooth"), ("repitch", "synth"),
+        ("repitch", "transpose"), ("repitch", "transposef"),
+        ("repitch", "vibrato"), ("repitch", "vowels"), ("selfsim", "selfsim"),
+        ("spec", "bare"), ("spec", "clean"), ("spec", "cut"),
+        ("spec", "gain"), ("spec", "gate"), ("spec", "grab"),
         ("spec", "magnify"), ("specav", "specav"), ("specenv", "specenv"),
         ("specfnu", "specfnu"), ("specfold", "specfold"), ("specnu", "rand"),
         ("specnu", "remove"), ("specnu", "squeeze"), ("specnu", "subtract"),
@@ -114,8 +118,8 @@ def test_curated_only_passthrough_includes_all(real_index):
     # All curated entries are curated, so curated_only=False just returns the
     # same set. The flag's behavior is exercised; the data doesn't (yet)
     # contain uncurated entries to filter out.
-    assert len(real_index.list_entries(curated_only=False)) == 437
-    assert len(real_index.list_entries(curated_only=True)) == 338
+    assert len(real_index.list_entries(curated_only=False)) == 447
+    assert len(real_index.list_entries(curated_only=True)) == 348
 
 
 def test_get_returns_none_for_missing(real_index):

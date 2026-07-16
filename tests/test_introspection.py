@@ -74,7 +74,7 @@ async def test_list_categories_returns_sorted_unique(mcp_with_tools):
 
 async def test_list_programs_no_filter_returns_all_curated(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {})
-    assert len(payload) == 338
+    assert len(payload) == 348
     keys = {(e["program"], e["mode"]) for e in payload}
     # Spot-check representatives across phases rather than the full set
     # (the count above pins the total; per-entry presence is pinned by
@@ -111,26 +111,30 @@ async def test_list_programs_domain_filter(mcp_with_tools):
         # (new spectral entry, domain flip) still fails here.
         ("analjoin", "join"), ("blur", "avrg"), ("blur", "blur"),
         ("blur", "chorus"), ("blur", "drunk"), ("blur", "noise"),
-        ("blur", "scatter"), ("blur", "spread"), ("blur", "suppress"),
-        ("blur", "weave"), ("caltrain", "caltrain"), ("combine", "cross"),
-        ("combine", "diff"), ("combine", "interleave"), ("combine", "max"),
-        ("combine", "mean"), ("combine", "sum"), ("focus", "accu"),
-        ("focus", "exag"), ("focus", "focus"), ("focus", "fold"),
-        ("focus", "freeze"), ("focus", "hold"), ("focus", "step"),
-        ("formants", "get"), ("formants", "put"), ("formants", "vocode"),
-        ("fturanal", "anal"), ("get_partials", "harmonic"),
-        ("glisten", "glisten"), ("hilite", "band"), ("hilite", "bltr"),
-        ("hilite", "filter"), ("hilite", "greq"), ("hilite", "pluck"),
-        ("hilite", "trace"), ("hilite", "vowels"), ("morph", "bridge"),
-        ("morph", "glide"), ("morph", "morph"), ("newmorph", "newmorph"),
+        ("blur", "scatter"), ("blur", "shuffle"), ("blur", "spread"),
+        ("blur", "suppress"), ("blur", "weave"), ("caltrain", "caltrain"),
+        ("combine", "cross"), ("combine", "diff"), ("combine", "interleave"),
+        ("combine", "max"), ("combine", "mean"), ("combine", "sum"),
+        ("focus", "accu"), ("focus", "exag"), ("focus", "focus"),
+        ("focus", "fold"), ("focus", "freeze"), ("focus", "hold"),
+        ("focus", "step"), ("formants", "get"), ("formants", "put"),
+        ("formants", "vocode"), ("fturanal", "anal"),
+        ("get_partials", "harmonic"), ("glisten", "glisten"),
+        ("hilite", "band"), ("hilite", "bltr"), ("hilite", "filter"),
+        ("hilite", "greq"), ("hilite", "pluck"), ("hilite", "trace"),
+        ("hilite", "vowels"), ("morph", "bridge"), ("morph", "glide"),
+        ("morph", "morph"), ("newmorph", "newmorph"),
         ("newmorph", "newmorph2"), ("oneform", "get"), ("oneform", "put"),
         ("peak", "extract"), ("pitch", "pick"), ("pitch", "transp"),
         ("pitch", "tune"), ("ptobrk", "withzeros"), ("repitch", "analenv"),
-        ("repitch", "combineb"), ("repitch", "getpitch"),
-        ("repitch", "synth"), ("repitch", "transpose"),
-        ("repitch", "transposef"), ("repitch", "vowels"),
-        ("selfsim", "selfsim"), ("spec", "bare"), ("spec", "clean"),
-        ("spec", "cut"), ("spec", "gain"), ("spec", "gate"), ("spec", "grab"),
+        ("repitch", "approx"), ("repitch", "combineb"), ("repitch", "exag"),
+        ("repitch", "getpitch"), ("repitch", "invert"),
+        ("repitch", "pchshift"), ("repitch", "quantise"),
+        ("repitch", "randomise"), ("repitch", "smooth"), ("repitch", "synth"),
+        ("repitch", "transpose"), ("repitch", "transposef"),
+        ("repitch", "vibrato"), ("repitch", "vowels"), ("selfsim", "selfsim"),
+        ("spec", "bare"), ("spec", "clean"), ("spec", "cut"),
+        ("spec", "gain"), ("spec", "gate"), ("spec", "grab"),
         ("spec", "magnify"), ("specav", "specav"), ("specenv", "specenv"),
         ("specfnu", "specfnu"), ("specfold", "specfold"), ("specnu", "rand"),
         ("specnu", "remove"), ("specnu", "squeeze"), ("specnu", "subtract"),

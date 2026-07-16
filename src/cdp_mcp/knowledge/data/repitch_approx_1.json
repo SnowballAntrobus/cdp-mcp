@@ -1,0 +1,83 @@
+{
+  "program": "repitch",
+  "mode": "approx",
+  "submode": 1,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": ".frq",
+  "output_format": ".frq",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Makes an APPROXIMATE COPY of a pitchfile - pitch values wander randomly within prange of the original, contour turning-points stray within trange, scanned at srange - writing a new BINARY PITCHFILE (.frq, 'is a pitch file', window count preserved - re-verified tranche 24). Argv 'repitch approx 1 pitchfile out.frq [-pprange] [-ttrange] [-ssrange]' - ALL parameters are optional flags; flagless works (verified: default deviation on the steady probe max 0.26 st, mean 0.10 st - a genuinely subtle copy). STOCHASTIC AND UNSEEDABLE (verified: no seed argv; identical calls 1.3 s apart produce different data chunks). Ranges verbatim (input-dependent time bounds): trange 'Parameter[2] Value (0.100000) out of range (2.902494 to 2025.940895)' ms (one window to file duration); srange 'Parameter[3] Value (1.000000) out of range (23.219954 to 2025.940895)' ms (floor = 8 windows); prange banner '>0' with -p0 accepted (verified exit 0). prange breakpoint accepted (exit 0, banner 'Prange, trange and srange may vary over time'; endpoint A/B impossible under the clock seed). Mode 2 (.trn output twin) verified running - sibling.",
+  "musical_use": "The humanizer / doubling-track generator: an approximate copy is what a SECOND PERFORMER would sing. Flagship: getpitch 1 (curated) -> THIS -> repitch synth or vowels (curated) resynthesizes a double whose intonation agrees-but-disagrees like a real unison section; make N approximate copies (each run is a fresh take - the unseeded randomness is a feature here) and stack them for choral thickening from one voice. Small prange (0.2-0.5 st) with long trange = natural ensemble spread; larger prange (1-3 st) = a careless or drunk doubling; extreme (5+ st, short srange) = a heterophonic shadow that only loosely follows. Route through combineb 1 (original vs approximation -> ratio layer) into transposef 3 to apply the 'second singer's deviation' to the ORIGINAL audio itself - subtle chorusing at the pitch-data level rather than the delay-line level. Chain: approx AFTER quantise 1 (execute()) or smooth 1 (curated) re-humanizes corrected/becalmed lines with fresh, uncorrelated errors.",
+  "parameters": {
+    "pitchfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "BINARY pitch data (.frq) - getpitch 1's 'pitch_trace.frq' by bare name or a chained .frq by graph-relative path. Typed infile: text refuses 'Application doesn't work with this type of infile.' (family-verified)."
+    },
+    "prange": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Interval within which pitch randomly varies from the original (banner '>0'; 0 verified accepted). Omitted default gives max 0.26 st deviation on the probe. 0.2-0.5 = ensemble realism; 1-3 = careless double; 5+ = heterophonic shadow. Breakpoint accepted ('abs:' mode or .brk on this arity-0 entry; A/B proof impossible under the clock seed)."
+    },
+    "trange": {
+      "type": "float",
+      "min": 2.9,
+      "max": 2025.94,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Time-interval by which contour TURNING-POINTS may stray from their original positions (CDP-enforced one window to file duration, verbatim; input-dependent bounds - curated for the 2 s probe). Longer = looser rhythmic agreement of the copy's inflections. Scalar curated (banner claims variability; untestable A/B under randomness)."
+    },
+    "srange": {
+      "type": "float",
+      "min": 23.2,
+      "max": 2025.94,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Scanning window for detecting pitch rise/fall (a semitone shift within srange registers as a contour move). CDP-enforced 8 windows (~23.2 ms) to file duration, verbatim refusal pinned; input-dependent. Shorter = the copy tracks fine detail; longer = it only follows gross gesture."
+    }
+  },
+  "examples": [
+    {
+      "description": "A second singer: subtle ensemble double for resynthesis.",
+      "params": {"pitchfile": "pitch_trace.frq", "prange": 0.4},
+      "expected_use": "Feed the output .frq to repitch synth (curated) and mix under the original - unison-section realism. Re-run for each additional 'singer' (every take differs; the cache returns identical results for identical calls, so vary prange minutely per voice)."
+    },
+    {
+      "description": "Heterophonic shadow that only loosely follows.",
+      "params": {"pitchfile": "pitch_trace.frq", "prange": 4.0, "trange": 400.0, "srange": 800.0},
+      "expected_use": "Wide pitch scatter, drifting turning-points, gesture-level tracking only - a folk-heterophony companion line as data."
+    }
+  ],
+  "known_issues": [
+    "STOCHASTIC, UNSEEDABLE (verified): each run is a unique take. The engine cache keys on argv+inputs - IDENTICAL re-calls return the cached copy, so vary a parameter minutely (or clear cache) to get fresh takes for stacking.",
+    "All parameters optional: a flagless call is valid and subtle (max 0.26 st on the probe).",
+    "trange/srange bounds are input-dependent (windows-to-file-duration); curated numbers reflect the 2 s / 44.1 kHz probe - longer files widen ceilings (execute() past the schema max).",
+    "prange breakpoints accepted (exit 0) but A/B-unprovable under the clock seed; trange/srange curated scalar-only (conservative - same untestability).",
+    "Output is a pitchfile (.frq), NOT audio: pre-flight skipped, verify = exists+non-empty. Consumers: repitch synth/vowels (curated), combineb 1 slots, further transforms; NOT transposef 4 (that wants .trn - mode 2 sibling, execute()).",
+    "duration_model 'static' is a schema placeholder (data output; window count preserved). BREAKPOINT AXIS (arity-0): 'abs:' mode or .brk only."
+  ],
+  "references": ["cdp://docs/html/crepitch", "docs/curation/tranche22_pitchdata.md", "docs/curation/tranche24_schema_unblocks.md"]
+}

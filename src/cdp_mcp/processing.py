@@ -13,6 +13,7 @@ Neither function touches the filesystem or runs subprocesses.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -57,12 +58,22 @@ def validate_params(
         if name in params:
             continue
         if spec.flag is None and spec.default is None:
-            range_hint = _range_hint(spec)
+            if spec.type == "free_string":
+                # Phase 6 (tranche 24): the required value is a plain
+                # string (e.g. a shuffle domain-image map), so "pass a
+                # numeric value" would send the caller the wrong way.
+                pattern_hint = (
+                    f" matching pattern {spec.pattern!r}"
+                    if spec.pattern is not None else ""
+                )
+                fix = f"Pass a string value{pattern_hint}."
+            else:
+                fix = f"Pass a numeric value{_range_hint(spec)}."
             errors.append(
                 ErrorEntry(
                     type="missing_parameter",
                     message=f"Missing required parameter {name!r}.",
-                    fix=f"Pass a numeric value{range_hint}.",
+                    fix=fix,
                 )
             )
 
@@ -115,7 +126,52 @@ def _check_type(
     path strings, and — for ``aux_file`` params — non-``.brk`` path
     strings. Compiler validates list / .brk-path contents separately
     (Task 8); aux-file existence is checked in node_validation step 8.7.
-    Bool accepted only for value-less switch params (Phase 3)."""
+    Bool accepted only for value-less switch params (Phase 3).
+    ``free_string`` params (Phase 6, tranche 24) accept plain non-.brk
+    strings, optionally gated by the spec's ``pattern`` regex."""
+    if spec.type == "free_string":
+        # Plain string parsed straight from argv by CDP (shuffle's
+        # domain-image map). Not a path: nothing downstream resolves
+        # or existence-checks it, so the only routing hazard is the
+        # breakpoint compiler's ".brk means breakpoint file" string
+        # rule — refuse that suffix here so step 8.5 never sees it.
+        if isinstance(value, str) and not value.lower().endswith(".brk"):
+            if spec.pattern is not None and re.fullmatch(spec.pattern, value) is None:
+                return ErrorEntry(
+                    type="param_pattern_mismatch",
+                    message=(
+                        f"Parameter {name!r} value {value!r} does not "
+                        f"match the required pattern {spec.pattern!r}."
+                    ),
+                    fix=(
+                        f"Pass a string matching {spec.pattern!r}"
+                        + (f" — e.g. see the parameter description: "
+                           f"{spec.description}" if spec.description else ".")
+                    ),
+                )
+            return None
+        if isinstance(value, str):
+            return ErrorEntry(
+                type="param_type",
+                message=(
+                    f"Parameter {name!r} is a free-string parameter but "
+                    f"got a .brk path {value!r}."
+                ),
+                fix=(
+                    "The .brk extension is reserved for breakpoint "
+                    "files. Pass the literal string value CDP expects "
+                    "here (this parameter is not a file path)."
+                ),
+            )
+        return ErrorEntry(
+            type="param_type",
+            message=(
+                f"Parameter {name!r} is a free-string parameter but got "
+                f"{type(value).__name__} {value!r}; expected a plain "
+                "string."
+            ),
+            fix="Pass a string value (e.g. a shuffle map like 'ab-abab').",
+        )
     if spec.type == "aux_file":
         # Auxiliary text-file parameter: value must be a str path with
         # any extension EXCEPT .brk (that routing belongs to the
@@ -373,6 +429,13 @@ def _format_value(value: Any, declared_type: str) -> str:
     actually needed (``1.234567`` → ``"1.234567"``, ``1e-12`` → ``"1e-12"``).
     Integer values use plain ``str(int(value))`` to avoid spurious decimals.
     """
+    if declared_type in ("free_string", "str"):
+        # Phase 6 (tranche 24): plain strings render verbatim —
+        # ``free_string`` for caller-supplied values (shuffle maps),
+        # ``str`` for curated fixed defaults (getpitch side names).
+        # Ordered before the numeric branches so a numeric-looking
+        # string is never reformatted.
+        return str(value)
     if declared_type == "int" or (
         isinstance(value, int) and not isinstance(value, bool)
     ):

@@ -1,0 +1,81 @@
+{
+  "program": "repitch",
+  "mode": "randomise",
+  "submode": 2,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": ".frq",
+  "output_format": ".trn",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Randomises a pitch line, emitting the wander as a BINARY TRANSPOSITION FILE (.trn, 'is a transpos file' - re-verified tranche 24). Argv 'repitch randomise 2 pitchfile out.trn maxinterval timestep [-sslew]'. STOCHASTIC AND UNSEEDABLE (re-verified: no seed argv anywhere in the banner; runs 1.3 s apart produce different data chunks - clock path). Ranges verbatim: maxinterval 'Parameter[1] Value (97.000000) out of range (0.000000 to 96.000000)' semitones; timestep 'Parameter[2] Value (0.100000) out of range (2.902494 to 2025.940895)' ms - floor = one analysis window, ceiling = the file's duration, both input-dependent; slew 'ERROR: slew out of range: slew must be >1 or <-1' (verbatim; 2 and -3 verified accepted). maxinterval is BREAKPOINT-CAPABLE (banner 'Maxinterval and timestep may vary over time'; brk exits 0 on a marker-free track - endpoints comparison is meaningless under unseeded randomness); timestep breakpoints FAIL on this build with a content refusal 'ERROR: Too much unpitched data in file to proceed this time. But try again.' (verbatim - raised even on a fully-interpolated, marker-FREE pitchfile; scalar timestep works everywhere) - banner claim diverges, timestep curated scalar-only.",
+  "musical_use": "Controlled pitch instability for the original sound: getpitch 1 (curated) -> THIS -> transposef 4 (curated) loosens a track's intonation with formants intact. Small values humanize (maxinterval 0.3-1 st, timestep 150-400 ms: the drift of a relaxed singer - the natural companion AFTER quantise 2's correction, replacing robotic accuracy with lifelike scatter); medium values destabilize (2-5 st: seasick, inebriated delivery); large values at short timesteps atomize the line into pointillist pitch-hash (10+ st, sub-50 ms steps). slew biases the wander: -s2 doubles upward range vs downward (material floats sharp), -s-3 sinks it - drift with a direction. Ramp maxinterval by breakpoint ('abs:' times) from 0 upward and a phrase progressively falls apart - the counterpart of exag 6's range ramp. NOT reproducible: each run is a unique take (cache one .trn and reuse it via transposef 4 when you need the SAME wander on several sources).",
+  "parameters": {
+    "pitchfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "BINARY pitch data (.frq) - getpitch 1's 'pitch_trace.frq' by bare name or a chained .frq by graph-relative path. Typed infile: text refuses 'Application doesn't work with this type of infile.' (family-verified)."
+    },
+    "maxinterval": {
+      "type": "float",
+      "min": 0.0,
+      "max": 96.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum interval the pitch may randomly vary up or down (CDP-enforced 0-96 verbatim). Musical: 0.3-1 humanize, 2-5 destabilize, 10+ atomize. Breakpoint-capable ('abs:' mode or .brk on this arity-0 entry; banner-confirmed, brk runs verified - endpoint A/B is impossible under the clock seed)."
+    },
+    "timestep": {
+      "type": "float",
+      "min": 2.9,
+      "max": 2025.94,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Maximum time between random pitch fluctuations, ms (actual steps are random values below this). CDP-enforced from one analysis window (~2.9 ms) to the file duration (~2025.94 ms on the 2 s probe) - BOTH BOUNDS INPUT-DEPENDENT, refusal verbatim pinned. SCALAR-ONLY on this build: breakpoint files raise 'Too much unpitched data in file to proceed this time. But try again.' even on marker-free tracks (banner divergence, verified)."
+    },
+    "slew": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Directional bias: 2 = upward range twice the downward; -3 = downward three times the upward (both verified). DISJOINT RANGE, CDP-enforced: 'slew out of range: slew must be >1 or <-1' (verbatim; 0.5 refused) - the schema cannot express the hole, so values in [-1, 1] fail at CDP with that message. Omit for symmetric wander."
+    }
+  },
+  "examples": [
+    {
+      "description": "Re-humanize a quantised track (the post-autotune companion).",
+      "params": {"pitchfile": "pitch_trace.frq", "maxinterval": 0.5, "timestep": 250.0},
+      "expected_use": "Apply via repitch transposef 4 AFTER a quantise-2 pass: scale-true center with living micro-drift instead of robotic flatness."
+    },
+    {
+      "description": "Progressive disintegration with a sinking bias.",
+      "params": {"pitchfile": "pitch_trace.frq", "maxinterval": [["abs:0", 0.0], ["abs:2.0", 6.0]], "timestep": 80.0, "slew": -2.0},
+      "expected_use": "Stable attack wandering into seasick, downward-leaning chaos by the phrase's end. Times absolute seconds on the pitchfile's timebase."
+    }
+  ],
+  "known_issues": [
+    "STOCHASTIC, UNSEEDABLE (re-verified): no seed argv; 1.3 s-apart runs differ. No A/B reproducibility - to reuse one wander across sources, keep the .trn and apply it repeatedly via transposef 4. NOTE the engine cache keys on argv+inputs, so an identical re-call returns the CACHED (identical) .trn rather than a fresh roll - vary a parameter minutely to force a new take.",
+    "timestep is SCALAR-ONLY despite the banner: breakpoint values raise 'Too much unpitched data in file to proceed this time. But try again.' (verbatim) even on a fully-interpolated marker-free track - build divergence pinned tranche 24.",
+    "timestep bounds are input-dependent (one window to file duration); the curated 2.9-2025.94 reflects the 2 s / 44.1 kHz probe - longer files widen the ceiling (schema max may under-admit there; use execute() past it).",
+    "slew's legal range is disjoint (>1 or <-1, verbatim) - in-between values fail at CDP, not in validate_params.",
+    "Output is DATA (.trn): pre-flight skipped, verify = exists+non-empty; apply via curated transposef 4. BREAKPOINT AXIS (arity-0): 'abs:' mode or .brk only.",
+    "duration_model 'static' is a schema placeholder (data output). Sibling mode 1 (pitchfile out) verified running - execute()/future-curation."
+  ],
+  "references": ["cdp://docs/html/crepitch", "docs/curation/tranche22_pitchdata.md", "docs/curation/tranche24_schema_unblocks.md"]
+}

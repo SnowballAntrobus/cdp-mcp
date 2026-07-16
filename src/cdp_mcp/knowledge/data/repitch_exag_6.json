@@ -1,0 +1,80 @@
+{
+  "program": "repitch",
+  "mode": "exag",
+  "submode": 6,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": ".frq",
+  "output_format": ".trn",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Exaggerates (or flattens) a pitch CONTOUR around a mean pitch, emitting the change as a BINARY TRANSPOSITION FILE (.trn, 'is a transpos file' - re-verified tranche 24). Submode 6 is the GENERAL form with both handles: 'repitch exag 6 pitchfile out.trn meanpch range contour' (submodes 1-2 range-only, 3-4 contour-only, 5 the pitchfile-output twin of 6 - all verified running, curated as the one entry that spans them). RANGE multiplies each semitone interval from meanpch (2 = twice as far from the mean, verified ratio spread 0.964-1.038 on the wobbling probe at range 2/contour 0.5; 0 accepted = full flatten despite the banner's '>0'); CONTOUR (0-1) exaggerates the contour SHAPE. Ranges verbatim: meanpch 'Parameter[1] Value (200.000000) out of range (0.000000 to 127.000000)' MIDI (0 accepted); contour 'Parameter[3] Value (2.000000) out of range (0.000000 to 1.000000)'. ALL THREE params breakpoint-capable (banner-confirmed; each brk render differs from both scalar endpoints, verified tranche 24). Deterministic (byte-identical data chunks 1.3 s apart).",
+  "musical_use": "The melodic caricaturist: getpitch 1 (curated) -> THIS -> transposef 4 (curated) redraws how far a melody swings around its center WITHOUT changing its center - formants intact. range > 1 turns speech inflection into operatic melodrama and modest vibrato into wild siren (range 2-4); range < 1 compresses toward monotone (0.3 = deadpan; 0 = reciting-tone flatline pinned at meanpch - pair with vibrato 2 to re-animate); range exactly 1 with contour < 1 reshapes gesture curvature while keeping extent. meanpch chooses the pivot: set it AT the material's mean for symmetric exaggeration, or off-center (e.g. the phrase's lowest note) so exaggeration also transposes everything away from that anchor - rising phrases rise harder. Breakpoint the range ('abs:' times) from 1.0 upward to make a phrase progressively lose its cool, or automate meanpch to drag the pivot through the phrase. Speech-melody work is the classic use: exaggerated speech contours re-applied to the speaker make heightened, sung-speech delivery.",
+  "parameters": {
+    "pitchfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "BINARY pitch data (.frq) - getpitch 1's 'pitch_trace.frq' by bare name or a chained transform's .frq by graph-relative path. Typed infile: text refuses 'Application doesn't work with this type of infile.' (family-verified)."
+    },
+    "meanpch": {
+      "type": "float",
+      "min": 0.0,
+      "max": 127.0,
+      "unit": "midi",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "MIDI pitch around which intervals are stretched (CDP-enforced 0-127 verbatim; fractional allowed). Set at the track's mean (pitchinfo info via execute(), or eyeball ptobrk output) for symmetric exaggeration. Breakpoint-capable (verified differs from both endpoints) - 'abs:' mode or .brk on this arity-0 entry."
+    },
+    "range": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "x semitone-interval",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Interval multiplier from meanpch: 2 doubles every excursion, 0.5 halves it, 0 flattens to the mean (0 accepted despite the banner's '>0', verified). No enforced ceiling observed - extreme values push ratios toward the transposition limits of the eventual consumer. Breakpoint-capable (verified) - 'abs:' mode or .brk."
+    },
+    "contour": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Contour-shape exaggeration, CDP-enforced 0-1 (verbatim refusal at 2). 1 leaves the shape; smaller values progressively exaggerate the contour's profile. Breakpoint-capable (verified) - 'abs:' mode or .brk."
+    }
+  },
+  "examples": [
+    {
+      "description": "Melodrama: double every pitch excursion around the track's center.",
+      "params": {"pitchfile": "pitch_trace.frq", "meanpch": 60.0, "range": 2.0, "contour": 1.0},
+      "expected_use": "Apply via repitch transposef 4 to the same .ana - inflections swing twice as wide, register and formants unchanged (ratio spread verified)."
+    },
+    {
+      "description": "Progressive deadpan-to-hysteria across a phrase.",
+      "params": {"pitchfile": "pitch_trace.frq", "meanpch": 60.0, "range": [["abs:0", 0.3], ["abs:2.0", 3.0]], "contour": 0.7},
+      "expected_use": "Starts compressed toward monotone, ends triple-width - the phrase loses its composure in real time. Absolute-second times on the pitchfile's timebase."
+    }
+  ],
+  "known_issues": [
+    "Output is DATA (.trn): pre-flight skipped, verify = exists+non-empty, no audition - apply via curated repitch transposef 4 (no length check there; keep same-analysis discipline).",
+    "BREAKPOINT AXIS (arity-0): relative-time lists refuse (no source-duration axis) - use 'abs:<seconds>' tuples or a .brk file. All three params verified time-variable.",
+    "range 0 is legal (full flatten to meanpch) although the banner claims '>0' - divergence pinned; no upper bound was refused on this build, so extreme ranges are the caller's responsibility (consumer transposition limits apply at transposef time).",
+    "Choose meanpch consciously: off-mean pivots transpose material away from the pivot as a side effect of stretching intervals from it.",
+    "Siblings verified running and folded into this entry's parameter space: submodes 1/2 (range-only), 3/4 (contour-only), 5 (pitchfile-output twin of 6) - execute()-reachable.",
+    "duration_model 'static' is a schema placeholder (data output). Deterministic (byte-identical data chunks, re-verified tranche 24)."
+  ],
+  "references": ["cdp://docs/html/crepitch", "docs/curation/tranche22_pitchdata.md", "docs/curation/tranche24_schema_unblocks.md"]
+}

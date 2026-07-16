@@ -149,6 +149,63 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
         "altsort": False,
         "elimoctdups": False,
     },
+    # --- Phase 6 schema unblocks (free_string + .frq/.trn kinds; entries
+    # authored from the tranche-10a/16/22 pinned empirics, re-verified
+    # against the binaries — see tests/test_free_string.py) ---
+    ("blur", "shuffle", None): {
+        "domain_image": False,
+        "grpsize": False,
+    },
+    ("distort", "shuffle", None): {
+        "domain_image": False,
+        "cyclecnt": True,
+        "skipcycles": False,
+    },
+    ("repitch", "approx", 1): {
+        "pitchfile": False,
+        "prange": True,
+        "trange": False,
+        "srange": False,
+    },
+    ("repitch", "exag", 6): {
+        "pitchfile": False,
+        "meanpch": True,
+        "range": True,
+        "contour": True,
+    },
+    ("repitch", "invert", 2): {
+        "pitchfile": False,
+        "map": False,
+        "meanpch": True,
+        "bot": False,
+        "top": False,
+    },
+    ("repitch", "pchshift", None): {
+        "pitchfile": False,
+        "transposition": False,
+    },
+    ("repitch", "quantise", 2): {
+        "pitchfile": False,
+        "qset": False,
+        "all_octaves": False,
+    },
+    ("repitch", "randomise", 2): {
+        "pitchfile": False,
+        "maxinterval": True,
+        "timestep": False,
+        "slew": False,
+    },
+    ("repitch", "smooth", 1): {
+        "pitchfile": False,
+        "timeframe": False,
+        "peak_from": False,
+        "hold_last": False,
+    },
+    ("repitch", "vibrato", 2): {
+        "pitchfile": False,
+        "vibfreq": True,
+        "vibrange": True,
+    },
     # --- Wave 5 (tranches 20-21: spectral tail; see
     # docs/curation/tranche20_spectral1_findings.json +
     # tranche21_spectral2_findings.json) ---

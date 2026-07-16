@@ -297,7 +297,7 @@ async def check_duration_preflight(
     "probe the file as usual".
 
     Data outputs (Phase 5 wave 2a): entries whose ``output_format`` is
-    a data format (.evl/.for/.txt) skip pre-flight entirely — the
+    a data format (.evl/.for/.txt/.frq/.trn) skip pre-flight entirely — the
     output has no audio duration to predict or cap (envel extract's
     .evl "duration" is one float per envelope window; a formants get
     output misreports 107 s via sfprops from a 2 s source). The size

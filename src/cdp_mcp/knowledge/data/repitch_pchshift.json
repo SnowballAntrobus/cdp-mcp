@@ -1,0 +1,60 @@
+{
+  "program": "repitch",
+  "mode": "pchshift",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": ".frq",
+  "output_format": ".frq",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Shifts every pitched value in a pitchfile by a constant number of semitones, writing a new BINARY PITCHFILE (.frq, 'is a pitch file', window count preserved - re-verified tranche 24). Argv 'repitch pchshift pitchfile out.frq transposition' (NO mode token). Content-proven exact: +7 gives 12*log2(out/in) = 7.000 at every pitched window (257.73 -> 386.15 Hz etc.); MARKERS PRESERVED LITERALLY (-2.0 silence and -1.0 unpitched values pass through untouched, verified on the first four windows of the marker probe). transposition CDP-enforced -96..96, verbatim 'Parameter[1] Value (100.000000) out of range (-96.000000 to 96.000000)' (same at -100); SCALAR-ONLY, verbatim 'ERROR: Cannot read parameter 1 [mi.brk]: brkpnt_files not permitted.' (the banner itself points at 'repitch transpose[f]' for time-varying shifts). Deterministic (byte-identical data chunks 1.3 s apart).",
+  "musical_use": "Transposition of the pitch DATA rather than the sound - which matters exactly when the data drives something else. Flagship uses: (1) parallel-harmony resynthesis - getpitch 1 -> pchshift +7 (or +3/+4) -> repitch synth/vowels (curated) builds a synthetic harmony voice that sings the tracked melody a fixed interval away, while the original audio stays put; stack shifts (+4, +7) for triadic choirs from one voice. (2) Register-relocation before comparison - combineb 1 ratios between an original and its octave-shifted self are a constant 2.0 (sanity anchor), while pchshift into a target register before combineb against ANOTHER voice keeps the derived transposition contour register-sane. (3) Preparing melody data for vowels/synth in a singable range when the source was tracked an octave off (getpitch octave errors on low material - shift +12 to repair). For transposing the ACTUAL SOUND use curated repitch transposef 3 (formant-preserving) or transpose 3 - this entry never touches audio; for time-varying data shifts the binary refuses breakpoints (use transposef's brk transpos instead).",
+  "parameters": {
+    "pitchfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "BINARY pitch data (.frq) - getpitch 1's 'pitch_trace.frq' by bare name or a chained .frq by graph-relative path. Typed infile: text refuses 'Application doesn't work with this type of infile.' (family-verified)."
+    },
+    "transposition": {
+      "type": "float",
+      "min": -96.0,
+      "max": 96.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Constant shift in (possibly fractional) semitones, CDP-enforced -96..96 (verbatim refusals at +/-100 pinned). Exactness verified: +7 -> 7.000 st at every pitched window. SCALAR-ONLY ('Cannot read parameter 1 [mi.brk]: brkpnt_files not permitted.' verbatim) - the banner routes time-varying shifts to repitch transpose[f]."
+    }
+  },
+  "examples": [
+    {
+      "description": "Synthetic parallel fifth from one voice.",
+      "params": {"pitchfile": "pitch_trace.frq", "transposition": 7.0},
+      "expected_use": "Feed the output .frq to repitch synth (curated) with a soft harmonic recipe and mix under the original - a harmony voice that tracks every inflection exactly (shift verified 7.000 st per window)."
+    },
+    {
+      "description": "Repair an octave-down tracking error before vowel resynthesis.",
+      "params": {"pitchfile": "pitch_trace.frq", "transposition": 12.0},
+      "expected_use": "getpitch sometimes locks an octave low on rich bass material; +12 relocates the data into the true register for repitch vowels."
+    }
+  ],
+  "known_issues": [
+    "Data-only transform: the ORIGINAL sound is untouched - to transpose audio use curated repitch transposef 3 (formant-preserving). This entry's output feeds synth/vowels/combineb/other transforms.",
+    "SCALAR-ONLY transposition (verbatim brk refusal pinned); the banner itself defers time-varying shifts to repitch transpose[f].",
+    "Markers preserved literally (-1/-2 unchanged, verified) - marker-laden files stay marker-laden; downstream consumers that refuse markers (pitchinfo convert) still refuse.",
+    "Output is DATA (.frq): pre-flight skipped, verify = exists+non-empty; not auditionable directly (resynthesize via repitch synth to hear it).",
+    "duration_model 'static' is a schema placeholder (data output; window count preserved 698 -> 698).",
+    "Deterministic (byte-identical data chunks, re-verified tranche 24)."
+  ],
+  "references": ["cdp://docs/html/crepitch", "docs/curation/tranche22_pitchdata.md", "docs/curation/tranche24_schema_unblocks.md"]
+}

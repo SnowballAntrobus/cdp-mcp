@@ -1,0 +1,70 @@
+{
+  "program": "repitch",
+  "mode": "vibrato",
+  "submode": 2,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": ".frq",
+  "output_format": ".trn",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Adds vibrato to a pitch track, emitting the wobble as a BINARY TRANSPOSITION FILE (.trn, 'is a transpos file', one ratio per window - re-verified tranche 24). Arity-0 data entry: pitchfile pre-output, then 'repitch vibrato 2 pitchfile out.trn vibfreq vibrange'. Content-proven: vibfreq 6 / vibrange 1 on a steady track gives ratios oscillating 0.944-1.059 = exactly 2^(+/-1/12), a true +/-1-semitone sine wobble. Ranges verbatim: vibfreq 'Parameter[1] Value (-1.000000) out of range (0.000000 to 344.531256)' (ceiling = the analysis WINDOW RATE, input-dependent; 0 accepted); vibrange 'Parameter[2] Value (300.000000) out of range (0.000000 to 96.000000)' semitones (0 accepted). BOTH params breakpoint-capable (banner-confirmed 'Vibfreq and vibrange may vary over time'; each brk render differs from both scalar endpoints, verified). Deterministic (byte-identical data chunks 1.3 s apart). Mode 1 (pitchfile output) verified running - sibling.",
+  "musical_use": "Expressive-layer synthesis as DATA: getpitch 1 (curated) -> THIS -> transposef 4 (curated) overlays vibrato on the original sound with formants intact - turn a straight-toned note into a sung one, deepen an existing voice's vibrato, or push into ornament territory. The parameters are the performance: vibfreq 5-7 Hz / vibrange 0.3-1 st is classical vocal vibrato; 1-2 Hz / 2-5 st is a slow pitch-wave (sirening); 10-20 Hz / 0.5 st is a nervous flutter; ramp vibrange from 0 upward (breakpoint, 'abs:' times) for the singer's swell-into-vibrato gesture, or ramp vibfreq for accelerating trills. Because the .trn is independent data, the same vibrato layer can be applied to ANY analysis - give one performer's measured wobble to a synthetic pad (pair with combineb 1, which can EXTRACT a real vibrato layer by comparing raw vs smoothed tracks; this entry synthesizes an idealized one). Chain after quantise 2 (apply both .trns in successive transposef 4 calls) to re-humanize corrected pitch.",
+  "parameters": {
+    "pitchfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "BINARY pitch data (.frq) - getpitch 1's 'pitch_trace.frq' by bare name, or a transform-chain .frq by graph-relative path. Typed infile: text refuses 'Application doesn't work with this type of infile.' (family-verified)."
+    },
+    "vibfreq": {
+      "type": "float",
+      "min": 0.0,
+      "max": 344.53,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Vibrato rate in Hz. CDP-enforced 0 to the analysis window rate (verbatim '(0.000000 to 344.531256)' for 44.1 kHz/1024/3 analyses - ceiling input-dependent); 0 accepted (no wobble). Musical: 5-7 vocal, <2 siren, >10 flutter. Breakpoint-capable (differs from both endpoints, verified) - on this arity-0 entry pass 'abs:'-mode tuples or a .brk file (no relative-time axis; see known_issues)."
+    },
+    "vibrange": {
+      "type": "float",
+      "min": 0.0,
+      "max": 96.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum interval the vibrato moves away from the tracked pitch, in semitones (CDP-enforced 0-96 verbatim; 0 accepted = flat). vibrange 1 verified as exact 2^(+/-1/12) ratio bounds. Breakpoint-capable (verified) - 'abs:' mode or .brk file on this entry."
+    }
+  },
+  "examples": [
+    {
+      "description": "Classical vocal vibrato onto a straight tone.",
+      "params": {"pitchfile": "pitch_trace.frq", "vibfreq": 6.0, "vibrange": 0.5},
+      "expected_use": "Apply the output via repitch transposef 4 to the same source .ana: the tone sings. Ratio bounds 2^(+/-0.5/12), verified shape."
+    },
+    {
+      "description": "Swell into vibrato across a 2 s note (absolute-time envelope).",
+      "params": {"pitchfile": "pitch_trace.frq", "vibfreq": 6.0, "vibrange": [["abs:0", 0.0], ["abs:1.0", 0.2], ["abs:2.0", 1.0]]},
+      "expected_use": "Flat attack blooming to a full semitone wobble - the singer's messa di voce gesture as data. Times are absolute seconds on the pitchfile's timebase (clamp to its duration)."
+    }
+  ],
+  "known_issues": [
+    "Output is DATA (.trn): pre-flight skipped, verify = exists+non-empty, no audition - apply via curated repitch transposef 4 (same-analysis discipline; transposef 4 does not length-check).",
+    "BREAKPOINT AXIS (arity-0): the engine has no input-audio duration here, so RELATIVE-time breakpoint lists refuse with param_breakpoint_no_source_duration - use 'abs:<seconds>' tuples (clamped to the pitchfile's duration) or a pre-existing .brk file. Both params verified time-variable at the CLI.",
+    "vibfreq ceiling is the analysis window rate (344.53 for the standard 44.1 kHz analysis) - input-dependent, refusal verbatim pinned.",
+    "Marker windows (-1/-2) pass through; vibrato applies to pitched windows only.",
+    "duration_model 'static' is a schema placeholder (data output; one ratio per source-pitchfile window).",
+    "Deterministic (byte-identical data chunks, re-verified tranche 24). Sibling mode 1 (pitchfile out) verified running - execute()/future-curation."
+  ],
+  "references": ["cdp://docs/html/crepitch", "docs/curation/tranche22_pitchdata.md", "docs/curation/tranche24_schema_unblocks.md"]
+}

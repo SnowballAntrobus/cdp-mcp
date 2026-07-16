@@ -1,0 +1,60 @@
+{
+  "program": "blur",
+  "mode": "shuffle",
+  "submode": null,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "domain_image"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Shuffles the ORDER of analysis windows according to a domain-image map: the domain string names consecutive window groups ('ab' = two successive blocks), the image string re-spells them in any order, with repeats and omissions ('ab-abab' plays each pair twice; 'ab-ba' swaps; 'a-aaaa' freeze-stutters every block 4x). Parsed straight from argv (no file form). Duration rule EXACT in all probes (tranche 10a, 7 probes; re-verified tranche 24): outwindows = 1 + floor((inwindows - 1) / (dmncnt * grpsize)) * imgcnt * grpsize - window 0 is always copied through and a trailing incomplete domain block is SILENTLY DROPPED (even the identity map 'ab-ab' loses windows: 698 -> 697). Approximation: outdur ~= indur * imgcnt/dmncnt (698 windows -> 1393 for ab-abab g1, re-verified; mid 1.5 s fixture -> 3.05 s). grpsize groups windows into blocks of that many before mapping (same duration rule; ab-abab g50 -> 1201 windows via the floor). Deterministic (byte-identical data chunks, re-verified). Map validation verbatim: 'ERROR: Image symbol [c] not in domain.' (ab-abc); 'ERROR: Bad string for shuffle data: separator missing' (abab); 'ERROR: Duplicated symbol [a] in domain string.' (aab-ab); case-sensitive ('ab-ABBA' -> 'Image symbol [A] not in domain.'). Runtime refusal when the map outruns the file: 'ERROR: CANNOT ACHIEVE TASK: / ERROR: Insufficient data in soundfile to do this shuffle.' (grpsize 400 x domain 2 on 698 windows).",
+  "musical_use": "Spectral-domain cut-up: because the material being reordered is analysis WINDOWS (not samples), the result re-orders spectral evolution without clicks - reversals, stutters and permutations come out smeared-smooth rather than spliced. 'ab-abab' doubles duration by echoing each successive pair of moments (rhythmic cell generator from any evolving source); 'abc-cba' retrogrades in 3-block cells (local time-reversal feel while pitch stays put); 'a-aaaa' is a marching freeze-stutter (each moment held 4x - compare blur drunk's stochastic wander); large grpsize values (50-200 on a ~2 s / 698-window file) shuffle phrase-scale chunks instead of grains - glitch-edit at the gesture level. The map is the score: longer domains + sparse images ('abcd-db') THIN material by omission. Combine with blur blur upstream to pre-smear before reordering, or feed the output to focus accu for wash. For the time-domain wavecycle equivalent (buzzy, granular) use distort shuffle.",
+  "parameters": {
+    "domain_image": {
+      "type": "free_string",
+      "pattern": "^[a-zA-Z]+-[a-zA-Z]+$",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "The shuffle map: DOMAIN-IMAGE, e.g. 'ab-abab'. Domain letters name consecutive groups of grpsize windows (no duplicates allowed); image respells them in any order with repeats/omissions (image letters must appear in the domain; case-sensitive). Parsed directly from argv (tklib3.c read_shuffle_data - no file fallback). CDP validation verbatim: separator missing / image symbol not in domain / duplicated domain symbol. 'a-aaaa' (freeze-stutter) is legal."
+    },
+    "grpsize": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "windows",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Windows per domain-letter block (CDP-enforced 1-32767, verbatim 'Parameter[2] Value (0.000000) out of range (1.000000 to 32767.000000)'). Required positional - entry default 1 (per-window shuffling). At ~344 windows/s, grpsize 34 ~= 100 ms blocks. Breakpoints refused ('ERROR: Cannot read parameter 1 [bg.brk]: brkpnt_files not permitted.' verbatim). Too large for the file refuses at runtime ('Insufficient data in soundfile to do this shuffle.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Echo each successive pair of spectral moments (doubles duration).",
+      "params": {"domain_image": "ab-abab", "grpsize": 1},
+      "expected_use": "698-window input -> 1393 windows (verified): every consecutive window pair plays twice - a smeared rhythmic cell from any evolving source."
+    },
+    {
+      "description": "Phrase-scale glitch edit: retrograde 3-block cells of ~150 ms.",
+      "params": {"domain_image": "abc-cba", "grpsize": 50},
+      "expected_use": "Each 3 x 50-window cell plays in reverse block order - local time-reversal texture with spectral continuity intact."
+    }
+  ],
+  "known_issues": [
+    "DURATION PRE-FLIGHT IS SKIPPED: the duration model names the string param (submix-mix skip precedent) because the imgcnt/dmncnt arithmetic lives inside the map string. The disk watchdog still bounds runaway output. Exact rule (pinned, 7 probes): outwindows = 1 + floor((inwindows-1)/(dmncnt*grpsize))*imgcnt*grpsize; approximation indur*imgcnt/dmncnt.",
+    "Trailing incomplete domain block silently dropped - even the identity map 'ab-ab' returns one window fewer (698 -> 697). Long domains on short files can lose up to dmncnt*grpsize-1 windows.",
+    "Map validation verbatim (exit 255): 'Bad string for shuffle data: separator missing' (no dash); 'Image symbol [X] not in domain.'; 'Duplicated symbol [X] in domain string.'; case-sensitive.",
+    "Runtime refusal when grpsize*dmncnt exceeds the window count: 'ERROR: CANNOT ACHIEVE TASK: / ERROR: Insufficient data in soundfile to do this shuffle.' (verbatim).",
+    "grpsize is scalar-only ('brkpnt_files not permitted', verbatim) and required in the argv - omitting it refuses 'Insufficient parameters on command line.' (entry default 1 renders automatically).",
+    "Deterministic (byte-identical data chunks 1.3 s apart, re-verified tranche 24). Wav input refused ('Application doesn't work with this type of infile.') - the engine auto-PVOCs .wav sources."
+  ],
+  "references": ["cdp://docs/html/cblur", "docs/curation/tranche10a_st_singles.md", "docs/curation/tranche24_schema_unblocks.md"]
+}

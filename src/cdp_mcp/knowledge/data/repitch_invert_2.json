@@ -1,0 +1,93 @@
+{
+  "program": "repitch",
+  "mode": "invert",
+  "submode": 2,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": ".frq",
+  "output_format": ".trn",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Inverts a pitch contour around a mean pitch, emitting the flip as a BINARY TRANSPOSITION FILE (.trn, 'is a transpos file' - re-verified tranche 24). Argv 'repitch invert 2 pitchfile out.trn map [-mmeanpch] [-bbot] [-ttop]' with the map slot PINNED to 0 (no interval remapping; interval-map FILES are execute()-only - the slot is int-or-filename and the entry fixes the int form). Content-proven on the sibling pitchfile output (mode 1, same math): a wobble around ~251 Hz mirrors exactly - 245.6 Hz becomes 257.4, 246.9 becomes 256.1 (rises become falls symmetrically). Default pivot is the track's own mean; -m sets an explicit MIDI pivot (CDP-enforced 0-127 verbatim 'Parameter[2] Value (200.000000) out of range (0.000000 to 127.000000)'; BREAKPOINT-CAPABLE per banner 'Meanpitch may vary over time' - brk render differs from both scalar endpoints, verified). -b/-t clamp the permissible output register (both 0-127; bot verbatim 'Parameter[3] Value (200.000000) out of range (0.000000 to 127.000000)'). Deterministic (byte-identical data chunks 1.3 s apart). Mode 1 (pitchfile out) verified running - sibling.",
+  "musical_use": "Melodic inversion as a formant-preserving transform on the ORIGINAL sound: getpitch 1 (curated) -> THIS -> transposef 4 (curated) makes the phrase answer itself - every rise becomes a fall of equal size, the classic contrapuntal mirror, but sung by the same voice with the same timbre. Layer the inverted render against the original for instant two-part mirror counterpoint from one performance; do it at phrase level and alternate original/inverted for question-answer structure. The pivot is compositional: default (track mean) keeps the mirror in-register; -m pivots around a structural tone (the phrase's final, a drone's pitch) so the inversion also reorients toward that center; automate meanpch (breakpoint, 'abs:' times) to slide the mirror axis through the phrase - contour progressively estranges from its source. Use -b/-t to fence the result into a singable register when a low pivot would fling material sub-bass. Speech is fertile ground: inverted speech melody keeps rhythm and timbre but alienates the intonation - instant uncanny-valley narration.",
+  "parameters": {
+    "pitchfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "BINARY pitch data (.frq) - getpitch 1's 'pitch_trace.frq' by bare name or a chained .frq by graph-relative path. Typed infile: text refuses 'Application doesn't work with this type of infile.' (family-verified)."
+    },
+    "map": {
+      "type": "int",
+      "min": 0,
+      "max": 0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "PINNED TO 0 (no interval remapping) - CDP's slot accepts 0 OR an interval-map filename (paired semitone values, -96..96); the file form is execute()-only in this entry (mixed int-or-file argv slots are not expressible). Omit it; the default renders."
+    },
+    "meanpch": {
+      "type": "float",
+      "min": 0.0,
+      "max": 127.0,
+      "unit": "midi",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-m",
+      "flag_kind": "attached_value",
+      "description": "MIDI pivot for the inversion (CDP-enforced 0-127 verbatim). Omit to pivot around the track's own mean pitch. Breakpoint-capable (banner-confirmed; brk differs from both endpoints, verified) - 'abs:' mode or .brk file on this arity-0 entry."
+    },
+    "bot": {
+      "type": "float",
+      "min": 0.0,
+      "max": 127.0,
+      "unit": "midi",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Lowest permissible output pitch, MIDI (default 0; CDP-enforced 0-127, verbatim refusal at 200 pinned). Fences runaway low mirrors."
+    },
+    "top": {
+      "type": "float",
+      "min": 0.0,
+      "max": 127.0,
+      "unit": "midi",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Highest permissible output pitch, MIDI (default 127). Verified accepted with -b (both flags together exit 0)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Mirror counterpoint from a single phrase.",
+      "params": {"pitchfile": "pitch_trace.frq"},
+      "expected_use": "Apply via repitch transposef 4 to the same .ana, then layer with the original: rises answer falls around the phrase's own mean (mirror verified: 245.6->257.4 Hz around a ~251.5 Hz axis)."
+    },
+    {
+      "description": "Inversion around a structural anchor, fenced to a singable register.",
+      "params": {"pitchfile": "pitch_trace.frq", "meanpch": 57.0, "bot": 45.0, "top": 76.0},
+      "expected_use": "Pivot at A3 reorients the mirrored line toward the drone pitch; -b/-t keep the result inside a vocal compass."
+    }
+  ],
+  "known_issues": [
+    "Output is DATA (.trn): pre-flight skipped, verify = exists+non-empty, no audition - apply via curated repitch transposef 4 (no length check there; same-analysis discipline).",
+    "map is pinned to 0: CDP's interval-map FILE form (paired semitone values, range -96 to 96 per banner) is execute()-only - the argv slot is int-or-filename, outside the schema. min=max=0 enforces the pin.",
+    "BREAKPOINT AXIS (arity-0): meanpch relative-time lists refuse (no source-duration axis) - use 'abs:<seconds>' tuples or a .brk file.",
+    "Off-mean pivots transpose the whole line away from the pivot as a side effect; use bot/top to fence the register.",
+    "Marker windows (-1/-2) pass through untouched.",
+    "duration_model 'static' is a schema placeholder (data output). Deterministic (byte-identical data chunks, re-verified tranche 24). Sibling mode 1 (pitchfile out) verified running - execute()/future-curation."
+  ],
+  "references": ["cdp://docs/html/crepitch", "docs/curation/tranche22_pitchdata.md", "docs/curation/tranche24_schema_unblocks.md"]
+}

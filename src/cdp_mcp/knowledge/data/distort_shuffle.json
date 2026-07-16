@@ -1,0 +1,72 @@
+{
+  "program": "distort",
+  "mode": "shuffle",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "domain_image"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Distortion by shuffling WAVECYCLES (zero-crossing-delimited pseudo-cycles) according to a domain-image map parsed straight from argv - the time-domain twin of blur shuffle. 'ab-abab' repeats each successive cycle pair (2.0 s tone -> 3.9909 s, ~indur*imgcnt/dmncnt with the trailing incomplete block dropped; 1.0 s -> 1.9909, both re-verified tranche 24); 'ab-a' halves (-> 0.9980); 'ab-ba' swaps pairs. cyclecnt groups wavecycles into blocks before mapping ('ab-ba' -c50 -> 1.8182 s - larger blocks lose more to the trailing drop); skipcycles passes the file head through untouched before shuffling starts (-s100 on ab-abab -> 3.5364 s). Map validation identical to blur shuffle, verbatim: 'ERROR: Bad string for shuffle data: separator missing' (abab); 'ERROR: Image symbol [c] not in domain.'; 'ERROR: Duplicated symbol [a] in domain string.'. Ranges verbatim: cyclecnt 'Parameter[2] Value (0.000000) out of range (1.000000 to 32767.000000)' (same at 99999); skipcycles 'Parameter[3] Value (-1.000000) out of range (0.000000 to 32767.000000)'. cyclecnt is BREAKPOINT-CAPABLE (banner-confirmed 'Cyclecnt may vary over time'; 1->20 ramp differs from both scalar endpoints, verified); skipcycles refuses breakpoints ('ERROR: Cannot read parameter 2 [skp.brk]: brkpnt_files not permitted.'). Deterministic (decoded-sample sha identical 1.3 s apart). MONO ONLY - stereo refuses 'Application doesn't work with this type of infile.' (verbatim).",
+  "musical_use": "Waveset-level cut-up: on pitched material, repeating cycle pairs ('ab-abab') adds a rough octave-down buzz-doubling while stretching time; swapping ('ab-ba') scrambles the waveform's local evolution into gritty AM-like distortion; omission maps ('abc-ac') pitch-bend upward by discarding material. With cyclecnt 1 on complex sources the 'wavecycles' are irregular zero-crossing chunks, so results shade from buzzy roughness (tones) to granular hash (noise) - the classic CDP waveset sound. Raise cyclecnt (20-200) to shuffle grain-scale chunks instead: stutter and micro-loop territory, and ramp it with a breakpoint to slide from cycle-level fizz to chunk-level glitch across the file. skipcycles protects an attack transient from mangling (keep the pluck, shuffle the tail). The map is the score, exactly as in the curated blur shuffle - use that entry for the clickless spectral version of the same gesture; use distort repeat/reverse (execute()) for the single-purpose siblings.",
+  "parameters": {
+    "domain_image": {
+      "type": "free_string",
+      "pattern": "^[a-zA-Z]+-[a-zA-Z]+$",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "The shuffle map: DOMAIN-IMAGE, e.g. 'ab-abab'. Domain letters name consecutive groups of cyclecnt wavecycles (no duplicates); image respells them in any order with repeats/omissions. Parsed directly from argv (tklib3.c read_shuffle_data, DISTORT_SHUF case - no file fallback). Validation verbatim: separator missing / image symbol not in domain / duplicated domain symbol."
+    },
+    "cyclecnt": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Wavecycles per domain-letter block (CDP default 1; enforced 1-32767 verbatim). BREAKPOINT-CAPABLE over output time (banner-confirmed; 1->20 ramp differs from both endpoints, verified) - ramp it to morph from cycle-level buzz to chunk-level stutter. NOTE: on this entry (time axis = the input wav) relative-time breakpoint lists compile normally."
+    },
+    "skipcycles": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Wavecycles to pass through untouched at the start of the file before shuffling begins (enforced 0-32767 verbatim; -s100 verified: output 3.5364 vs 3.9909 without). Scalar-only ('Cannot read parameter 2 [skp.brk]: brkpnt_files not permitted.' verbatim). Use to protect an attack transient."
+    }
+  },
+  "examples": [
+    {
+      "description": "Buzz-double a pitched note while nearly doubling its length.",
+      "params": {"domain_image": "ab-abab"},
+      "expected_use": "Each successive wavecycle pair repeats - rough octave-down component plus time-stretch (2.0 s -> 3.9909 s verified). Trailing incomplete block is dropped."
+    },
+    {
+      "description": "Grain-scale scramble with a protected attack.",
+      "params": {"domain_image": "ab-ba", "cyclecnt": 50, "skipcycles": 60},
+      "expected_use": "First ~60 cycles pass clean, then 50-cycle chunks swap pairwise - gritty glitch tail behind an intact transient (1.8182 s from 2.0 at -c50, verified)."
+    }
+  ],
+  "known_issues": [
+    "DURATION PRE-FLIGHT IS SKIPPED: the duration model names the string param (submix-mix skip precedent) - imgcnt/dmncnt live inside the map. Approximation: outdur ~= indur * imgcnt/dmncnt, minus the trailing incomplete domain block (ab-abab: 3.9909 from 2.0, not 4.0). The disk watchdog bounds runaway maps ('a-aaaaaaaa' on long files multiplies duration).",
+    "MONO ONLY: stereo input refuses 'Application doesn't work with this type of infile.' (verbatim, re-verified); .ana likewise refused (time-domain entry - the engine auto-synths spectral sources).",
+    "Map validation verbatim (exit 255): 'Bad string for shuffle data: separator missing'; 'Image symbol [X] not in domain.'; 'Duplicated symbol [X] in domain string.' - same parser as blur shuffle, case-sensitive.",
+    "'Wavecycles' are zero-crossing chunks, not true periods: on noisy/complex material results are granular hash rather than pitched buzz (that IS the waveset aesthetic; use blur shuffle for clickless spectral reordering).",
+    "cyclecnt breakpoint-capable (verified differs from both endpoints); skipcycles scalar-only (verbatim refusal pinned).",
+    "Deterministic (decoded-sample shas identical across runs 1.3 s apart, re-verified tranche 24)."
+  ],
+  "references": ["cdp://docs/html/cdistort", "docs/curation/tranche16_waveset.md", "docs/curation/tranche24_schema_unblocks.md"]
+}

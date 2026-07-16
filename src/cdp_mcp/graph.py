@@ -528,13 +528,14 @@ def verify_output(
     - For ``.wav``: RMS > ``silence_threshold_dbfs``.
     - For ``.ana``: size only (RMS isn't meaningful spectrally).
     - For data outputs (``DATA_OUTPUT_FORMATS``: .evl/.for/.txt — Phase 5
-      wave 2a): exists + non-empty only. Never decoded as audio — envel
-      extract's .evl is a RIFF container soundfile happily "reads" as a
-      57 Hz pseudo-wav, so an RMS/silence check here would be actively
-      wrong, not just meaningless. The ``min_size_bytes`` floor is
-      relaxed to "non-empty": a one-window .evl is ~4 data bytes
-      (empirically ~2 KB with CDP's RIFF header, but the header size is
-      CDP's business, not the contract).
+      wave 2a; .frq/.trn — Phase 6 tranche 24): exists + non-empty only.
+      Never decoded as audio — envel extract's .evl is a RIFF container
+      soundfile happily "reads" as a 57 Hz pseudo-wav (repitch's .frq /
+      .trn are the same shape at window rate 344), so an RMS/silence
+      check here would be actively wrong, not just meaningless. The
+      ``min_size_bytes`` floor is relaxed to "non-empty": a one-window
+      .evl is ~4 data bytes (empirically ~2 KB with CDP's RIFF header,
+      but the header size is CDP's business, not the contract).
 
     Returns:
         :class:`OutputVerification` with ``ok=True`` only if every check

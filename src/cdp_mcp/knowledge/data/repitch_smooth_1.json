@@ -1,0 +1,79 @@
+{
+  "program": "repitch",
+  "mode": "smooth",
+  "submode": 1,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": ".frq",
+  "output_format": ".frq",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Smooths a pitch contour by interpolating across a timeframe, writing a new BINARY PITCHFILE (.frq, 'is a pitch file' - re-verified tranche 24; same window count as the source). Argv 'repitch smooth 1 pitchfile out.frq timeframe [-pmeanpch] [-h]'. Content-proven: 300 ms timeframe on the wobbling probe shrinks the pitched-value stdev 16.03 -> 11.98 Hz (wobble flattened, line preserved). timeframe CDP-enforced from one analysis window to the file duration, verbatim 'Parameter[1] Value (0.100000) out of range (2.902494 to 2025.940895)' ms (input-dependent) - and SCALAR-ONLY on this build: breakpoint timeframes raise 'ERROR: Too much unpitched data in file: cannot proceed. Try different interpfact(s).' (verbatim) even on a fully-interpolated marker-FREE track, so the banner's 'Timeframe ... may vary over time' diverges (pinned tranche 24). -p interpolates between PEAK values per block instead (meanpch = pitch peaks are measured from; brk-probed: accepted exit 0, but renders were byte-identical across meanpch 55/65 scalars AND the brk on the probe fixture - the value's effect was not observable, curated scalar with breakpoint_capable false). -h holds the last interpolated value at EOF instead of interpolating to the final input value (live, exit 0). Deterministic (byte-identical data chunks 1.3 s apart). Mode 2 (.trn output twin) verified running - sibling.",
+  "musical_use": "The de-ornamenter - and the key that unlocks EXPRESSION EXTRACTION: because output is a pitchfile (not a .trn), it feeds every curated pitch-data consumer. The flagship chain is combineb 1's documented ornament-layer recipe, now all-curated: getpitch 1 -> THIS (smoothed track) -> combineb 1 with pitchfile=raw.frq, pitchfile2=smoothed.frq -> a time/ratio file that IS the performance's vibrato/ornament layer isolated from its melody - reapply it to any other material via transposef 3 (semitone-converted breakpoints) or study it as data. Direct uses: smooth at 200-500 ms to strip vibrato but keep the phrase (then transposef via combineb, or resynthesize the calm version with repitch synth); smooth at 1000+ ms to reduce a melody to its slow contour skeleton (glissando ghost of the phrase); feed the smoothed .frq to repitch synth (curated) for a purified singing tone, or to vowels (curated) for a becalmed vocal morph. Chain INTO the .trn transforms: smooth first, then vibrato 2/randomise 2 on the smoothed file for clean re-ornamentation without fighting the original wobble.",
+  "parameters": {
+    "pitchfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "BINARY pitch data (.frq) - getpitch 1's 'pitch_trace.frq' by bare name or a chained .frq by graph-relative path. Typed infile: text refuses 'Application doesn't work with this type of infile.' (family-verified)."
+    },
+    "timeframe": {
+      "type": "float",
+      "min": 2.9,
+      "max": 2025.94,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Interpolation window in ms (CDP-enforced from one analysis window ~2.9 ms to the file duration - BOTH BOUNDS INPUT-DEPENDENT, verbatim refusal pinned for the 2 s probe). 200-500 strips vibrato; 1000+ reduces to contour skeleton. SCALAR-ONLY on this build: breakpoints raise 'Too much unpitched data in file: cannot proceed. Try different interpfact(s).' even on marker-free tracks (banner divergence, verified)."
+    },
+    "peak_from": {
+      "type": "float",
+      "min": 0.0,
+      "max": 127.0,
+      "unit": "midi",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Switch to peak-interpolation mode: interpolate between the maximum displacement from THIS MIDI pitch in each timeframe block (banner: must lie within the block's pitch range). CAVEAT (pinned): on the probe fixture the VALUE was inert - meanpch 55/65 and a breakpoint all rendered byte-identical (the mode switch itself, not the number, did the work). Omit unless you want peak-following interpolation."
+    },
+    "hold_last": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-h",
+      "flag_kind": "no_value",
+      "description": "Hold the last interpolated pitch at end of file instead of interpolating to the input's final actual value (live, verified exit 0)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Strip vibrato for the ornament-extraction chain.",
+      "params": {"pitchfile": "pitch_trace.frq", "timeframe": 300.0},
+      "expected_use": "Feed this output (graph-relative path) to combineb 1's pitchfile2 slot against the raw 'pitch_trace.frq': the resulting time/ratio file is the isolated vibrato/ornament layer (stdev 16.0 -> 12.0 Hz on the probe at 300 ms)."
+    },
+    {
+      "description": "Contour skeleton: the phrase as a slow glissando ghost.",
+      "params": {"pitchfile": "pitch_trace.frq", "timeframe": 1500.0},
+      "expected_use": "Near-file-length interpolation leaves only the gross melodic arc - resynthesize with repitch synth for a purified singing shadow of the source."
+    }
+  ],
+  "known_issues": [
+    "timeframe is SCALAR-ONLY despite the banner ('Too much unpitched data in file: cannot proceed. Try different interpfact(s).' verbatim on breakpoint values, even marker-free) - build divergence pinned tranche 24.",
+    "peak_from's numeric value showed NO observable effect on the probe fixture (identical renders at 55/65/brk); the -p mode switch itself changes the algorithm. Curated conservatively (scalar, no brk claim).",
+    "timeframe bounds are input-dependent (one window to file duration); curated 2.9-2025.94 reflects the 2 s probe - longer files widen the ceiling (execute() past the schema max).",
+    "Output is a pitchfile (.frq), NOT audio and NOT a .trn: pre-flight skipped, verify = exists+non-empty. To apply the smoothed melody back to the ORIGINAL sound, go through combineb 1 (raw vs smoothed -> ratios) into transposef 3, or resynthesize with repitch synth/vowels.",
+    "Marker windows: smoothing interpolates THROUGH markers on marker-laden files (probe evidence: works on the -z fixture; extreme settings may refuse with the unpitched-data error above - run interp 1 via execute() first if so).",
+    "duration_model 'static' is a schema placeholder (data output; window count preserved: 698 -> 698). Deterministic (byte-identical, re-verified). Sibling mode 2 (.trn twin) verified running - execute()/future-curation."
+  ],
+  "references": ["cdp://docs/html/crepitch", "docs/curation/tranche22_pitchdata.md", "docs/curation/tranche24_schema_unblocks.md"]
+}

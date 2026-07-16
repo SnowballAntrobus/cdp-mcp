@@ -19,6 +19,7 @@ what to do.
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
@@ -76,10 +77,29 @@ class ParameterSpec(BaseModel):
     None``) ``aux_file`` params — enforced by a model validator, since
     a flagged or non-file param "before the output" has no CDP meaning
     and would silently corrupt the argv.
+
+    ``type: "free_string"`` (Phase 6, tranche 24) marks a parameter
+    whose value is a plain string parsed straight from argv by CDP —
+    NOT a file path. The motivating shape is the ``shuffle``
+    domain-image map (``"ab-abab"``, ``cdp2k/tklib3.c:646
+    read_shuffle_data``), a REQUIRED positional with no file fallback,
+    which the pre-existing ``str`` type could not express (the engine
+    rejects caller-supplied strings for ``str`` params — they exist
+    only to pin curated side-file default names, e.g. ``repitch
+    getpitch``'s ``pitchdata``). ``free_string`` values pass
+    ``validate_params`` as strings, optionally gated by ``pattern``
+    (a ``re.fullmatch`` regex), and render verbatim into the argv.
+    ``.brk``-suffixed values are refused at type-check time so the
+    breakpoint compiler's string routing can never intercept one.
+
+    ``pattern`` is only meaningful on ``free_string`` params and must
+    compile — both enforced by a model validator so a bad curated
+    regex fails at load time, not mid-``process()``.
     """
 
-    type: Literal["float", "int", "str", "bool", "aux_file"]
+    type: Literal["float", "int", "str", "bool", "aux_file", "free_string"]
     position: Literal["pre_output"] | None = None
+    pattern: str | None = None
     min: float | None = None
     max: float | None = None
     unit: str | None = None
@@ -131,6 +151,28 @@ class ParameterSpec(BaseModel):
                 f"parameter (flag is None), got flag={self.flag!r} — "
                 "flagged params always render after the output path."
             )
+        return self
+
+    @model_validator(mode="after")
+    def _pattern_requires_free_string(self) -> ParameterSpec:
+        """``pattern`` gates ``free_string`` values only (Phase 6,
+        tranche 24). A pattern on any other type would silently never
+        run; a non-compiling pattern would crash validate_params at
+        call time. Both are curator errors caught at load."""
+        if self.pattern is None:
+            return self
+        if self.type != "free_string":
+            raise ValueError(
+                f"pattern={self.pattern!r} requires type 'free_string' "
+                f"(got {self.type!r}) — validation regexes only apply "
+                "to free-string parameters."
+            )
+        try:
+            re.compile(self.pattern)
+        except re.error as e:
+            raise ValueError(
+                f"pattern {self.pattern!r} is not a valid regex: {e}"
+            ) from e
         return self
 
 
@@ -218,6 +260,16 @@ DurationModel = Annotated[
 # - ``.txt`` — text data outputs (envel extract mode 2's brkfile form;
 #   no curated consumer yet, reserved so the namer/verifier logic
 #   doesn't need reopening when one lands).
+# - ``.frq`` / ``.trn`` (Phase 6, tranche 24) — CDP's binary pitch-data
+#   and transposition-data files (the repitch transform layer, verified
+#   working in tranche 22 but schema-blocked until now). Both are RIFF
+#   containers: fmt FLOAT mono with "sample rate" = the analysis window
+#   rate (344 for 44.1 kHz / 1024-point / overlap-3), LIST adtl note
+#   properties ``is a pitch file`` / ``is a transpos file``, one
+#   float32 per analysis window (Hz values with -1/-2 markers for .frq,
+#   ratios for .trn). Exactly the .evl poison shape: soundfile happily
+#   "decodes" them as 344 Hz pseudo-wavs, so they must never reach the
+#   audio verifier or the duration probe.
 #
 # Consumers: the output namer (node_validation step 9) uses the entry's
 # declared data format instead of the domain-derived audio extension;
@@ -225,8 +277,10 @@ DurationModel = Annotated[
 # decode); the duration pre-flight skips (data files have no audio
 # duration); and the PVOC domain gate already refuses them as inputs
 # (unknown_input_domain), so nothing feeds them to sfprops or the
-# audition synth.
-DATA_OUTPUT_FORMATS = frozenset({".evl", ".for", ".txt"})
+# audition synth. Entries CONSUMING .frq/.trn take them through
+# ``aux_file`` params (pre_output slots — the repitch combineb 1 /
+# transposef 4 precedent), never as engine-resolved audio inputs.
+DATA_OUTPUT_FORMATS = frozenset({".evl", ".for", ".txt", ".frq", ".trn"})
 
 
 class KnowledgeEntry(BaseModel):
@@ -259,9 +313,10 @@ class KnowledgeEntry(BaseModel):
     input_format: str
     # ``.wav`` / ``.ana`` are the audio formats (extension actually
     # derived from ``domain`` at output-naming time, as before).
-    # ``.evl`` / ``.for`` / ``.txt`` are data formats — see
-    # DATA_OUTPUT_FORMATS above for the exact semantics they switch on.
-    output_format: Literal[".wav", ".ana", ".evl", ".for", ".txt"]
+    # ``.evl`` / ``.for`` / ``.txt`` / ``.frq`` / ``.trn`` are data
+    # formats — see DATA_OUTPUT_FORMATS above for the exact semantics
+    # they switch on.
+    output_format: Literal[".wav", ".ana", ".evl", ".for", ".txt", ".frq", ".trn"]
     stability: Literal["stable", "unstable", "buggy", "deprecated"] = "stable"
     phase_sensitive: bool = False
     stereo_link_default: Literal["linked", "related", "independent"] | None = None
