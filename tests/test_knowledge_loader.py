@@ -68,24 +68,36 @@ def test_list_entries_by_domain_spectral(real_index):
     entries = real_index.list_entries(domain="spectral")
     keys = {(e.program, e.mode) for e in entries}
     assert keys == {
-        ("blur", "avrg"), ("blur", "blur"), ("blur", "drunk"),
-        ("blur", "scatter"), ("combine", "cross"), ("combine", "diff"),
-        ("blur", "spread"), ("blur", "suppress"),
-        ("combine", "interleave"), ("combine", "max"),
-        ("analjoin", "join"), ("formants", "get"), ("formants", "put"),
-        ("formants", "vocode"), ("pitch", "tune"), ("spec", "grab"),
-        ("strange", "shift"),
-        ("focus", "accu"), ("focus", "exag"), ("focus", "fold"),
-        ("focus", "step"), ("hilite", "trace"),
-        ("morph", "bridge"), ("morph", "glide"), ("morph", "morph"), ("spec", "magnify"),
-        ("specfnu", "specfnu"), ("strange", "glis"), ("strange", "invert"),
-        ("stretch", "spectrum"), ("stretch", "time"),
-        # --- Phase 5 wave 4 (tranche 10 ST-covered singles) ---
-        ("blur", "chorus"), ("blur", "noise"), ("focus", "focus"),
-        ("spec", "cut"), ("spec", "gain"), ("spectstr", "stretch"),
-        ("strange", "waver"), ("repitch", "transpose"),
-            # --- Wave 3 (tranche 17) ---
-        ("spectrum", "fixed"),
+        # Regenerated from the loader at wave-5 integration —
+        # the spectral tail made hand-maintenance error-prone. Any
+        # drift (new spectral entry, domain flip) still fails here.
+        ("analjoin", "join"), ("blur", "avrg"), ("blur", "blur"),
+        ("blur", "chorus"), ("blur", "drunk"), ("blur", "noise"),
+        ("blur", "scatter"), ("blur", "spread"), ("blur", "suppress"),
+        ("blur", "weave"), ("caltrain", "caltrain"), ("combine", "cross"),
+        ("combine", "diff"), ("combine", "interleave"), ("combine", "max"),
+        ("combine", "mean"), ("combine", "sum"), ("focus", "accu"),
+        ("focus", "exag"), ("focus", "focus"), ("focus", "fold"),
+        ("focus", "freeze"), ("focus", "hold"), ("focus", "step"),
+        ("formants", "get"), ("formants", "put"), ("formants", "vocode"),
+        ("fturanal", "anal"), ("get_partials", "harmonic"),
+        ("glisten", "glisten"), ("hilite", "band"), ("hilite", "bltr"),
+        ("hilite", "filter"), ("hilite", "greq"), ("hilite", "pluck"),
+        ("hilite", "trace"), ("hilite", "vowels"), ("morph", "bridge"),
+        ("morph", "glide"), ("morph", "morph"), ("newmorph", "newmorph"),
+        ("newmorph", "newmorph2"), ("oneform", "get"), ("oneform", "put"),
+        ("peak", "extract"), ("pitch", "tune"), ("repitch", "transpose"),
+        ("selfsim", "selfsim"), ("spec", "bare"), ("spec", "clean"),
+        ("spec", "cut"), ("spec", "gain"), ("spec", "gate"), ("spec", "grab"),
+        ("spec", "magnify"), ("specav", "specav"), ("specenv", "specenv"),
+        ("specfnu", "specfnu"), ("specfold", "specfold"), ("specnu", "rand"),
+        ("specnu", "remove"), ("specnu", "squeeze"), ("specnu", "subtract"),
+        ("specross", "partials"), ("spectrum", "fixed"),
+        ("spectstr", "stretch"), ("spectune", "tune"),
+        ("spectwin", "spectwin"), ("strange", "glis"), ("strange", "invert"),
+        ("strange", "shift"), ("strange", "waver"), ("stretch", "spectrum"),
+        ("stretch", "time"), ("superaccu", "superaccu"),
+        ("suppress", "partials"), ("tunevary", "tunevary"),
     }
 
 
@@ -98,8 +110,8 @@ def test_curated_only_passthrough_includes_all(real_index):
     # All curated entries are curated, so curated_only=False just returns the
     # same set. The flag's behavior is exercised; the data doesn't (yet)
     # contain uncurated entries to filter out.
-    assert len(real_index.list_entries(curated_only=False)) == 402
-    assert len(real_index.list_entries(curated_only=True)) == 280
+    assert len(real_index.list_entries(curated_only=False)) == 424
+    assert len(real_index.list_entries(curated_only=True)) == 322
 
 
 def test_get_returns_none_for_missing(real_index):

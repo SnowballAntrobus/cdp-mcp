@@ -74,7 +74,7 @@ async def test_list_categories_returns_sorted_unique(mcp_with_tools):
 
 async def test_list_programs_no_filter_returns_all_curated(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {})
-    assert len(payload) == 280
+    assert len(payload) == 322
     keys = {(e["program"], e["mode"]) for e in payload}
     # Spot-check representatives across phases rather than the full set
     # (the count above pins the total; per-entry presence is pinned by
@@ -106,24 +106,36 @@ async def test_list_programs_domain_filter(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {"domain": "spectral"})
     keys = {(e["program"], e["mode"]) for e in payload}
     assert keys == {
-        ("blur", "avrg"), ("blur", "blur"), ("blur", "drunk"),
-        ("blur", "scatter"), ("combine", "cross"), ("combine", "diff"),
-        ("blur", "spread"), ("blur", "suppress"),
-        ("combine", "interleave"), ("combine", "max"),
-        ("analjoin", "join"), ("formants", "get"), ("formants", "put"),
-        ("formants", "vocode"), ("pitch", "tune"), ("spec", "grab"),
-        ("strange", "shift"),
-        ("focus", "accu"), ("focus", "exag"), ("focus", "fold"),
-        ("focus", "step"), ("hilite", "trace"),
-        ("morph", "bridge"), ("morph", "glide"), ("morph", "morph"), ("spec", "magnify"),
-        ("specfnu", "specfnu"), ("strange", "glis"), ("strange", "invert"),
-        ("stretch", "spectrum"), ("stretch", "time"),
-        # --- Phase 5 wave 4 (tranche 10 ST-covered singles) ---
-        ("blur", "chorus"), ("blur", "noise"), ("focus", "focus"),
-        ("spec", "cut"), ("spec", "gain"), ("spectstr", "stretch"),
-        ("strange", "waver"), ("repitch", "transpose"),
-            # --- Wave 3 (tranche 17) ---
-        ("spectrum", "fixed"),
+        # Regenerated from the loader at wave-5 integration —
+        # the spectral tail made hand-maintenance error-prone. Any
+        # drift (new spectral entry, domain flip) still fails here.
+        ("analjoin", "join"), ("blur", "avrg"), ("blur", "blur"),
+        ("blur", "chorus"), ("blur", "drunk"), ("blur", "noise"),
+        ("blur", "scatter"), ("blur", "spread"), ("blur", "suppress"),
+        ("blur", "weave"), ("caltrain", "caltrain"), ("combine", "cross"),
+        ("combine", "diff"), ("combine", "interleave"), ("combine", "max"),
+        ("combine", "mean"), ("combine", "sum"), ("focus", "accu"),
+        ("focus", "exag"), ("focus", "focus"), ("focus", "fold"),
+        ("focus", "freeze"), ("focus", "hold"), ("focus", "step"),
+        ("formants", "get"), ("formants", "put"), ("formants", "vocode"),
+        ("fturanal", "anal"), ("get_partials", "harmonic"),
+        ("glisten", "glisten"), ("hilite", "band"), ("hilite", "bltr"),
+        ("hilite", "filter"), ("hilite", "greq"), ("hilite", "pluck"),
+        ("hilite", "trace"), ("hilite", "vowels"), ("morph", "bridge"),
+        ("morph", "glide"), ("morph", "morph"), ("newmorph", "newmorph"),
+        ("newmorph", "newmorph2"), ("oneform", "get"), ("oneform", "put"),
+        ("peak", "extract"), ("pitch", "tune"), ("repitch", "transpose"),
+        ("selfsim", "selfsim"), ("spec", "bare"), ("spec", "clean"),
+        ("spec", "cut"), ("spec", "gain"), ("spec", "gate"), ("spec", "grab"),
+        ("spec", "magnify"), ("specav", "specav"), ("specenv", "specenv"),
+        ("specfnu", "specfnu"), ("specfold", "specfold"), ("specnu", "rand"),
+        ("specnu", "remove"), ("specnu", "squeeze"), ("specnu", "subtract"),
+        ("specross", "partials"), ("spectrum", "fixed"),
+        ("spectstr", "stretch"), ("spectune", "tune"),
+        ("spectwin", "spectwin"), ("strange", "glis"), ("strange", "invert"),
+        ("strange", "shift"), ("strange", "waver"), ("stretch", "spectrum"),
+        ("stretch", "time"), ("superaccu", "superaccu"),
+        ("suppress", "partials"), ("tunevary", "tunevary"),
     }
 
 

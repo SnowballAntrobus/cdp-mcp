@@ -84,8 +84,16 @@
     checked by the binary (garbage-through pinned); grain align
     channel corruption; tweet exclude-file segfault. Suite 2781
     hermetic / 2984 real-CDP (thirds).
-  - Waves 5-6 pending: T20+T21 spectral tail; T22 pitch-data + T23
-    text utilities.
+  - Wave 5 DONE (2026-07-16): T20 spectral I (26) + T21 spectral II
+    (16) -> **322 curated / 424 total** (20 stubs retired). blur
+    weave free-string landmine defused (it's a datafile); hilite
+    arpeg uninitialized-memory bug (all 8 modes dropped, diagnosed);
+    specross outdur = indur2 always; newmorph stagger rules;
+    spectwin default renders infile2 VERBATIM; engine fix: explicit
+    .ana output_format now wins over domain-derived naming (specanal
+    is the cross-domain analyzer — time input, spectral output).
+    Suite 2938 hermetic / 3163 real-CDP.
+  - Wave 6 pending: T22 pitch-data + T23 text utilities.
 
 ## Phase 5 wave 2 — DONE (commits 5715795 + c45b714, 2026-07-15)
 

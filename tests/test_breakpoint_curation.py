@@ -31,6 +31,234 @@ from cdp_mcp.knowledge.loader import KnowledgeIndex
 # cdpr8/_cdp/_cdprogs). Updating any cell in this table is a curation
 # decision and must pair with an entry in docs/phase-2-breakpoint-review.md.
 _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]] = {
+    # --- Wave 5 (tranches 20-21: spectral tail; see
+    # docs/curation/tranche20_spectral1_findings.json +
+    # tranche21_spectral2_findings.json) ---
+    ("blur", "weave", None): {
+        "weavfile": False,
+    },
+    ("combine", "sum", None): {
+        "crossover": True,
+    },
+    ("combine", "mean", 1): {
+        "lofrq": False,
+        "hifrq": False,
+        "chans": False,
+        "zero_outside": False,
+    },
+    ("combine", "mean", 3): {
+        "lofrq": False,
+        "hifrq": False,
+        "chans": False,
+        "zero_outside": False,
+    },
+    ("focus", "freeze", 3): {
+        "freezedata": False,
+    },
+    ("focus", "hold", None): {
+        "holddata": False,
+    },
+    ("spec", "gate", None): {
+        "threshold": True,
+    },
+    ("spec", "bare", None): {
+        "pitchfile": False,
+        "less_body": False,
+    },
+    ("spec", "clean", 2): {
+        "skiptime": False,
+        "noisgain": False,
+    },
+    ("hilite", "filter", 7): {
+        "frq1": True,
+        "frq2": True,
+        "q": True,
+    },
+    ("hilite", "greq", 1): {
+        "filtfile": False,
+        "band_reject": False,
+    },
+    ("hilite", "band", None): {
+        "banddata": False,
+    },
+    ("hilite", "pluck", None): {
+        "gain": True,
+    },
+    ("hilite", "bltr", None): {
+        "blurring": True,
+        "tracing": True,
+    },
+    ("hilite", "vowels", None): {
+        "vowelfile": False,
+        "halfwidth": False,
+        "steepness": False,
+        "range": False,
+        "threshold": False,
+    },
+    ("specfold", "specfold", 3): {
+        "stt": False,
+        "len": False,
+        "seed": False,
+        "amps_only": False,
+    },
+    ("specav", "specav", 1): {
+        "starttime": False,
+        "endtime": False,
+        "normalise": False,
+    },
+    ("specenv", "specenv", None): {
+        "windowsize": False,
+        "bal": False,
+        "pitchwise": False,
+        "impose": False,
+        "keep_loudness": False,
+    },
+    ("specnu", "remove", 1): {
+        "midimin": False,
+        "midimax": False,
+        "rangetop": False,
+        "atten": False,
+    },
+    ("specnu", "subtract", None): {
+        "persist": False,
+        "noisgain": False,
+    },
+    ("specnu", "rand", None): {
+        "timescale": True,
+        "grouping": False,
+    },
+    ("specnu", "squeeze", None): {
+        "centrefrq": True,
+        "squeeze": True,
+    },
+    ("suppress", "partials", None): {
+        "timeslots": False,
+        "lofrq": False,
+        "hifrq": False,
+        "chancnt": False,
+    },
+    ("subtract", "subtract", None): {
+        "chan": False,
+    },
+    ("caltrain", "caltrain", None): {
+        "blurfact": False,
+        "blurabov": False,
+        "locut": False,
+    },
+    ("glisten", "glisten", None): {
+        "grpdiv": True,
+        "setdur": True,
+        "pitchshift": False,
+        "durrand": False,
+        "divrand": False,
+    },
+    ("specross", "partials", None): {
+        "tuning": False,
+        "minwin": False,
+        "signois": False,
+        "harmcnt": False,
+        "lo": False,
+        "hi": False,
+        "thresh": False,
+        "level": False,
+        "interp": True,
+    },
+    ("newmorph", "newmorph", 1): {
+        "stagger": False,
+        "startmorph": False,
+        "endmorph": False,
+        "exponent": False,
+        "peaks": False,
+        "retain_env": False,
+        "peaks_only": False,
+        "frq_only": False,
+    },
+    ("newmorph", "newmorph2", 1): {
+        "peakcnt": False,
+    },
+    ("newmorph", "newmorph2", 2): {
+        "peaksfile": False,
+        "startmorph": False,
+        "endmorph": False,
+        "exponent": False,
+        "peakcnt": False,
+        "rand": False,
+    },
+    ("spectwin", "spectwin", 4): {
+        "frqint": False,
+        "envint": False,
+        "dupl": False,
+        "step": False,
+        "dec": False,
+    },
+    ("selfsim", "selfsim", None): {
+        "selfsim": False,
+    },
+    ("superaccu", "superaccu", 1): {
+        "decay": True,
+        "glis": True,
+        "reassign": False,
+    },
+    ("spectune", "tune", 1): {
+        "match": False,
+        "lop": False,
+        "hip": False,
+        "stim": False,
+        "etim": False,
+        "intune": False,
+        "wins": False,
+        "nois": False,
+        "loudness_blind": False,
+        "smooth_first": False,
+        "ignore_formants": False,
+    },
+    ("tunevary", "tunevary", None): {
+        "pitch_template": False,
+        "focus": False,
+        "clarity": False,
+        "trace": False,
+        "bcut": False,
+    },
+    ("peak", "extract", 4): {
+        "winsiz": False,
+        "peak": False,
+        "floor": False,
+        "lo": False,
+        "hi": False,
+        "tune": False,
+        "lose_amps": False,
+        "as_midi": False,
+        "quantise": False,
+        "varibank": False,
+    },
+    ("get_partials", "harmonic", 3): {
+        "fundamental": False,
+        "threshold": False,
+        "time": False,
+        "varibank2": False,
+    },
+    ("specanal", "specanal", 1): {
+        "chs": False,
+        "ovlp": False,
+    },
+    ("oneform", "get", None): {
+        "formantfile": False,
+        "time": False,
+    },
+    ("oneform", "put", 2): {
+        "onefile": False,
+        "lolim": False,
+        "hilim": False,
+        "gain": False,
+    },
+    ("fturanal", "anal", 1): {
+        "marklist": False,
+        "rand": False,
+    },
+    ("fturanal", "synth", 1): {
+        "featurefile": False,
+        "splicelen": False,
+    },
     # --- Wave 4 (tranches 18-19: texture/filter depth + grain/FOF; see
     # docs/curation/tranche18_texture_filter_findings.json +
     # tranche19_grain_fof_findings.json) ---

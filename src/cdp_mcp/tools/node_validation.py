@@ -779,10 +779,17 @@ def _output_extension(entry: KnowledgeEntry) -> str:
     output kind exists to prevent (a ``.wav``-named .evl passes audio
     verification at sample rate 57; a ``.ana``-named .for misreports
     107 s via sfprops). Audio entries keep the domain-derived extension
-    as before.
+    — except an explicitly declared ``.ana`` output, which wins over
+    the domain: ``specanal`` (tranche 21) is a cross-domain analyzer
+    with time-domain INPUT semantics (``domain: "time"`` so auto-PVOC
+    stays out of its way — it refuses .ana input) but a spectral
+    OUTPUT. Naming that output ``.wav`` sends verification down the
+    audio path against an .ana container (wave-5 integration find).
     """
     if entry.output_format in DATA_OUTPUT_FORMATS:
         return entry.output_format
+    if entry.output_format == ".ana":
+        return ".ana"
     return ".ana" if entry.domain == "spectral" else ".wav"
 
 
