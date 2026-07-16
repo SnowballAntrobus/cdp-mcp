@@ -2,7 +2,7 @@
 
 An MCP (Model Context Protocol) server that wraps the [Composers' Desktop Project](https://www.composersdesktop.com/) (CDP) suite, exposing it as a set of tools an LLM can call for sound transformation, analysis, and visualization.
 
-> **Status:** Phase 4 complete (Ableton export deferred). 31 tools + 3 workflow prompts; **43 curated programs** (every parameter range, duration model, and breakpoint capability empirically verified against real CDP binaries) plus 194 auto-generated uncurated stubs surfacing the long tail. DAG orchestration (`graph`, `batch`), a full observation suite (spectrograms, MIR scorecards, segmentation, comparison, progression, clustering), FTS5 search over CDP's manual, per-output provenance, and derivative caches throughout. Phase handoffs live in `docs/`.
+> **Status:** Phase 5 complete. 32 tools + 3 workflow prompts; **107 curated entries** keyed by `(program, mode, submode)` (every parameter range, duration model, and breakpoint capability empirically verified against real CDP binaries) plus 176 auto-generated uncurated stubs surfacing the long tail. DAG orchestration (`graph`, `batch`), a full observation suite (spectrograms, MIR v2 scorecards, segmentation, comparison, progression, clustering), FTS5 search over CDP's manual, a packaged `cdp://examples/*` library of verified chain recipes, per-output provenance, and derivative caches throughout. Phase handoffs live in `docs/`.
 
 ## What this does
 
@@ -14,6 +14,7 @@ Wraps CDP — a 500+ program suite for offline sound transformation — as MCP t
 - **Phase 2** — DAG orchestration: `graph()` (whole-DAG validation with chained per-node duration predictions, then topological execution into one graph directory) and `batch()` (N inputs, one atomic context event, `latest_batch[i]` addressing); the observation track (`segments`, `compare`, `progression`, verbose `analyze`); the `breakpoint()` envelope DSL; multi-input processing; a hardening pass (cancellation-safe subprocesses, security-gate fixes, event-loop hygiene). Record: `docs/phase-2-handoff.md`.
 - **Phase 3** — knowledge completion: 6 → 43 curated entries via an empirical pipeline against CDP built from source (`scripts/build_cdp8_linux.sh`); four-source curation hierarchy (*binaries decide, source explains, manual describes, SoundThread + afta8 prioritize*); `search_docs`/`read_doc` (FTS5 over the CDP manual), `why()` provenance, `cluster()`, `write_data_file()` + `aux_file` parameters (texture programs); long-tail stub generator. Findings — including several CDP bugs the docs don't know about — in `docs/forensics.md` and `docs/curation/`. Record: `docs/phase-3-handoff.md`.
 - **Phase 4** — workflow polish: `sweep()` (one source × N param variants — a reversed design-doc non-goal, driven by usage evidence), `tag`/`journal`/`set_config`/`list_session_files`, dependency-safe `cleanup()` + `cleanup_cache()` (dry-run default), graph templates (`save_graph`/`load_graph`/`list_graphs`), a lineage→regenerate reproducibility test, and three MCP workflow prompts. `export_to_ableton` and the process-output cache are deferred with recorded rationale.
+- **Phase 5** — knowledge depth: 43 → 107 curated entries across six tranches (mix/envelope, grain/pitch, unblocked aux-file entries, seed-hunt singles, sibling submodes, the remaining SoundThread-covered singles); `(program, mode, submode)` triple keying; three engine schema gaps closed (`pre_output` aux positioning, data-file outputs, arity-0 generators); MIR v2 (13-field scorecard, 33-dim cluster vector); a generalization matrix running four synthesized material classes through curated chains (`docs/generalization-matrix.md` — including what did *not* generalize); and the `cdp://examples/*` library, every recipe executed against real CDP before shipping. Record: `docs/phase-5-handoff.md`.
 
 ## Installation
 
@@ -99,11 +100,11 @@ Invalid values (non-numeric, non-positive) fall back to defaults with a warning 
 
 ## Tools
 
-31 tools across six groups:
+32 tools across six groups:
 
 | Group | Tools |
 |-------|-------|
-| Introspection | `list_categories`, `list_programs`, `get_program_info`, `search_docs`, `read_doc` |
+| Introspection | `list_categories`, `list_programs`, `get_program_info`, `search_docs`, `read_doc` (serves `cdp://docs/*` and `cdp://examples/*`), `list_examples` |
 | Workspace | `set_session`, `describe_workspace` (incl. full graph `history`), `read_envelope`, `write_data_file`, `set_config`, `list_session_files` |
 | Action | `process` (curated, PVOC auto-insert, lineage), `execute` (gated escape hatch), `graph` (declarative DAG w/ dry-run), `batch` (N inputs × one process), `sweep` (one input × N param variants), `breakpoint` (envelope DSL) |
 | Observation | `visualize`, `analyze` (+`verbose`), `segments`, `compare`, `progression`, `cluster` |
