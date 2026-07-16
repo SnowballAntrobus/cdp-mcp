@@ -1,0 +1,81 @@
+{
+  "program": "newsynth",
+  "mode": "synthesis",
+  "submode": 1,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": "none",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Additive synthesis with a fully scripted, TIME-VARYING PARTIAL SPECTRUM - a pure generator with NO audio input (input_arity 0). The spectrum datafile is lines of 'time pno1 level1 [pno2 level2 ...]': the first entry is a time (first line must be at 0: 'First time in partials data (1.000000) must be zero.'), then partial-number/level pairs. Partial numbers may be FRACTIONAL (2.7, 5.1 verified - inharmonic spectra) but the first must be 1 ('Invalid first partial (2.000000) (must be 1 in this tone-generation mode)') and they must increase along the line ('Partial numbers do not increase through line 1.'); every line needs the same entry count ('Line 2 has different number of entries (3) to previous lines which have (5)'); levels are relative, negative values invert phase. DIVERGENCE: the manual says times must increase, but NON-ASCENDING times are accepted silently (0/0.5/0.2 exits 0) - keep them ascending anyway. Partials above Nyquist refuse verbatim: 'Partial 200.000000 at time 0.000000 (frq 220.000000) is above the nyquist (22050.000000)'. Output duration is set SAMPLE-EXACTLY by dur (2.0 -> 88200); dur 0.01 accepted (below the manual's 0.04 floor). frq is breakpoint-capable (110->440 verified against both endpoint renders), CDP-enforced 0.001-10000. Output mono, peak normalised to 0.85. Deterministic (runs 1.2 s apart byte-identical). Modes 2 (wave-packets), 3 (multichannel random fades) and 4 (fractal spikes) are uncurated siblings; mode 5 (Duffing) is curated separately.",
+  "musical_use": "The scored-spectrum oscillator: where synth wave gives fixed shapes and multiosc gives FM chaos, this renders EXACTLY the partial recipe you write, morphing between spectral snapshots over time - write a bright 8-partial stack at t=0 collapsing to fundamental-plus-octave at t=4 and it crossfades the timbre continuously. Fractional partial numbers detune single overtones (2.0 vs 2.02 beats; 2.7 goes bell-like); negative levels flip phase for hollow cancellations. Breakpoint frq on top for glides while the spectrum morphs independently - two separate timbral clocks in one call. Deterministic and normalised to 0.85, so patches re-render exactly and layer predictably. Use it to build precise test tones, vowel-ish formant stacks (cluster partials around 5 and 11 of a low fundamental), or slowly-breathing drone spectra that no filter chain would give you as cleanly.",
+  "parameters": {
+    "spectrum": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED partials datafile: lines of 'time pno1 level1 [pno2 level2 ...]'. First line's time must be 0; first partial must be 1; partial numbers increase along each line and may be fractional; all lines carry the same entry count; levels relative (negative inverts phase); partials must stay below Nyquist for the chosen frq (all six refusals verbatim in the entry description). One line = a fixed spectrum; multiple lines morph between snapshots. Write via write_data_file."
+    },
+    "srate": {
+      "type": "int",
+      "min": 16000,
+      "max": 96000,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 44100,
+      "flag": null,
+      "description": "Output sample rate, range gate 16000 to 96000 ('Parameter[2] Value (11025.000000) out of range (16000.000000 to 96000.000000)'); manual lists 96000/48000/44100/32000/24000/22050. Positional - always emitted (default 44100)."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.01,
+      "max": 7200.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Output duration in seconds - sample-exact (2.0 -> 88200 frames, 3.0 -> 132300). Manual says 0.04-7200 but 0.01 is accepted (curated min follows the binary). Required."
+    },
+    "frq": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": 220.0,
+      "musical_range": [30.0, 2000.0],
+      "flag": null,
+      "description": "Fundamental frequency, CDP-enforced 0.001 to 10000 ('Parameter[4] Value (10001.000000) out of range (0.001000 to 10000.000000)'). BREAKPOINT-CAPABLE (verified: 110->440 differs from both endpoint renders). Remember the Nyquist check multiplies frq by the highest partial number."
+    }
+  },
+  "examples": [
+    {
+      "description": "Static odd-harmonic stack (clarinet-ish test tone).",
+      "params": {"spectrum": "odds.txt", "srate": 44100, "dur": 3.0, "frq": 220.0},
+      "expected_use": "First write_data_file('odds.txt', '0 1 1 3 0.5 5 0.3 7 0.2'). One line = fixed spectrum; deterministic, peak 0.85."
+    },
+    {
+      "description": "Morphing inharmonic drone: harmonic at t=0, bell-like by t=4.",
+      "params": {"spectrum": "morph.txt", "srate": 44100, "dur": 6.0, "frq": [[0.0, 110.0], [1.0, 165.0]]},
+      "expected_use": "morph.txt: '0 1 1 2 0.5 3 0.25\\n4 1 1 2.7 0.9 5.1 0.6'. Spectrum crossfades to detuned partials while frq glides a fifth."
+    }
+  ],
+  "known_issues": [
+    "Spectrum-file rules enforced verbatim: first time 0, first partial 1, partials increasing (fractional legal), equal entry counts per line, Nyquist check against frq * highest partial (all six refusal strings pinned).",
+    "DIVERGENCE: non-ascending TIMES are accepted silently despite the manual's 'must increase' - behavior with disordered times is unpinned; keep them ascending.",
+    "dur accepts values below the manual's 0.04 floor (0.01 verified).",
+    "Output is mono, peak-normalised to 0.85 - no amplitude parameter; trim downstream.",
+    "Deterministic: no seed, no clock dependence (runs 1.2 s apart byte-identical).",
+    "Siblings: mode 2 adds packet enveloping (-n/-c), mode 3 is multichannel with random partial fades, mode 4 is fractal spikes - all uncurated; mode 5 (Duffing oscillator) is curated separately.",
+    "Generator entry: process() takes no input argument; graph()/batch()/sweep() refuse arity-0 entries (arity_zero_unsupported)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

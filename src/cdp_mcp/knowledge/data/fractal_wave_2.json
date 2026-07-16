@@ -1,0 +1,54 @@
+{
+  "program": "fractal",
+  "mode": "wave",
+  "submode": 2,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "unstable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Generates a FRACTAL WAVE from a single (mono) input WAVECYCLE: the shape datafile's time/MIDI-pitch contour is applied as a transposition pattern over its own duration, then recursively over every resulting sub-unit, sub-sub-unit, etc., down to the smallest wavelength - self-similar pitch structure grown from one cycle of audio. Output duration is set by dur (3.0 -> 3.007710 s, +0.26% quantized up to whole pattern units). HANG LANDMINE (first-class, build-pinned): a 2-POINT shape file ('0 0 / 0.5 7') sends both wave modes into an apparent INFINITE LOOP (no output, killed only by timeout) - the final value is documented as ignored, leaving a single effective point. Shapes need AT LEAST 3 breakpoints (a 3-point shape returning to 0 verified working); the engine's subprocess timeout is the guard. The input should be a WAVECYCLE - a short mono segment starting and ending at sample value 0 (waveform make is the companion tool that cuts exactly this from any source); behavior on arbitrary long material is unpinned in this mode (that is mode 1's job, uncurated - its output duration is strongly shape-dependent: a 1 s tone contracted to 0.188 s under a 3-point shape). Optional maxfrac/str/warp flags are banner-documented, unprobed and uncurated. Sibling: fractal spectrum (spectral-domain transposition fractal) is unprobed.",
+  "musical_use": "A wavetable synth with self-similar pitch DNA: cut one cycle from any sound (waveform make 2), write a small pitch contour, and the render extrudes that contour into every timescale at once - the same melodic shape audible as phrase, as figuration, and as timbre. Small intervals (2-5 semitones over the pattern) give braided, arpeggio-like tones; wide contours go clangorous as the recursion stacks transpositions. The wavecycle's own colour survives as the grain of the texture - a vocal cycle sounds vocal, a string cycle stringy. Use dur freely (duration is set, not grown); layer renders from different source cycles with the same shape for ensembles that share one gesture. Keep shapes >= 3 points (the 2-point hang) and start/end values matched for loopable seams.",
+  "parameters": {
+    "shape": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED breakpoint textfile of time/MIDI-pitch pairs (mode 2 semantics; range 0-127 per banner) defining the largest fractal pattern; times start at 0 and increase, the final time sets the pattern length, the final VALUE is ignored. AT LEAST 3 POINTS: 2-point shapes hang the program in an infinite loop on this build (engine timeout guards). Write via write_data_file."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.1,
+      "max": 7200.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Output duration in seconds (banner: max 2 hours; curated max 7200). Quantized up slightly to whole pattern units (3.0 -> 3.0077, +0.26%). Required."
+    }
+  },
+  "examples": [
+    {
+      "description": "Grow a texture from one 100 Hz cycle with a small three-note shape.",
+      "params": {"shape": "shape3.txt", "dur": 6.0},
+      "expected_use": "Input: a single wavecycle (use waveform make 2 first). write_data_file('shape3.txt', '0 60\\n0.25 65\\n0.5 60'). Self-similar arpeggiation at every timescale."
+    }
+  ],
+  "known_issues": [
+    "2-POINT SHAPE = INFINITE LOOP (this build): both fractal wave modes spin forever producing no output; only the timeout kills them. Always write >= 3 breakpoints. Marked stability 'unstable' for this trap.",
+    "Input must be MONO and should be a true wavecycle (starts/ends at 0) - waveform make 2 produces exactly the right material. Long arbitrary inputs belong to mode 1 (uncurated; its output duration is shape-dependent and unpredictable - observed 0.19x contraction).",
+    "Duration quantizes up to whole pattern units (+0.26% observed at 3 s).",
+    "maxfrac (-m), str (-t), warp (-i), -s and -o flags are banner-documented but unprobed - uncurated.",
+    "Deterministic in probing (no seed observed).",
+    "Sibling fractal spectrum (fractalise a spectrum by transposition) unprobed this tranche."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

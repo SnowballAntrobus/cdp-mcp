@@ -1,0 +1,116 @@
+{
+  "program": "ceracu",
+  "mode": "ceracu",
+  "submode": null,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "cyclcnts"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Repeats the source in several polyrhythmic CYCLESTREAMS that resynchronise after the counts listed in the cyclcnts datafile - counts 10/12/15 mean three streams repeating 10, 12 and 15 times per resync cycle. DURATION RULE (pinned, 6-probe): one resync cycle = mincycdur * max(cyclcnts), where mincycdur 0 means 'use the input duration'; if the source is LONGER than mincycdur the final event rings past the cycle end, adding (indur - mincycdur): 2 s source, counts 3 4 5, mincycdur 0.5 -> 0.5*5 + 1.5 = 4.0005 s verified; ping source mincycdur 0 -> 0.3*5 = 1.5007. outdur > 0 renders a WHOLE NUMBER of resync cycles >= outdur (outdur 5 at 1.5 s cycles -> 6.0027); outdur 0 renders exactly one cycle. The duration expression names the aux param so the pre-flight skips (clicknew pattern) and the engine watchdog guards. cyclcnts needs AT LEAST TWO counts ('Must be more than 1 cycle value'), each >= 1 ('Invalid cyclecnt (0.0) (must be >=1)'); FRACTIONAL counts are accepted but rounded (3/4.5 rendered the length of 3/5). Output is AUTO-NORMALISED to peak 0.95 via a two-pass level check ('INFO: Output will be normalised by 0.40 secs' - the format string misprints the factor as 'secs'). Deterministic (runs 1.3 s apart byte-identical; no seed, no randomisation). Mono input only ('File st2.wav is not of correct type (must be mono)'). Ranges are INPUT-DEPENDENT: mincycdur 0 to 32*indur ('(0.000000 to 9.600000)' on a 0.3 s source), echo 0 to 16*indur ('(0.000000 to 4.800000)'), chans 1-16, outdur 0-3600.",
+  "musical_use": "Steve-Reich-machine for a single sample: give it one short sound and a counts list and it phases copies against each other, locking back together every resync cycle - instant polyrhythm without a sequencer. Counts with small LCM structure (3 4 5, 4 5 6) give audible period-locking; near-equal counts (12 13) give slow phasing drift. mincycdur below the source duration overlaps repeats into thicker weaves; above it spaces them into hocket. chans > 1 distributes the streams spatially (circle by default, -l for a line); echo adds a single delayed image displaced echshift channels around the array. outdur 0 for one clean cycle to loop in a DAW - the resync point is sample-honest, so it loops seamlessly. Auto-normalisation to 0.95 means output level is predictable regardless of stream pileup.",
+  "parameters": {
+    "cyclcnts": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text datafile listing the repeat counts of each cyclestream (whitespace/newline separated integers). At least TWO values ('Must be more than 1 cycle value'); each >= 1 ('Invalid cyclecnt (0.0) (must be >=1)'); fractional values accepted but ROUNDED (verified: 3 4.5 renders as 3 5). One resync cycle = mincycdur * max(counts). Write via write_data_file."
+    },
+    "mincycdur": {
+      "type": "float",
+      "min": 0.0,
+      "max": 3600.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Time before the first repeat in the fastest cyclestream; 0 = use the input's duration. CDP max is INPUT-DEPENDENT at 32*indur ('Parameter[2] Value (-1.000000) out of range (0.000000 to 9.600000)' on a 0.3 s source). Below indur the repeats overlap; above it they space out. Sets the resync period together with max(cyclcnts)."
+    },
+    "chans": {
+      "type": "int",
+      "min": 1,
+      "max": 16,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Output channel count, CDP-enforced 1 to 16 ('Parameter[3] Value (17.000000) out of range (1.000000 to 16.000000)'). Streams are distributed around the array (circle by default; -l for linear). Need not equal the number of cyclestreams."
+    },
+    "outdur": {
+      "type": "float",
+      "min": 0.0,
+      "max": 3600.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Target output duration, CDP-enforced 0 to 3600 ('Parameter[4] Value (-1.000000) out of range (0.000000 to 3600.000000)'). 0 = exactly one resync cycle. Otherwise a WHOLE number of cycles >= outdur is rendered (5.0 at 1.5 s cycles -> 4 cycles = 6.0027 s verified). Durations over 1 hour are curtailed unless -o is set."
+    },
+    "echo": {
+      "type": "float",
+      "min": 0.0,
+      "max": 3600.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Single-echo delay of the entire output, 0 = none. CDP max is INPUT-DEPENDENT at 16*indur ('Parameter[5] Value (-0.500000) out of range (0.000000 to 4.800000)' on a 0.3 s source). Nonzero echo extends the output past the resync-cycle length (verified +0.3 s at echo 0.5 on the ping source) - excluded from the duration model."
+    },
+    "echshift": {
+      "type": "int",
+      "min": -16,
+      "max": 16,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Spatial offset of the echo in channels (positive = rightward, negative = leftward per the banner); ignored when echo is 0. Accepted with any chans value (3 with mono output exits 0)."
+    },
+    "override": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-o",
+      "flag_kind": "no_value",
+      "description": "Override the 1-hour duration restriction and render ALL resync cycles (banner: 'CARE!'). Leave unset - the engine's duration cap and watchdog are the real guards."
+    },
+    "linear": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-l",
+      "flag_kind": "no_value",
+      "description": "Arrange output channels linearly instead of in a circle (multichannel only; banner-documented)."
+    }
+  },
+  "examples": [
+    {
+      "description": "One resync cycle of a 3-against-4-against-5 weave.",
+      "params": {"cyclcnts": "cnt345.txt", "mincycdur": 0.0, "chans": 1, "outdur": 0.0, "echo": 0.0, "echshift": 0},
+      "expected_use": "First write_data_file('cnt345.txt', '3 4 5'). With mincycdur 0 the cycle is 5x the source length; the output loops seamlessly at the resync point."
+    },
+    {
+      "description": "Twenty seconds of overlapped phasing across stereo.",
+      "params": {"cyclcnts": "cnt121315.txt", "mincycdur": 0.4, "chans": 2, "outdur": 20.0, "echo": 0.0, "echshift": 0},
+      "expected_use": "cnt121315.txt: '12 13 15'. Repeats every 0.4 s in the fastest stream, near-counts drift and re-lock; whole cycles >= 20 s rendered."
+    }
+  ],
+  "known_issues": [
+    "Duration = mincycdur*max(cyclcnts) + max(0, indur - mincycdur) per cycle, whole cycles >= outdur - but the counts live in the aux datafile, so the duration expression names the aux param and the PRE-FLIGHT SKIPS (engine watchdog guards). Large counts x mincycdur x outdur multiply quickly; keep them honest.",
+    "cyclcnts needs >= 2 values; counts >= 1; fractional counts are silently ROUNDED (verbatim refusals and the 4.5->5 rounding pinned in the transcript).",
+    "mincycdur and echo maxima are INPUT-DEPENDENT (32*indur and 16*indur; quoted ranges verified on a 0.3 s source).",
+    "Output auto-normalises to peak 0.95 (two-pass; the 'normalised by N secs' INFO line misprints its units - it is a level factor).",
+    "echo > 0 extends the output beyond the cycle arithmetic (excluded from the model); echshift is ignored without echo.",
+    "Mono input only ('File st2.wav is not of correct type (must be mono)').",
+    "Deterministic: no seed, no clock dependence (runs 1.3 s apart byte-identical)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

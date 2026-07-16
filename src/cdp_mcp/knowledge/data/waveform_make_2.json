@@ -1,0 +1,57 @@
+{
+  "program": "waveform",
+  "mode": "make",
+  "submode": 2,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "dur * 2 / 1000"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Cuts a WAVETABLE from an existing sound: mode 2 extracts dur milliseconds starting at time, cutting at zero-crossings, then abuts the segment to its own INVERSION - producing a symmetric wavecycle of twice the requested length (duration model dur*2/1000 seconds; verified sample-exact on a tone at 20 and 100 ms, +0.02% zero-crossing quantization on noise). This is the companion tool for fractal wave 2 and brownian motion 1, both of which require exactly this kind of mono source that starts and ends at sample value 0. Input must be MONO ('File st2.wav is not of correct type (must be mono)'). time is runtime-ranged against the input ('Parameter[1] Value (2.500000) out of range (0.000000 to 2.000000)' on a 2 s file) and the requested cut must fit ('Cannot cut duration 20.000000 mS, after time 1.990000 in infile.' verbatim). dur is CDP-enforced 1 to 10000 ms. Output peak is normalised to 0.95. Deterministic (runs 1.2 s apart byte-identical). Mode 1 (count of half-wavesets instead of a duration) and mode 3 (blend with an imposed sinusoid, balance param) are uncurated siblings.",
+  "musical_use": "The single-cycle sampler: grab 5-50 ms of any pitched or textured moment and get a clean, symmetric, zero-crossing-safe wavecycle - ready to loop, or to seed generators that demand wavecycle input (fractal wave 2's self-similar textures, brownian motion 1's sampled-waveform events). Because the segment is mirrored onto its inversion, even asymmetric material comes out DC-free and loopable; the mirroring also halves even-harmonic content, hollowing the tone slightly - part of the sound. Short cuts (2-10 ms) capture timbre as a stable tone; longer cuts (50-500 ms) make evolving 'wavetables' that read as texture loops. Deterministic and normalised: a reliable factory for oscillator fodder.",
+  "parameters": {
+    "time": {
+      "type": "float",
+      "min": 0.0,
+      "max": 7200.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Where in the input to extract, runtime-ranged 0 to the input duration ('Parameter[1] Value (2.500000) out of range (0.000000 to 2.000000)' on a 2 s file). The cut must fit before the end: 'Cannot cut duration 20.000000 mS, after time 1.990000 in infile.' (verbatim)."
+    },
+    "dur": {
+      "type": "float",
+      "min": 1.0,
+      "max": 10000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 20.0,
+      "musical_range": [2.0, 500.0],
+      "flag": null,
+      "description": "Duration of the clip to extract in MILLISECONDS, CDP-enforced 1 to 10000 ('Parameter[2] Value (0.050000) out of range (1.000000 to 10000.000000)'). Output = 2x this (segment + inversion), with zero-crossing quantization (+0.02% on noise, exact on a tone)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Cut a 20 ms wavecycle from the brightest moment of a source.",
+      "params": {"time": 1.0, "dur": 20.0},
+      "expected_use": "Output is a 40 ms symmetric wavecycle, peak 0.95, starts/ends at zero - feed it to fractal wave 2 or loop it as an oscillator."
+    }
+  ],
+  "known_issues": [
+    "Output = 2x dur (the cut is abutted to its inversion) - the extra octave-down period and hollowed even harmonics are inherent to the mirroring.",
+    "dur is in MILLISECONDS (1-10000); time is runtime-ranged against the input and the cut must fit (both refusals verbatim).",
+    "Mono input only (verbatim refusal). Output peak normalised to 0.95.",
+    "Deterministic (no seed; byte-identical re-renders).",
+    "Siblings uncurated: mode 1 extracts a COUNT of half-wavesets (data-dependent length - no clean duration model); mode 3 superimposes the segment on a sinusoid with a balance parameter."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

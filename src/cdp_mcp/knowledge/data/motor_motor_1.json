@@ -1,0 +1,210 @@
+{
+  "program": "motor",
+  "mode": "motor",
+  "submode": 1,
+  "category": "texture",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "(dur*pulse - dur*pulse % 1 + (dur*pulse % 1 > 0) - (1 - pratio)) / pulse"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Creates a fast INNER pulse-stream inside a slower OUTER pulsed envelope - nested pulsation. Under every outer pulse, inner events are cut successively from the source as the outer envelope rises, then in REVERSE order as it falls (mode 1; modes 4-9 change the read direction rules, modes 2/5/8 slice at times given in a datafile, modes 3/6/9 take multiple sources - only mode 1 is curated). freq (2-100 Hz) is the inner rate, pulse (0.1-10 Hz) the outer rate; fratio/pratio set on-time proportions; sym shapes the outer rise/fall peak. DURATION MODEL (pinned, 6-probe exact): output = a whole number of outer-pulse periods covering dur, minus the final pulse's off-time - ceil(dur*pulse)/pulse - (1-pratio)/pulse; verified sample-exact at pulse 0.5/1/2, pratio 0.5/0.7/0.9, dur 2/3/4 on three sources (e.g. dur 3 pulse 0.5 pratio 0.7 -> 3.4000). The expression form uses %-arithmetic for ceil and is SimpleEval-verified. SEED SEMANTICS (first-class): fully deterministic at every setting probed - unseeded runs 1.3 s apart byte-identical, -s0 == unseeded, and with randomisation active (-f/-j) seed 5 reproduces byte-identically while seed 5 vs 9 differ; seed is INERT while all randomisation params are 0 (-s5 == -s9 == unseeded byte-identical). No clock path exists on this build (the osbind drand48-shim pattern). freq, fratio, pratio, frand (-f) and jitter (-j) are breakpoint-capable (each verified against both scalar endpoints); sym refuses ('Cannot read parameter 6'); PULSE ACCEPTS a breakpoint file but renders BYTE-IDENTICAL to the first endpoint's scalar render - accepted-but-inert, marked not capable. Runtime constraint verbatim: each outer pulse must hold >= 2 inner pulses ('Min outerpulse dur (1/rate(10.000000) = 0.100000) less max-offtime (shorten by 0.03) = 0.070000 / is less than or equal to 2 * max innerpulse dur ...'). Stereo input accepted (stereo out); -v (vary) and -a (fixed advance) conflict: 'Fixed step and varying step in src-read cannot both be used.'",
+  "musical_use": "The gesture engine of this tranche: think idling-to-racing motors, stuttered vocal gating, tremolo inside tremolo. The source is scanned progressively, so a long evolving source becomes a rhythmic TOUR of itself - each outer pulse plays a fan of micro-slices outward and back. freq vs pulse sets the feel: freq 20-40 over pulse 1-3 is motoric purr; freq near its floor over slow pulses is deliberate stutter. sym pushes the outer envelope toward cresc (1) or decresc (0) attacks; bite curves it. Breakpoint freq for accelerandi of the inner motor while the outer chug stays put (or vice versa via scalar pulse changes across takes - pulse itself won't read envelopes). -f/-p/-j/-t add per-event randomisation - jitter (semitone random detune) at 0.5-1.5 humanizes instantly, and the SEED makes every randomised take reproducible: keep params+seed to re-render, step the seed for siblings. -e lengthens inner decay tails into overlapping grains; -v randomises the source-read advance for less linear tours. Levels drop with dense envelopes (peaks ~0.3-0.7 from a full-scale source) - normalize downstream.",
+  "parameters": {
+    "dur": {
+      "type": "float",
+      "min": 1.0,
+      "max": 7200.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Nominal output duration, CDP-enforced 1 to 7200 ('Parameter[1] Value (0.500000) out of range (1.000000 to 7200.000000)' - note the 1 s FLOOR). Actual output = whole outer pulses covering dur minus the last off-time (see duration model). Required."
+    },
+    "freq": {
+      "type": "float",
+      "min": 2.0,
+      "max": 100.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": 20.0,
+      "flag": null,
+      "description": "Inner pulse rate, CDP-enforced 2 to 100 Hz ('Parameter[2] Value (101.000000) out of range (2.000000 to 100.000000)'). BREAKPOINT-CAPABLE (verified: 10->40 differs from both endpoints). Runtime: each outer on-time must hold >= 2 inner pulses (verbatim refusal in description)."
+    },
+    "pulse": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Outer pulse rate, CDP-enforced 0.1 to 10 Hz ('Parameter[3] Value (11.000000) out of range (0.100000 to 10.000000)'). ACCEPTS a breakpoint file WITHOUT ERROR but the render is byte-identical to the first endpoint's scalar render (verified) - time-variation is silently ignored; marked not capable. Drives the duration model."
+    },
+    "fratio": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.5,
+      "flag": null,
+      "description": "On-time proportion of inner events, CDP-enforced 0 to 1 ('Parameter[4] Value (1.100000) out of range (0.000000 to 1.000000)'). BREAKPOINT-CAPABLE (verified: 0.2->0.9 differs from both endpoints)."
+    },
+    "pratio": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.7,
+      "flag": null,
+      "description": "On-time proportion of outer pulses, CDP-enforced 0 to 1 ('Parameter[5] Value (1.100000) out of range (0.000000 to 1.000000)'). Enters the duration model (larger pratio = less trailing off-time trimmed). BREAKPOINT-CAPABLE (verified: 0.3->0.9 differs from both endpoints; output duration then lands between the endpoints' - the model assumes scalar pratio)."
+    },
+    "sym": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.5,
+      "flag": null,
+      "description": "Symmetry of outer pulses - position of the envelope peak, CDP-enforced 0 to 1 ('Parameter[6] Value (1.100000) out of range (0.000000 to 1.000000)'). 0.5 symmetric, 1 pure crescendo, 0 pure decrescendo. Breakpoint file refused ('Cannot read parameter 6 [...]: brkpnt_files not permitted.')."
+    },
+    "frand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-f",
+      "flag_kind": "attached_value",
+      "description": "Inner-rate randomisation (max f/2 to 3f/2), CDP-enforced 0 to 1 ('Parameter[7] Value (1.100000) out of range (0.000000 to 1.000000)'). BREAKPOINT-CAPABLE (verified: 0.2->0.9 differs from both endpoints at fixed seed). Seed-controlled and reproducible."
+    },
+    "prand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Outer-rate randomisation (max p/2 to 3p/2), CDP-enforced 0 to 1 ('Parameter[8] Value (1.100000) out of range (0.000000 to 1.000000)'). NOTE: randomising the outer period makes the duration model approximate."
+    },
+    "jitter": {
+      "type": "float",
+      "min": 0.0,
+      "max": 3.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-j",
+      "flag_kind": "attached_value",
+      "description": "Random pitch jitter of inner events, CDP-enforced 0 to 3 semitones ('Parameter[9] Value (3.500000) out of range (0.000000 to 3.000000)'). BREAKPOINT-CAPABLE (verified: 0->1 differs from both endpoints); -j0 == flagless byte-identical (default 0)."
+    },
+    "tremor": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Random amplitude attenuation range of inner events, CDP-enforced 0 to 1 ('Parameter[10] Value (1.100000) out of range (0.000000 to 1.000000)')."
+    },
+    "shift": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-y",
+      "flag_kind": "attached_value",
+      "description": "Random variation of outer-pulse symmetry, CDP-enforced 0 to 1 ('Parameter[11] Value (1.100000) out of range (0.000000 to 1.000000)')."
+    },
+    "edge": {
+      "type": "float",
+      "min": 0.0,
+      "max": 20.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Decay-tail length of inner pulses as a multiple of their duration, CDP-enforced 0 to 20 ('Parameter[12] Value (21.000000) out of range (0.000000 to 20.000000)'). Values > 0 overlap events into granular smears."
+    },
+    "bite": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 3.0,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Shape/curvature of outer pulses, CDP-enforced 0.1 to 10 ('Parameter[13] Value (0.050000) out of range (0.100000 to 10.000000)'; banner default 3). 1 = linear rise-fall; > 1 slow-fast rise; < 1 fast-slow rise."
+    },
+    "vary": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-v",
+      "flag_kind": "attached_value",
+      "description": "Random variation of the source-read advance step from one outer pulse to the next, CDP-enforced 0 to 1 ('Parameter[14] Value (1.100000) out of range (0.000000 to 1.000000)'). Verified to change the render. CONFLICTS with advance ('Fixed step and varying step in src-read cannot both be used.' verbatim)."
+    },
+    "advance": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-a",
+      "flag_kind": "no_value",
+      "description": "Inner events under the outer crescendo advance through the source by a FIXED step (verified to change the render). Cannot be combined with vary."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 256,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Random seed, CDP-enforced 0 to 256 ('Parameter[15] Value (257.000000) out of range (0.000000 to 256.000000)'). With randomisation active (frand/prand/jitter/tremor/shift/vary > 0): same seed reproduces byte-identically (verified 1.3 s apart), different seeds differ. INERT while all randomisation is 0 (-s5 == -s9 == unseeded). -s0 == unseeded == a fixed default state - there is NO clock path; every render is reproducible."
+    }
+  },
+  "examples": [
+    {
+      "description": "Motoric purr scanning a source, deterministic.",
+      "params": {"dur": 4.0, "freq": 20.0, "pulse": 1.0, "fratio": 0.5, "pratio": 0.7, "sym": 0.5},
+      "expected_use": "Four outer chugs, each fanning inner slices out and back through the source. Output exactly 3.7 s (model: 4 whole pulses minus 0.3 s off-time)."
+    },
+    {
+      "description": "Humanized accelerating inner motor with reproducible randomness.",
+      "params": {"dur": 6.0, "freq": [[0.0, 8.0], [1.0, 60.0]], "pulse": 2.0, "fratio": 0.6, "pratio": 0.8, "sym": 0.7, "frand": 0.3, "jitter": 1.0, "seed": 5},
+      "expected_use": "Inner rate climbs 8->60 Hz across the take; seed 5 re-renders identically, other seeds give siblings."
+    }
+  ],
+  "known_issues": [
+    "PULSE accepts breakpoint files but silently ignores the time-variation (render byte-identical to the first endpoint's scalar - verified). Only freq, fratio, pratio, frand and jitter are truly time-variable; sym refuses breakpoints outright.",
+    "Duration model is exact for scalar pulse/pratio (6 probes, 3 sources, sample-exact); prand > 0 or a pratio envelope makes it approximate (pratio brk landed between endpoints). dur has a 1-second FLOOR.",
+    "Runtime constraint: each outer on-time must hold at least 2 inner pulses - slow freq with fast pulse refuses with the verbatim two-line INVALID DATA message pinned in the transcript.",
+    "-v and -a conflict ('Fixed step and varying step in src-read cannot both be used.'); -c is listed in the banner but refuses 'Unknown variant flag -c' in mode 1 (it belongs to other modes).",
+    "Fully deterministic on this build: unseeded == -s0 == a fixed random state (no clock path); seed only matters when a randomisation parameter is nonzero.",
+    "Output level depends heavily on source content and envelope density (peaks 0.3-0.7 observed from full-scale sources) - normalize downstream.",
+    "Modes 2/5/8 (slice-time datafile), 3/6/9 (multiple sources) and 4-9 (read-direction variants) are uncurated siblings; this entry is mode 1."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

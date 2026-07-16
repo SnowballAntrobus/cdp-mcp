@@ -1,0 +1,100 @@
+{
+  "program": "synth",
+  "mode": "chord",
+  "submode": 2,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": "none",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Generates a CHORD on a simple (sine-table) waveform from a text datafile of FREQUENCIES in Hz - submode 2 of synth chord (sibling submode 1 takes MIDI values; all other behavior re-verified identical in this submode). A pure generator with NO audio input (input_arity 0). Frequencies render exactly: a 261.63/329.63/392.0 file shows FFT peaks at exactly those frequencies, and the render differs from submode 1's equal-tempered 60/64/67 as it should. Values refuse per-value ('ERROR: Value 1 (30000.000000) is out of range.'); 5 Hz accepted (sub-audio partials are legal). Duration sample-exact from dur; deterministic; amp default is 0.3 not the banner's 1.0 (divergence pinned in submode 1, re-verified here); no breakpoint-capable parameters; chans 1-16 dual-mono.",
+  "musical_use": "The just-intonation sibling: submode 1 thinks in note numbers, this one thinks in Hz - so exact harmonic-series chords (100/200/300/500), ratio tunings (3:2, 7:4), and deliberately beating near-unisons (440 + 441.5 = 1.5 Hz beat) are all directly writable. Sub-audio values are accepted, so a 'chord' can include an LFO-rate partial for slow amplitude undulation. Deterministic and sample-exact: ideal for tuning references, difference-tone experiments, and beds to feed filter bank or waveset distortion. Keep amp at 0.3-0.6 for layering.",
+  "parameters": {
+    "datafile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text datafile of frequency values in Hz (one chord; all values sound together), whitespace/newline separated; ';' comments allowed (verified in submode 1, same parser). Out-of-range values refuse per-value ('Value 1 (30000.000000) is out of range.'); 5 Hz accepted. Write via write_data_file."
+    },
+    "srate": {
+      "type": "int",
+      "min": 16000,
+      "max": 96000,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 44100,
+      "flag": null,
+      "description": "Output sample rate - range gate 16000-96000 (refusal verbatim in submode 1, same parser). Positional - always emitted (default 44100)."
+    },
+    "chans": {
+      "type": "int",
+      "min": 1,
+      "max": 16,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Output channel count 1-16 (banner claims '1, 2 or 4'); multichannel is dual-mono (verified in submode 1)."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.04,
+      "max": 7200.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Output duration in seconds, sample-exact (2.0 -> 88200 frames verified in this submode). CDP-enforced 0.04-7200. Required."
+    },
+    "amp": {
+      "type": "float",
+      "min": 0.000001,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.5,
+      "musical_range": [0.2, 0.7],
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Output amplitude = final peak, CDP-enforced 0-1. Real flagless default is 0.3 (banner's '1.0 max & default' is wrong - pinned in submode 1). Entry default 0.5, always emitted. Breakpoints refused."
+    },
+    "tabsize": {
+      "type": "int",
+      "min": 256,
+      "max": 4096,
+      "unit": "samples",
+      "breakpoint_capable": false,
+      "default": 4096,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Wavetable size 256-4096, default 4096, rounded to a multiple of 4; smaller tables verified to change the render (submode 1)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Pure harmonic-series chord on 110 Hz.",
+      "params": {"datafile": "harm110.txt", "srate": 44100, "chans": 1, "dur": 4.0, "amp": 0.5},
+      "expected_use": "First write_data_file('harm110.txt', '110 220 330 440 550'). Exact integer-ratio chord - no equal-temperament rounding."
+    },
+    {
+      "description": "Slow-beating near-unison pair.",
+      "params": {"datafile": "beat15.txt", "srate": 44100, "chans": 1, "dur": 10.0, "amp": 0.4},
+      "expected_use": "beat15.txt: '440 441.5'. A 1.5 Hz amplitude beat - difference-tone demo or tuning drone."
+    }
+  ],
+  "known_issues": [
+    "Same pins as submode 1, re-verified where behavior could differ: amp flagless default 0.3 (banner wrong), -a0 = digital silence, no breakpoint-capable params, chans 1-16 dual-mono, deterministic.",
+    "Frequency values refuse per-value ('Value 1 (30000.000000) is out of range.'); very low values (5 Hz) are accepted - sub-audio 'partials' modulate rather than sound.",
+    "Mode 1 (MIDI 60/64/67) and mode 2 (261.63/329.63/392.0) renders differ as expected - MIDI conversion vs exact Hz.",
+    "Generator entry: process() takes no input argument; graph()/batch()/sweep() refuse arity-0 entries (arity_zero_unsupported)."
+  ],
+  "references": ["cdp://docs/html/cgrosynth"]
+}

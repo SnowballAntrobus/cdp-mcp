@@ -1,0 +1,103 @@
+{
+  "program": "newsynth",
+  "mode": "synthesis",
+  "submode": 5,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": "none",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "DUFFING DAMPED OSCILLATOR - a chaotic-dynamics generator with NO audio input (input_arity 0). Synthesizes the response of a forced Duffing oscillator driven at frq (CDP-enforced 0.1-200 Hz - a LOW-FREQUENCY driver by design; the manual says 1-200, the binary allows 0.1) with damping 0.15-2 and damping-character coefficients k (-10 to 10) and b (20-50). MANUAL DIVERGENCE (first-class): cr8new.htm states 'In tests the damping parameter seemed to have no effect' - on this build damping VERIFIABLY WORKS: damping 0.2 vs 1.5 render different audio, and a 0.2->1.8 damping envelope differs from both scalar endpoints (breakpoint-capable). frq is also breakpoint-capable (20->150 verified against both endpoints; envelope values validated against the 0.1-200 range inside the brkfile: 'Value (440.000000) out of range (0.100000 to 200.000000) in brkpntfile ...'). Output duration is set sample-exactly by dur; output mono; PEAK IS 1.0 - FULL SCALE, the hottest signal in this tranche (headroom warning). Deterministic (identical params byte-identical). The banner's mode list says 'frq, amplitude and damping can vary through time' but NO amplitude argv slot exists - banner slip.",
+  "musical_use": "A physical-chaos drone box: the Duffing equation lives between oscillation and chaos, so small parameter moves flip the output between gritty sub-tones, period-doubled growls and noisy shrieks. frq is the driving rate (sub-audio to 200 Hz) - treat it as the 'rev' knob; damping is the character knob, and BREAKPOINTING damping across a take sweeps the system through bifurcations in one render (verified live). k and b tilt the damping nonlinearity - keep b low (20-25) for rougher behavior, high (45-50) for steadier tones. Use it for engine-room drones, distressed sub-bass, and as an exciter into filter bank or waveset distortion. WARNING: renders at 0 dBFS peak - attenuate immediately (modify loudness) before mixing; summing it raw with anything clips.",
+  "parameters": {
+    "srate": {
+      "type": "int",
+      "min": 16000,
+      "max": 96000,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 44100,
+      "flag": null,
+      "description": "Output sample rate, range gate 16000-96000 (family refusal verbatim, re-checked in mode 1: 'Parameter[2] Value (11025.000000) out of range (16000.000000 to 96000.000000)'). Positional - always emitted (default 44100)."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.01,
+      "max": 7200.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Output duration in seconds - sample-exact (2.0 -> 88200 frames verified). Required."
+    },
+    "frq": {
+      "type": "float",
+      "min": 0.1,
+      "max": 200.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": 80.0,
+      "musical_range": [10.0, 150.0],
+      "flag": null,
+      "description": "Driving frequency of the forced oscillation, CDP-enforced 0.1 to 200 ('Parameter[3] Value (220.000000) out of range (0.100000 to 200.000000)'; the manual says 1-200 - binary allows lower). BREAKPOINT-CAPABLE (verified: 20->150 differs from both endpoint renders; envelope values are range-checked inside the brkfile verbatim)."
+    },
+    "damping": {
+      "type": "float",
+      "min": 0.15,
+      "max": 2.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.2,
+      "flag": null,
+      "description": "Damping of the forced oscillation, CDP-enforced 0.15 to 2 ('Parameter[4] Value (0.100000) out of range (0.150000 to 2.000000)'). WORKS despite the manual's 'seemed to have no effect' note: scalar 0.2 vs 1.5 differ, and a 0.2->1.8 envelope differs from both endpoints - BREAKPOINT-CAPABLE (verified)."
+    },
+    "k": {
+      "type": "float",
+      "min": -10.0,
+      "max": 10.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 5.0,
+      "flag": null,
+      "description": "Damping-nature coefficient, CDP-enforced -10 to 10 ('Parameter[5] Value (-11.000000) out of range (-10.000000 to 10.000000)')."
+    },
+    "b": {
+      "type": "float",
+      "min": 20.0,
+      "max": 50.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 30.0,
+      "flag": null,
+      "description": "Damping-nature coefficient, CDP-enforced 20 to 50 ('Parameter[6] Value (19.000000) out of range (20.000000 to 50.000000)')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Chaotic engine drone at 80 Hz drive.",
+      "params": {"srate": 44100, "dur": 4.0, "frq": 80.0, "damping": 0.2, "k": 5.0, "b": 30.0},
+      "expected_use": "No input argument. Renders at FULL SCALE - attenuate immediately when layering."
+    },
+    {
+      "description": "Bifurcation sweep: damping walks the system through regimes while the drive climbs.",
+      "params": {"srate": 44100, "dur": 8.0, "frq": [[0.0, 20.0], [1.0, 150.0]], "damping": [[0.0, 0.2], [1.0, 1.8]], "k": -3.0, "b": 22.0},
+      "expected_use": "Both envelopes verified live; expect regime flips - growl to shriek - rather than smooth morphs."
+    }
+  ],
+  "known_issues": [
+    "OUTPUT PEAKS AT 1.0 (0 dBFS) - the hottest generator in the family; attenuate before any mixing or the sum clips.",
+    "MANUAL DIVERGENCE: cr8new.htm claims damping 'seemed to have no effect'; on this build it verifiably changes the render and is breakpoint-capable.",
+    "The banner's 'amplitude can vary through time' names no real argv slot - there is NO amplitude parameter at all (banner slip).",
+    "frq ceiling is 200 Hz (a driving rate, not an audio pitch) - the audible spectrum extends far above it through the nonlinearity.",
+    "Deterministic: no seed, no clock dependence.",
+    "Generator entry: process() takes no input argument; graph()/batch()/sweep() refuse arity-0 entries (arity_zero_unsupported)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

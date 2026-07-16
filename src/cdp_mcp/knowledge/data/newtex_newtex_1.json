@@ -1,0 +1,99 @@
+{
+  "program": "newtex",
+  "mode": "newtex",
+  "submode": 1,
+  "category": "texture",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Creates a TEXTURE OF GRAINS from transpositions of one source: mode 1 spreads copies of the (mono) input over the transposition ratios listed in the transposes datafile, across maxrange octaves, fading components in and out randomly every ~step seconds and spatialising them over chans output channels. The transposes datafile is lines of 'time ratio1 level1 [ratio2 level2 ...]' - times start at 0 and increase, ratios increase along each line, levels -1..1 (negative inverts phase), every line the same length. Output duration is set SAMPLE-EXACTLY by dur (4.0 -> 176400 frames). MONO OUTPUT IS IMPOSSIBLE: chans is CDP-enforced 2 to 16 ('Parameter[3] Value (1.000000) out of range (2.000000 to 16.000000)') - the texture is spatial by construction. step is breakpoint-capable (0.2->1.5 envelope differs from both scalar endpoints); banner marks maxrange/step/number as time-variable (only step verified here). Deterministic UNSEEDED (no seed parameter; runs 1.2 s apart byte-identical - fixed random state, no clock path): identical calls always collide, so vary a parameter for a new take. Runtime constraint verbatim: '(max) Rate (0.500000) must be less than half duration (0.050000).' (step vs dur); spacetypes 1-14 refuse without 8 channels ('Special Spatialisation types Only available for 8-channel output.'); input must be mono ('File st2.wav is not MONO'). Modes 2 (multi-source at original rate) and 3 (drunken-walk reads, loc/amb/gstep) are uncurated siblings; the banner usage only prints when a tty is attached (getch()-gated - it hangs silent under pipes).",
+  "musical_use": "A one-source cloud machine: give it a single mono sound plus a chord of transposition ratios and it breathes a stereo (or 8-channel) texture out of them - components enter and leave every step seconds, so the cloud constantly reshuffles which chord members sound where. Write the ratios as a just chord (1, 1.25, 1.5, 2) for consonant shimmer, as microtonal clusters (1, 1.02, 1.05) for thick chorus, or spread over 4+ octaves with maxrange for register-hopping swarms. step is the metabolism: 0.05-0.2 s churns, 1-5 s drifts. Negative levels phase-invert entries for hollow flanging blends. Time the datafile lines to move between chords - the texture re-voices itself on schedule. Output is inherently multichannel (stereo minimum); spacetype 0 scatters positions randomly, types 1-14 need 8 channels (rotations, permutations, side/front alternations). No seed exists: renders are reproducible but identical calls cannot give fresh takes - nudge step or the datafile instead.",
+  "parameters": {
+    "transposes": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED datafile of transposition ratios and levels vs time: lines of 'time ratio1 level1 [ratio2 level2 ...]'; times start at 0 and increase; ratios increase along each line; levels -1 to 1 (negative inverts phase); every line the same entry count (banner rules; a 2-pair line verified working). Write via write_data_file."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.1,
+      "max": 3600.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Output duration - sample-exact (4.0 -> 176400 frames verified). Runtime floor: step must be less than dur/2 ('(max) Rate (0.500000) must be less than half duration (0.050000).' verbatim). Required."
+    },
+    "chans": {
+      "type": "int",
+      "min": 2,
+      "max": 16,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": 2,
+      "flag": null,
+      "description": "Output channel count, CDP-enforced 2 to 16 ('Parameter[3] Value (1.000000) out of range (2.000000 to 16.000000)'; 17 refused) - NO MONO OUTPUT. Spacetypes above 0 additionally require exactly 8 channels."
+    },
+    "maxrange": {
+      "type": "float",
+      "min": 1.0,
+      "max": 8.0,
+      "unit": "octaves",
+      "breakpoint_capable": false,
+      "default": 2.0,
+      "flag": null,
+      "description": "Range of transpositions of the input in whole octaves, CDP-enforced 1 to 8 ('Parameter[4] Value (9.000000) out of range (1.000000 to 8.000000)'; 0 refused). Banner marks it time-variable (unverified here - left non-capable)."
+    },
+    "step": {
+      "type": "float",
+      "min": 0.004,
+      "max": 100.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": 0.5,
+      "flag": null,
+      "description": "Average time between changes to the stream content, CDP-enforced 0.004 to 100 ('Parameter[5] Value (0.001000) out of range (0.004000 to 100.000000)'). BREAKPOINT-CAPABLE (verified: 0.2->1.5 differs from both endpoint renders). Must stay below dur/2 (runtime refusal verbatim)."
+    },
+    "spacetype": {
+      "type": "int",
+      "min": 0,
+      "max": 14,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Spatialisation type, CDP-enforced 0 to 14 ('Parameter[6] Value (15.000000) out of range (0.000000 to 14.000000)'). 0 = random positions (any chans); 1-14 (side/front alternations, rotations, permutations, triangles) REQUIRE 8-channel output ('Special Spatialisation types Only available for 8-channel output.' verbatim)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Breathing just-chord shimmer from one mono source.",
+      "params": {"transposes": "just_chord.txt", "dur": 8.0, "chans": 2, "maxrange": 2.0, "step": 0.5, "spacetype": 0},
+      "expected_use": "First write_data_file('just_chord.txt', '0 1 1 1.25 0.8 1.5 0.8 2 0.6'). Components fade in/out every ~0.5 s across the stereo field."
+    },
+    {
+      "description": "Fast-churning microtonal swarm that slows to a drift.",
+      "params": {"transposes": "cluster.txt", "dur": 12.0, "chans": 2, "maxrange": 4.0, "step": [[0.0, 0.05], [1.0, 2.0]], "spacetype": 0},
+      "expected_use": "cluster.txt: '0 1 1 1.02 0.9 1.05 0.9 1.09 0.7'. step envelope verified live - churn relaxes into slow respiration."
+    }
+  ],
+  "known_issues": [
+    "NO MONO OUTPUT: chans is enforced 2-16. Input must be mono ('File st2.wav is not MONO').",
+    "NO SEED and deterministic (fixed random state, runs 1.2 s apart byte-identical): identical calls collide byte-identically - vary step/datafile for fresh takes; reproducibility is otherwise total.",
+    "step must be < dur/2 (runtime refusal verbatim); spacetypes 1-14 need exactly 8 output channels (verbatim).",
+    "Only step is verified breakpoint-capable; the banner also marks maxrange and number (-n) time-variable - unverified, left non-capable.",
+    "The interactive banner is getch()-gated: under pipes/subprocesses the bare usage call HANGS silently (build quirk; harmless to the engine, which never asks for usage).",
+    "Optional flags (-s splice, -n number, -x, -r rotspeed, -j, -e/-E emerge, -c/-C converge) are banner-documented but unprobed and uncurated here. Modes 2 (multi-source) and 3 (drunken-walk reads) are uncurated siblings."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

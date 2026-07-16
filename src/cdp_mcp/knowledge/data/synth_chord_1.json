@@ -1,0 +1,103 @@
+{
+  "program": "synth",
+  "mode": "chord",
+  "submode": 1,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": "none",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Generates a CHORD on a simple (sine-table) waveform from a text datafile of MIDI pitches - a pure generator with NO audio input (input_arity 0). Submode 1 reads the datafile as MIDI note values, one or more per line, whitespace/newline separated; ';' comment lines verified accepted (byte-identical render with and without). FRACTIONAL MIDI values are accepted (60.5 renders - quartertone chords are legal); out-of-range values refuse per-value ('ERROR: Value 1 (200.000000) is out of range.'). Output duration is set sample-exactly by dur (2.0 -> 88200 frames, 0.7 -> 30870). Deterministic (two runs 1.2 s apart byte-identical). AMP DEFAULT DIVERGENCE (first-class): the banner claims amp's default is 1.0 ('max & default') but the flagless render peaks at 0.300 regardless of note count (verified with 2 and 3 notes) while -a1 peaks at 0.999 - the real default is 0.3; this entry pins default 0.5 and always emits -a. -a0 is accepted but renders digital silence (fails output verification). NO parameter is breakpoint-capable (amp refuses 'Cannot read parameter 5', dur 'Cannot read parameter 3'). Multichannel output is dual-mono (stereo channels verified bit-identical); chans is CDP-enforced 1-16 despite the banner's '1, 2 or 4'.",
+  "musical_use": "Instant pads and test chords without a synth chain: write the voicing as MIDI numbers (fractional values for microtonal spellings), pick a duration, done. The waveform is a plain wavetable tone - clean, organ-flute-ish - so the interest is the VOICING: wide low-interval clusters beat slowly, close high clusters shimmer. Because it is deterministic and sample-exact it makes reliable tuning references and alignment stems. Feed the render onward for character: filter bank to resonate it, envel dovetail to shape it, modify radical 5 to clang it. Sibling submode 2 takes raw frequencies instead of MIDI - use that for just-intonation ratios; use this one when you think in note numbers. Keep amp at 0.3-0.6 when layering (the flagless default 0.3 is a sane mix level; -a1 is full scale).",
+  "parameters": {
+    "datafile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text datafile of MIDI pitch values (one chord; all values sound together for the full duration), whitespace/newline separated; ';' comment lines allowed (verified byte-identical). Fractional MIDI accepted (60.5 = quartertone). Out-of-range values refuse per-value: 'ERROR: Value 1 (200.000000) is out of range.'. Write via write_data_file into the session's data/ dir."
+    },
+    "srate": {
+      "type": "int",
+      "min": 16000,
+      "max": 96000,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 44100,
+      "flag": null,
+      "description": "Output sample rate - range gate 16000 to 96000 ('Parameter[2] Value (11025.000000) out of range (16000.000000 to 96000.000000)'); the synth-family discrete set applies (44100/48000 verified). Positional - always emitted (default 44100)."
+    },
+    "chans": {
+      "type": "int",
+      "min": 1,
+      "max": 16,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Output channel count, CDP-enforced 1 to 16 ('Parameter[3] Value (17.000000) out of range (1.000000 to 16.000000)'; banner claims '1, 2 or 4'). Multi-channel output is DUAL-MONO (stereo verified bit-identical channels)."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.04,
+      "max": 7200.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Output duration in seconds - sets the length sample-exactly (2.0 -> 88200 frames). CDP-enforced 0.04 to 7200 ('Parameter[4] Value (0.001000) out of range (0.040000 to 7200.000000)'). Breakpoint file refused (parameter 3). Required."
+    },
+    "amp": {
+      "type": "float",
+      "min": 0.000001,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.5,
+      "musical_range": [0.2, 0.7],
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Output amplitude = final peak level, CDP-enforced 0 to 1 ('Parameter[5] Value (1.500000) out of range (0.000000 to 1.000000)'). DIVERGENCE: banner says 'max & default' 1.0 but the flagless default is actually 0.3 (peak 0.300 verified at 2 and 3 notes); -a0.5 peaks at 0.4997, -a1 at 0.999. -a0 accepted but renders digital silence - curated min keeps it nonzero. Entry default 0.5, always emitted. Breakpoint file refused (parameter 5)."
+    },
+    "tabsize": {
+      "type": "int",
+      "min": 256,
+      "max": 4096,
+      "unit": "samples",
+      "breakpoint_capable": false,
+      "default": 4096,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Wavetable size, CDP-enforced 256 to 4096 ('Parameter[6] Value (100000.000000) out of range (256.000000 to 4096.000000)'); rounded to a multiple of 4. Default 4096 (banner); -t256 verified to change the render (coarser interpolation)."
+    }
+  },
+  "examples": [
+    {
+      "description": "C major triad, 2 seconds, mix level.",
+      "params": {"datafile": "cmaj.txt", "srate": 44100, "chans": 1, "dur": 2.0, "amp": 0.5},
+      "expected_use": "First write_data_file('cmaj.txt', '60 64 67'). No input argument; byte-identical on every render."
+    },
+    {
+      "description": "Quartertone cluster pad.",
+      "params": {"datafile": "qcluster.txt", "srate": 44100, "chans": 2, "dur": 8.0, "amp": 0.35},
+      "expected_use": "qcluster.txt: '58 58.5 60 61.5 63'. Fractional MIDI is legal; dual-mono stereo out."
+    }
+  ],
+  "known_issues": [
+    "AMP DEFAULT IS 0.3, NOT 1.0: the banner's 'max & default' claim is wrong (flagless peak 0.300 verified at two note counts; -a1 peak 0.999). Entry always emits -a explicitly.",
+    "-a0 is accepted by CDP but renders digital silence (fails output verification) - curated nonzero minimum.",
+    "No breakpoint-capable parameters: amp and dur both refuse .brk files verbatim (parameters 5 and 3) - for evolving chords, render then envelope/filter downstream.",
+    "Datafile values refuse per-value ('Value 1 (200.000000) is out of range.') - MIDI range applies; fractional values legal.",
+    "chans 1-16 despite banner '1, 2 or 4'; multichannel is dual-mono (verified).",
+    "Deterministic: no seed, no clock dependence (runs 1.2 s apart byte-identical).",
+    "Generator entry: process() takes no input argument; graph()/batch()/sweep() refuse arity-0 entries (arity_zero_unsupported)."
+  ],
+  "references": ["cdp://docs/html/cgrosynth"]
+}

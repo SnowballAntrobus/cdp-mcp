@@ -1,0 +1,63 @@
+{
+  "program": "spectrum",
+  "mode": "format",
+  "submode": null,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": ".txt",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "DATA-TO-DATA CONVERTER: turns a plain 'frq amp' GRAPH (frequencies ascending, amplitudes >= 0) into the special peak/trough spectrum format that 'spectrum fixed' (curated) and 'spectrum varying' consume. Output is a textfile of frq/amp pairs where a positive frq marks a local PEAK, a negative frq marks a TROUGH, and frq 0 means 'unspecific frequency within the channel' (amplitude-envelope point). THE COUNT CONTRACT: run it with the SAME pointcnt you will give 'spectrum fixed' - the output contains exactly pointcnt + 2 values (pointcnt/2 + 1 lines; verified 33 lines at pointcnt 64, 129 at 256), which is precisely what fixed's verbatim 'Data count ... should be just 2 more than analysis-points parameter' check demands. The INPUT graph must be DENSE relative to pointcnt ('input should have many more frq points than pointcnt' - a 200-point graph at pointcnt 1024 under-produced and broke the downstream count check; 5000 points at 64/256 verified). Deterministic (two runs byte-identical). No audio is involved at either end; output verification is exists+non-empty (data format).",
+  "musical_use": "The on-ramp to drawn spectra: whatever produced your frequency/amplitude curve - a measurement, a script, a hand sketch - this normalizes it into CDP's peak/trough spectral text so 'spectrum fixed' can render it as an .ana. Peaks and troughs are detected for you: give it a smooth dense graph and it finds the formants. Practical recipe: generate a dense graph (thousands of points, frequencies ascending to Nyquist), convert at the pointcnt you plan to synthesize with, then feed the output straight to spectrum fixed at that same pointcnt. Keep both files in the session's data/ directory; the pair of calls is fully deterministic end to end.",
+  "parameters": {
+    "indatafile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED input graph: text 'frq amp' pairs, frequencies strictly ascending (0 to Nyquist), amplitudes >= 0. Must be DENSE - many more points than pointcnt - or the output under-produces and breaks spectrum fixed's count check (verified failure mode). Write via write_data_file."
+    },
+    "pointcnt": {
+      "type": "int",
+      "min": 4,
+      "max": 8192,
+      "unit": "points",
+      "breakpoint_capable": false,
+      "default": 256,
+      "flag": null,
+      "description": "Number of analysis points per window for the eventual synthesis - USE THE SAME VALUE you will pass to 'spectrum fixed' (power of two there). Output = pointcnt + 2 values (verified at 64 and 256)."
+    },
+    "srate": {
+      "type": "int",
+      "min": 44100,
+      "max": 96000,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 44100,
+      "flag": null,
+      "description": "Sample rate of the sound that will eventually be generated (sets the Nyquist the graph is mapped against). Family gate 44100-96000 (fixed's refusal verbatim; same parser family)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Convert a dense drawn graph for 64-point synthesis.",
+      "params": {"indatafile": "graph_dense.txt", "pointcnt": 64, "srate": 44100},
+      "expected_use": "graph_dense.txt: thousands of ascending 'frq amp' lines. Output (33 lines) feeds spectrum fixed at pointcnt 64 unchanged."
+    }
+  ],
+  "known_issues": [
+    "The output line count is pointcnt/2 + 1 REGARDLESS of input size - but a sparse input graph produces degenerate peak data and can under-produce (verified: 200-point graph at pointcnt 1024 gave 111 lines, breaking fixed's count check). Make the graph dense.",
+    "Pure data->data: no audio duration; duration_model static is nominal (data outputs skip the pre-flight; verification is exists+non-empty).",
+    "Deterministic (two runs byte-identical).",
+    "Pair with the curated 'spectrum fixed' at the SAME pointcnt; 'spectrum varying' and 'spectrum lines' remain uncurated consumers.",
+    "Generator/data entry: process() takes no input argument; graph()/batch()/sweep() refuse arity-0 entries (arity_zero_unsupported)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

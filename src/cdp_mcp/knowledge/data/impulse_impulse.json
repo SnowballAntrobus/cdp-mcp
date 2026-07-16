@@ -1,0 +1,132 @@
+{
+  "program": "impulse",
+  "mode": "impulse",
+  "submode": null,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": "none",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Creates a STREAM OF IMPULSES - a pure generator with NO audio input (input_arity 0). pitch (MIDI-labelled, enforced 1-1000 so values above 127 are legal) sets the stream rate; each impulse contains pkcnt peaks (pkcnt/stream-frq = the impulse's internal frequency), shaped by slope, optionally glissed by chirp, spaced by gap (negative gap overlaps chirped impulses and RAISES apparent pitch, positive lowers it). Output duration is set by dur, quantized to whole impulse periods (2.0 -> 1.996190, -0.19%); DUR 0 IS LEGAL and produces exactly one impulse (0.0038 s at the base patch). SIX parameters are breakpoint-capable, each verified against both scalar endpoints: pitch, chirp, slope, pkcnt, level and gap - pkcnt is NOT listed in the banner's vary-through-time line ('PITCH,GLIS,SLOPE,CHIRP,LEVEL,GAP') yet its breakpoint verifiably works (banner omission; note the banner also says 'GLIS' though no such argv slot exists - it means chirp). Deterministic (runs 1.2 s apart byte-identical); -g0 verified byte-identical to flagless (default gap 0). CHANS IS A HEADER-ONLY RELABEL BUG (first-class, this build): -c2 halves the reported duration and -c4 quarters it while the decoded sample stream stays BYTE-IDENTICAL to the mono render - dur is consumed as total samples, not frames, and the channels are just deinterleaved slices of the same mono stream. chans is excluded from this entry; output is mono.",
+  "musical_use": "A buzz-to-granular pulse machine: at low pitch (1-30) it is a dry click train ready for filter bank or convolution-style colouring; at mid values the pkcnt/slope interplay turns it into formant-like buzzes (pkcnt high + slope low = bright and nasal; slope high = soft thuds); chirp adds per-impulse gliss that reads as metallic zips. The stream pitch is time-variable, so breakpoint pitch for accelerating/decelerating trains (engine-driven rallentando clicks), ramp level for swells, and sweep gap from positive to negative to slide the perceived pitch up as chirped impulses overlap. dur 0 gives a single impulse - a clean excitation signal for testing resonators (filter bank, revecho) one hit at a time. Deterministic: renders are reproducible without a seed. Keep level moderate when layering; chirp warns 'output may clip' at high values.",
+  "parameters": {
+    "dur": {
+      "type": "float",
+      "min": 0.0,
+      "max": 7200.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Output duration in seconds, CDP-enforced 0 to 7200 ('Parameter[1] Value (32768.000000) out of range (0.000000 to 7200.000000)'). Quantized to whole impulse periods (2.0 -> 1.99619 s). DUR 0 renders exactly ONE impulse. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). Required."
+    },
+    "pitch": {
+      "type": "float",
+      "min": 1.0,
+      "max": 1000.0,
+      "unit": "midi",
+      "breakpoint_capable": true,
+      "default": 60.0,
+      "musical_range": [20.0, 96.0],
+      "flag": null,
+      "description": "Pitch of the impulse stream, MIDI-labelled but CDP-enforced 1 to 1000 ('Parameter[2] Value (1001.000000) out of range (1.000000 to 1000.000000)') - 128 accepted, so super-MIDI rates are legal. BREAKPOINT-CAPABLE (verified: 48->72 differs from both endpoint renders); relative envelope times map onto dur."
+    },
+    "chirp": {
+      "type": "float",
+      "min": 0.0,
+      "max": 30.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Glissing of each impulse, CDP-enforced 0 to 30 ('Parameter[3] Value (31.000000) out of range (0.000000 to 30.000000)'). Banner: 'Care, output may clip'. BREAKPOINT-CAPABLE (verified: 0->10 differs from both endpoints). The banner's 'GLIS' vary-list entry refers to this parameter."
+    },
+    "slope": {
+      "type": "float",
+      "min": 1.0,
+      "max": 20.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 10.0,
+      "flag": null,
+      "description": "How quickly each impulse rises and falls, CDP-enforced 1 to 20 ('Parameter[4] Value (0.500000) out of range (1.000000 to 20.000000)'). Low = bright/percussive, high = soft. BREAKPOINT-CAPABLE (verified: 2->18 differs from both endpoints)."
+    },
+    "pkcnt": {
+      "type": "int",
+      "min": 1,
+      "max": 200,
+      "unit": "peaks",
+      "breakpoint_capable": true,
+      "default": 30,
+      "flag": null,
+      "description": "Number of peaks per impulse, CDP-enforced 1 to 200 ('Parameter[5] Value (201.000000) out of range (1.000000 to 200.000000)'). pkcnt / stream-frq = the (unglissed) internal frequency of each impulse - the formant knob. BREAKPOINT-CAPABLE despite being absent from the banner's vary-through-time list (verified: 10->60 differs from both endpoints - banner omission)."
+    },
+    "level": {
+      "type": "float",
+      "min": 0.000001,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.7,
+      "musical_range": [0.2, 0.8],
+      "flag": null,
+      "description": "Impulse level, CDP-enforced 0 to 1 ('Parameter[6] Value (1.100000) out of range (0.000000 to 1.000000)'). BREAKPOINT-CAPABLE (verified: 0.2->0.9 differs from both endpoints). Curated min keeps it nonzero (0 would render silence and fail output verification)."
+    },
+    "gap": {
+      "type": "float",
+      "min": -0.99,
+      "max": 10.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Relative silent gap between impulses, CDP-enforced -0.99 to 10 ('Parameter[7] Value (100.000000) out of range (-0.990000 to 10.000000)'). Positive lowers apparent stream pitch; negative overlaps chirped impulses and raises it. -g0 verified byte-identical to flagless (true default 0). BREAKPOINT-CAPABLE (verified: 0->2 differs from both endpoints). Changes output duration slightly (whole-period quantization against the gapped period)."
+    },
+    "srate": {
+      "type": "int",
+      "min": 16000,
+      "max": 96000,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 44100,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Output sample rate, range gate 16000 to 96000 ('Parameter[8] Value (11025.000000) out of range (16000.000000 to 96000.000000)'); 48000 verified. Default 44100."
+    }
+  },
+  "examples": [
+    {
+      "description": "A dry 60-MIDI impulse train, 2 seconds.",
+      "params": {"dur": 2.0, "pitch": 60.0, "chirp": 0.0, "slope": 10.0, "pkcnt": 30, "level": 0.7},
+      "expected_use": "No input argument. Deterministic buzz at ~262 Hz stream rate; feed filter bank to ring it into pitched percussion."
+    },
+    {
+      "description": "Decelerating chirped train that softens as it slows.",
+      "params": {"dur": 6.0, "pitch": [[0.0, 84.0], [1.0, 30.0]], "chirp": 8.0, "slope": [[0.0, 3.0], [1.0, 16.0]], "pkcnt": 40, "level": 0.6},
+      "expected_use": "Stream glides from buzz to discrete zipping clicks; slope ramp rounds each hit as it slows."
+    },
+    {
+      "description": "One single impulse (excitation signal).",
+      "params": {"dur": 0.0, "pitch": 60.0, "chirp": 0.0, "slope": 5.0, "pkcnt": 30, "level": 0.9},
+      "expected_use": "dur 0 = exactly one impulse (~4 ms) - a clean test ping for resonators and reverbs."
+    }
+  ],
+  "known_issues": [
+    "CHANS RELABEL BUG (this build): -c<N> divides the reported duration by N while the decoded sample stream stays byte-identical to mono - dur is consumed as total samples and the header just relabels them (each 'channel' is a decimated slice). chans (CDP-enforced 1-16) is EXCLUDED from this entry; output is mono. Spread it spatially downstream.",
+    "pkcnt IS breakpoint-capable although the banner's vary-through-time list omits it (verified against both endpoints); the banner's 'GLIS' names no real argv slot - it means chirp.",
+    "pitch is MIDI-labelled but enforced 1-1000: values above 127 are accepted and useful (very fast streams).",
+    "Duration quantizes to whole impulse periods (-0.19% at 2 s, base patch); gap changes the period so outdur shifts slightly with gap.",
+    "dur 0 is legal (single impulse) - but note the output is only a few ms; downstream processes needing minimum durations may refuse it.",
+    "Deterministic: no seed, no clock dependence (runs 1.2 s apart byte-identical).",
+    "Generator entry: process() takes no input argument; graph()/batch()/sweep() refuse arity-0 entries (arity_zero_unsupported)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

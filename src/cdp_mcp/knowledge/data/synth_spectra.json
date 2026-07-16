@@ -1,0 +1,123 @@
+{
+  "program": "synth",
+  "mode": "spectra",
+  "submode": null,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "stereo",
+  "input_format": "none",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Generates BOTH CHANNELS OF A STEREO SPECTRAL BAND - a pure generator with NO audio input (input_arity 0; call process() without an input argument). Renders a band of energy centred on frq, spread Hz wide (or a transposition ratio wide with -p), whose concentration toward the centre wanders between minfoc and maxfoc at a rate set by timevar. Output is ALWAYS STEREO (no chans param; the two channels are decorrelated variants of the band - instant wide noise-band beds). Duration is set by dur but quantized DOWN to whole synthesis blocks: 2.0 -> 1.973696 s (-1.3%), 1.0 -> 0.975238 (-2.5%), 0.5 -> 0.473107 (-5.4%) - the shortfall grows as dur shrinks, keep dur >= 1 s where the row tolerance matters. DETERMINISTIC despite the 'random' band variation: two runs 1.2 s apart render byte-identical (the timevar wander comes from an unseeded fixed-state generator; no seed parameter exists). frq, spread, maxfoc, minfoc and timevar are all breakpoint-capable (each verified to differ from BOTH scalar-endpoint renders); dur refuses ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). TEMP-FILE QUIRK (first-class): the program writes temporary analysis files named <outstem>1.wav, <outstem>2.wav, <outstem>3.wav in the working directory; they are cleaned up on success but LEFT BEHIND if the process is killed, and a later run with the same output name then refuses 'ERROR: Cannot open temporary analysis file ...: Can't create SFile, already exists' - fresh output names avoid it.",
+  "musical_use": "The band-of-air generator: where synth noise gives full-spectrum wash and synth wave gives a line, spectra gives a PLACED CLOUD - a breathy band you can pitch (frq), widen (spread) and focus (foc range) anywhere in the spectrum. maxfoc near 1 with minfoc low and timevar up makes the band breathe between airy wash and near-tonal whistle; timevar 0 freezes it. Breakpoint frq for slow spectral glides of the whole cloud; breakpoint spread from near 0 to hundreds of Hz to morph a whistling tone into a wide hiss; ramp maxfoc for blooming focus. Use -p to think in transposition ratios instead of Hz (spread 1.5 = a band a fifth wide). Already stereo - no widening pass needed; layer several renders at different frq for chord-clouds of coloured air. Deterministic, so a patch re-renders exactly. Levels are modest (peak ~0.3) - comfortable headroom for layering.",
+  "parameters": {
+    "dur": {
+      "type": "float",
+      "min": 0.1,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Output duration in seconds, CDP-enforced 0.1 to 32767 ('Parameter[1] Value (0.001000) out of range (0.100000 to 32767.000000)'). Output is QUANTIZED DOWN to whole synthesis blocks: -1.3% at 2 s, -2.5% at 1 s, -5.4% at 0.5 s - the relative shortfall grows as dur shrinks. The engine's duration cap applies via the set_by pre-flight. Breakpoint file refused (parameter 1). Required."
+    },
+    "frq": {
+      "type": "float",
+      "min": 10.0,
+      "max": 48000.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": 1000.0,
+      "musical_range": [40.0, 8000.0],
+      "flag": null,
+      "description": "Centre frequency of the band, CDP-enforced 10 to 48000 ('Parameter[2] Value (5.000000) out of range (10.000000 to 48000.000000)') - values above Nyquist are accepted SILENTLY (23000 at srate 44100 exits 0). BREAKPOINT-CAPABLE (verified: a 400->3000 ramp differs from both endpoint renders)."
+    },
+    "spread": {
+      "type": "float",
+      "min": 0.0,
+      "max": 24000.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": 400.0,
+      "flag": null,
+      "description": "Width of the band in Hz (default) or as a transposition ratio when -p is set. CDP-enforced 0 to 24000 ('Parameter[3] Value (30000.000000) out of range (0.000000 to 24000.000000)'); 0 accepted (vanishingly narrow band). BREAKPOINT-CAPABLE (verified: 100->800 differs from both endpoints)."
+    },
+    "maxfoc": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.9,
+      "flag": null,
+      "description": "Maximum focus - degree to which band energy concentrates at the centre frequency, CDP-enforced 0 to 1 ('Parameter[4] Value (1.500000) out of range (0.000000 to 1.000000)'). BREAKPOINT-CAPABLE (verified: 0.1->0.9 differs from both endpoints). maxfoc BELOW minfoc is accepted silently (0.2 vs 0.3 exits 0)."
+    },
+    "minfoc": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.3,
+      "flag": null,
+      "description": "Minimum focus, CDP-enforced 0 to 1 ('Parameter[5] Value (-0.100000) out of range (0.000000 to 1.000000)'). The band's concentration wanders between minfoc and maxfoc. BREAKPOINT-CAPABLE (verified: 0.05->0.6 differs from both endpoints)."
+    },
+    "timevar": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.5,
+      "flag": null,
+      "description": "Degree to which the band varies over time, CDP-enforced 0 to 1 ('Parameter[6] Value (1.500000) out of range (0.000000 to 1.000000)'). 0 = static band. BREAKPOINT-CAPABLE (verified: 0->1 differs from both endpoints). The variation is DETERMINISTIC - identical runs render byte-identical."
+    },
+    "srate": {
+      "type": "int",
+      "min": 16000,
+      "max": 96000,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 44100,
+      "flag": null,
+      "description": "Output sample rate - range gate 16000 to 96000 ('Parameter[7] Value (11025.000000) out of range (16000.000000 to 96000.000000)'); 44100, 48000 and 96000 verified accepted. Positional - always emitted (default 44100)."
+    },
+    "spread_is_ratio": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-p",
+      "flag_kind": "no_value",
+      "description": "If set, SPREAD is interpreted as a transposition ratio instead of Hz (verified: spread 1.5 with -p renders, differs from Hz renders). Ratio 2.0 = an octave-wide band."
+    }
+  },
+  "examples": [
+    {
+      "description": "A breathing band of air around 1 kHz, stereo out of the box.",
+      "params": {"dur": 6.0, "frq": 1000.0, "spread": 400.0, "maxfoc": 0.9, "minfoc": 0.2, "timevar": 0.6, "srate": 44100},
+      "expected_use": "No input argument. Wide-to-whistling stereo band; byte-identical on re-render."
+    },
+    {
+      "description": "Spectral glide: the whole cloud sweeps up two octaves while narrowing to a whistle.",
+      "params": {"dur": 8.0, "frq": [[0.0, 300.0], [1.0, 1200.0]], "spread": [[0.0, 600.0], [1.0, 30.0]], "maxfoc": 0.95, "minfoc": 0.7, "timevar": 0.3, "srate": 44100},
+      "expected_use": "Relative envelope times map onto dur; ends as a focused near-tone at 1.2 kHz."
+    }
+  ],
+  "known_issues": [
+    "Output duration quantizes DOWN to whole synthesis blocks and the shortfall grows at short durations (2.0 -> 1.9737 / -1.3%; 0.5 -> 0.4731 / -5.4%). Keep dur >= 1 s where duration accuracy matters.",
+    "TEMP FILES: writes <outstem>1.wav/<outstem>2.wav/<outstem>3.wav beside the output during synthesis; a killed run leaves them behind and a re-run with the SAME output name refuses 'Cannot open temporary analysis file ... already exists'. The engine's fresh per-node output names avoid the collision.",
+    "Output is ALWAYS stereo (2 channels, no chans parameter).",
+    "frq above Nyquist is accepted silently (23000 at 44.1k, exit 0); the CDP gate is a flat 10-48000 Hz independent of srate.",
+    "maxfoc < minfoc is accepted silently (no swap message; behavior unpinned) - keep maxfoc >= minfoc.",
+    "Deterministic: the timevar 'random' wander has no seed and renders byte-identically on every run (verified 1.2 s apart) - re-render freely, but A/B of different takes requires changing a parameter.",
+    "Progress spam: emits one '0 min X sec' fragment per block on stdout (hundreds of KB on long renders) - harmless.",
+    "Generator entry: process() takes no input argument; graph()/batch()/sweep() refuse arity-0 entries (arity_zero_unsupported)."
+  ],
+  "references": ["cdp://docs/html/cgrosynth"]
+}

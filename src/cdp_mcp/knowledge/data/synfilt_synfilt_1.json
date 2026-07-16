@@ -1,0 +1,126 @@
+{
+  "program": "synfilt",
+  "mode": "synfilt",
+  "submode": 1,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": "none",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "data"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "NOISE THROUGH A TIME-VARYING FILTERBANK with time-variable Q - a subtractive generator with NO audio input (input_arity 0). Mode 1's datafile is time/MIDI-pitch pairs: the filter pitch glides through the listed points and the output duration is driven by the LAST TIME in the file plus a Q-dependent ring-out (last time 2.0 at Q 50 -> 3.98 s; the aux-name duration expression skips the pre-flight, engine watchdog guards). BANNER ARGV IS WRONG (first-class): the usage line lists 'dur' and 'gain' parameters that DO NOT EXIST - the real argv is data srate chans Q hcnt rolloff seed (source-confirmed: science.h SYNFLT_ indices 0-5; a dur argument is rejected as a bad srate). Q is breakpoint-capable (20->200 envelope differs from both scalar endpoints). SEED: 0 == 1 byte-identical (glibc srand default-state); higher seeds give distinct reproducible noise (deterministic - seed 1 runs 1.2 s apart byte-identical). HIGH-Q BUFFER CEILING: Q 200 renders exactly 262144 frames (5.944 s at 44.1k) - the same fixed buffer constant as filter bank's tail bug; long ring-outs are silently capped there. hcnt harmonics are Nyquist-checked at runtime verbatim: 'Filter Harmonic 43 of 523.3Hz = 22499.8Hz beyond filter limit 22050.0.' (exit 253). -d (double filtering) verified to change the render; the banner's -n flag DOES NOT EXIST ('Unknown flag -n'); -o (drop out on overflow) is banner-documented, unprobed. Mode 2 (varibank-style multi-pitch datafile) is an uncurated sibling.",
+  "musical_use": "A vocal-cord-less voice: pitched noise that can glide anywhere. Write a MIDI contour and the filterbank sings it in breath - low Q (1-20) gives whispery pitched air, high Q (200+) rings toward a sinewhistle with long tails. hcnt stacks harmonics of the contour (with rolloff in dB per harmonic) for vowel-like buzz; -d doubles the filtering for a steeper, darker slope. Because the seed works, a noise take is reproducible - and changing only the seed re-rolls the breath texture under the identical pitch line. Use it for wind that whistles a melody, ghostly choir pads (render 3-4 seeds of the same contour and layer), or as a pitched-noise layer under synth chord. Remember the tail: output runs past the last datafile time by the ring-out, and very high Q pins the length at the 262144-frame buffer.",
+  "parameters": {
+    "data": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED datafile of 'time MIDI-pitch' pairs (mode 1); times ascending from 0. The LAST time drives the output duration (plus Q-dependent ring-out). Banner: max time must exceed 0.03 s. Write via write_data_file."
+    },
+    "srate": {
+      "type": "int",
+      "min": 44100,
+      "max": 96000,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 44100,
+      "flag": null,
+      "description": "Output sample rate, CDP-enforced 44100 to 96000 ('Parameter[2] Value (2.000000) out of range (44100.000000 to 96000.000000)' - fired by the banner's phantom 'dur' slot, proving the real argv order). Source default 44100."
+    },
+    "chans": {
+      "type": "int",
+      "min": 1,
+      "max": 2,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Output channels, CDP-enforced 1 to 2 ('Parameter[3] Value (3.000000) out of range (1.000000 to 2.000000)') - mono or stereo only (source: SYNFLT_CHANS hi = 2)."
+    },
+    "q": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 50.0,
+      "musical_range": [5.0, 500.0],
+      "flag": null,
+      "description": "Filter Q (tightness), CDP-enforced 0.001 to 10000 ('Parameter[4] Value (0.000100) out of range (0.001000 to 10000.000000)'). BREAKPOINT-CAPABLE (verified: 20->200 differs from both endpoint renders). Higher Q = purer tone AND longer ring-out (drives output length up to the 262144-frame buffer ceiling)."
+    },
+    "hcnt": {
+      "type": "int",
+      "min": 1,
+      "max": 200,
+      "unit": "harmonics",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Number of harmonics of each pitch to filter, CDP-enforced 1 to 200 ('Parameter[5] Value (0.000000) out of range (1.000000 to 200.000000)'; banner default 1). Runtime Nyquist check refuses verbatim: 'Filter Harmonic 43 of 523.3Hz = 22499.8Hz beyond filter limit 22050.0.' (exit 253) - high pitches tolerate few harmonics."
+    },
+    "rolloff": {
+      "type": "float",
+      "min": -96.0,
+      "max": 0.0,
+      "unit": "db",
+      "breakpoint_capable": false,
+      "default": -6.0,
+      "flag": null,
+      "description": "Level drop from one harmonic to the next, CDP-enforced -96 to 0 ('Parameter[6] Value (-97.000000) out of range (-96.000000 to 0.000000)')."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Noise-generation seed, CDP-enforced 0 to 32767 ('Parameter[7] Value (32768.000000) out of range (0.000000 to 32767.000000)'). Seed 0 == seed 1 byte-identical (glibc srand default-state); other seeds give distinct reproducible noise (seed 1 runs 1.2 s apart byte-identical). No clock path."
+    },
+    "double_filter": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-d",
+      "flag_kind": "no_value",
+      "description": "Double filtering - steeper effective slope (verified to change the render and lengthen the tail slightly)."
+    },
+    "drop_on_overflow": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-o",
+      "flag_kind": "no_value",
+      "description": "Drop out if the filter overflows (banner-documented; not probed - high Q with high gain material is the overflow risk)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Whistling wind that sings a rising fifth.",
+      "params": {"data": "wind_line.txt", "srate": 44100, "chans": 1, "q": 200.0, "hcnt": 1, "rolloff": -6.0, "seed": 1},
+      "expected_use": "First write_data_file('wind_line.txt', '0 60\\n3 67'). High Q whistles the contour; expect a long ring-out after t=3."
+    },
+    {
+      "description": "Vowel-ish breath choir - same contour, different seed per layer.",
+      "params": {"data": "choir_line.txt", "srate": 44100, "chans": 2, "q": 30.0, "hcnt": 6, "rolloff": -8.0, "seed": 7},
+      "expected_use": "choir_line.txt: '0 48\\n2 50\\n4 47'. Render seeds 7/8/9 and layer; keep pitch*harmonics below Nyquist (verbatim refusal otherwise)."
+    }
+  ],
+  "known_issues": [
+    "BANNER ARGV IS WRONG: the printed usage lists 'dur' and 'gain' parameters that do not exist. Real argv: data srate chans Q hcnt rolloff seed (source-confirmed; a dur value is rejected as an out-of-range srate). Output duration comes from the datafile's last time + ring-out.",
+    "The banner's -n flag does not exist ('ERROR: Unknown flag -n'); -d verified live; -o unprobed.",
+    "Duration = last datafile time + Q-dependent ring-out (2.0 -> 3.98 s at Q 50), CAPPED at a fixed 262144-frame buffer (5.944 s at 44.1k, hit at Q 200) - the same buffer constant as filter bank's tail quirk. The aux-name duration expression skips the pre-flight; the engine watchdog guards.",
+    "hcnt * pitch is Nyquist-checked at runtime (verbatim refusal, exit 253) - melodic contours that rise can break a previously-legal hcnt.",
+    "Seed 0 == seed 1 (default random state); all renders reproducible - use seeds >= 2 for distinct takes.",
+    "Generator entry: process() takes no input argument; graph()/batch()/sweep() refuse arity-0 entries (arity_zero_unsupported). Mode 2 (varibank multi-pitch lines) is an uncurated sibling."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

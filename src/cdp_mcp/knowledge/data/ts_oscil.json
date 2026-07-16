@@ -1,0 +1,80 @@
+{
+  "program": "ts",
+  "mode": "oscil",
+  "submode": null,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": ".txt",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indata"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Treats a TIME-SERIES text datafile (a plain list of numbers) as a SOUNDWAVE PLOT - sonification by direct waveform reading (input_arity 0; the data file is the source). downsample transposes the data down by whole octaves = timestretch by 2^downsample: at 0, N values render as exactly N samples at 44100 Hz (8000 values -> 8000 frames verified); at 4, x16 (8000 -> 127984 frames); the duration expression names the aux param so the pre-flight skips (engine watchdog guards). UNDOCUMENTED DEFAULT CURTAIL (first-class): without -d the output is silently capped at 10 s (downsample 8 on 8000 values -> exactly 10.000000 s); -d sets the cap explicitly but is CDP-enforced 1 to 60 - NOT the banner's '1 - 600' ('Parameter[2] Value (700.000000) out of range (1.000000 to 60.000000)'; 0.5 also refused). downsample is breakpoint-capable (a 2->6 envelope differs from both scalar endpoints; envelope times are OUTPUT-sound times per the banner). -f loops the data to fill maxdur exactly (verified 20.0 s with -d20; accepted WITHOUT -d despite the banner calling that invalid - silently inert). CUBIC-SPLINE FLAG BROKEN (build-pinned): -c renders a 1-FRAME silent file - excluded from this entry. Data values outside +/-1 are accepted. Deterministic (runs 1.2 s apart byte-identical). Output mono 44100 Hz.",
+  "musical_use": "The sonification workhorse: ANY column of numbers - sensor logs, stock series, chaotic maps, brownian walks - becomes audio by treating values as samples. At downsample 0 you hear the raw series as a waveform (fast data = noise, correlated data = coloured rumble); each octave of downsample slows the read and drops the pitch, turning statistical texture into audible gesture. Breakpoint downsample to zoom from pitch into rhythm within one render - the series literally decelerates underfoot. -f -d loops short series into steady beds. Pair with tsconvert-style preprocessing upstream (rescale/quantise your data before writing it) and treat the render as raw material for filtering and enveloping. Deterministic, so a dataset is a patch: same file, same sound, every time.",
+  "parameters": {
+    "indata": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text datafile: a plain list of numbers (whitespace/newline separated), read as consecutive waveform samples. ARGV NOTE: this slot precedes the output path ('ts oscil indata outsnd ...') - declared position pre_output so the engine renders it there. Values outside +/-1 accepted. N values at downsample 0 = N samples at 44100 Hz; the LAST-resort duration guards are the 10 s default curtail and the engine watchdog. Write via write_data_file."
+    },
+    "downsample": {
+      "type": "float",
+      "min": 0.0,
+      "max": 16.0,
+      "unit": "octaves",
+      "breakpoint_capable": true,
+      "default": 4.0,
+      "flag": null,
+      "description": "Downward transposition in octaves = timestretch by 2^downsample, CDP-enforced 0 to 16 ('Parameter[1] Value (17.000000) out of range (0.000000 to 16.000000)'; -1 refused). BREAKPOINT-CAPABLE (verified: 2->6 differs from both endpoint renders); envelope times are times in the OUTPUT sound."
+    },
+    "maxdur": {
+      "type": "float",
+      "min": 1.0,
+      "max": 60.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 10.0,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Maximum output duration, CDP-enforced 1 to 60 - the banner's '1 - 600' is WRONG ('Parameter[2] Value (700.000000) out of range (1.000000 to 60.000000)'; 0.5 refused too). WHEN OMITTED the cap is silently 10 s (undocumented; verified exact curtail at 10.000000). Entry default 10 mirrors the hidden default."
+    },
+    "force_loop": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-f",
+      "flag_kind": "no_value",
+      "description": "Loop the input data to fill maxdur exactly (verified: -d20 -f -> 20.000000 s). Banner says invalid without -d, but the binary ACCEPTS it silently there (inert) - always pair it with maxdur."
+    }
+  },
+  "examples": [
+    {
+      "description": "Hear a logistic-map series raw, then slowed four octaves.",
+      "params": {"indata": "logistic.txt", "downsample": 4.0},
+      "expected_use": "Write ~8000 map values first. At downsample 4 the 0.18 s raw burst becomes a 2.9 s texture; render at 0 for the raw noise-view."
+    },
+    {
+      "description": "Loop a short series into a 20-second decelerating bed.",
+      "params": {"indata": "sensorlog.txt", "downsample": [[0.0, 2.0], [1.0, 6.0]], "maxdur": 20.0, "force_loop": true},
+      "expected_use": "Data loops to fill exactly 20 s while the read rate drops 4 octaves across the output."
+    }
+  ],
+  "known_issues": [
+    "-c (cubic-spline interpolation) is BROKEN on this build: renders a 1-frame silent file (would fail output verification) - excluded from the entry; linear interpolation is what you get.",
+    "Silent 10-second curtail when -d is omitted (undocumented; verified exact) - long low-downsample renders stop at 10 s without warning. Set maxdur explicitly.",
+    "maxdur is enforced 1-60 s, not the banner's 1-600.",
+    "-f without -d is accepted silently (banner says invalid) but does nothing - pair them.",
+    "Duration = datacount * 2^downsample / 44100, capped by maxdur - the aux-name duration expression skips the pre-flight; the engine watchdog guards.",
+    "Output fixed mono 44100 Hz (no srate/chans parameters). Deterministic (no seed, byte-identical re-renders).",
+    "Data-driven entry: process() takes no audio input argument; graph()/batch()/sweep() refuse arity-0 entries (arity_zero_unsupported). Sibling 'ts trace' (data as pitch-trace of a defined waveform) is uncurated."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

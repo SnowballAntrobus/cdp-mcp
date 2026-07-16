@@ -1,0 +1,94 @@
+{
+  "program": "chirikov",
+  "mode": "chirikov",
+  "submode": 1,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": "none",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Synthesizes the potentially chaotic CHIRIKOV STANDARD MAP as audio - a pure generator with NO audio input (input_arity 0). Mode 1 iterates the standard map driven at frq with nonlinearity 'damping'; DAMPING'S ENFORCED RANGE IS 0 to 12.566371 = EXACTLY 4*PI ('Parameter[3] Value (100.000000) out of range (0.000000 to 12.566371)') - it is the map's K stochasticity parameter: below ~1 the output is a quiet quasi-periodic hum, rising K drives period-doubling and chaos (level also rises: damping 0.1 peaks 0.56, damping 3 peaks 0.90). Both frq (0.001-10000) and damping are BREAKPOINT-CAPABLE (each verified to differ from both scalar-endpoint renders). Output duration is set sample-exactly by dur (2.0 -> 88200); the floor is the dovetail splice ('Duration too short for dovetailing splices.' at 0.01 s) and NO ceiling is enforced (7201 s accepted - the engine's duration cap is the real guard; curated max 7200). srate range gate 16000-96000; dovesplice 1-50 ms. Deterministic (runs 1.2 s apart byte-identical). Mode 2 (circle map) shares the exact argv shape and is deterministic with a distinct render - uncurated sibling; modes 3-4 (breakpoint-data outputs) are DROPPED: they strip the output extension (write 'X' when told 'X.txt'), breaking the engine's output contract.",
+  "musical_use": "Chaos as a playable oscillator: sweep damping (the K parameter) with a breakpoint file and one render walks from near-sine hum through period-doubled growl into broadband chaos - the classic route-to-chaos as a gesture (verified live: a 0.1->3 damping ramp differs from both fixed-K renders). Keep damping under ~1 for stable quasi-periodic drones with odd sidebands; ride 1-4 for gritty unstable tones; above 6 it is coloured noise. frq scales the iteration rate - sub-100 Hz values give rumbling textures, kHz values glassy noise. Layer mode-1 renders at slightly different damping for thick detuned chaos beds, or feed the output to filter bank to pick resonances out of the mess. Deterministic: every point on the chaos map is re-renderable exactly.",
+  "parameters": {
+    "dur": {
+      "type": "float",
+      "min": 0.05,
+      "max": 7200.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Output duration in seconds - sample-exact (2.0 -> 88200 frames). Floor = dovetail splices ('Duration too short for dovetailing splices.' at 0.01 with 15 ms splices); NO CDP ceiling (7201 accepted) - curated max 7200, the engine duration cap is the guard. Required."
+    },
+    "frq": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": 440.0,
+      "musical_range": [30.0, 3000.0],
+      "flag": null,
+      "description": "Driving frequency of the map iteration, CDP-enforced 0.001 to 10000 ('Parameter[2] Value (23000.000000) out of range (0.001000 to 10000.000000)'). BREAKPOINT-CAPABLE (verified: 220->880 differs from both endpoint renders). Output level varies with frq (higher drive = louder on this map)."
+    },
+    "damping": {
+      "type": "float",
+      "min": 0.0,
+      "max": 12.566371,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.5,
+      "musical_range": [0.1, 4.0],
+      "flag": null,
+      "description": "The map's stochasticity parameter K, CDP-enforced 0 to 12.566371 = 4*pi ('Parameter[3] Value (100.000000) out of range (0.000000 to 12.566371)'; -1 refused). Low = quasi-periodic hum, ~1-4 = period-doubling grit, high = chaos (and higher level: peak 0.56 at 0.1, 0.90 at 3). BREAKPOINT-CAPABLE (verified: 0.1->3 differs from both endpoints) - the route-to-chaos slider."
+    },
+    "srate": {
+      "type": "int",
+      "min": 16000,
+      "max": 96000,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 44100,
+      "flag": null,
+      "description": "Output sample rate, range gate 16000 to 96000 ('Parameter[4] Value (11025.000000) out of range (16000.000000 to 96000.000000)'). Positional - always emitted (default 44100)."
+    },
+    "dovesplice": {
+      "type": "float",
+      "min": 1.0,
+      "max": 50.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 15.0,
+      "flag": null,
+      "description": "Dovetail splice at start and end, CDP-enforced 1 to 50 ms ('Parameter[5] Value (0.500000) out of range (1.000000 to 50.000000)'; 60 refused). Also floors the usable dur. Positional - always emitted (default 15)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Quasi-periodic hum on the edge of instability.",
+      "params": {"dur": 4.0, "frq": 440.0, "damping": 0.5, "srate": 44100, "dovesplice": 15.0},
+      "expected_use": "No input argument. Quiet (peak ~0.11) unstable hum; deterministic - same render every time."
+    },
+    {
+      "description": "The route to chaos as one gesture.",
+      "params": {"dur": 10.0, "frq": 110.0, "damping": [[0.0, 0.1], [1.0, 6.0]], "srate": 44100, "dovesplice": 20.0},
+      "expected_use": "K climbs from hum through period-doubling into broadband chaos; level rises with K - leave headroom."
+    }
+  ],
+  "known_issues": [
+    "damping's range is exactly 4*pi (12.566371) - it is the Chirikov map's K parameter, not an amplitude damping; output LEVEL rises with it (0.56 -> 0.90 peak observed).",
+    "dur has NO CDP ceiling (7201 s accepted) - the engine's duration cap/watchdog is the guard; the floor is the dovetail splice refusal (verbatim).",
+    "Output level varies strongly with frq and damping (peak 0.06-0.90 observed) - normalize downstream when layering.",
+    "Deterministic: no seed, no clock dependence (runs 1.2 s apart byte-identical).",
+    "Mode 2 (circle map) shares the argv shape, renders distinctly, equally deterministic - uncurated sibling. Modes 3-4 (time/MIDI breakpoint-file outputs) are DROPPED: the binary STRIPS the output extension (writes 'X' when the argv says 'X.txt'), so the engine's expected output file never exists.",
+    "Generator entry: process() takes no input argument; graph()/batch()/sweep() refuse arity-0 entries (arity_zero_unsupported)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

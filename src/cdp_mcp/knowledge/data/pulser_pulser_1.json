@@ -1,0 +1,220 @@
+{
+  "program": "pulser",
+  "mode": "pulser",
+  "submode": 1,
+  "category": "texture",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "dur + (minrise + maxrise + minsus + maxsus + mindecay + maxdecay) / 2"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Iterates the source into a STREAM OF PITCHED PACKETS: mode 1 takes only the SPECTRAL BRIGHTNESS from the source and pitches each packet at the (time-variable) MIDI pitch parameter, enveloping every packet with random rise/sustain/decay drawn between the min/max bounds. (Mode 2 derives packets from the source start, mode 3 from random points within it - uncurated siblings; the separate 'pulser synth' mode is DROPPED on this build - segfaults or writes 0-frame files.) SEED SEMANTICS (pinned): -s0 == -s1 == flag omitted, ALL byte-identical (glibc srand default-state pattern), and every run is reproducible - unseeded pairs 1.2 s apart byte-identical; seeds 5 and 9 give distinct takes reproducible at will. NO clock path. Duration: packets are laid until dur is passed, then the last packet's envelope rings out - outdur = dur + a tail between the min and max envelope sums; the curated expression uses the mean tail ((minrise+maxrise+minsus+maxsus+mindecay+maxdecay)/2), verified +4.0% worst on the pinned row and INPUT-LENGTH-INDEPENDENT (0.3 s and 2.0 s sources render the same 3.236757 s at the same seed). pitch, speed and pscat are breakpoint-capable (each verified against both scalar endpoints at fixed seed); the banner marks everything except dur/seed/min-max bounds as time-variable, but only these three are verified here. Mono input only ('File st2.wav is not of correct type: must be MONO'). Ranges pinned verbatim: pitch 24-96, minrise/maxrise 0.002-0.2, minsus/maxsus 0-0.2, mindecay/maxdecay 0.02-2, speed 0.05-1, scatter 0-1, expr/expd 0.25-4, pscat/ascat 0-1; octav and bend are banner-said 0-1 but 1.5 is ACCEPTED (advisory); maxrise < minrise accepted silently; seed unbounded above (257 accepted).",
+  "musical_use": "A pitched-grain arpeggiator that borrows only the COLOUR of its source: feed it anything bright (noise, cymbals, speech) and it re-voices that brightness as a stream of enveloped tones at the pitch you script. Breakpoint pitch for melodies and glides - a MIDI envelope IS the tune; breakpoint speed to accelerate from sparse blips (speed 1) into near-granular chatter (speed 0.05); pscat adds reproducible pitch-jitter around the line. The min/max envelope bounds are the articulation: tight rise/decay = plucky mandolin dots, long decays overlapping at fast speed = wash. octav adds sub-octave weight; bend chirps each packet upward. Everything randomised is seed-reproducible - keep params+seed to re-render a take exactly, step the seed for variations. Stereo width: mode 1 output is mono; spread downstream (or see mode 3's width/spacedata, uncurated).",
+  "parameters": {
+    "dur": {
+      "type": "float",
+      "min": 0.05,
+      "max": 3600.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Nominal stream duration - packets are placed until dur is passed, then the last envelope rings out (outdur = dur + up to maxrise+maxsus+maxdecay). 0.05 accepted; no upper refusal probed (curated max 3600 as guard - the engine duration cap applies). Required."
+    },
+    "pitch": {
+      "type": "float",
+      "min": 24.0,
+      "max": 96.0,
+      "unit": "midi",
+      "breakpoint_capable": true,
+      "default": 60.0,
+      "flag": null,
+      "description": "MIDI pitch of the packets, CDP-enforced 24 to 96 ('Parameter[2] Value (23.000000) out of range (24.000000 to 96.000000)'). BREAKPOINT-CAPABLE (verified: 48->84 differs from both endpoint renders at fixed seed) - the melody input."
+    },
+    "minrise": {
+      "type": "float",
+      "min": 0.002,
+      "max": 0.2,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.02,
+      "flag": null,
+      "description": "Minimum packet rise time, CDP-enforced 0.002 to 0.2 ('Parameter[3] Value (0.001000) out of range (0.002000 to 0.200000)'). Each packet's rise is drawn between minrise and maxrise. maxrise < minrise is accepted silently - keep them ordered."
+    },
+    "maxrise": {
+      "type": "float",
+      "min": 0.002,
+      "max": 0.2,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.05,
+      "flag": null,
+      "description": "Maximum packet rise time, same enforced range as minrise (parameter 4)."
+    },
+    "minsus": {
+      "type": "float",
+      "min": 0.0,
+      "max": 0.2,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.01,
+      "flag": null,
+      "description": "Minimum packet sustain, CDP-enforced 0 to 0.2 (parameter 5; sibling refusal 'Parameter[6] Value (0.250000) out of range (0.000000 to 0.200000)')."
+    },
+    "maxsus": {
+      "type": "float",
+      "min": 0.0,
+      "max": 0.2,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.05,
+      "flag": null,
+      "description": "Maximum packet sustain, CDP-enforced 0 to 0.2 ('Parameter[6] Value (0.250000) out of range (0.000000 to 0.200000)')."
+    },
+    "mindecay": {
+      "type": "float",
+      "min": 0.02,
+      "max": 2.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.1,
+      "flag": null,
+      "description": "Minimum packet decay, CDP-enforced 0.02 to 2 ('Parameter[7] Value (0.010000) out of range (0.020000 to 2.000000)')."
+    },
+    "maxdecay": {
+      "type": "float",
+      "min": 0.02,
+      "max": 2.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.5,
+      "flag": null,
+      "description": "Maximum packet decay, CDP-enforced 0.02 to 2 ('Parameter[8] Value (2.500000) out of range (0.020000 to 2.000000)'). Dominates the post-dur ring-out tail."
+    },
+    "speed": {
+      "type": "float",
+      "min": 0.05,
+      "max": 1.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": 0.25,
+      "flag": null,
+      "description": "Average time between packets, CDP-enforced 0.05 to 1 ('Parameter[9] Value (0.040000) out of range (0.050000 to 1.000000)'). BREAKPOINT-CAPABLE (verified: 0.1->0.9 differs from both endpoints at fixed seed) - the density ramp."
+    },
+    "scatter": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.2,
+      "flag": null,
+      "description": "Randomisation of speed, CDP-enforced 0 to 1 ('Parameter[10] Value (1.200000) out of range (0.000000 to 1.000000)'). Seed-reproducible."
+    },
+    "expr": {
+      "type": "float",
+      "min": 0.25,
+      "max": 4.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Rise slope (1 linear, >1 steeper, <1 shallower), CDP-enforced 0.25 to 4 ('Parameter[11] Value (0.200000) out of range (0.250000 to 4.000000)')."
+    },
+    "expd": {
+      "type": "float",
+      "min": 0.25,
+      "max": 4.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-E",
+      "flag_kind": "attached_value",
+      "description": "Decay slope, CDP-enforced 0.25 to 4 ('Parameter[12] Value (4.500000) out of range (0.250000 to 4.000000)')."
+    },
+    "pscat": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Random pitch jitter of packets, CDP-enforced 0 to 1 semitone ('Parameter[13] Value (1.500000) out of range (0.000000 to 1.000000)'). BREAKPOINT-CAPABLE (verified: 0->1 differs from both endpoints); -p0 == flagless byte-identical (default 0)."
+    },
+    "ascat": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Random amplitude jitter of packets, CDP-enforced 0 to 1 ('Parameter[14] Value (1.500000) out of range (0.000000 to 1.000000)')."
+    },
+    "octav": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-o",
+      "flag_kind": "attached_value",
+      "description": "Lower-octave reinforcement. Banner says 0-1 but -o1.5 is ACCEPTED (advisory bound; curated range keeps the documented intent)."
+    },
+    "bend": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Upward pitchbend of packets. Banner says 0-1 but -b1.5 is ACCEPTED (advisory bound)."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 5,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Random seed. -s0 == -s1 == flag omitted (all byte-identical, glibc srand default-state); values >= 2 give distinct reproducible takes (seed 5 twice 1.2 s apart byte-identical; 5 vs 9 differ); 257 accepted (no ceiling probed - banner says 'Integer >=1'). Entry default 5 so renders differ from the trivial default stream. NO clock path - every render is reproducible."
+    }
+  },
+  "examples": [
+    {
+      "description": "Plucky packet stream borrowing a noise source's brightness.",
+      "params": {"dur": 4.0, "pitch": 60.0, "minrise": 0.02, "maxrise": 0.05, "minsus": 0.01, "maxsus": 0.05, "mindecay": 0.1, "maxdecay": 0.5, "speed": 0.25, "scatter": 0.2, "seed": 5},
+      "expected_use": "Mono source in; ~4 packets/s at middle C. Re-render with the same seed for the identical take."
+    },
+    {
+      "description": "Accelerating melodic gliss with jitter and sub-octave weight.",
+      "params": {"dur": 8.0, "pitch": [[0.0, 48.0], [1.0, 84.0]], "minrise": 0.005, "maxrise": 0.02, "minsus": 0.0, "maxsus": 0.03, "mindecay": 0.05, "maxdecay": 0.3, "speed": [[0.0, 0.8], [1.0, 0.06]], "scatter": 0.4, "pscat": 0.5, "octav": 0.4, "seed": 9},
+      "expected_use": "Sparse low blips accelerate into high chatter; pitch/speed/pscat envelopes all verified time-variable."
+    }
+  ],
+  "known_issues": [
+    "SEED: 0, 1 and omitted are the SAME stream (byte-identical); reproducibility is total (no clock path) - unseeded A/B pairs will always collide. Entry default 5.",
+    "Output overshoots dur by the last packet's envelope (tail between the min and max envelope sums; the curated mean-tail model was +4.0% worst on the pinned row). Tail is seed-dependent - budget maxrise+maxsus+maxdecay of slack.",
+    "Only pitch, speed and pscat are VERIFIED breakpoint-capable; the banner claims all params except dur/seed/min-max bounds vary over time - unverified claims are left non-capable here.",
+    "octav and bend exceed their banner 0-1 ranges silently (1.5 accepted) - curated bounds keep the documented intent.",
+    "maxrise < minrise (and analogous inversions) are accepted silently - behavior unpinned, keep bounds ordered.",
+    "Mono input only ('File st2.wav is not of correct type: must be MONO'); mono output in this mode.",
+    "SIBLING TRAP: 'pulser synth' (the arity-0 partials-data mode) is BROKEN on this build - segfaults (exit 139) or writes 0-frame files; it is dropped, not curated. pulser multi (multi-source) works but is uncurated."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

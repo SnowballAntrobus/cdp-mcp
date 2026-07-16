@@ -1,0 +1,346 @@
+{
+  "generated_at": "2026-07-16",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build, -fsigned-char; Groucho programs banner 'CDP Release 7.1 2016'; Release-8 science programs print no banner)",
+    "os": "Linux x86_64 sandbox",
+    "note": "Tranche 17 - synthesis/generative. SoundThread and afta8 cover NONE of these programs (grep-verified); priors are binary + /tmp/CDP8/dev source + cr8new.htm/cgrosynth.htm. Every shipped entry was run end-to-end through process_impl in-sandbox (CDP_PATH=/tmp/CDP8/NewRelease) - statuses in the transcript. To be re-verified on macOS r8 by the CDP-gated suite after integration.",
+    "aux_files_for_rows": {
+      "chd17.txt": "60 64 67\n",
+      "frq17.txt": "261.63 329.63 392.0\n",
+      "nsp17.txt": "0 1 1 2 0.5 3 0.25\n",
+      "ntx17.txt": "0 1 1 2 0.5\n",
+      "sp64.txt": "0.000000 0.000000\n800.020000 1.000000\n0.000000 0.219829\n-1716.650000 0.046999\n2999.050000 0.509789\n0.000000 0.408120\n0.000000 0.083569\n0.000000 0.021371\n0.000000 0.019617\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n"
+    }
+  },
+  "entries": [
+    {
+      "program": "synth",
+      "mode": "spectra",
+      "submode": null,
+      "breakpoint_capable": ["frq", "spread", "maxfoc", "minfoc", "timevar"],
+      "duration_row": ["synth", "spectra", null, null, {"dur": 2.0, "frq": 1000.0, "spread": 400.0, "maxfoc": 0.9, "minfoc": 0.3, "timevar": 0.5, "srate": 44100}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Always-stereo band generator; set_by dur quantized DOWN (2.0 -> 1.9737 / -1.3%; shortfall grows to -5.4% at 0.5 s - keep dur >= 1 s).",
+        "Deterministic despite timevar's 'random' wander (1.2 s pairs byte-identical; no seed exists).",
+        "TEMP-FILE QUIRK: writes <outstem>1/2/3.wav beside the output; killed runs leave them and same-name re-runs refuse 'Cannot open temporary analysis file ... already exists' - engine's fresh names avoid it.",
+        "Ranges verbatim: dur 0.1-32767, frq 10-48000 (above-Nyquist silent), spread 0-24000, focs/timevar 0-1, srate 16000-96000 gate. maxfoc < minfoc accepted silently. -p flag = spread as transposition ratio (runs).",
+        "Five of seven params breakpoint-capable (each vs both endpoints); dur refuses (parameter 1). Engine run ok, dur 1.9737."
+      ]
+    },
+    {
+      "program": "synth",
+      "mode": "chord",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": ["synth", "chord", 1, null, {"datafile": "chd17.txt", "srate": 44100, "chans": 1, "dur": 2.0, "amp": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "MIDI-datafile chord on a sine wavetable; dur sample-exact; deterministic.",
+        "AMP DEFAULT DIVERGENCE (first-class): banner 'max & default 1.0' is FALSE - flagless peak is 0.300 regardless of note count; -a1 peaks 0.999. Entry defaults amp 0.5, always emitted.",
+        "Fractional MIDI accepted (quartertones); per-value refusal 'Value 1 (200.000000) is out of range.'; ';' comments byte-identical.",
+        "No breakpoint-capable params (amp 'Cannot read parameter 5', dur 'parameter 3' verbatim). chans 1-16 (banner '1, 2 or 4' false), dual-mono; tabsize 256-4096 default 4096 (-t256 differs).",
+        "Engine run ok, dur exactly 2.0 (aux via session data/)."
+      ]
+    },
+    {
+      "program": "synth",
+      "mode": "chord",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": ["synth", "chord", 2, null, {"datafile": "frq17.txt", "srate": 44100, "chans": 1, "dur": 2.0, "amp": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Frequency-datafile sibling; FFT peaks land exactly on the listed Hz (261.63/329.63/392 verified); differs from submode 1's equal-tempered render as expected.",
+        "Value range per-value: 30000 refused verbatim, 5 Hz accepted (sub-audio legal).",
+        "All submode-1 pins re-verified where parser-shared (amp default 0.3, determinism, no brk params). Engine run ok, dur 2.0."
+      ]
+    },
+    {
+      "program": "synth",
+      "mode": "clicks",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Duration is driven by the clickfile's metrical content (last beat + ~21 samples); the entry's duration expression names the aux param so the pre-flight skips (clicknew precedent - excluded from the suite). Verified: 4x4/4@120 -> 7.500476; +2x3/4@60 -> 13.000476; TIME 8.0 + 1 bar -> 9.500476. Engine run ok (3.5005 from a 2-bar file).",
+      "stochastic": true,
+      "notes": [
+        "Metrical clicktrack from tempo/barring/count/accent datalines; grammar refusals verbatim: sequential linenos, accent-string length must equal beats-per-bar, 'TIME' not first (all three pinned).",
+        "CLOCK-RANDOMIZED CLICK SHAPE, UNSEEDABLE (clicknew precedent re-verified): same-second runs byte-identical, cross-second runs differ; click TIMES deterministic. Peak can hit 1.0000.",
+        "CRASH (build-pinned): -s/-e start/end flags SIGABRT exit 134 AFTER writing plausible output, both submodes - flags excluded, version_sensitive true; submode 2 (line-number addressing, only useful with -s/-e) dropped.",
+        "Output mono 44100 only (no srate slot in this mode, unlike clicknew)."
+      ]
+    },
+    {
+      "program": "impulse",
+      "mode": "impulse",
+      "submode": null,
+      "breakpoint_capable": ["pitch", "chirp", "slope", "pkcnt", "level", "gap"],
+      "duration_row": ["impulse", "impulse", null, null, {"dur": 2.0, "pitch": 60.0, "chirp": 0.0, "slope": 10.0, "pkcnt": 30, "level": 0.7}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Impulse-stream generator; set_by dur quantized to whole impulse periods (-0.19% at 2 s); DUR 0 legal = exactly one impulse.",
+        "Six params breakpoint-capable, each vs both endpoints - pkcnt is NOT in the banner's vary list (banner omission); the banner's 'GLIS' names no argv slot (means chirp). -g0 == flagless byte-identical.",
+        "CHANS RELABEL BUG (first-class, this build): -cN divides duration by N while the decoded stream stays byte-identical to mono (dur consumed as total samples; header-only relabel). chans EXCLUDED from the entry; output mono.",
+        "Ranges verbatim: dur 0-7200, pitch 1-1000 (MIDI-labelled, 128 accepted), chirp 0-30, slope 1-20, pkcnt 1-200, level 0-1, gap -0.99-10, srate 16000-96000, chans 1-16.",
+        "Deterministic. Engine run ok, dur 1.99619."
+      ]
+    },
+    {
+      "program": "motor",
+      "mode": "motor",
+      "submode": 1,
+      "breakpoint_capable": ["freq", "fratio", "pratio", "frand", "jitter"],
+      "duration_row": ["motor", "motor", 1, 2.0, {"dur": 3.0, "freq": 20.0, "pulse": 1.0, "fratio": 0.5, "pratio": 0.7, "sym": 0.5}, 0.05],
+      "stochastic": true,
+      "notes": [
+        "THE TRANCHE PRIZE. Duration model pinned SAMPLE-EXACT across 8 probes / 3 sources: whole outer pulses covering dur minus final off-time; curated expr '(dur*pulse - dur*pulse % 1 + (dur*pulse % 1 > 0) - (1 - pratio)) / pulse' (%-arithmetic ceil, SimpleEval-verified); input-length-independent. prand/pratio-envelopes make it approximate (documented).",
+        "SEED SEMANTICS: no clock path anywhere - unseeded pairs 1.3 s apart byte-identical, -s0 == unseeded; seed INERT at zero randomisation (-s5 == -s9 == unseeded); with -f/-j active seed 5 reproduces and 5 vs 9 differ. Range 0-256.",
+        "PULSE accepts breakpoint files but is INERT (brk 0.5->3 renders byte-identical to the 0.5 scalar - verified); sym refuses (parameter 6); freq/fratio/pratio/frand/jitter each verified vs both endpoints; dur brk range-checked inside the file (1-7200 quoted in-brkfile).",
+        "Runtime: outer on-time must hold >= 2 inner pulses (two-line verbatim INVALID DATA pinned); -v with -a refused 'Fixed step and varying step in src-read cannot both be used.'; -c is 'Unknown variant flag' in mode 1 despite the banner.",
+        "All 15 parameter ranges pinned verbatim (Parameters 1-15). Stereo in -> stereo out (any). Modes 2-9 (slice-data / multi-source / read-direction variants) uncurated siblings.",
+        "Engine run ok, dur 2.700000 exact on the 2 s fixture."
+      ]
+    },
+    {
+      "program": "ceracu",
+      "mode": "ceracu",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Duration = mincycdur_eff * max(cyclcnts) + max(0, indur - mincycdur) per resync cycle (mincycdur 0 -> indur), whole cycles >= outdur - but the counts live in the aux datafile, so the entry's duration expression names the aux param and the pre-flight skips (extend_sequence2 precedent - excluded from the suite). Model verified on 5 probes incl. the 2 s fixture: counts 3/4/5, mincycdur 0.5, n2 -> 4.000544 (predicted 4.0). Engine run ok at exactly those params.",
+      "stochastic": false,
+      "notes": [
+        "Polyrhythmic resync cyclestreams; the T17 roadmap question 'duration = f(cyclcnts, mincycdur, outdur)?' is answered: YES, the closed form above (6-probe table in the transcript, worst error the ~30-sample splice tail).",
+        "cyclcnts needs >= 2 values ('Must be more than 1 cycle value'); counts >= 1 ('Invalid cyclecnt (0.0) (must be >=1)'); FRACTIONAL counts silently ROUNDED (3/4.5 renders as 3/5 - duration proof).",
+        "Ranges INPUT-DEPENDENT: mincycdur 0 to 32*indur, echo 0 to 16*indur (both quoted on the 0.3 s source); chans 1-16; outdur 0-3600 (0 = one cycle; whole cycles otherwise, verified 4x at outdur 5).",
+        "Auto-normalises to peak 0.95 every run; the INFO line misprints the factor's units as 'secs'. echo > 0 extends output (excluded from model). Mono only (verbatim). Deterministic (1.3 s pairs byte-identical)."
+      ]
+    },
+    {
+      "program": "newsynth",
+      "mode": "synthesis",
+      "submode": 1,
+      "breakpoint_capable": ["frq"],
+      "duration_row": ["newsynth", "synthesis", 1, null, {"spectrum": "nsp17.txt", "srate": 44100, "dur": 2.0, "frq": 220.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Scripted time-varying additive spectrum; dur sample-exact; mono; peak normalised 0.85; deterministic.",
+        "Spectrum-file contract pinned with 5 verbatim refusals (first time 0, first partial 1, increasing partials, equal line counts, Nyquist check quoting frq and partial).",
+        "DIVERGENCE: non-ascending TIMES accepted silently (manual says must increase); dur below the manual's 0.04 floor accepted (0.01).",
+        "frq breakpoint-capable (110->440 vs both endpoints), range 0.001-10000. Modes 2/3/4 uncurated siblings. Engine run ok, dur 2.0."
+      ]
+    },
+    {
+      "program": "newsynth",
+      "mode": "synthesis",
+      "submode": 5,
+      "breakpoint_capable": ["frq", "damping"],
+      "duration_row": ["newsynth", "synthesis", 5, null, {"srate": 44100, "dur": 2.0, "frq": 80.0, "damping": 0.2, "k": 5.0, "b": 30.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Duffing damped oscillator (chaotic dynamics); dur sample-exact; PEAK 1.0 FULL SCALE (hottest generator in the tranche - headroom warning in entry).",
+        "MANUAL DIVERGENCE (first-class): cr8new claims damping 'seemed to have no effect' - on this build damping verifiably changes the render AND its 0.2->1.8 envelope differs from both endpoints (breakpoint-capable).",
+        "frq enforced 0.1-200 (manual says 1-200); brk capable with in-brkfile range validation quoted verbatim. k -10..10, b 20..50 verbatim.",
+        "Banner's 'amplitude can vary through time' names no argv slot - no amplitude param exists. Deterministic. Engine run ok, dur 2.0."
+      ]
+    },
+    {
+      "program": "pulser",
+      "mode": "pulser",
+      "submode": 1,
+      "breakpoint_capable": ["pitch", "speed", "pscat"],
+      "duration_row": ["pulser", "pulser", 1, 2.0, {"dur": 3.0, "pitch": 60.0, "minrise": 0.02, "maxrise": 0.05, "minsus": 0.01, "maxsus": 0.05, "mindecay": 0.1, "maxdecay": 0.5, "speed": 0.25, "scatter": 0.2, "seed": 5}, 0.05],
+      "stochastic": true,
+      "notes": [
+        "Pitched-packet stream taking only spectral brightness from the source (mode 1). Duration = dur + last-packet ring-out; curated mean-tail expression 'dur + (minrise+maxrise+minsus+maxsus+mindecay+maxdecay)/2' -> +3.96% on the pinned row; INPUT-LENGTH-INDEPENDENT (0.3 s and 2.0 s sources give identical 3.236757 at seed 5).",
+        "SEED: -s0 == -s1 == omitted, all byte-identical (glibc srand default-state); no clock path (unseeded pairs 1.2 s apart identical); seeds >= 2 distinct + reproducible; -s257 accepted (unbounded above). Entry default 5.",
+        "pitch/speed/pscat breakpoint-capable (each vs both endpoints at seed 5; -p0 == flagless). Banner claims wider time-variability - unverified params left non-capable.",
+        "Ranges verbatim Parameters 2-14; octav/bend banner 0-1 ADVISORY (1.5 accepted); maxrise < minrise accepted silently; mono input only (verbatim).",
+        "Engine run ok (defaults -e1/-E1/-p0/-a0/-o0/-b0 emitted): 3.236757 - byte-consistent with the bare-probe duration, proving the emitted defaults are behavior-neutral."
+      ]
+    },
+    {
+      "program": "synfilt",
+      "mode": "synfilt",
+      "submode": 1,
+      "breakpoint_capable": ["q"],
+      "duration_row": null,
+      "duration_row_reason": "Output duration = last datafile time + Q-dependent ring-out (2.0 -> 3.981 at Q 50; capped at exactly 262144 frames / 5.944 s at Q 200 - the filter-bank buffer constant); the duration expression names the aux param, pre-flight skips (excluded from the suite). Engine run ok, dur 3.981043.",
+      "stochastic": false,
+      "notes": [
+        "BANNER ARGV IS WRONG (first-class): usage lists 'dur' and 'gain' - neither exists. Real argv: data srate chans Q hcnt rolloff seed (source: science.h SYNFLT_ indices 0-5; a dur value refuses as an out-of-range srate).",
+        "Q breakpoint-capable (20->200 vs both endpoints; duration moves with Q). Ranges verbatim: chans 1-2, Q 0.001-10000, hcnt 1-200 with runtime Nyquist refusal 'Filter Harmonic 43 of 523.3Hz = 22499.8Hz beyond filter limit 22050.0.' (exit 253), rolloff -96..0, seed 0-32767.",
+        "Seed 0 == 1 byte-identical (default-state); other seeds distinct + reproducible; deterministic (1.2 s pairs identical).",
+        "-d (double filtering) verified live; banner's -n flag is PHANTOM ('Unknown flag -n'); -o unprobed. Mode 2 (varibank multi-pitch lines) uncurated sibling."
+      ]
+    },
+    {
+      "program": "ts",
+      "mode": "oscil",
+      "submode": null,
+      "breakpoint_capable": ["downsample"],
+      "duration_row": null,
+      "duration_row_reason": "Duration = datacount * 2^downsample / 44100 capped by maxdur - datacount lives in the aux file, expression names the aux param, pre-flight skips (excluded from the suite). Verified: 8000 values at ds 0 -> exactly 8000 frames; ds 4 -> 2.902; ds 8 -> exactly 10.0 (default curtail). Engine run ok, dur 1.45088 (4000 values, ds 4 - matches 1.4512).",
+      "stochastic": false,
+      "notes": [
+        "Time-series sonification (data as waveform plot). UNDOCUMENTED 10-second default curtail without -d (verified exact); maxdur enforced 1-60, banner '1 - 600' WRONG (verbatim refusal).",
+        "-c (cubic spline) BROKEN on this build: renders a 1-frame silent file - excluded, version_sensitive true. -f loops to maxdur exactly (verified 20.0); -f without -d accepted silently despite the banner calling it invalid (inert).",
+        "downsample breakpoint-capable (2->6 vs both endpoints), range 0-16; envelope times are output-sound times. Data values outside +/-1 accepted. Deterministic.",
+        "ARGV LAYOUT PIN: indata PRECEDES the output ('ts oscil indata outsnd ...') - entry declares position pre_output; without it the engine argv put the output first and ts failed 'Failed to parse input file graphs/...wav' (caught in engine verification, fixed, re-verified ok).",
+        "Sibling 'ts trace' (data as pitch-trace of a scripted waveform) uncurated."
+      ]
+    },
+    {
+      "program": "chirikov",
+      "mode": "chirikov",
+      "submode": 1,
+      "breakpoint_capable": ["frq", "damping"],
+      "duration_row": ["chirikov", "chirikov", 1, null, {"dur": 2.0, "frq": 440.0, "damping": 0.5, "srate": 44100, "dovesplice": 15.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Chirikov standard-map synthesis; dur sample-exact; deterministic.",
+        "damping's enforced range is EXACTLY 4*pi (0 to 12.566371 verbatim) - it is the map's K stochasticity parameter; output level rises with it (peak 0.56 -> 0.90) and with frq.",
+        "frq and damping both breakpoint-capable (each vs both endpoints) - a damping ramp renders the route-to-chaos in one take.",
+        "dur has NO CDP ceiling (7201 accepted - engine cap guards); floor = dovetail refusal verbatim; srate 16000-96000; dovesplice 1-50 ms.",
+        "Mode 2 (circle map, same argv, distinct deterministic render) uncurated sibling. Engine run ok, dur 2.0."
+      ]
+    },
+    {
+      "program": "newtex",
+      "mode": "newtex",
+      "submode": 1,
+      "breakpoint_capable": ["step"],
+      "duration_row": ["newtex", "newtex", 1, 2.0, {"transposes": "ntx17.txt", "dur": 4.0, "chans": 2, "maxrange": 2.0, "step": 0.5, "spacetype": 0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Grain texture from transpositions of one mono source; dur sample-exact.",
+        "Deterministic UNSEEDED (no seed param; 1.2 s pairs byte-identical - fixed random state): identical calls always collide; documented in entry.",
+        "NO MONO OUTPUT: chans enforced 2-16 (verbatim); spacetypes 1-14 need 8 channels (verbatim); step < dur/2 runtime refusal verbatim; input must be mono (verbatim).",
+        "step breakpoint-capable (0.2->1.5 vs both endpoints); banner also marks maxrange/number time-variable (unverified, left non-capable).",
+        "Banner usage is getch()-gated - hangs silently without a tty (why the binary 'prints nothing' under pipes). Modes 2/3 uncurated siblings. Engine run ok, dur 4.0."
+      ]
+    },
+    {
+      "program": "fractal",
+      "mode": "wave",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Input must be a single mono WAVECYCLE (starts/ends at 0) - incompatible with the suite's 2 s noise fixture. set_by dur verified on the cycle fixture: 3.0 -> 3.007710 (+0.26%). Engine run ok with cycle.wav input, dur 3.00771.",
+      "stochastic": false,
+      "notes": [
+        "Fractal wave grown from one wavecycle (self-similar transposition recursion). HANG LANDMINE (first-class, build-pinned): a 2-POINT shape file sends BOTH wave modes into an infinite loop (no output, timeout-killed); shapes need >= 3 breakpoints. stability 'unstable', version_sensitive true.",
+        "Mode 1 (fractalise an arbitrary sound) DEFERRED: works with 3-point shapes but output duration is shape-dependent and extreme (1 s tone -> 0.188 s, 2 s -> 0.376 s - x0.188 both) - no honest closed-form model; possible future curation with an aux-name expression. fractal spectrum unprobed.",
+        "waveform make 2 (curated) is the companion wavecycle factory; maxfrac/str/warp flags unprobed and uncurated."
+      ]
+    },
+    {
+      "program": "spectrum",
+      "mode": "fixed",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["spectrum", "fixed", null, null, {"datafile": "sp64.txt", "pointcnt": 64, "srate": 44100, "dur": 2.0, "atten": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "TEXT DATA -> SPECTRA: renders a fixed spectrum as a .ana with no audio input and no pvoc pass (domain spectral, arity 0). pvoc synth round-trip renders real audio; sfprops -d 2.026306 at pointcnt 64 (+1.3%), 2.074020 at 256 (+3.7%) - set_by dur quantized UP.",
+        "DATA CONTRACT verbatim: 'Data count (258) should be just 2 more than analysis-points parameter (256)' and 'ANALYSIS POINTS PARAMETER MUST BE A POWER OF TWO.' - the datafile MUST come from 'spectrum format' (curated) at the same pointcnt.",
+        "CONTENT-DETERMINISTIC WITH HEADER TIMESTAMP: identical runs differ at .ana byte ~179 (embedded date) while resyntheses decode byte-identical (sha 51dd6761 both) - hash decoded audio for A/B and caching.",
+        "Un-attenuated resynthesis peaks at 1.0 - entry defaults atten 0.5 (always emitted). srate 44100-96000, dur 0.1-3600 verbatim. Shaping flags -h/-b/-f/-r/-s/-t/-w/-m/-d unprobed (types 2/3 documented-random). Engine run ok (spectral arity-0 path verified)."
+      ]
+    },
+    {
+      "program": "spectrum",
+      "mode": "format",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (.txt) - no audio duration (retime-12/peakfind exclusion precedent); duration_model static per data-output convention. Engine run ok (data path verified).",
+      "stochastic": false,
+      "notes": [
+        "Data->data: converts a dense ascending 'frq amp' graph into the peak/trough format spectrum fixed consumes. Output = pointcnt + 2 values (pointcnt/2 + 1 lines; 33 at 64, 129 at 256 verified) regardless of input size.",
+        "SPARSE-INPUT TRAP: a 200-point graph at pointcnt 1024 under-produced (111 lines) and broke fixed's count check downstream - the input must have many more points than pointcnt (manual concurs).",
+        "Byte-deterministic (two runs identical)."
+      ]
+    },
+    {
+      "program": "waveform",
+      "mode": "make",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": ["waveform", "make", 2, 2.0, {"time": 1.0, "dur": 100.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Wavetable extractor: cuts dur ms at zero-crossings and abuts the segment to its inversion - output = 2*dur/1000 s (exact on a tone at 20/100 ms; +0.02% on noise). Peak normalised 0.95. Deterministic.",
+        "time runtime-ranged 0..indur verbatim; fit check 'Cannot cut duration 20.000000 mS, after time 1.990000 in infile.' verbatim; dur 1-10000 ms; mono only (verbatim).",
+        "The companion for fractal wave 2 and brownian mode 1 (both need zero-crossing wavecycle sources). Modes 1 (half-waveset count - data-dependent length) and 3 (sinusoid blend) uncurated siblings.",
+        "Engine run ok, dur 0.2000454."
+      ]
+    },
+    {
+      "program": "brownian",
+      "mode": "motion",
+      "submode": 2,
+      "breakpoint_capable": ["tick", "plo"],
+      "duration_row": ["brownian", "motion", 2, 2.0, {"chans": 1, "dur": 3.0, "plo": 60.0, "phi": 60.13, "pstart": 60.0, "sstart": 1.0, "step": 0.125, "sstep": 0.0, "tick": 0.25, "seed": 5}, 0.05],
+      "stochastic": true,
+      "notes": [
+        "Brownian-walk texture; mode 2 transposes the WHOLE source per event. SOURCE-PINNED transposition reference = PSTART (brownian.c:1622); max event length = indur * 2^((pstart-plo)/12) (lines 1352-1354) - the curated duration expression 'dur + indur * 2 ** ((pstart - plo) / 12)' is that worst-case tail bound: -2.7% at a near-flat band (the pinned row), over-predicting (safe for the cap) when the walk ends high (wide band: 4.611 actual vs 7.0 bound).",
+        "SEED: 0 == 1 byte-identical AND clock-free (seed-0 pairs 1.2 s apart identical); seeds >= 2 distinct + reproducible (5 twice identical, 5 vs 9 differ). Range 0-255.",
+        "tick breakpoint-capable (vs both endpoints at fixed seed). plo capable with a caveat: its 55->70 envelope differs from the same-params scalar-55 render, but the strict both-endpoint proof is structurally impossible (scalar plo 70 forces pstart >= 70 - different params). phi/step/sstep/arange/minamp banner-time-variable, unverified, left non-capable.",
+        "Ranges verbatim Parameters 1-10 (chans 1-16, dur 0.3-7200, plo/phi 0-127, step 0.125-24, sstep 0-1, tick 0.002-4, seed 0-255); pstart-in-range and range-vs-step refusals verbatim; 'Output array must be LINEAR...' warning below 3 chans.",
+        "Engine run ok (defaults -a0/-m0 emitted): 4.86562, identical to the bare probe - emitted defaults behavior-neutral."
+      ]
+    }
+  ],
+  "dropped": [
+    {
+      "program": "synth",
+      "mode": "silence",
+      "reason": "Structural: output is digital silence by definition; verify_output marks silent wavs ok=False and node_execution success requires verification.ok - every render fails the engine contract (graph.py:518, tools/node_execution.py:228). Binary itself fine (ranges pinned in transcript: srate gate 16000-192000, chans 1-16 despite banner '1, 2 or 4', dur 0.000002-7200)."
+    },
+    {
+      "program": "synth",
+      "mode": "clicks",
+      "submode": 2,
+      "reason": "The -s/-e start/end flags SIGABRT (exit 134) after writing plausible output in BOTH submodes (verified mode 1 -s2 -e5 -> 3.000476 s then abort; mode 2 -> 5.000476 s then abort); submode 2 (start/end as line numbers) exists only to serve those flags. Broken exit contract - the engine reports subprocess failure despite the file. Submode 1 curated without the flags."
+    },
+    {
+      "program": "pulser",
+      "mode": "synth",
+      "reason": "Broken on this build: SIGSEGV exit 139 on two probes (multi-line pairs file, with and without -s1), and parameter sets that avoid the crash exit 0 but write 0-FRAME files (three probes, incl. single-partial data) - fails size/RMS verification. Data parser source-read (pulser.c handle_the_special_data): mode 1 wants exactly one 'pno level' pair per line; multi-pair lines refuse 'Partial levels must lie between -1.0 and 1.0' (misleading - it reads only the first value as a pno)."
+    },
+    {
+      "program": "strands",
+      "mode": "strands",
+      "reason": "Generic-name output (multi-output precedent): every mode writes <stem>0.wav etc., never the argv filename - verified twice in mode 2 (sound output: 'str1.wav' argv -> 'str10.wav' on disk; 'strX.wav' -> 'strX0.wav', also with -s). Modes 1/3 are declared 'generic_outdatafilename' multi-file data outputs. The engine's expected output file never exists -> verify_output fails structurally."
+    },
+    {
+      "program": "multisynth",
+      "mode": "synth",
+      "reason": "Unusable on this build: every probed score (flute/violin/pianoRH+LH, MM 60/120, durations 3/4) refuses with a BARE 'ERROR: INVALID DATA' carrying no diagnostic; the one score that parsed (trumpet, two 4-sets, durations 3/12) crashed with heap corruption - 'corrupted size vs. prev_size', SIGABRT exit 134, core dump. Score grammar checks that do fire verbatim: 'Bad duration (2) (must be multiples of 3 or 4) on line 1 (trumpet).'"
+    },
+    {
+      "program": "frfractal",
+      "mode": "fractal",
+      "reason": "SIGABRT (exit 134) + 0-frame output on EVERY valid-layer run (ping at layers 2, n2 at layers 4, repeated 1.2 s apart). Pre-synthesis validation works ('INFO: Maximum number of fractal cuts for this file = 2' then refusal at layers 3) - the synthesis pass itself crashes. Broken on this build."
+    },
+    {
+      "program": "tsconvert",
+      "mode": "tsconvert",
+      "reason": "Broken exit contract: writes a correct converted datafile but EXITS 1 on success (verified twice: rescale 0-100 and 0-10; valid output, empty stdout). The engine requires exit_code == 0 (node_execution.py:228) - every run would report subprocess_error despite good output."
+    },
+    {
+      "program": "chirikov",
+      "mode": "chirikov",
+      "submode": 3,
+      "reason": "Modes 3-4 (time/MIDI breakpoint-file output) STRIP the output extension: argv 'ch3.txt' writes a file named 'ch3' (valid breakpoint text inside, verified). The engine's expected output path never exists -> verify_output fails structurally. Same generic-name family as strands."
+    },
+    {
+      "program": "fractal",
+      "mode": "wave",
+      "submode": 1,
+      "reason": "DEFERRED (not defect-dropped): works with >= 3-point shapes but shares the 2-point-shape infinite-loop landmine, and its output duration is shape-dependent and extreme (1 s tone -> 0.187937 s, 2 s -> 0.375828 - x0.188 under a 3-point shape) with no honest closed-form model. Future curation possible with an aux-name duration expression. fractal spectrum unprobed this tranche."
+    }
+  ]
+}

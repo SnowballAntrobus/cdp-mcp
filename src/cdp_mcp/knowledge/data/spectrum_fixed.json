@@ -1,0 +1,86 @@
+{
+  "program": "spectrum",
+  "mode": "fixed",
+  "submode": null,
+  "category": "synthesis",
+  "domain": "spectral",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": ".txt",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Generates a FIXED SPECTRUM as a CDP analysis file (.ana) directly from TEXT DATA - spectral synthesis with no audio input (input_arity 0) and no pvoc pass. The datafile must be in the special peak/trough format produced by the companion 'spectrum format' entry (frq/amp pairs where positive frq = a local peak, negative = a trough, 0 = envelope point): the DATA COUNT CONTRACT is enforced verbatim - 'Data count (258) should be just 2 more than analysis-points parameter (256)' - i.e. lines = pointcnt/2 + 1, values = pointcnt + 2, and pointcnt must be a POWER OF TWO ('ANALYSIS POINTS PARAMETER MUST BE A POWER OF TWO.'). dur sets the spectral duration with window quantization UP (2.0 -> 2.0740 at pointcnt 256, +3.7%; 2.0263 at pointcnt 64, +1.3%; verified via sfprops -d and a pvoc synth round-trip that renders real audio). CONTENT-DETERMINISTIC WITH A HEADER TIMESTAMP: two identical runs differ byte-wise in the .ana header (embedded date) while their resyntheses decode byte-identical - hash decoded audio, not the .ana file, for A/B. Resynthesis of the default render peaks at 1.0 (FULL SCALE) - use atten. srate enforced 44100-96000; dur 0.1-3600. Optional -h harmonics/-b brightness/-f fraction/-r random-attenuation/-s spread/-t type/-w width/-m maxaspect/-d dovetail flags are banner-documented, unprobed here except atten (-a, verified running).",
+  "musical_use": "Draw a spectrum, hear it: sketch an amplitude-vs-frequency curve as text (or derive one from measurement data), convert it with 'spectrum format', and this renders it as an .ana you can resynthesize (pvoc synth happens automatically downstream) or feed STRAIGHT INTO the spectral toolchain - blur, stretch spectrum, focus, morph - without any source recording. It is the bridge from data to the spectral domain: formant stacks, measured room responses, imagined instruments. The output is a steady spectrum for dur seconds - a drone by construction; morph it against a real sound's .ana for data-to-acoustic crossfades. WARNING: resynthesis of an un-attenuated render clips at full scale - set atten ~0.3-0.5 when the render will be resynthesized or mixed.",
+  "parameters": {
+    "datafile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED spectrum datafile in peak/trough format - the output of 'spectrum format' (frq amp pairs: positive frq = local peak, negative = trough, 0 = amplitude-envelope point). MUST contain exactly pointcnt + 2 values ('Data count (258) should be just 2 more than analysis-points parameter (256)' verbatim). Hand-written files work if they honor the format and count."
+    },
+    "pointcnt": {
+      "type": "int",
+      "min": 4,
+      "max": 8192,
+      "unit": "points",
+      "breakpoint_capable": false,
+      "default": 256,
+      "flag": null,
+      "description": "Analysis points per window - MUST BE A POWER OF TWO ('ANALYSIS POINTS PARAMETER MUST BE A POWER OF TWO.' verbatim) and must match the datafile (count contract above). 64 and 256 verified working; higher = finer spectral grid, longer windows (coarser time quantization of dur)."
+    },
+    "srate": {
+      "type": "int",
+      "min": 44100,
+      "max": 96000,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 44100,
+      "flag": null,
+      "description": "Sample rate of the sound the spectrum represents, CDP-enforced 44100 to 96000 ('Parameter[2] Value (11025.000000) out of range (44100.000000 to 96000.000000)')."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.1,
+      "max": 3600.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Duration of the spectral output, CDP-enforced 0.1 to 3600 ('Parameter[3] Value (0.001000) out of range (0.100000 to 3600.000000)'). Quantized UP to whole windows: +3.7% at pointcnt 256, +1.3% at 64 (verified sfprops -d). Required."
+    },
+    "atten": {
+      "type": "float",
+      "min": 0.001,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.5,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Attenuation applied to the spectrum (verified running with -a0.3). IMPORTANT: without it resynthesis peaks at 1.0 (full scale) - entry default 0.5, always emitted."
+    }
+  },
+  "examples": [
+    {
+      "description": "Two-formant drawn spectrum, four seconds, headroom-safe.",
+      "params": {"datafile": "spec_2formant.txt", "pointcnt": 64, "srate": 44100, "dur": 4.0, "atten": 0.4},
+      "expected_use": "spec_2formant.txt = 'spectrum format' output (33 lines for pointcnt 64). Renders an .ana; resynthesis is automatic downstream, or feed it to blur/morph directly."
+    }
+  ],
+  "known_issues": [
+    "STRICT DATA CONTRACT: values = pointcnt + 2 and pointcnt must be a power of two (both refusals verbatim) - generate the datafile with 'spectrum format' at the SAME pointcnt, from a dense frq/amp graph (sparse graphs under-produce points and break the count).",
+    ".ana HEADER EMBEDS A TIMESTAMP: byte-hashes of identical renders differ (byte ~179) while decoded resyntheses are byte-identical - content is deterministic; compare decoded audio.",
+    "Un-attenuated resynthesis peaks at 1.0 (0 dBFS) - the entry defaults atten 0.5 and always emits -a.",
+    "dur quantizes UP by up to a window (+3.7% at pointcnt 256).",
+    "-h/-b/-f/-r/-s/-t/-w/-m/-d shaping flags (harmonics, brightness, random channel attenuation, peak types...) are banner-documented but unprobed - uncurated; types 2/3 introduce documented randomness, so determinism claims hold only for the curated surface.",
+    "Siblings: 'spectrum format' (curated - the required data-prep step), 'spectrum varying' (time-varying spectra) and 'spectrum lines' (line-spectra + varifilt output) uncurated.",
+    "Generator entry: process() takes no input argument; graph()/batch()/sweep() refuse arity-0 entries (arity_zero_unsupported). Output is a spectral-domain .ana - downstream spectral entries consume it directly."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

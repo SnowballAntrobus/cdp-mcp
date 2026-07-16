@@ -1,0 +1,50 @@
+{
+  "program": "synth",
+  "mode": "clicks",
+  "submode": 1,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": "none",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "clickfile"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Renders a METRICAL CLICKTRACK from a clickfile of tempo/meter datalines - a pure generator with NO audio input (input_arity 0). Where clicknew takes a flat list of times, synth clicks understands MUSIC NOTATION: each dataline is a line number followed by TEMPO ('1=120', dotted values '1.5=100', tempo changes '0.5=144to90'), BARRING ('4:4', '6:8'), a bar COUNT, and optionally an accent-pattern string ('1.1.' = strong/weak; length MUST equal beats per bar - '(must be 4 in this meter)' refused verbatim). 'GP 1 23.7' inserts a pause (accent flag then seconds) and 'TIME 8.0' jumps the absolute clock forward ('TIME' as the first dataline refuses ''TIME' dataline too soon: You cannot reset the Absolute time before you start the clickdata.'). LINE NUMBERS MUST BE SEQUENTIAL 1,2,3... ('Line numbers are not in sequence, at line 2'). Output duration = time of the LAST BEAT + a ~21-sample click tail (4 bars 4/4 at 120 -> 7.500476 s; the aux-name duration expression skips the pre-flight and the engine watchdog guards). CLOCK-RANDOMIZED CLICK SHAPE, UNSEEDABLE (clicknew precedent re-verified here): click TIMES are deterministic but the waveshape jitters per run - runs 1.2 s apart differ, runs in the SAME SECOND collide byte-identical. Output mono 44100 Hz (no srate argv slot in this mode). CRASH TRAP (build-pinned): the -s/-e start/end flags SIGABRT (exit 134) after writing plausible output, in both submodes - they are excluded from this entry; submode 2 (line-number addressing, only useful with those flags) is dropped.",
+  "musical_use": "A notation-literate metronome factory: write real bars - meters, tempo changes, accelerandi ('1=144to100'), grand pauses, accent patterns - and get the click as audio. Perfect for laying rhythmic scaffolds that DAW clicks cannot express (7:16 with secondary accents, metric modulations between datalines), then cutting material to it or mixing it under a take as an audible grid. Accented beats render louder (peak can reach 1.0), weak beats quieter - so the meter is audible, not just the pulse. The click timbre itself jitters run to run (clock-seeded): render ONCE and reuse the file when layering; never re-render expecting the same waveform. For arbitrary non-metrical time lists use clicknew instead; for metrical structure this is the sibling to reach for.",
+  "parameters": {
+    "clickfile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED clickfile of datalines. Each line: <lineno> then either a TIME jump ('TIME 8.0', not first), a pause ('GP 1 2.5' = accent-flag + seconds), or tempo+barring+count+optional accent pattern ('1=120 4:4 4' or '1=120 4:4 2 1.1.'). Line numbers sequential from 1 ('Line numbers are not in sequence, at line 2' otherwise). Accent string length must equal beats in the meter ('Wrong number of characters in style-string (must be 4 in this meter)'). Tempo changes: '0.5=144to90'. Write via write_data_file."
+    }
+  },
+  "examples": [
+    {
+      "description": "Four bars of 4/4 at 120 then two bars of 3/4 at 60.",
+      "params": {"clickfile": "click_44_34.txt"},
+      "expected_use": "First write_data_file('click_44_34.txt', '1 1=120 4:4 4\\n2 1=60 3:4 2'). Output ends at the last beat (13.0 s) + ~0.5 ms tail."
+    },
+    {
+      "description": "Accelerando bar-block with accent pattern and a grand pause.",
+      "params": {"clickfile": "click_accel.txt"},
+      "expected_use": "click_accel.txt: '1 1=120 4:4 2 1.1.\\n2 GP 1 2.5\\n3 0.5=144to90 6:8 2'. Quaver pulse accelerates written-out; GP inserts 2.5 s with an accent at its start."
+    }
+  ],
+  "known_issues": [
+    "CLOCK-RANDOMIZED CLICK SHAPE, UNSEEDABLE: no seed parameter; identical commands render different click waveshapes (times identical; runs in the same second collide byte-identical - verified both ways). Render once and reuse; A/B of downstream chains must share one render.",
+    "-s (start) / -e (end) flags SIGABRT (exit 134) AFTER writing plausible output, in both submodes - excluded from this entry; the engine would report subprocess failure despite the file existing. Submode 2 (start/end as line numbers) is dropped for the same reason.",
+    "Line numbers must be sequential integers from 1; accent-pattern strings must match the meter's beat count; 'TIME' cannot be the first dataline (all three refusals verbatim in the transcript).",
+    "Accented clicks can peak at 1.0 (full scale) - attenuate before dense mixing.",
+    "Output mono 44100 Hz only (no srate parameter in this mode - unlike clicknew's 44100/48000 choice).",
+    "Duration = last beat time + ~21 samples; the aux-name duration expression skips the pre-flight - the engine duration cap/watchdog is the guard. A huge bar count renders a huge file: keep counts honest.",
+    "Generator entry: process() takes no input argument; graph()/batch()/sweep() refuse arity-0 entries (arity_zero_unsupported)."
+  ],
+  "references": ["cdp://docs/html/cgrosynth"]
+}

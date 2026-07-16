@@ -1,0 +1,172 @@
+{
+  "program": "brownian",
+  "mode": "motion",
+  "submode": 2,
+  "category": "texture",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "dur + indur * 2 ** ((pstart - plo) / 12)"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Generates a texture of sampled events following BROWNIAN MOTION in pitch and space: mode 2 transposes the WHOLE (mono) source for each event, walking the pitch by random steps (max 'step' semitones) within [plo, phi], every ~tick seconds, optionally walking spatial position (sstep) across chans and level (arange/minamp). SOURCE-PINNED TRANSPOSITION REFERENCE: events at pitch == pstart play at the ORIGINAL rate (brownian.c:1622 'tabincr = current_pitch - pstart'), so pitches below pstart play SLOWER/LONGER - the max event length is indur * 2^((pstart-plo)/12) (line 1352-1354). The duration model uses that worst case as the post-dur tail bound: outdur = dur + last-event ring-out, verified -2.7% against the bound at a near-flat pitch band and always <= the bound otherwise (safe over-prediction for the cap). SEED SEMANTICS: seed 0 == seed 1 byte-identical (glibc srand default-state - NO clock path; a seed-0 pair 1.2 s apart is byte-identical too); seeds >= 2 give distinct reproducible takes (5 twice identical, 5 vs 9 differ). tick and plo are breakpoint-capable (tick verified against both endpoints; plo's envelope differs from the same-params scalar - the exact-endpoint comparison is impossible because scalar plo > pstart is illegal: 'START PITCH LI[ES OUTSIDE RANGE]'). Ranges verbatim: chans 1-16, dur 0.3-7200, plo/phi 0-127, step 0.125-24 ('Parameter[7]'), sstep 0-1, tick 0.002-4, seed 0-255; plo == phi refused 'RANGE (60.0000 TO 60.0000) TOO NARROW FOR PITCH-STEPS (0.1250) AT TIME 0.000000'. Mode 1 (source read as a WAVEFORM - needs a wavecycle starting/ending at 0, adds att/dec/slope envelope params) is an uncurated sibling.",
+  "musical_use": "A wandering-cloud instrument: one mono sound becomes a field of copies drifting in pitch like pollen - each event a full transposed playback, so short percussive sources give pointillist rain and longer sources give overlapping auroras. step is the nervousness (0.125-0.5 semitone = queasy microtonal drift; 5-12 = leaping); tick the density (0.002-0.05 s granular swarm, 0.5-2 s sparse punctuation - breakpoint it to thicken or thin the cloud live, verified). Keep the walk above pstart (plo = pstart) for tight rhythms - downward transposition stretches events and smears time, which is its own beautiful hazard: plo an octave under pstart lets low events bloom to double length. chans > 1 walks position too (circle default, -l line); arange adds level wander with a bounce-off floor at minamp. Seeded and clock-free: every cloud is re-renderable; step the seed for fresh weather over the same climate.",
+  "parameters": {
+    "chans": {
+      "type": "int",
+      "min": 1,
+      "max": 16,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Output channel count, CDP-enforced 1 to 16 ('Parameter[1] Value (17.000000) out of range (1.000000 to 16.000000)'; 0 refused). With chans < 3 the array is forced linear ('WARNING: Output array must be LINEAR if output-channel count IS LESS THAN 3.')."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.3,
+      "max": 7200.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Nominal (max) output duration, CDP-enforced 0.3 to 7200 ('Parameter[2] Value (0.050000) out of range (0.300000 to 7200.000000)'). The last event rings past it - see the duration model (bounded by indur * the max downward transposition ratio). Required."
+    },
+    "plo": {
+      "type": "float",
+      "min": 0.0,
+      "max": 127.0,
+      "unit": "midi",
+      "breakpoint_capable": true,
+      "default": 55.0,
+      "flag": null,
+      "description": "Bottom of the pitch range, CDP-enforced 0 to 127 ('Parameter[3] Value (-1.000000) out of range (0.000000 to 127.000000)'). Must sit below phi by more than step ('RANGE ... TOO NARROW FOR PITCH-STEPS ...' verbatim) and at or below pstart. BREAKPOINT-CAPABLE with a caveat: a 55->70 envelope renders and differs from the same-params scalar-55 render; the strict both-endpoints comparison is impossible (scalar 70 would put pstart below plo, which refuses). Time-varying floor = rising tides under the walk."
+    },
+    "phi": {
+      "type": "float",
+      "min": 0.0,
+      "max": 127.0,
+      "unit": "midi",
+      "breakpoint_capable": false,
+      "default": 84.0,
+      "flag": null,
+      "description": "Top of the pitch range, CDP-enforced 0 to 127 ('Parameter[4] Value (128.000000) out of range (0.000000 to 127.000000)'). Banner marks it time-variable (unverified - left non-capable)."
+    },
+    "pstart": {
+      "type": "float",
+      "min": 0.0,
+      "max": 127.0,
+      "unit": "midi",
+      "breakpoint_capable": false,
+      "default": 60.0,
+      "flag": null,
+      "description": "Initial pitch AND the transposition reference: events at pstart play the source at its original rate (source-pinned); each semitone below plays 2^(1/12) slower/longer. Must lie within [plo, phi] ('START PITCH LI...' refusal at 90 in a 48-84 range). Enters the duration model."
+    },
+    "sstart": {
+      "type": "float",
+      "min": 1.0,
+      "max": 16.0,
+      "unit": "channel",
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Initial spatial position (channels numbered 1-N); ignored for mono output (2 with chans 1 accepted, verified)."
+    },
+    "step": {
+      "type": "float",
+      "min": 0.125,
+      "max": 24.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": 2.0,
+      "flag": null,
+      "description": "Maximum pitch step between events, CDP-enforced 0.125 to 24 ('Parameter[7] Value (25.000000) out of range (0.125000 to 24.000000)'; 0 refused). Must be smaller than the plo-phi span. Banner marks it time-variable (unverified)."
+    },
+    "sstep": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Max spatial step between events as a fraction of the inter-channel distance, CDP-enforced 0 to 1 ('Parameter[8] Value (1.100000) out of range (0.000000 to 1.000000)')."
+    },
+    "tick": {
+      "type": "float",
+      "min": 0.002,
+      "max": 4.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": 0.25,
+      "flag": null,
+      "description": "Average time between events, CDP-enforced 0.002 to 4 ('Parameter[9] Value (11.000000) out of range (0.002000 to 4.000000)'; 0.005 accepted). BREAKPOINT-CAPABLE (verified: 0.1->0.5 differs from both endpoint renders at fixed seed) - the density ramp."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 255,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 5,
+      "flag": null,
+      "description": "Random seed, CDP-enforced 0 to 255 ('Parameter[10] Value (-1.000000) out of range (0.000000 to 255.000000)'). Seed 0 == seed 1 (glibc srand default-state; byte-identical, and clock-free - a seed-0 pair 1.2 s apart is identical). Seeds >= 2 give distinct reproducible walks (5 twice identical; 5 vs 9 differ). Entry default 5."
+    },
+    "arange": {
+      "type": "float",
+      "min": 0.0,
+      "max": 96.0,
+      "unit": "db",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Max loudness step between events in dB (banner: default = 0 = no level walk; max 96). Banner marks it time-variable (unverified)."
+    },
+    "minamp": {
+      "type": "float",
+      "min": 0.0,
+      "max": 96.0,
+      "unit": "db",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-m",
+      "flag_kind": "attached_value",
+      "description": "Minimum loudness floor in dB below full (only active when arange > 0): levels 'bounce' off it; 0 = no floor, and the banner warns the stream HALTS if the level walk reaches -96 dB with no floor set."
+    },
+    "linear": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-l",
+      "flag_kind": "no_value",
+      "description": "Loudspeakers arrayed in a line instead of a circle (multichannel only; forced anyway below 3 channels - verbatim warning)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Pointillist rain from a short percussive source.",
+      "params": {"chans": 1, "dur": 8.0, "plo": 60.0, "phi": 84.0, "pstart": 72.0, "sstart": 1.0, "step": 2.0, "sstep": 0.0, "tick": 0.1, "seed": 5},
+      "expected_use": "Walk stays at/above the original rate's octave region (plo >= pstart - 12), so events stay short; seed 5 re-renders identically."
+    },
+    {
+      "description": "Slow blooming aurora - downward drift stretches events.",
+      "params": {"chans": 2, "dur": 15.0, "plo": 48.0, "phi": 72.0, "pstart": 60.0, "sstart": 1.0, "step": 1.0, "sstep": 0.3, "tick": [[0.0, 0.8], [1.0, 0.15]], "seed": 9},
+      "expected_use": "Events below pstart play up to 2x long (an octave down); density thickens via the verified tick envelope; budget the model's indur*2 tail."
+    }
+  ],
+  "known_issues": [
+    "Post-dur ring-out: the last event plays to completion, so outdur exceeds dur by up to indur * 2^((pstart-plo)/12) (source-pinned worst case; the duration model uses this bound - it OVER-predicts when the walk ends high, which is the safe direction for the cap). With plo far below pstart on a long source the tail can exceed dur itself (2 s source, plo 12 under pstart: +53% observed).",
+    "Seed 0 == seed 1 (default random state, no clock path); usable distinct seeds are 2-255.",
+    "plo == phi refuses (range must exceed step, verbatim); pstart must lie within [plo, phi]; step has a 0.125 floor - a truly fixed pitch is unreachable, the closest is a range one step wide.",
+    "Only tick is strictly endpoint-verified breakpoint-capable; plo's envelope verifiably changes the render but the strict comparison is structurally impossible (see param note); phi/step/sstep/arange/minamp carry unverified banner time-variability - left non-capable.",
+    "Mode 2 transposes the WHOLE source per event - very long sources at low pitches take a long time to finish (banner warning) and inflate the tail; mode 1 (waveform-read, needs a zero-crossing wavecycle like waveform make 2's output, adds att/dec/aslope/dslope) is the uncurated sibling.",
+    "Mono input assumed per the banner ('FI (Mono)'); mono probes only. Peak observed 0.95-1.0 at event pileups - leave headroom."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}
