@@ -89,3 +89,12 @@ timeline() is the open design question.
   near the end when run as one process in this sandbox (reproducible;
   both alphabetical halves pass in ~20-26 s each, 1276/1276 green).
   Chunk real-CDP runs in-sandbox; a real machine runs it whole.
+
+- Binary-vintage landmine (2026-07-15, forensics P5-1): `filter bank`
+  on binaries older than CDP8 fix `11cdcb4` (2025-06-05) does an OOB
+  heap write every run — the user's macOS r8 binary HANGS (the one red
+  test in the 2026-07-15 local run, 1275/1276). Entry now
+  `version_sensitive: true` with a known_issues lead; remedy = rebuild
+  `filter` from current CDP8 source. Linux substrate is post-fix and
+  green. The duration row stays: correct vs fixed binaries, and it
+  doubles as the vintage detector.
