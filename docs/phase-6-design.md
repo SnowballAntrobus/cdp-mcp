@@ -196,6 +196,44 @@ superaccu... — Phase 7+ material).
   (envel impose/extract — curated) and cross-synthesis (formants
   vocode — curated), not sidechains.
 
+## Post-run recheck (2026-07-16, after tranches 12–23)
+
+The curation completion run (134 → 338 entries) counts as Phase 6's
+curation half. Design consequences:
+
+- **timeline() routing DECIDED: v1 is submix-only.** Pitch-bearing
+  event lists route to `extend sequence2` directly (curated, no-wrap,
+  resampling transposition) — timeline()'s docstring says so rather
+  than auto-routing; the semantics differ enough (wrap behavior,
+  duration rules) that silent routing would surprise.
+- **Headroom staging simplified**: `submix getlevel 3` is now a
+  CURATED data-output entry — timeline()'s pre-flight runs it through
+  the normal engine path, no internal escape hatch needed. Factor is
+  1/peak unconditionally (>1 = headroom, not a warning).
+- **The gate → retime chain is curated end-to-end** (tranche 13), so
+  grid-free rhythm work on real recordings has its upstream fix.
+- **Error mapping's pattern table tripled in value**: the run recorded
+  dozens of verbatim stdout refusals across 12 tranches — the mapping
+  work now has an evidence corpus, not guesses.
+- **Two NEW schema gaps join free_string** (both fully evidenced):
+  `.frq`/`.trn` output kinds (the 15-program pitch-transform layer is
+  verified working and execute()-reachable but schema-blocked) and the
+  mode-token argv gap (columns/tabedit family — DEFERRED, usage
+  trigger: a gesture session actually wanting native time-list
+  generators; the LLM computes these unaided today).
+- **NEW DELIVERABLE — discoverability.** At 43 entries an agent could
+  eyeball list_programs; at 338 it cannot. Today nothing searches the
+  curated knowledge itself (search_docs covers only the CDP manual,
+  which describes but doesn't prioritize, and covers uncurated
+  programs indiscriminately). Shipping: `search_programs()` — FTS over
+  the curated entries' description/musical_use/notes/category fields,
+  ranked, with category/domain filters — plus a `recommend_transforms`
+  workflow prompt encoding the sample-driven path (analyze() MIR
+  scorecard → material class per the generalization matrix → targeted
+  search_programs queries → constraint check against known_issues/
+  channel/articulation limits → sweep()/batch() auditions →
+  compare()). Examples library remains the chain-level entry point.
+
 ## Build order
 
 1. Error mapping (4a) — small, immediate, de-risks everything after.
