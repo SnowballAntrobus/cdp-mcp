@@ -1,0 +1,53 @@
+{
+  "program": "phase",
+  "mode": "phase",
+  "submode": 2,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "stereo",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Stereo enhancement by phase-shifted cross-cancellation - STEREO INPUT ONLY (mono refused 'ERROR: INVALID DATA / ERROR: File ... is not of correct type (must be stereo)'). Empirically the algorithm is: subtract transfer x the opposite channel from each channel, then renormalize to the input's peak (a candidate model out_L = norm(L - t*R), out_R = norm(R - t*L) correlates 0.9997 with the render at t = 1 and t = 0.5; the binary logs 'Finding maximum input sample / Finding maximum output sample / Doing stereo enhancement'). The common (mid) content is cancelled in proportion to transfer, so the stereo image widens drastically: on a mostly-mono test file the side/mid RMS ratio went from 0.036 to 57.1 at the default transfer 1.0 (near-total mid removal, leaving anti-correlated side content) and to 0.108 at transfer 0.5. Duration static and sample-exact (1 s and 2 s stereo). transfer 0 is refused ('ERROR: Transfer parameter of ZERO produces no effect on the source.'). Deterministic (identical decoded shas 1.2 s apart).",
+  "musical_use": "A width control with a violent top end. Low transfer (0.1-0.4) is the musical zone: partial mid cancellation pushes ambience, reverb tails and de-correlated detail outward while the centre survives - a wider, airier version of the same mix. The default 1.0 is effectively a MID KILL: what remains is the difference signal in anti-phase on both sides - enormous on headphones, but it collapses toward silence when summed to mono (the two channels cancel) - so treat high-transfer renders as an effect, not a mastering move, and always check the mono sum. Creative uses: extract a track's stereo ambience for reuse as a texture layer; exaggerate the movement of auto-panned or Haas-delayed material; make a near-mono source feel dispersed before granulation. On dual-mono (identical channels) input the default transfer nulls virtually everything - the renormalization then amplifies the residue, so expect noise-floor artifacts there.",
+  "parameters": {
+    "transfer": {
+      "type": "float",
+      "min": 0.000001,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "musical_range": [0.1, 0.5],
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Amount of the opposite channel used in the phase-cancellation (banner: '0-1: default 1 = all'). CDP-enforced 0 to 1 ('Parameter[1] Value (1.500000) out of range (0.000000 to 1.000000)'; -0.5 refused with the same quote) but 0 itself is refused at runtime ('Transfer parameter of ZERO produces no effect on the source.') - the curated minimum keeps it nonzero. 1.0 = near-total mid cancellation (side/mid RMS 57.1 on the probe file), 0.5 = moderate widening (0.108 from 0.036). Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.') - the width cannot vary over time; automate by cutting and processing sections."
+    }
+  },
+  "examples": [
+    {
+      "description": "Gentle stereo widening that keeps the centre.",
+      "params": {"transfer": 0.3},
+      "expected_use": "Same-length stereo output with ambience and side detail pushed outward; mono sum still substantially intact."
+    },
+    {
+      "description": "Mid kill - keep only the stereo difference content.",
+      "params": {"transfer": 1.0},
+      "expected_use": "Vocals/bass and anything centred largely vanish; what remains is anti-correlated width that cancels in a mono sum. Use as an effect or ambience-extraction layer."
+    }
+  ],
+  "known_issues": [
+    "STEREO ONLY: mono input refused 'ERROR: INVALID DATA / ERROR: File ... is not of correct type (must be stereo)' - the only mode-level channel constraint in this program (mode 1 accepts anything).",
+    "High transfer values produce ANTI-CORRELATED channels: the output sounds huge in headphones but sums toward silence in mono (the phase-cancellation trick is the point of the process). Check mono compatibility before committing.",
+    "The output is peak-renormalized to the input's level ('Finding maximum output sample' pass): on near-mono material the cancelled residue gets amplified back to full scale - quiet artifacts and noise floor become prominent. Dual-mono inputs are the degenerate case.",
+    "transfer 0 refused at runtime ('Transfer parameter of ZERO produces no effect on the source.') even though the quoted range includes it; the curated min is nonzero.",
+    "Duration static and sample-exact; deterministic (identical decoded shas 1.2 s apart). transfer refuses breakpoint files (parameter 1)."
+  ],
+  "references": ["cdp://docs/html/cgromody"]
+}

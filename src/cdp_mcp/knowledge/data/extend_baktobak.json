@@ -1,0 +1,61 @@
+{
+  "program": "extend",
+  "mode": "baktobak",
+  "submode": null,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "2 * (indur - join_time)"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Joins a time-reversed copy of the sound to a normal copy, in that order - the classic 'fugu sound' swell-and-decay mirror. Empirically the process uses ONLY the segment from join_time to the end of the file: output = reverse(src[join_time:]) then src[join_time:], crossfaded at the join. Content verified sample-exact: the two halves are bit-identical to the source segment away from the splices and the whole output is a perfect palindrome. Output duration is EXACTLY 2 * (indur - join_time) (probes at join 0.5/1.0/1.5 on 2 s, 0.5 on 1 s, 1.8 on 2 s - all 4-dp exact); the splice length never changes the duration (15 vs 100 vs 600 ms all 2.0000 from join 1.0). DIVERGENCE from the SoundThread prior: ST describes it as 'reverses it and then prepends the reversed sound onto the start of the original' - true only for join_time near 0; material BEFORE join_time is discarded entirely. Deterministic (identical decoded shas 1.2 s apart). Mono and stereo accepted.",
+  "musical_use": "The single-pass swell gesture: feed it an attack-resonance sound (sharp attack, long decay) and the output grows from silence to a peak and dies away again - Denis Smalley's 'fugu sounds' (afta8: the nearer you slice to the attack, the brighter and louder the centre). join_time is the slicing knife: at 0.01-0.1 s you mirror essentially the whole sound; larger values slice closer to the tail for quieter, darker arches, and a family of related swells can be made from one source by stepping join_time. The output duration falls as join_time rises (2 * remainder) - plan lengths with that rule. Use a short splice (10-25 ms) for a defined centre peak or a long one (hundreds of ms) to soften the summit into a plateau. Chain into envel dovetail to shape the edges, or stack several different join_time renders in submix mix for ebb-and-flow textures (cf. extend hover).",
+  "parameters": {
+    "join_time": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time in the source where the join-cut is made; everything BEFORE it is discarded and everything after it plays reversed then forward. Runtime-enforced 0 to the input duration ('Parameter[1] Value (2.500000) out of range (0.000000 to 2.000000)' on a 2 s file; negative refused with the same quote). Must clear half the splice: ap_extend.c:1534 refuses when splice/2 >= join_time ('ERROR: Cut point (0.000000 secs)is too near to start of file for the splicelength (0.015000 secs) demanded.' at join 0). LANDMINE: join_time == indur is ACCEPTED (exit 0) and writes a 1-frame output - the engine's output verification is the only guard; keep join_time comfortably below the input duration. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "splice": {
+      "type": "float",
+      "min": 0.01,
+      "max": 2000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 15.0,
+      "flag": null,
+      "description": "Crossfade length at the reverse/forward join, in milliseconds - CDP-enforced 0.01 to 2000 (0, -1 and 5001 refused quoting '(0.010000 to 2000.000000)'; SoundThread's 0.01-500 is an advisory subset). Never changes the output duration (verified 15/100/600/1500 ms all render 2*(indur-join_time)); splices larger than the mirrored segment are accepted and handled internally (1500 ms on 1 s halves ran). Positional - the entry always emits it (default 15). Breakpoint file refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Full mirror swell of a decaying sound.",
+      "params": {"join_time": 0.02, "splice": 15.0},
+      "expected_use": "Nearly the whole source plays reversed (growing from silence) then forward (decaying away); output just under twice the input duration."
+    },
+    {
+      "description": "Tail-only ebb: slice late for a short, dark arch.",
+      "params": {"join_time": 1.5, "splice": 100.0},
+      "expected_use": "On a 2 s source: only the last 0.5 s is mirrored - a 1.0 s soft-centred swell. Step join_time across takes for a family of related gestures."
+    }
+  ],
+  "known_issues": [
+    "Material before join_time is DISCARDED - the output is built solely from src[join_time:end] (reverse then forward, verified sample-exact palindrome). SoundThread's help ('prepends the reversed sound onto the start of the original') describes only the join_time-near-0 case.",
+    "join_time == indur is accepted with exit 0 and produces a 1-frame file; near-indur values produce arbitrarily short outputs. The duration expression 2*(indur - join_time) predicts this honestly - the engine's output verification catches the degenerate case.",
+    "join_time must exceed splice/2 in seconds (source: ap_extend.c:1534): join 0 with the default 15 ms splice refuses 'Cut point (0.000000 secs)is too near to start of file for the splicelength (0.015000 secs) demanded.'",
+    "The splice is applied inside the mirrored block and never changes duration (verified at 15/100/600/1500 ms).",
+    "Deterministic: identical params render byte-identically (decoded samples, runs 1.2 s apart). Stereo accepted (2 ch in -> 2 ch out, same duration rule)."
+  ],
+  "references": ["cdp://docs/html/cgroextd"]
+}

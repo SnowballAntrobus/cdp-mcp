@@ -1,0 +1,147 @@
+{
+  "program": "multiosc",
+  "mode": "multiosc",
+  "submode": 3,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": "none",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Nested-oscillator FM synthesizer - a pure generator with NO audio input (input_arity 0; call process() without an input argument). Mode 3 is the four-oscillator stack (SoundThread's pick): osc 1 is the audible carrier at frq1; oscs 2/3/4 each modulate the table-read of the one below ('oscillation of oscillation of oscillation of oscillation'), adding sidebands and inharmonic partials. Modes 1/2 are strict subsets - mode 3 with amp3 = amp4 = 0 renders BYTE-IDENTICAL to mode 1 with the same frq2/amp2 (verified), so this entry reaches the whole family. Content verified: all suboscillator amps at 0 gives a pure sine at frq1; modest amps produce dense FM clusters (amp2 0.3 at frq2 100 throws significant energy above 12 kHz - the modulation index is fierce, SoundThread caps amps at 0.5 for good reason). Output duration is set exactly by dur (2.0 -> 88200 frames, 0.7 -> 30870, 5.0 -> 220500, sample-exact); output is MONO with a fixed peak of 0.9 (no master amplitude parameter exists). All four frequencies AND all three suboscillator amplitudes are breakpoint-capable (each verified to differ from both scalar-endpoint renders); dur, srate and dovesplice refuse breakpoints (parameters 1/9/10). Deterministic (identical decoded shas 1.2 s apart).",
+  "musical_use": "The quick route to complex tones: one call yields anything from a plain sine through bell/metal clusters to shrieking inharmonic sheets. The classic FM intuition applies - suboscillator frequencies at simple integer ratios to frq1 (2:1, 3:1) keep the sidebands harmonic (brassy, organ-like); irrational ratios (1.414x, golden-ratio multiples) go bell-like and clangorous; very low frq2 (0.1-10 Hz) turns the modulation into audible vibrato/warble instead of timbre. Amps are the modulation depths and they are HOT: 0.05-0.15 colours the tone, 0.3+ shreds it into wideband grit that aliases gleefully. Breakpoint the amps to morph timbre over the note (start pure, bloom into clangour) and the frqs for sirens and dive-bombs - relative envelope times map onto dur. Layer detuned renders in submix mix for thick drones. The fixed 0.9 peak leaves no headroom decisions here - attenuate downstream when layering (modify loudness or the mix's atten).",
+  "parameters": {
+    "dur": {
+      "type": "float",
+      "min": 0.04,
+      "max": 7200.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Output duration in seconds - sets the length sample-exactly. Must clear the two dovetail splices: 0.01 refused 'ERROR: Duration too short for dovetailing splices.' (0.031 ran with 15 ms splices - the floor is ~2*dovesplice). NO ceiling is enforced by CDP (7201 s rendered a 635 MB file, exit 0) - the curated max mirrors the synth family's 7200 and the engine's duration cap is the real guard. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). Required."
+    },
+    "frq1": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": 440.0,
+      "musical_range": [20.0, 4000.0],
+      "flag": null,
+      "description": "Carrier frequency - the pitch you hear. CDP-enforced 0.001 to 10000 ('Parameter[2] Value (0.000000) out of range (0.001000 to 10000.000000)'; negatives refused). BREAKPOINT-CAPABLE (verified: a 220->880 envelope differs from both endpoint renders); relative envelope times map onto dur. Sub-audio values (< 20 Hz) are legal and give pulsing rumble."
+    },
+    "frq2": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": 100.0,
+      "flag": null,
+      "description": "Frequency of suboscillator 2, which modulates the carrier's table read. Same enforced 0.001-10000 range as frq1. Integer ratios to frq1 stay harmonic, irrational ratios go clangorous, sub-audio becomes vibrato. BREAKPOINT-CAPABLE (verified against both endpoints)."
+    },
+    "amp2": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.1,
+      "musical_range": [0.0, 0.3],
+      "flag": null,
+      "description": "Depth of suboscillator 2's modulation, CDP-enforced 0 to 1 ('Parameter[4] Value (-0.100000) out of range (0.000000 to 1.000000)'). 0 disables the oscillator entirely (verified: pure sine remains). VERY potent - 0.3 already scatters energy above 12 kHz; SoundThread's ceiling is 0.5. BREAKPOINT-CAPABLE (verified against both endpoints) - ramp it to morph from pure tone to cluster."
+    },
+    "frq3": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": 200.0,
+      "flag": null,
+      "description": "Frequency of suboscillator 3, which modulates suboscillator 2. Enforced 0.001-10000. BREAKPOINT-CAPABLE (verified against both endpoints)."
+    },
+    "amp3": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "musical_range": [0.0, 0.3],
+      "flag": null,
+      "description": "Depth of suboscillator 3's modulation (0 = off, the entry default - with amp3 and amp4 at 0 mode 3 is byte-identical to mode 1). Enforced 0-1. BREAKPOINT-CAPABLE (verified against both endpoints)."
+    },
+    "frq4": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": 300.0,
+      "flag": null,
+      "description": "Frequency of suboscillator 4, the top of the modulation cascade (modulates suboscillator 3). Enforced 0.001-10000. BREAKPOINT-CAPABLE (verified against both endpoints)."
+    },
+    "amp4": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "musical_range": [0.0, 0.3],
+      "flag": null,
+      "description": "Depth of suboscillator 4's modulation (0 = off, the entry default). Enforced 0-1. BREAKPOINT-CAPABLE (verified against both endpoints)."
+    },
+    "srate": {
+      "type": "int",
+      "min": 16000,
+      "max": 96000,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 44100,
+      "flag": null,
+      "description": "Output sample rate - discrete set within 16000-96000 (11025 and 192000 refused quoting '(16000.000000 to 96000.000000)'; 44000 and 17000 refused 'ERROR: Invalid sample rate (44000) entered.'; 22050/24000/44100/48000/88200 verified accepted). Breakpoint file refused ('Cannot read parameter 9 [...]'). Entry default 44100 - always emitted (positional)."
+    },
+    "dovesplice": {
+      "type": "float",
+      "min": 1.0,
+      "max": 50.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 15.0,
+      "flag": null,
+      "description": "Dovetail splice applied to the start and end of the output, CDP-enforced 1 to 50 ms ('Parameter[10] Value (0.000000) out of range (1.000000 to 50.000000)'; -1 and 5000 refused with the same quote). Also floors the usable dur (~2*dovesplice). Breakpoint file refused ('Cannot read parameter 10 [...]'). Positional - always emitted (default 15)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Harmonic brass-like FM tone (2:1 modulator).",
+      "params": {"dur": 3.0, "frq1": 220.0, "frq2": 440.0, "amp2": 0.12},
+      "expected_use": "No input argument. Odd/even harmonic sidebands around 220 Hz; deterministic - identical on every render."
+    },
+    {
+      "description": "Bell cluster blooming into inharmonic shriek.",
+      "params": {"dur": 4.0, "frq1": 440.0, "frq2": 623.0, "amp2": [[0.0, 0.02], [1.0, 0.35]], "frq3": 71.0, "amp3": 0.08, "frq4": 5.0, "amp4": 0.05},
+      "expected_use": "Irrational ratios + rising amp2 envelope: starts near-pure, ends as wideband clangour with slow 5 Hz warble from the top oscillator."
+    }
+  ],
+  "known_issues": [
+    "NO master amplitude parameter: output peak is fixed at 0.9 (verified on every probe). Attenuate downstream before layering - two renders summed at full level will clip/wrap in a mixer.",
+    "Modulation depths are fierce: amp2 = 0.3 at frq2 = 100 Hz already pushes dominant energy above 12 kHz, and there is no band-limiting - aliasing is part of the sound at high indices. SoundThread's amp ceiling of 0.5 (vs CDP's 1.0) is protective, not technical.",
+    "Modes 1 and 2 are strict subsets of mode 3: zeroing amp3/amp4 reproduces mode 1 byte-identically (verified) - no separate entries needed.",
+    "dur has NO CDP ceiling (7201 s accepted, 635 MB file) - the engine's duration-cap pre-flight is the real guard. The floor is ~2*dovesplice ('Duration too short for dovetailing splices.').",
+    "The banner's 'DUR: Duration of synthesized sound, or textfile output' hints at an undocumented textfile mode; no flag for it surfaced in probing - audio-only here.",
+    "Output is MONO always (no channel parameter). Deterministic: no seed, no clock dependence (identical decoded shas 1.2 s apart).",
+    "Generator entry: process() takes no input argument; graph()/batch()/sweep() refuse arity-0 entries with a structured arity_zero_unsupported error - render first, then wire the output."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

@@ -1,0 +1,83 @@
+{
+  "program": "repitch",
+  "mode": "transpose",
+  "submode": 3,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Transposes the whole spectrum by a (time-variable) number of semitones - AND the spectral envelope moves with it (banner: 'TRANSPOSE SPECTRUM (SPECTRAL ENVELOPE ALSO MOVES)'), so formants shift too: the chipmunk/giant transposition, unlike formant-preserving approaches. Verified textbook-exact: +12 st on a 440 Hz analysis peaks at exactly 880 Hz; duration is STATIC (2 s .ana -> 2.0230 via resynthesis, 1.5 s -> 1.5209 - the usual analysis-window padding). Modes 1 (frq ratio) and 2 (octaves) are the SAME operation in different units - ratio 2.0, octave 1.0 and semitone 12 render byte-identical data chunks (verified); this entry pins mode 3 (semitones, SoundThread's choice). Mode 4 takes a binary transposition data file (via execute()). transpos is breakpoint-capable (banner: 'frq-ratio, octave or semitone transpositions may vary over time'; a 0->12 ramp differs from both scalar endpoints and the resynthesized pitch glides). RANGE-ERROR QUIRK: out-of-range values are refused with the SEMITONE label but the RATIO value ('ERROR: Transposition [322.539795] out of range 0.003830 - 256.000000 semitones' for +100 st) - the enforced range is a frequency RATIO of 0.00383 to 256, i.e. about -96.3 to +96 semitones. Wav input refused ('Application doesn't work with this type of infile.' - feed .wav sources through the engine's auto-PVOC). Deterministic (identical data chunks 1.2 s apart).",
+  "musical_use": "The frequency-domain pitch shifter: duration stays fixed while pitch moves - the complement of modify speed (which trades the two) and of granular shifters (different artifact family: phase-vocoder smearing instead of grain fizz). Because the spectral envelope moves too, big shifts re-voice the source - up = smaller/brighter/chipmunk, down = larger/darker/monstrous - which is exactly what sound-design wants for creature voices, size-shifting and parallel octave layers. Time-varying transpos is the star: a slow -12 -> 0 ramp is a tape-speed riser that never changes length; vibrato is just a small sine-shaped breakpoint file; scoops and falls are two-point ramps. -l/-h prune the spectrum while you shift (kill sub-rumble before shifting down, or tame fizz before shifting up), and -x ('fuller spectrum') thickens the result audibly. Stay within +/-24 st for musical results (SoundThread's advisory range); beyond that the phase-vocoder texture itself becomes the sound. Chain: pvoc anal -> transpose -> further spectral work -> pvoc synth, all without leaving the analysis domain.",
+  "parameters": {
+    "transpos": {
+      "type": "float",
+      "min": -96.0,
+      "max": 96.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "musical_range": [-24.0, 24.0],
+      "flag": null,
+      "description": "Transposition in (fractions of) semitones, positive = up. Enforced as a frequency RATIO 0.00383-256 - i.e. roughly -96.3 to +96 st - with a misleading refusal that prints the ratio under a semitone label ('Transposition [322.539795] out of range 0.003830 - 256.000000 semitones' for +100; -100 refused quoting ratio 0.0031). 0 is legal (identity transposition). BREAKPOINT-CAPABLE (verified: a 0->12 ramp differs from both scalar endpoints; resynthesis pitch rises across the file). SoundThread's -24..+24 (default -12) is the advisory musical window. Required."
+    },
+    "minfrq": {
+      "type": "float",
+      "min": 5.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Frequency below which analysis data is filtered out, CDP-enforced 5 to 22050 at 44.1 kHz analyses ('Parameter[2] Value (-5.000000) out of range (5.000000 to 22050.000000)' - ceiling is the Nyquist, input-dependent). Verified effective: -l300 dropped the sub-300 Hz energy fraction from 0.123 to 0.015. Omit for no low filtering."
+    },
+    "maxfrq": {
+      "type": "float",
+      "min": 5.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Frequency above which analysis data is filtered out, same enforced 5-22050 range ('Parameter[3] Value (50000.000000) out of range (5.000000 to 22050.000000)'). Verified effective: -h2000 cut the above-2 kHz energy fraction from 0.66 to 0.27 (window leakage keeps it partial). Omit for no high filtering."
+    },
+    "fullspec": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "'Fuller spectrum' switch - verified to change the render (data chunks differ from the unflagged run at the same transposition). Use when the shifted result sounds thin."
+    }
+  },
+  "examples": [
+    {
+      "description": "Octave-down monster voice, duration unchanged.",
+      "params": {"transpos": -12.0},
+      "expected_use": "Whole spectrum (formants included) moves down an octave; same length. Feed a .wav and the engine auto-converts via pvoc anal."
+    },
+    {
+      "description": "Tape-style riser: two-octave scoop into the note.",
+      "params": {"transpos": [[0.0, -24.0], [0.3, 0.0], [1.0, 0.0]]},
+      "expected_use": "Pitch glides up 24 st over the first 30% of the file then holds - length never changes. Relative breakpoint times map onto the input duration."
+    }
+  ],
+  "known_issues": [
+    "RANGE-ERROR MISLABEL: the refusal prints the frequency RATIO under a 'semitones' label ('Transposition [322.539795] out of range 0.003830 - 256.000000 semitones'). The real rule is ratio 0.00383-256 (~ -96.3 to +96 st); the curated bounds are the semitone equivalents.",
+    "Spectral envelope MOVES with the pitch (chipmunk effect) - this is transpose, not transposef ('repitch transposef' keeps formants; separate program mode, uncurated). Choose deliberately for voice material.",
+    "Modes 1/2/3 are unit variants of one operation (ratio 2.0 == octave 1.0 == 12 st verified byte-identical); mode 4 drives the transposition from a binary data file - execute() territory (make such files with repitch-family tools).",
+    "Input must be a phase-vocoder .ana file; .wav refused ('Application doesn't work with this type of infile.'). The engine's auto-PVOC handles .wav sources transparently; analysis files are mono by construction.",
+    "Duration static modulo the usual analysis padding (2.0 s source -> 2.0230 resynthesized; prediction error ~1.2%, inside the 5% row tolerance).",
+    "Deterministic (identical .ana data chunks 1.2 s apart, compare data chunks not raw bytes)."
+  ],
+  "references": ["cdp://docs/html/crepitch"]
+}

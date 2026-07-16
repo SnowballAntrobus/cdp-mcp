@@ -1,0 +1,248 @@
+{
+  "program": "modify",
+  "mode": "sausage",
+  "submode": null,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 2,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur_min / velocity"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Granular reconstitution of SEVERAL soundfiles scrambled together - modify brassage's full-monty parameter set adapted to cycle its grains around multiple inputs (afta8: 'brassage on several sources'). This entry pins 2 inputs; the binary is variadic (a 3-input run verified - use execute() for more) and a single input refuses 'Insufficient input files for this process'. Output duration = min(input durations) / velocity, source-confirmed (brapcon.c:92 sets ORIG_SMPSIZE to the MINIMUM infile size) and probe-verified: (2s,2s) at velocity 1/0.5/2 -> 1.98/3.93/1.00; (2s,1s) at velocity 1 -> 0.98; the extra second of the longer file is never reached. Output is ALWAYS STEREO (2 channels even from mono inputs - the space/pan pair is baked into the argv); all inputs must share ONE channel count ('Incompatible channel-count in input file ...' otherwise; stereo+stereo accepted, and the banner notes stereo input is mixed to mono before the space stage). CLOCK-SEEDED STOCHASTIC, UNSEEDABLE: granula_pconsistency (dev/modify/brapcon.c:80) calls initrand48() = srand(time(0)) (osbind.c) and no seed slot exists. Verified: identical commands 1.2 s apart differ in samples AND length (durations wobble ~+/-1%); -j0 with every h-limit equal to its base STILL differs run to run (frame count stabilises, samples do not); two runs launched within the same second collide byte-identically (the tranche-2 clock-seed trap). Each of the eight musical parameters has an h-limit twin: when hX != X the process picks random per-grain values between them; hX == X (the entry defaults) disables that axis. All 16 positionals plus -r/-j accept breakpoint files (exit 0, banner: 'All params, except OUTLENGTH and CHANNEL, can vary through time'); under the clock seed only aggregate effects are provable - velocity brk 1->2 rendered 1.15 s (between and distinct from the 1.98/1.00 scalar endpoints), an amp brk ramps the output RMS up, and a space brk 0->1 pans L->R (first/last 300 ms L/R RMS 0.123/0.196 -> 0.018/0.293).",
+  "musical_use": "The multi-source granular blender: grains alternate between the inputs, so two or more sounds interleave into one composite texture that is neither - speech shuffled with water, drums with wind. velocity is the master time knob (inverse timestretch: 0.5 doubles, 2 halves - duration follows min(indur)/velocity); density controls overlap (below 1 leaves inter-grain silence, above 1 merges grains into a wash). grainsize sets the identity of the result: 10-30 ms is buzzy granular fog, 50-100 ms keeps syllable-level recognisability, toward 2000 ms it becomes chunk collage. The h-limit twins are the sausage's signature - open a gap between pitchshift and hpitchshift for per-grain random detune shimmer, between space and hspace for spatial scatter, between grainsize and hgrainsize for ragged textures. Every render is a new roll of the dice (no seed exists): audition takes and KEEP the audio - never re-render expecting the same result, and never launch two variants in the same second (they collide identically). Feed time-varying breakpoints (velocity ramps, opening h-gaps) to make the texture evolve; keep amp at 1 and trim afterwards, since grains already overlap-sum with headroom management.",
+  "parameters": {
+    "velocity": {
+      "type": "float",
+      "min": 0.001,
+      "max": 32767.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 1.0,
+      "musical_range": [0.25, 4.0],
+      "flag": null,
+      "description": "Speed of advance through the infiles relative to the outfile - inverse of timestretch (0.5 doubles the duration, 2 halves it); output duration = min(indur)/velocity. CDP range quoted '(0.000000 to 32767.000000)' but 0 requires the unexposed -l outlength flag ('ERROR: Zero VELOCITY found: Outfile length must be specified.') - the curated minimum keeps it positive; use execute() for infinite-stretch drones. Extreme values run (1001 rendered 0.058 s from 2 s - the model floors out). Breakpoint-capable (banner-confirmed; verified by duration: brk 1->2 rendered 1.15 s, between and distinct from both scalar endpoints)."
+    },
+    "density": {
+      "type": "float",
+      "min": 0.000023,
+      "max": 16383.5,
+      "unit": null,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 1.5,
+      "musical_range": [0.3, 8.0],
+      "flag": null,
+      "description": "Grain overlap factor: < 1 leaves inter-grain silence, > 1 overlaps and merges grains (banner warns extremely small values are unpredictable). CDP range from the h-twin's refusal '(0.000023 to 16383.500000)'; density 1001 ran (static duration held). SoundThread's 0.2-8 is the sane musical window. Breakpoint-capable (exit 0, banner-confirmed)."
+    },
+    "hvelocity": {
+      "type": "float",
+      "min": 0.001,
+      "max": 32767.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 1.0,
+      "flag": null,
+      "description": "Upper limit for random per-grain velocity: with hvelocity != velocity each grain draws a random value between them (duration lands between the two rules: velocity 1/hvelocity 2 rendered 1.32-1.37 s from 2 s inputs, a new value each run). Equal to velocity (default) disables the axis. hX BELOW the base is accepted silently and treated as the other end of the range (0.5 vs 2 ran, duration 1.59). Breakpoint-capable (exit 0, banner-confirmed)."
+    },
+    "hdensity": {
+      "type": "float",
+      "min": 0.000023,
+      "max": 16383.5,
+      "unit": null,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 1.5,
+      "flag": null,
+      "description": "Upper limit for random per-grain density (CDP-enforced '(0.000023 to 16383.500000)', quoted from this slot as Parameter[4]). Equal to density (default) disables the axis. Breakpoint-capable (exit 0)."
+    },
+    "grainsize": {
+      "type": "float",
+      "min": 2.0,
+      "max": 2000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 50.0,
+      "musical_range": [10.0, 200.0],
+      "flag": null,
+      "description": "Grain length in milliseconds, CDP-enforced 2 to 2000 ('Parameter[5] Value (1000000.000000) out of range (2.000000 to 2000.000000)'; SoundThread's 2-200 is an advisory subset). The banner's 'must be > 2 * splicelen' is NOT enforced (9 ms with 5+5 ms splices ran - splices are shortened internally). Breakpoint-capable (exit 0, banner-confirmed)."
+    },
+    "pitchshift": {
+      "type": "float",
+      "min": -96.0,
+      "max": 96.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 0.0,
+      "musical_range": [-24.0, 24.0],
+      "flag": null,
+      "description": "Per-grain transposition in (fractions of) semitones. CDP-enforced +/-133.28 at 44.1 kHz ('Parameter[6] Value (500.000000) out of range (-133.278752 to 133.278752)' - srate-dependent); large in-range values can still fail at runtime ('ERROR: CANNOT ACHIEVE TASK: / ERROR: SOURCE POSSIBLY TOO SHORT FOR THIS OPTION: Try 'Full Monty'' at +100 on 2 s sources, while -100 ran) - the curated +/-96 stays clear of the srate ceiling; SoundThread's +/-24 is the musical window. Breakpoint-capable (exit 0, banner-confirmed: 'PITCHSHIFT & HPITCHSHIFT can both vary through time')."
+    },
+    "amp": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 1.0,
+      "flag": null,
+      "description": "Gain on the grains, CDP-enforced 0 to 1 ('Parameter[7] Value (2.000000) out of range (0.000000 to 1.000000)'). Breakpoint-capable - a 0.2->1 ramp audibly rises (first/last 300 ms RMS 0.123 -> 0.184; exact A/B impossible under the clock seed). Pair with hamp for random per-grain level scatter."
+    },
+    "space": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 0.5,
+      "flag": null,
+      "description": "Stereo position of the grains in the ALWAYS-STEREO output (0 = left, 1 = right; banner range 0-1). Verified: space 0 puts all energy in the left channel (R RMS 0.0000); a 0->1 breakpoint pans the texture across the output (L/R RMS 0.123/0.196 -> 0.018/0.293). Values above 1 are accepted SILENTLY despite the documented range (1.5 ran) - keep to 0-1. On stereo input the banner notes the signal is mixed to mono before spatialisation. Pair with hspace for random spatial scatter."
+    },
+    "bsplice": {
+      "type": "float",
+      "min": 1.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 5.0,
+      "flag": null,
+      "description": "Grain start-splice (attack) length in ms, CDP-enforced 1 to 1000 ('Parameter[9] Value (-1.000000) out of range (1.000000 to 1000.000000)'; SoundThread's 1-20 advisory). Short = clicky attacks, long = soft granular fog. Breakpoint-capable (exit 0)."
+    },
+    "esplice": {
+      "type": "float",
+      "min": 1.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 5.0,
+      "flag": null,
+      "description": "Grain end-splice (decay) length in ms, same enforced 1-1000 range as bsplice. Breakpoint-capable (exit 0)."
+    },
+    "hgrainsize": {
+      "type": "float",
+      "min": 2.0,
+      "max": 2000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 50.0,
+      "flag": null,
+      "description": "Upper limit for random per-grain grainsize (equal to grainsize disables; a 50->90 gap gives ragged mixed-size textures). Breakpoint-capable (exit 0)."
+    },
+    "hpitchshift": {
+      "type": "float",
+      "min": -96.0,
+      "max": 96.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 0.0,
+      "flag": null,
+      "description": "Upper limit for random per-grain pitchshift - open a gap from pitchshift for detune shimmer (e.g. 0 and 4 gives 0-4 st random per grain). Equal (default) disables. Breakpoint-capable (exit 0, banner-confirmed)."
+    },
+    "hamp": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 1.0,
+      "flag": null,
+      "description": "Upper limit for random per-grain amp (equal to amp disables). Breakpoint-capable (exit 0)."
+    },
+    "hspace": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 0.5,
+      "flag": null,
+      "description": "Upper limit for random per-grain stereo position - open a gap from space (e.g. 0 and 1) for full-width spatial grain scatter. Equal (default) disables. Breakpoint-capable (exit 0)."
+    },
+    "hbsplice": {
+      "type": "float",
+      "min": 1.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 5.0,
+      "flag": null,
+      "description": "Upper limit for random per-grain start-splice (equal to bsplice disables). Breakpoint-capable (exit 0)."
+    },
+    "hesplice": {
+      "type": "float",
+      "min": 1.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 5.0,
+      "flag": null,
+      "description": "Upper limit for random per-grain end-splice (equal to esplice disables). Breakpoint-capable (exit 0)."
+    },
+    "range": {
+      "type": "float",
+      "min": 0.0,
+      "max": 4000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 0.0,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Search range for the next grain BEFORE the current infile position, in ms - larger values let grains be re-drawn from earlier material (echoey, smeared time). CDP-enforced 0 to 4000 ('Parameter[17] Value (-1.000000) out of range (0.000000 to 4000.000000)'; SoundThread's 1-200 advisory). Breakpoint-capable (exit 0)."
+    },
+    "jitter": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "min",
+      "default": 0.5,
+      "flag": "-j",
+      "flag_kind": "attached_value",
+      "description": "Randomisation of grain position, CDP-enforced 0 to 1 ('Parameter[18] Value (1.500000) out of range (0.000000 to 1.000000)'), CDP default 0.5. NOTE: jitter 0 does NOT make the process deterministic - -j0 runs 1.2 s apart still differ in samples (frame count stabilises only). Breakpoint-capable (exit 0)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Two sources interleaved at natural speed, mid-density.",
+      "params": {"velocity": 1.0, "density": 1.5, "grainsize": 60.0},
+      "expected_use": "Composite texture the length of the SHORTER input; grains alternate between the two sounds. Every render differs - keep takes you like."
+    },
+    {
+      "description": "Slow granular blend with detune shimmer and spatial scatter.",
+      "params": {"velocity": 0.5, "density": 3.0, "grainsize": 30.0, "pitchshift": -2.0, "hpitchshift": 2.0, "space": 0.0, "hspace": 1.0},
+      "expected_use": "Double-length wash: each grain randomly detuned within +/-2 st and randomly placed across the stereo field."
+    }
+  ],
+  "known_issues": [
+    "CLOCK-SEEDED STOCHASTIC, NO SEED (first-class constraint): dev/modify/brapcon.c:80 initrand48() = srand(time(0)) (osbind.c); no seed argv slot. Two identical commands 1.2 s apart differ in samples AND duration (~+/-1%); two within the same second are byte-identical (verified collision). -j0 with all h-limits equal to their bases still varies run to run. Renders cannot be reproduced - archive the audio.",
+    "DURATION = min(indur1, indur2) / velocity (source: brapcon.c:92 takes the MINIMUM infile size; probe-verified on equal and unequal pairs). Material in the longer file beyond the shorter one's length is NEVER reached - trim or pad inputs deliberately. Expect ~+/-1% run-to-run wobble on top of the model, and a floor at extreme velocity (1001 -> 0.058 s, not 0.002 s).",
+    "Output is ALWAYS STEREO (2 ch even from mono inputs). All inputs must share one channel count ('ERROR: INVALID DATA / ERROR: Incompatible channel-count in input file ...'); stereo inputs are accepted and mixed to mono before the space stage (banner).",
+    "The usage banner's warning '(name of outfile must NOT end with a '1')' is NOT enforced: an output named bad1.wav ran and rendered normally (byte-identical to the same-second sibling run). Legacy multi-outfile naming rule, dead here.",
+    "velocity 0 (infinite stretch) requires the unexposed -l outlength flag ('Zero VELOCITY found: Outfile length must be specified.') - via execute(). -c channel and -l refuse breakpoints (parameters 19/20); -c's banner range 1-2 is unenforced (-c3 ran silently on mono inputs). -x (exponential splices) and -n (no pitch interpolation) switches also via execute().",
+    "space above 1 is accepted silently despite the banner's 0-1 range; h-limits BELOW their base are accepted silently (treated as the other end of the random range). pitchshift's enforced ceiling is srate-dependent (+/-133.28 at 44.1 kHz) and large in-range values can refuse at runtime ('SOURCE POSSIBLY TOO SHORT FOR THIS OPTION: Try 'Full Monty'').",
+    "All 16 positionals plus -r/-j accept breakpoint files (banner: everything except OUTLENGTH and CHANNEL varies through time); under the clock seed the brk effect is only provable in aggregates (velocity via duration, amp via RMS ramp, space via pan trajectory - all verified). Breakpoint time axes are compiled against the SHORTER input's duration (matching the min-duration rule).",
+    "This entry pins 2 inputs; the binary accepts more (3-input run verified) - use execute() for wider sausages. Single input refused ('Insufficient input files for this process')."
+  ],
+  "references": ["cdp://docs/html/cgromody"]
+}

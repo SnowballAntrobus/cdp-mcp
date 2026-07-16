@@ -1,0 +1,33 @@
+{
+  "program": "phase",
+  "mode": "phase",
+  "submode": 1,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Inverts the polarity (phase) of a sound: every sample is negated. Verified SAMPLE-EXACT: output == -input with zero residual (max |out + in| = 0.0) on mono and stereo (both channels inverted); duration static and exact at 1 s and 2 s. Takes NO parameters. Deterministic (identical decoded shas 1.2 s apart). Sibling mode 2 (stereo enhancement) is curated separately; it is stereo-only, while this mode accepts any channel count.",
+  "musical_use": "The cancellation scalpel. Mix an inverted copy against the original and they null to silence - so invert-and-mix isolates WHAT A PROCESS CHANGED: run a sound through any transform (e.g. distort fractal), invert the dry original, submix the two, and only the added/altered component survives (SoundThread ships exactly this recipe). Same trick extracts a stereo file's side content or checks whether two takes are really identical. Also plain mixing hygiene: flip a layer that partially cancels against another (kick + sub-bass) to turn destructive interference constructive - inaudible alone, decisive in a sum. Note the null only works while both copies stay sample-aligned: any time-shift, resample or lossy step between them breaks the cancellation. Inversion itself is inaudible in isolation; it only matters in combination.",
+  "parameters": {},
+  "examples": [
+    {
+      "description": "Invert a processed layer to isolate the processing residue.",
+      "params": {},
+      "expected_use": "Invert the DRY original, then submix mix it at equal level and time 0 against the processed version: the shared component nulls, leaving only what the process added."
+    }
+  ],
+  "known_issues": [
+    "Pure sample negation, verified exact (out == -in, max residual 0.0; stereo inverts both channels). No parameters, no options.",
+    "Cancellation workflows require sample alignment and identical levels - the engine's 16-bit CDP pipeline preserves this for CDP-to-CDP chains, but any resampling or level change between the copies breaks the null.",
+    "Duration static and sample-exact (1 s and 2 s verified). Deterministic (identical decoded shas 1.2 s apart). Mono and stereo accepted; mode 2 of this program is stereo-only and curated as a separate entry."
+  ],
+  "references": ["cdp://docs/html/cgromody"]
+}

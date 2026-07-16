@@ -1,0 +1,156 @@
+{
+  "program": "synspline",
+  "mode": "synspline",
+  "submode": null,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": "none",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Synthesis from waveforms made by smoothly spline-joining RANDOMLY generated points - a pure generator with NO audio input (input_arity 0). Each half-wavecycle is drawn through splinecnt random values and successive waveshapes morph into each other over interpval wavecycles, giving an endlessly drifting harmonic spectrum at a fixed fundamental. SEED SEMANTICS (source-pinned, first-class): synspline.c:1530 does 'if (seed > 0) srand(seed); else initrand48()' where initrand48() = srand(time(0)) (osbind.c) - so seed 1-64 is fully reproducible (seed 5 twice 1.2 s apart byte-identical; seed 5 vs 9 differ) but SEED 0 IS THE CLOCK PATH (two seed-0 runs 1.2 s apart DIFFER; seed 0 != seed 1). DIVERGENCE: SoundThread's seed slider DEFAULTS to 0 - its default renders are irreproducible; this entry defaults seed to 1. Duration is set by dur but rounded UP to a whole wavecycle boundary (the render loop appends full cycles until thistime >= dur: dur 0.7 at 220 Hz -> 0.70295 s / 31000 frames; dur 2.0 -> 2.0000 exact) - overshoot is < 1/frq seconds; dur must contain at least one full wavecycle ('ERROR: Duration too short to generate a complete wavecycle.'). frq, splinecnt, interpval, maxspline and maxinterp are all breakpoint-capable (banner PTR-marked; each verified to differ from both scalar-endpoint renders at the same seed); seed refuses breakpoints (parameter 6). Output mono; amplitude is internally random per cycle (peak ~0.92 observed) unless -n normalizes every cycle.",
+  "musical_use": "An organic drone/texture oscillator: pitch is stable but the timbre never sits still - like an instrument whose bore is slowly remoulding itself. splinecnt is the brightness/complexity knob (0 = sine-like purity - verified harmonic-free; 4-10 = vowelish, reedy; 30-64 = jagged and rich); interpval is the morph rate (small = fast churning shimmer, hundreds-to-thousands = slow geological drift; 0 = every cycle a new random shape, maximally buzzy). Open a range with -s maxspline / -i maxinterp and the complexity and morph rate THEMSELVES wander randomly between the bounds. pdrift/driftrate add random pitch wander (up to +/-12 st) for wind-like, breath-like instability. Because the seed WORKS, a patch is reproducible: keep params + seed and the exact take re-renders; step the seed for siblings of the same character. Breakpoint frq for glides, splinecnt for brightness envelopes, interpval to freeze/thaw the morphing over time. Low fundamentals (30-80 Hz) make excellent living sub-drones; feed the output to filter bank or waveset distortion for further character.",
+  "parameters": {
+    "srate": {
+      "type": "int",
+      "min": 16000,
+      "max": 96000,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 44100,
+      "flag": null,
+      "description": "Output sample rate - discrete set within 16000-96000 (11025 refused quoting '(16000.000000 to 96000.000000)'; 44100/48000 verified; the synth-family set applies). Positional - always emitted (default 44100)."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.01,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Output duration in seconds. Rounded UP to a whole-wavecycle boundary (loop appends full cycles until the target is passed: 0.7 -> 0.70295 at 220 Hz; overshoot always < 1/frq s - negligible at audio rates, but at a 0.5 Hz fundamental it can add up to 2 s). Must contain at least one full wavecycle of frq ('Duration too short to generate a complete wavecycle.' otherwise - i.e. dur >= 1/frq). Source range 0-32767, default 4.0. The engine's duration cap is the practical guard. Required. Breakpoint file refused."
+    },
+    "frq": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": 220.0,
+      "musical_range": [30.0, 2000.0],
+      "flag": null,
+      "description": "Fundamental frequency, CDP-enforced 0.001 to 10000 ('Parameter[3] Value (20000.000000) out of range (0.001000 to 10000.000000)'; 0.0005 refused too). BREAKPOINT-CAPABLE (banner PTR; verified: a 110->880 ramp differs from both endpoint renders at the same seed). Remember dur >= 1/frq applies to the FIRST breakpoint value (source reads brk[1] for the wavecycle check)."
+    },
+    "splinecnt": {
+      "type": "int",
+      "min": 0,
+      "max": 64,
+      "unit": "points",
+      "breakpoint_capable": true,
+      "default": 4,
+      "flag": null,
+      "description": "Number of random values splined together per HALF-wavecycle, CDP-enforced 0 to 64 ('Parameter[4] Value (65.000000) out of range (0.000000 to 64.000000)'; -1 refused). 0 gives a near-pure tone (verified: no measurable harmonics); higher = brighter, more jagged, noisier. BREAKPOINT-CAPABLE (verified: a 2->32 ramp differs from both endpoints at the same seed)."
+    },
+    "interpval": {
+      "type": "float",
+      "min": 0.0,
+      "max": 4096.0,
+      "unit": "wavecycles",
+      "breakpoint_capable": true,
+      "default": 24.0,
+      "flag": null,
+      "description": "Number of wavecycles over which one random waveshape morphs into the next, CDP-enforced 0 to 4096 ('Parameter[5] Value (5000.000000) out of range (0.000000 to 4096.000000)'); fractional values accepted (0.5 ran). Small = rapid timbral churn, large = slow drift, 0 = a new shape every cycle. BREAKPOINT-CAPABLE (verified: a 0->512 ramp differs from both endpoints at the same seed). SoundThread calls this 'Morph Speed'."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 64,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Random seed, CDP-enforced 0 to 64 ('Parameter[6] Value (65.000000) out of range (0.000000 to 64.000000)'; -1 and 40000 refused). WORKS for 1-64: same seed re-renders byte-identically (verified 1.2 s apart), different seeds differ. SEED 0 IS THE CLOCK PATH (source synspline.c:1530: only seed > 0 reaches srand(seed); 0 falls to initrand48() = srand(time(0))) - two seed-0 runs differ and can never be reproduced (same-second launches would collide byte-identically). SoundThread defaults this slider to 0 - avoid; the entry default is 1. Breakpoint file refused ('Cannot read parameter 6 [...]'); omitting it reprints the usage (required positional)."
+    },
+    "maxspline": {
+      "type": "int",
+      "min": 0,
+      "max": 64,
+      "unit": "points",
+      "breakpoint_capable": true,
+      "default": 0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Upper bound for RANDOM per-shape splinecnt values in the range splinecnt..maxspline (banner: 'Ignored if set to zero' - verified: -s0 renders byte-identical to the flagless run). CDP-enforced 0-64 ('Parameter[7] Value (65.000000) out of range (0.000000 to 64.000000)'). BREAKPOINT-CAPABLE (verified: a 2->32 ramp differs from both -s2 and -s32 renders at the same seed)."
+    },
+    "maxinterp": {
+      "type": "float",
+      "min": 0.0,
+      "max": 4096.0,
+      "unit": "wavecycles",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-i",
+      "flag_kind": "attached_value",
+      "description": "Upper bound for RANDOM per-shape interpval values in the range interpval..maxinterp (0 = ignored). CDP-enforced 0-4096 ('Parameter[8] Value (5000.000000) out of range (0.000000 to 4096.000000)'). BREAKPOINT-CAPABLE (verified: differs from both -i0 and -i512 renders at the same seed)."
+    },
+    "pdrift": {
+      "type": "float",
+      "min": 0.0,
+      "max": 12.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Semitone (half-)range of random frequency drift, CDP-enforced 0-12 ('Parameter[9] Value (13.000000) out of range (0.000000 to 12.000000)'). If set nonzero, driftrate MUST also be given: 'ERROR: If drift transposition set (and not 0), vals for drift step must be set (and not less than 1mS).' (verified with and without -v). Changes the render (sha differs). Omit for stable pitch."
+    },
+    "driftrate": {
+      "type": "float",
+      "min": 1.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-v",
+      "flag_kind": "attached_value",
+      "description": "Average time to the next drift offset (true time varies 1/2 to 3/2 of this), CDP-enforced up to 1000 ms ('Parameter[10] Value (1001.000000) out of range (0.000000 to 1000.000000)') with a runtime floor of 1 ms (0.5 refused via the drift-step error). Only meaningful with pdrift set."
+    },
+    "normalize": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "Normalise every cycle (default: cycles retain random amplitudes). Verified to change the render; evens the level at the cost of the natural per-cycle amplitude variation (peak 0.95 vs 0.92 on the probe patch)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Living mid-range drone, reproducible.",
+      "params": {"dur": 8.0, "frq": 110.0, "splinecnt": 6, "interpval": 200.0, "seed": 5},
+      "expected_use": "No input argument. Stable 110 Hz fundamental whose timbre slowly remoulds; rerun with seed 5 for the identical take, other seeds for siblings."
+    },
+    {
+      "description": "Churning bright texture with wandering complexity and pitch breath.",
+      "params": {"dur": 6.0, "frq": 220.0, "splinecnt": 8, "interpval": 4.0, "seed": 3, "maxspline": 40, "pdrift": 1.5, "driftrate": 300.0},
+      "expected_use": "Fast waveshape churn whose spline count wanders 8-40 and pitch breathes within +/-1.5 st every ~0.3 s."
+    }
+  ],
+  "known_issues": [
+    "SEED 0 IS UNSEEDED (first-class trap): source-pinned (synspline.c:1530 'if seed > 0 srand(seed) else initrand48()' = srand(time(0))). Verified: seed-0 runs 1.2 s apart differ; seeds 1-64 reproduce byte-identically. SoundThread's seed parameter DEFAULTS TO 0, so its default renders are irreproducible - this entry defaults seed to 1. The usable reproducible seed space is only 1-64.",
+    "Duration rounds UP to a whole wavecycle (dur 0.7 at 220 Hz -> 0.70295 s); overshoot < 1/frq s. At audio-rate fundamentals this is negligible (< 0.5% on the shared fixture) but at deep sub-audio frq the overshoot approaches 1/frq seconds. dur must be >= 1/frq ('Duration too short to generate a complete wavecycle.').",
+    "pdrift requires driftrate ('If drift transposition set (and not 0), vals for drift step must be set (and not less than 1mS).' - verbatim, also fired for -v0.5); driftrate alone is inert.",
+    "maxspline/maxinterp are 'ignored if set to zero' (verified -s0 byte-identical to flagless); they open RANDOM ranges above their base parameters - with them nonzero the character varies more between seeds.",
+    "Per-cycle amplitudes are random by design (peak ~0.92 observed); -n normalizes every cycle. No master amplitude parameter - trim downstream.",
+    "Omitting the seed positional reprints the usage text (exit 255) rather than a parameter-count error. seed refuses breakpoint files (parameter 6); frq/splinecnt/interpval/maxspline/maxinterp are all breakpoint-capable (verified against both scalar endpoints at a fixed seed).",
+    "Generator entry: process() takes no input argument; graph()/batch()/sweep() refuse arity-0 entries with a structured arity_zero_unsupported error - render first, then wire the output. Output is mono only."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

@@ -1,0 +1,51 @@
+{
+  "program": "housekeep",
+  "mode": "extract",
+  "submode": 4,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "RECTIFY (banner: 'SHIFT ENTIRE SIGNAL TO ELIMINATE DC DRIFT'): adds the literal shift value to every sample, moving the whole waveform up or down. Empirically verified: output mean = input mean + shift to 4 dp (a +0.1-DC source with shift -0.1 comes out at mean -0.00002; shift +0.05 on stereo moves both channels' means by +0.05); min/max move by exactly shift; duration static and sample-exact at 1 s and 2 s. The program does NOT measure or auto-remove the DC offset - you supply the correction yourself (measure the mean first, then pass its negation). Two guard refusals: shift 0 is refused ('ERROR: CANNOT ACHIEVE TASK: / ERROR: NO CHANGE to original sound file.') and any shift that would push the signal past full scale is refused after a headroom pre-pass ('INFO: Finding maximum sample in file.' then 'ERROR: CANNOT ACHIEVE TASK: / ERROR: This rectification will distort the sound.' - verified: +0.6 on a 0.5-peak tone refused, and ANY positive shift on a full-scale file refused). Deterministic; mono and stereo accepted. Sibling modes 1-3/6 are event-extraction/top-and-tail utilities with different argv shapes (mode 1 emits MULTIPLE self-named output files - see known_issues).",
+  "musical_use": "Two distinct jobs. (1) Hygiene: remove DC drift that distortion, waveset and synthesis processes leave behind - a DC-offset signal wastes headroom, thumps at edit points and (per SoundThread) is bad for loudspeakers. Measure the output mean of a suspect file and pass shift = -mean. (2) Creative asymmetry (the SoundThread recipe): deliberately ADD a small offset (+/-0.005 to 0.02) before distort-family processes; waveset boundaries are zero-crossing-defined, so a DC bias changes where every waveset starts and ends, giving genuinely different distort timbres from the same source. Shift back by the opposite amount when done. Keep deliberate offsets small - the headroom guard refuses anything that would clip, so hot sources tolerate almost no shift at all.",
+  "parameters": {
+    "shift": {
+      "type": "float",
+      "min": -1.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Amount added to every sample (positive = up, negative = down). CDP-enforced -1 to 1 ('Parameter[1] Value (1.500000) out of range (-1.000000 to 1.000000)'; -1.5 and 2.5 refused with the same quote). Zero is refused ('NO CHANGE to original sound file.') and values that would push any sample past full scale are refused ('This rectification will distort the sound.') after the 'Finding maximum/minimum sample' pre-pass - the usable range on real material is peak-headroom-limited, typically hundredths. SoundThread's -0.02 to 0.02 (default 0!) is an advisory subset whose default value the binary refuses. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Remove a measured +0.02 DC offset.",
+      "params": {"shift": -0.02},
+      "expected_use": "Same-length output with the waveform recentred on zero; measure the source mean first and pass its negation."
+    },
+    {
+      "description": "Deliberate small bias before a distort-family process.",
+      "params": {"shift": 0.01},
+      "expected_use": "Moves every zero-crossing, so downstream waveset processes cut different wavesets - asymmetric timbres from the same source. Shift by -0.01 afterwards to restore."
+    }
+  ],
+  "known_issues": [
+    "shift 0 is REFUSED ('ERROR: CANNOT ACHIEVE TASK: / ERROR: NO CHANGE to original sound file.') - DIVERGENCE from SoundThread, whose DC Offset node defaults the parameter to 0.",
+    "Headroom guard: the pre-pass refuses any shift that would carry the peak past full scale ('ERROR: This rectification will distort the sound.', exit 255). On a full-scale source NO shift is possible in the loud direction (verified: +0.01 on peak-1.0 stereo noise refused). This is a refusal, not clipping - the program never distorts.",
+    "The process adds the literal value; it does not measure the file's DC. 'Eliminate DC drift' therefore means 'let the user shift it back by hand' - compute the mean externally (e.g. analyze()) and negate it.",
+    "Sibling submode trap recorded for the family: mode 1 ('CUT OUT & KEEP SIGNIFICANT EVENTS') takes NO outfile argv and writes one file PER DETECTED EVENT, named from the INPUT stem with trailing digits replaced/appended (input syl2.wav -> syl0.wav, syl1.wav, syl2.wav, syl3.wav). A generated name that collides with an existing file (including the input itself) is SILENTLY SKIPPED by default ('4 segments extracted' but only 3 new files; -n makes it stop instead). Multi-output with no output argv slot cannot be hosted by this engine - reach mode 1 via execute() with cwd control.",
+    "Duration static and sample-exact (2 s -> 88200 frames, 1 s -> 44100). Deterministic (identical decoded shas 1.2 s apart). Stereo accepted - both channels shifted by the same amount."
+  ],
+  "references": ["cdp://docs/html/cgrohous"]
+}

@@ -1,0 +1,174 @@
+{
+  "generated_at": "2026-07-15",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build; Groucho programs banner 'CDP Release 7.1 2016'; multiosc/phase/synspline print no release banner)",
+    "os": "Linux x86_64 sandbox",
+    "note": "Tranche 10b - time-domain/utility half of the remaining SoundThread-covered singles. Submodes pinned by SoundThread's process_help.json keys. To be re-verified on macOS r8 by the CDP-gated suite after integration."
+  },
+  "entries": [
+    {
+      "program": "extend",
+      "mode": "baktobak",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["extend", "baktobak", null, 2.0, {"join_time": 1.0, "splice": 15.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration = 2*(indur - join_time), 4-dp exact on 7 probes across 2 indurs; splice NEVER changes duration (15/100/600/1500 ms identical lengths).",
+        "CONTENT vs ST prior (first-class): output = reverse(src[join_time:]) + src[join_time:], sample-exact palindrome - material BEFORE join_time is DISCARDED; ST's 'reverses and prepends onto the original' holds only as join_time -> 0.",
+        "LANDMINE: join_time == indur exits 0 with a 1-frame output (engine verification is the only guard). join 0 refused 'Cut point (0.000000 secs)is too near to start of file for the splicelength (0.015000 secs) demanded.' (source rule splice/2 >= join_time, ap_extend.c:1534).",
+        "Ranges verbatim: join_time 0-indur (runtime); splice (0.010000 to 2000.000000) ms - ST's 0.01-500 advisory subset. Both params refuse brks (parameters 1/2).",
+        "Deterministic (1.2 s apart identical); stereo accepted -> any."
+      ]
+    },
+    {
+      "program": "housekeep",
+      "mode": "extract",
+      "submode": 4,
+      "breakpoint_capable": [],
+      "duration_row": ["housekeep", "extract", 4, 2.0, {"shift": -0.02}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "RECTIFY = literal DC adder: output mean = input mean + shift to 4 dp (verified +/-0.1, +/-0.05, mono/stereo); it does NOT measure the file's DC - user supplies the correction. Static, sample-exact at 1 s and 2 s.",
+        "ST DIVERGENCE (first-class): shift 0 is REFUSED ('ERROR: CANNOT ACHIEVE TASK: / ERROR: NO CHANGE to original sound file.') - SoundThread's DC Offset node DEFAULTS the parameter to 0.",
+        "Headroom guard: any shift that would push the peak past full scale refuses 'This rectification will distort the sound.' after the 'Finding maximum/minimum sample' pre-pass (verified +0.6 on 0.5-peak tone, +0.01 on peak-1.0 noise). Refusal, never clipping.",
+        "Range (-1.000000 to 1.000000) verbatim; brk refused (parameter 1). Deterministic; stereo accepted (both channels shifted equally).",
+        "Sibling mode 1 dropped (see dropped[]): multi-output, no outfile argv, silent name-collision skip."
+      ]
+    },
+    {
+      "program": "modify",
+      "mode": "sausage",
+      "submode": null,
+      "breakpoint_capable": ["velocity", "density", "hvelocity", "hdensity", "grainsize", "pitchshift", "amp", "space", "bsplice", "esplice", "hgrainsize", "hpitchshift", "hamp", "hspace", "hbsplice", "hesplice", "range", "jitter"],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry (variadic upstream, 3-input verified); incompatible with the single-input duration fixture. Model 'indur_min / velocity' source-confirmed (brapcon.c:92 minimum infile size) and probe-verified: (2,2)@v1/0.5/2 -> 1.98/3.93/1.00; (2,1)@v1 -> 0.978; +/-~1% clock-jitter wobble; floors out at extreme velocity (1001 -> 0.058 s). process_impl spot-check: 2s+1.5s defaults -> 1.4872 (0.85% vs 1.5).",
+      "stochastic": true,
+      "notes": [
+        "CLOCK-SEEDED, UNSEEDABLE (first-class): granula_pconsistency (dev/modify/brapcon.c:80) calls initrand48() = srand(time(0)) (osbind.c); no seed slot. 1.2 s-apart runs differ in samples AND duration; -j0 with all h==base STILL differs (frame count stabilises only); same-second runs collide byte-identical (observed).",
+        "Output ALWAYS STEREO (2 ch even from mono inputs; space 0 -> R RMS 0.0000; space brk 0->1 pans L->R 0.123/0.196 -> 0.018/0.293). Inputs must share one channel count ('Incompatible channel-count in input file ...'); single input refused 'Insufficient input files for this process'.",
+        "BANNER RULES NOT ENFORCED (first-class): '(name of outfile must NOT end with a '1')' - bad1.wav ran normally; 'grainsize > 2*splicelen' - 9 ms with 5+5 ran; space range 0-1 - 1.5 accepted silently; -c range 1-2 - -c3 ran.",
+        "ALL 16 positionals + -r/-j accept brks (banner: everything except OUTLENGTH and CHANNEL varies through time; -l/-c refuse as parameters 19/20). Under the clock seed only aggregates provable: velocity brk 1->2 -> 1.15 s (between/distinct from endpoints), amp brk RMS rises, space brk pans - all verified.",
+        "Ranges verbatim: velocity 0-32767 (0 needs -l: 'Zero VELOCITY found: Outfile length must be specified.'); density (0.000023 to 16383.500000); grainsize (2 to 2000) ms; pitchshift (-133.278752 to 133.278752) srate-dependent, +100 in-range but runtime-refused 'SOURCE POSSIBLY TOO SHORT FOR THIS OPTION: Try 'Full Monty''; amp 0-1; bsplice/esplice (1 to 1000) ms; -r (0 to 4000) ms; -j (0 to 1) default 0.5.",
+        "h-limits: hX == X disables that random axis; hX < base accepted silently (treated as the other range end, vel 2/hvel 0.5 -> 1.586 s). -x/-n switches and -l/-c via execute()."
+      ]
+    },
+    {
+      "program": "multiosc",
+      "mode": "multiosc",
+      "submode": 3,
+      "breakpoint_capable": ["frq1", "frq2", "amp2", "frq3", "amp3", "frq4", "amp4"],
+      "duration_row": ["multiosc", "multiosc", 3, null, {"dur": 2.0, "frq1": 440.0, "frq2": 100.0, "amp2": 0.2, "frq3": 200.0, "amp3": 0.0, "frq4": 300.0, "amp4": 0.0, "srate": 44100, "dovesplice": 15.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Arity-0 nested-FM generator, ST's mode-3 pick. set_by dur, sample-exact (0.7 -> 30870, 2.0 -> 88200, 5.0 -> 220500 frames).",
+        "MODE REDUNDANCY (first-class): mode 1 renders byte-identical to mode 3 with amp3=amp4=0 (verified) - modes 1/2 are strict subsets; one entry covers the family.",
+        "All 4 frequencies AND all 3 sub-amps breakpoint-capable (7/7 differ from both scalar endpoints) - the amp capability is BANNER-SILENT (banner marks only FRQs as possibly time-varying). dur/srate/dovesplice refuse (parameters 1/9/10).",
+        "FIXED output peak 0.9, no master amplitude param, mono only. amp2 0.3 at frq2 100 puts dominant energy at 12-13 kHz - modulation index fierce, ST's 0.5 cap protective.",
+        "Ranges verbatim: frq (0.001000 to 10000.000000); amp (0.000000 to 1.000000); srate (16000.000000 to 96000.000000) discrete ('Invalid sample rate (44000) entered.'); dovesplice (1.000000 to 50.000000) ms. dur floor ~2*dovesplice ('Duration too short for dovetailing splices.'); NO CDP dur ceiling (7201 s / 635 MB rendered, exit 0) - engine cap is the guard.",
+        "Deterministic (1.2 s apart identical)."
+      ]
+    },
+    {
+      "program": "phase",
+      "mode": "phase",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": ["phase", "phase", 1, 2.0, {}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Polarity inversion, SAMPLE-EXACT: out == -in with zero residual, mono and stereo (both channels). Static duration at 1 s and 2 s. No parameters.",
+        "Deterministic; channel constraint any (mode 2 is the stereo-only sibling).",
+        "Musical role: invert-and-mix cancellation (isolate what a process changed - ST's own recipe), side extraction, interference fixes."
+      ]
+    },
+    {
+      "program": "phase",
+      "mode": "phase",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "STEREO-ONLY entry ('File ... is not of correct type (must be stereo)'); the shared duration fixture writes one mono in.wav. Static duration verified on 1 s and 2 s stereo fixtures (2.0000/1.0000 exact); process_impl spot-check on a stereo input rendered 2.0000 (2 ch).",
+      "stochastic": false,
+      "notes": [
+        "Stereo enhance = cross-cancellation: ~ norm(L - t*R, R - t*L), peak-renormalized (model correlates 0.9997 at t=1 and t=0.5; binary logs 'Finding maximum input/output sample').",
+        "Default transfer 1.0 is a MID KILL: side/mid RMS ratio 0.036 -> 57.1 on a mostly-mono file (anti-correlated output, mono sum collapses); t=0.5 -> 0.108 (musical widening zone 0.1-0.5).",
+        "transfer range (0.000000 to 1.000000) but 0 refused at runtime 'Transfer parameter of ZERO produces no effect on the source.'; brk refused (parameter 1).",
+        "Renormalization amplifies the residue on near-mono input (noise-floor artifacts on dual-mono). Deterministic; static duration."
+      ]
+    },
+    {
+      "program": "repitch",
+      "mode": "transpose",
+      "submode": 3,
+      "breakpoint_capable": ["transpos"],
+      "duration_row": ["repitch", "transpose", 3, 2.0, {"transpos": 12.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Spectral transposition, envelope moves too (chipmunk direction). Pitch textbook-exact: +12 st on 440 Hz ana -> 880 Hz. Static duration (2 s -> 2.0230, 1.5 s -> 1.5209 via pvoc synth; ~1.2% padding inside tolerance).",
+        "UNIT-VARIANT MODES (first-class): mode 1 ratio 2.0 == mode 2 octave 1.0 == mode 3 semitone 12, byte-identical data chunks. Mode 3 pinned (ST); mode 4 (binary transpos data file) via execute() - no aux machinery needed for this entry.",
+        "RANGE-ERROR MISLABEL (first-class): refusals print the RATIO under a semitone label ('Transposition [322.539795] out of range 0.003830 - 256.000000 semitones' for +100 st). True range: ratio 0.00383-256 ~ -96.3..+96.0 st. ST's +/-24 advisory.",
+        "transpos brk capable (0->12 differs from both endpoints; resynth pitch rises 507 -> 824 Hz). -l/-h (5.000000 to 22050.000000) verified effective (sub-300 Hz fraction 0.123 -> 0.015; 2 kHz+ 0.659 -> 0.272); -x changes the data chunk.",
+        "Wav input refused 'Application doesn't work with this type of infile.' (auto-PVOC handles it - spot-check rendered from a wav fixture). Deterministic (identical data chunks 1.2 s apart)."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "excise",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": ["sfedit", "excise", 1, 2.0, {"start": 0.5, "end": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Remove-and-close-gap edit: duration = indur - (end - start), SAMPLE-EXACT on 2 indurs + stereo; splice never changes length; -w0 output is a verbatim sample-exact concatenation of input[0:start]+input[end:].",
+        "Silent bound swap re-verified (1.0 0.5 byte-identical to 0.5 1.0 - the sfedit cut family behavior); start == end refused 'endcut = startcut: No cutting possible.'; end past EOF refused quoting (0.000000 to 2.000000).",
+        "splice (0.000000 to 5000.000000) ms; must fit: 'Edited portion is too short for specified splicelen.' All three params refuse brks (parameters 1-3).",
+        "Deterministic; stereo accepted -> any. Submode 2 (sample counts) and multi-region 'excises' via execute()."
+      ]
+    },
+    {
+      "program": "sfedit",
+      "mode": "join",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry (variadic upstream, 3-input verified: 4.0 s total - 2 splices -> 3.9700); incompatible with the single-input fixture. Model 'indur1 + indur2 - splice / 1000' sample-exact at -w0/-w15/-w100 on 1+1 s and 2+1 s pairs; process_impl spot-check 2s+1.5s defaults -> 3.4850 exact.",
+      "stochastic": false,
+      "notes": [
+        "End-to-end concatenator: each seam consumes exactly one splice length; -w0 is a verbatim sample-exact concat. -b/-e (outer-edge splices) change content, never duration.",
+        "Refusal-numbering quirk: splice out-of-range quotes 'Parameter[1]', its brk refusal quotes 'parameter 3' (both verbatim). splice > shortest neighbour -> 'File 1 too short for specified spliclength.' (CDP typo verbatim).",
+        "Inputs must share channel count ('Incompatible channel-count in input file ...'); stereo+stereo verified with the same duration rule. Single input 'Insufficient input files for this process'.",
+        "Deterministic (1.2 s apart identical)."
+      ]
+    },
+    {
+      "program": "synspline",
+      "mode": "synspline",
+      "submode": null,
+      "breakpoint_capable": ["frq", "splinecnt", "interpval", "maxspline", "maxinterp"],
+      "duration_row": ["synspline", "synspline", null, null, {"srate": 44100, "dur": 2.0, "frq": 220.0, "splinecnt": 4, "interpval": 24.0, "seed": 5}, 0.05],
+      "stochastic": true,
+      "notes": [
+        "Arity-0 random-spline waveform generator. set_by dur with whole-wavecycle round-UP (0.7 @ 220 Hz -> 0.70295 s/31000 frames; 2.0 exact; overshoot < 1/frq; 'Duration too short to generate a complete wavecycle.' when dur < 1/frq).",
+        "SEED 0 IS THE CLOCK PATH (first-class ST contradiction): synspline.c:1530 'if (seed > 0) srand(seed); else initrand48()' = srand(time(0)). Verified: seed 5 reproducible byte-identical 1.2 s apart, 5 vs 9 differ, seed 0 twice DIFFERS, seed 0 != seed 1. SoundThread DEFAULTS the seed slider to 0 - its default renders are irreproducible. Entry defaults seed to 1; usable reproducible space 1-64.",
+        "frq/splinecnt/interpval/maxspline/maxinterp ALL brk-capable at fixed seed (each differs from both scalar endpoints); seed refuses brks (parameter 6). splinecnt 0 verified harmonic-free near-sine; -s0 byte-identical to flagless ('Ignored if set to zero' verified).",
+        "Ranges verbatim: frq (0.001000 to 10000.000000); splinecnt (0.000000 to 64.000000); interpval (0.000000 to 4096.000000, fractional ok); seed (0.000000 to 64.000000); -s (0-64) param 7; -i (0-4096) param 8; -d (0-12) param 9 REQUIRES -v ('If drift transposition set (and not 0), vals for drift step must be set (and not less than 1mS).'); -v (0-1000) ms param 10, 1 ms runtime floor; srate 16000-96000 discrete.",
+        "Random per-cycle amplitudes by design (peak ~0.92); -n normalizes each cycle (render differs). Mono output only. Seed omission reprints the usage text (exit 255)."
+      ]
+    }
+  ],
+  "dropped": [
+    {
+      "program": "housekeep",
+      "mode": "extract",
+      "submode": 1,
+      "reason": "MULTI-OUTPUT WITH NO OUTPUT ARGV SLOT: mode 1 ('CUT OUT & KEEP SIGNIFICANT EVENTS') takes only 'inf' plus flags - no outfile - and writes one file PER DETECTED EVENT named from the INPUT stem ('housekeep extract 1 syl2.wav -g0.05' -> exit 0, 'INFO: 4 segments extracted.', files syl0/syl1/syl2/syl3.wav in cwd). The engine's contract is one output argv slot, one verified output, one lineage record; none of that machinery exists for N self-named outputs, and building it for one utility submode is not justified.",
+      "evidence": [
+        "Output naming verified: input stem with trailing digit replaced/appended (syl2.wav -> syl0..syl3.wav), written to the process cwd.",
+        "SILENT LOSS LANDMINE: the extracted segment whose generated name collided with the existing input file (syl2.wav) was silently skipped - input untouched at 2.0 s, only 3 new files despite '4 segments extracted.' (the -n flag makes it STOP instead; default is 'ignore and continue' per the banner).",
+        "The tranche briefing's 'one output per channel' expectation was wrong - per-channel splitting is housekeep chans; extract mode 1 splits by detected EVENT (gate/threshold flags -g/-e/-t/-h/-b/-i/-l/-w).",
+        "ST covers only extract mode 4 (curated this tranche as housekeep_extract_4). Mode 1 remains reachable via execute() with cwd control."
+      ]
+    }
+  ]
+}

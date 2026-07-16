@@ -1,0 +1,69 @@
+{
+  "program": "sfedit",
+  "mode": "join",
+  "submode": null,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 2,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur1 + indur2 - splice / 1000"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Joins soundfiles end to end with a crossfade splice at each seam - the time-domain concatenator (analjoin join is its spectral sibling). This entry pins 2 inputs; the binary is variadic ('infile1 [infile2 infile3....] outfile' - a 3-input join verified; use execute() or chain joins for more). Duration model verified SAMPLE-EXACT: each seam consumes exactly one splice length - 1 s + 1 s at the default 15 ms -> 1.9850 s (87538 frames); at -w100 -> 1.9000; at -w0 -> 2.0000 exactly, and the -w0 output is a verbatim sample-exact concatenation (allclose vs numpy concat). Three files lose two splices (4.0 s total -> 3.9700). -b (splice the start of the first file) and -e (splice the end of the last) change content, never duration. All inputs must share one channel count ('ERROR: INVALID DATA / ERROR: Incompatible channel-count in input file ...'; stereo+stereo verified, same duration rule); a single input refuses 'Insufficient input files for this process'. Deterministic (identical decoded shas 1.2 s apart).",
+  "musical_use": "The phrase assembler: butt processed fragments into sequences - iterated variations of one source into a melodic line, alternating textures into an A/B/A form, or a chain of process outputs into one continuous take. The splice is the articulation control: 15 ms default is a clean invisible join; 0 ms is a hard cut (clicks welcome on rhythmic chains); long splices (200-2000 ms) turn a join into a real crossfade so consecutive textures dissolve into each other - at 2 s it approaches a mix, not an edit. Since each seam SHORTENS the result by one splice length, account for it when building to a beat grid (or use -w0 for exact arithmetic). -b/-e dovetail the outer edges in the same pass - a phrase that fades in and out without a separate envel dovetail step. For overlap-placement at arbitrary times (rather than end-to-end) use submix mix; for spectral-domain seams use analjoin join.",
+  "parameters": {
+    "splice": {
+      "type": "float",
+      "min": 0.0,
+      "max": 5000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 15.0,
+      "flag": "-w",
+      "flag_kind": "attached_value",
+      "description": "Crossfade length at each seam in milliseconds (CDP default 15; enforced 0-5000, '-w-1' and '-w5001' refused quoting 'Parameter[1] Value ... out of range (0.000000 to 5000.000000)' - note the range refusal says Parameter[1] while the breakpoint refusal says parameter 3). Each seam shortens the output by exactly this amount (sample-exact); 0 = verbatim butt-join. Must fit inside the shorter neighbour: -w1200 against a 1 s file refused 'ERROR: File 1 too short for specified spliclength.' (CDP's typo, verbatim). Breakpoint file refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.')."
+    },
+    "splice_start": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-b",
+      "flag_kind": "no_value",
+      "description": "Also splice (fade) the START of the first file. Verified: changes the render (sha differs from the unflagged join), duration unchanged."
+    },
+    "splice_end": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-e",
+      "flag_kind": "no_value",
+      "description": "Also splice (fade) the END of the last file. Verified: changes the render, duration unchanged."
+    }
+  },
+  "examples": [
+    {
+      "description": "Clean sequential join of two processed takes.",
+      "params": {},
+      "expected_use": "Output = input1 then input2, 15 ms crossfade at the seam; duration = sum - 0.015 s (sample-exact)."
+    },
+    {
+      "description": "Long dissolve between two textures with faded outer edges.",
+      "params": {"splice": 800.0, "splice_start": true, "splice_end": true},
+      "expected_use": "The last 0.8 s of input1 crossfades into input2; the whole result fades in and out. Duration = sum - 0.8 s."
+    }
+  ],
+  "known_issues": [
+    "Each seam consumes exactly one splice length: duration = sum(indurs) - splice*(n_seams)/1000, sample-exact (verified at 0/15/100 ms and with 3 files). The curated expression covers the pinned 2-input case; remember the extra subtraction per file when chaining more via execute().",
+    "The splice must fit inside the files it bridges: 'ERROR: File 1 too short for specified spliclength.' (verbatim, CDP's own typo) when splice > a neighbour's length.",
+    "All inputs must share one channel count ('Incompatible channel-count in input file ...'); mono+mono and stereo+stereo verified. Inputs must also share sample rate (CDP-wide rule).",
+    "Splice refusal numbering is inconsistent: out-of-range quotes 'Parameter[1]', breakpoint refusal quotes 'parameter 3' - both verbatim-verified.",
+    "-w0 produces a verbatim sample-exact concatenation (may click at the seam). -b/-e change content only, never duration.",
+    "Variadic upstream: 3+ inputs accepted by the binary (verified); this entry pins input_arity 2. A single input refuses 'Insufficient input files for this process'. Deterministic."
+  ],
+  "references": ["cdp://docs/html/cgroedit"]
+}
