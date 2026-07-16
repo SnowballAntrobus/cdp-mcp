@@ -68,9 +68,9 @@ def test_list_entries_by_domain_spectral(real_index):
     entries = real_index.list_entries(domain="spectral")
     keys = {(e.program, e.mode) for e in entries}
     assert keys == {
-        # Regenerated from the loader at wave-5 integration —
-        # the spectral tail made hand-maintenance error-prone. Any
-        # drift (new spectral entry, domain flip) still fails here.
+        # Regenerated from the loader at each integration wave — the
+        # spectral tail made hand-maintenance error-prone. Any drift
+        # (new spectral entry, domain flip) still fails here.
         ("analjoin", "join"), ("blur", "avrg"), ("blur", "blur"),
         ("blur", "chorus"), ("blur", "drunk"), ("blur", "noise"),
         ("blur", "scatter"), ("blur", "spread"), ("blur", "suppress"),
@@ -86,7 +86,11 @@ def test_list_entries_by_domain_spectral(real_index):
         ("hilite", "trace"), ("hilite", "vowels"), ("morph", "bridge"),
         ("morph", "glide"), ("morph", "morph"), ("newmorph", "newmorph"),
         ("newmorph", "newmorph2"), ("oneform", "get"), ("oneform", "put"),
-        ("peak", "extract"), ("pitch", "tune"), ("repitch", "transpose"),
+        ("peak", "extract"), ("pitch", "pick"), ("pitch", "transp"),
+        ("pitch", "tune"), ("ptobrk", "withzeros"), ("repitch", "analenv"),
+        ("repitch", "combineb"), ("repitch", "getpitch"),
+        ("repitch", "synth"), ("repitch", "transpose"),
+        ("repitch", "transposef"), ("repitch", "vowels"),
         ("selfsim", "selfsim"), ("spec", "bare"), ("spec", "clean"),
         ("spec", "cut"), ("spec", "gain"), ("spec", "gate"), ("spec", "grab"),
         ("spec", "magnify"), ("specav", "specav"), ("specenv", "specenv"),
@@ -110,8 +114,8 @@ def test_curated_only_passthrough_includes_all(real_index):
     # All curated entries are curated, so curated_only=False just returns the
     # same set. The flag's behavior is exercised; the data doesn't (yet)
     # contain uncurated entries to filter out.
-    assert len(real_index.list_entries(curated_only=False)) == 424
-    assert len(real_index.list_entries(curated_only=True)) == 322
+    assert len(real_index.list_entries(curated_only=False)) == 437
+    assert len(real_index.list_entries(curated_only=True)) == 338
 
 
 def test_get_returns_none_for_missing(real_index):

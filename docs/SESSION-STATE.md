@@ -93,7 +93,22 @@
     .ana output_format now wins over domain-derived naming (specanal
     is the cross-domain analyzer — time input, spectral output).
     Suite 2938 hermetic / 3163 real-CDP.
-  - Wave 6 pending: T22 pitch-data + T23 text utilities.
+  - Wave 6 DONE (2026-07-16): T22 pitch-data (11) + T23 text
+    utilities (5) -> **338 curated / 437 total**. The pitch WORKFLOW
+    verified (getpitch -> combineb -> transposef re-sings a wobble
+    onto a steady vowel); .frq format pinned; hfchords -> synth
+    chord round-trip exact.
+  - **RUN COMPLETE: 134 -> 338 curated (+204) across six waves.**
+    Remaining 99 stubs = out-of-scope spatial family, toolkit
+    plumbing, and defect-dropped programs (all evidenced in
+    docs/curation/tranche12..23 findings).
+  - **Two NEW engine gaps for the Phase 6 build queue** (join
+    free_string): (a) .frq/.trn OUTPUT kinds — the entire 15-program
+    binary pitch-transform layer (approx/exag/invert/quantise/
+    randomise/vibrato/...) is verified WORKING but schema-blocked,
+    all execute()-reachable meanwhile; (b) the mode-token argv gap
+    (flag-first/no-verb shapes) — forecloses columns/tabedit incl.
+    the time-list generators gesture workflows want.
 
 ## Phase 5 wave 2 — DONE (commits 5715795 + c45b714, 2026-07-15)
 

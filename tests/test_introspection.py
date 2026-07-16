@@ -74,7 +74,7 @@ async def test_list_categories_returns_sorted_unique(mcp_with_tools):
 
 async def test_list_programs_no_filter_returns_all_curated(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {})
-    assert len(payload) == 322
+    assert len(payload) == 338
     keys = {(e["program"], e["mode"]) for e in payload}
     # Spot-check representatives across phases rather than the full set
     # (the count above pins the total; per-entry presence is pinned by
@@ -106,9 +106,9 @@ async def test_list_programs_domain_filter(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {"domain": "spectral"})
     keys = {(e["program"], e["mode"]) for e in payload}
     assert keys == {
-        # Regenerated from the loader at wave-5 integration —
-        # the spectral tail made hand-maintenance error-prone. Any
-        # drift (new spectral entry, domain flip) still fails here.
+        # Regenerated from the loader at each integration wave — the
+        # spectral tail made hand-maintenance error-prone. Any drift
+        # (new spectral entry, domain flip) still fails here.
         ("analjoin", "join"), ("blur", "avrg"), ("blur", "blur"),
         ("blur", "chorus"), ("blur", "drunk"), ("blur", "noise"),
         ("blur", "scatter"), ("blur", "spread"), ("blur", "suppress"),
@@ -124,7 +124,11 @@ async def test_list_programs_domain_filter(mcp_with_tools):
         ("hilite", "trace"), ("hilite", "vowels"), ("morph", "bridge"),
         ("morph", "glide"), ("morph", "morph"), ("newmorph", "newmorph"),
         ("newmorph", "newmorph2"), ("oneform", "get"), ("oneform", "put"),
-        ("peak", "extract"), ("pitch", "tune"), ("repitch", "transpose"),
+        ("peak", "extract"), ("pitch", "pick"), ("pitch", "transp"),
+        ("pitch", "tune"), ("ptobrk", "withzeros"), ("repitch", "analenv"),
+        ("repitch", "combineb"), ("repitch", "getpitch"),
+        ("repitch", "synth"), ("repitch", "transpose"),
+        ("repitch", "transposef"), ("repitch", "vowels"),
         ("selfsim", "selfsim"), ("spec", "bare"), ("spec", "clean"),
         ("spec", "cut"), ("spec", "gain"), ("spec", "gate"), ("spec", "grab"),
         ("spec", "magnify"), ("specav", "specav"), ("specenv", "specenv"),

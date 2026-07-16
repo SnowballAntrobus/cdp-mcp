@@ -158,6 +158,8 @@ _AUX_FILES = {
     "ptmp1.txt": "0 57 64 69\n1.5 57 64 69\n",
     "pk6.txt": "157.016924\n81.590736\n76.337778\n54.753339\n48.560505\n47.812285\n",
     "ftr21.txt": "0.000000 0.300000 0.800000 1.200000 1.600000 2.025941 \n257.894745 257.894745 257.894745 257.894745 257.894745 0.000000 \n630.641357 630.641357 630.641357 630.641357 630.641357 0.000000 \n1261.282715 1261.282715 1261.282715 1261.282715 1261.282715 0.000000 \n0.038986 0.038986 0.038986 0.038986 0.038986 0.000000 \n",  # noqa: E501
+    # Wave-6 aux row (tranche 23): matrix 2 unitary matrixfile.
+    "mtx4.txt": "1\n0.000000\n0.000000\n0.300742\n0.603489\n-0.300742\n0.603489\n0.000000\n0.000000\n",  # noqa: E501
 }
 
 
@@ -853,6 +855,26 @@ _AUX_FILES = {
          0.05),
         ("fturanal", "synth", 1, 2.0,
          {"featurefile": "ftr21.txt"},
+         0.05),
+        # --- Wave 6 (tranches 22-23; binary-aux and data-output rows
+        # null with reasons — .frq cannot ride _AUX_FILES.) ---
+        ("repitch", "transposef", 3, 2.0,
+         {"transpos": -12.0, "formant_bands": 8},
+         0.05),
+        ("pitch", "transp", 6, 2.0,
+         {"frq_split": 1000.0, "transpos1": 12.0, "transpos2": -12.0},
+         0.05),
+        ("pitch", "pick", 1, 2.0,
+         {"fundamental": 220.0},
+         0.05),
+        ("matrix", "matrix", 3, 2.0,
+         {"analchans": 1024, "winoverlap": 3},
+         0.05),
+        ("matrix", "matrix", 4, 2.0,
+         {"analchans": 1024, "winoverlap": 3},
+         0.05),
+        ("matrix", "matrix", 2, 2.0,
+         {"inmatrixfile": "mtx4.txt"},
          0.05),
     ],
 )

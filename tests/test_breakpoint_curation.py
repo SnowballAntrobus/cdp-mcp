@@ -31,6 +31,124 @@ from cdp_mcp.knowledge.loader import KnowledgeIndex
 # cdpr8/_cdp/_cdprogs). Updating any cell in this table is a curation
 # decision and must pair with an entry in docs/phase-2-breakpoint-review.md.
 _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]] = {
+    # --- Wave 6 (tranches 22-23: pitch-data + text utilities; see
+    # docs/curation/tranche22_pitchdata_findings.json +
+    # tranche23_datautil_findings.json) ---
+    ("repitch", "getpitch", 1): {
+        "pitchdata": False,
+        "tuning_range": False,
+        "min_group": False,
+        "signal_noise_ratio": False,
+        "min_harmonics": False,
+        "lopitch": False,
+        "hipitch": False,
+        "alt_algorithm": False,
+        "retain_unpitched": False,
+    },
+    ("repitch", "getpitch", 2): {
+        "pitchdata": False,
+        "tuning_range": False,
+        "min_group": False,
+        "signal_noise_ratio": False,
+        "min_harmonics": False,
+        "lopitch": False,
+        "hipitch": False,
+        "data_reduce": False,
+        "alt_algorithm": False,
+    },
+    ("repitch", "combineb", 1): {
+        "pitchfile": False,
+        "pitchfile2": False,
+        "data_reduce": False,
+    },
+    ("repitch", "transposef", 3): {
+        "formant_bands": False,
+        "quicksearch": False,
+        "transpos": True,
+        "minfrq": False,
+        "maxfrq": False,
+        "fullspec": False,
+    },
+    ("repitch", "transposef", 4): {
+        "transposition": False,
+        "formant_bands": False,
+        "quicksearch": False,
+        "minfrq": False,
+        "maxfrq": False,
+        "fullspec": False,
+    },
+    ("repitch", "synth", None): {
+        "pitchfile": False,
+        "harmonics": False,
+    },
+    ("repitch", "vowels", None): {
+        "pitchfile": False,
+        "vowel_data": False,
+        "halfwidth": False,
+        "curve": False,
+        "pk_range": False,
+        "fweight": False,
+        "foffset": False,
+    },
+    ("repitch", "analenv", None): {
+        # no numeric parameters
+    },
+    ("ptobrk", "withzeros", None): {
+        "pitchfile": False,
+        "min_pitch_dur": False,
+    },
+    ("pitch", "transp", 6): {
+        "frq_split": True,
+        "transpos1": True,
+        "transpos2": True,
+        "depth": True,
+    },
+    ("pitch", "pick", 1): {
+        "fundamental": False,
+        "clarity": True,
+    },
+    ("matrix", "matrix", 3): {
+        "analchans": False,
+        "winoverlap": False,
+    },
+    ("matrix", "matrix", 4): {
+        "analchans": False,
+        "winoverlap": False,
+    },
+    ("matrix", "matrix", 2): {
+        "inmatrixfile": False,
+        "cyclic": False,
+    },
+    ("hfperm", "hfchords", 1): {
+        "notes": False,
+        "srate": False,
+        "notedur": False,
+        "gapdur": False,
+        "pausedur": False,
+        "minset": False,
+        "bottomnote": False,
+        "bottomoctave": False,
+        "topnote": False,
+        "topoctave": False,
+        "sortby": False,
+        "minonly": False,
+        "smallfirst": False,
+        "altsort": False,
+        "elimoctdups": False,
+    },
+    ("hfperm", "hfchords", 4): {
+        "notes": False,
+        "minset": False,
+        "bottomnote": False,
+        "bottomoctave": False,
+        "topnote": False,
+        "topoctave": False,
+        "sortby": False,
+        "minonly": False,
+        "smallfirst": False,
+        "altsort": False,
+        "elimoctdups": False,
+    },
     # --- Wave 5 (tranches 20-21: spectral tail; see
     # docs/curation/tranche20_spectral1_findings.json +
     # tranche21_spectral2_findings.json) ---

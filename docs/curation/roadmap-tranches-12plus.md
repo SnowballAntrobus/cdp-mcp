@@ -1,5 +1,11 @@
 # Curation completion roadmap — tranches 12–23 (2026-07-15)
 
+> **STATUS: COMPLETE (2026-07-16).** All six waves executed; 134 → 338
+> curated / 437 total. Per-tranche results live in the
+> `tranche12..23` transcripts + findings and the wave integration
+> commits. Engine gaps discovered en route (.frq/.trn output kinds,
+> the mode-token argv gap) are queued in SESSION-STATE for Phase 6.
+
 > Goal: curate every remaining RELEVANT program and mode. Post-tranche-11
 > state: 134 curated / 302 total. Out of scope (standing decisions): the
 > multichannel/spatial family (DAW-side of the micro/macro boundary),

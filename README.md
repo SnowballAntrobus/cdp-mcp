@@ -2,7 +2,7 @@
 
 An MCP (Model Context Protocol) server that wraps the [Composers' Desktop Project](https://www.composersdesktop.com/) (CDP) suite, exposing it as a set of tools an LLM can call for sound transformation, analysis, and visualization.
 
-> **Status:** Phase 5 complete. 32 tools + 3 workflow prompts; **107 curated entries** keyed by `(program, mode, submode)` (every parameter range, duration model, and breakpoint capability empirically verified against real CDP binaries) plus 176 auto-generated uncurated stubs surfacing the long tail. DAG orchestration (`graph`, `batch`), a full observation suite (spectrograms, MIR v2 scorecards, segmentation, comparison, progression, clustering), FTS5 search over CDP's manual, a packaged `cdp://examples/*` library of verified chain recipes, per-output provenance, and derivative caches throughout. Phase handoffs live in `docs/`.
+> **Status:** Phase 5 complete + curation completion run (tranches 9–23). 32 tools + 3 workflow prompts; **338 curated entries** keyed by `(program, mode, submode)` (every parameter range, duration model, and breakpoint capability empirically verified against real CDP binaries) plus 99 auto-generated uncurated stubs covering what remains (mostly the out-of-scope multichannel/spatial family, toolkit plumbing, and programs dropped with recorded defect evidence — see `docs/curation/`). DAG orchestration (`graph`, `batch`), a full observation suite (spectrograms, MIR v2 scorecards, segmentation, comparison, progression, clustering), FTS5 search over CDP's manual, a packaged `cdp://examples/*` library of verified chain recipes, per-output provenance, and derivative caches throughout. Phase handoffs live in `docs/`.
 
 ## What this does
 
