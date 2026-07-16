@@ -45,11 +45,13 @@ from .tools import journal as journal_module
 from .tools import process as process_module
 from .tools import progression as progression_module
 from .tools import provenance as provenance_module
+from .tools import search_programs as search_programs_module
 from .tools import segments as segments_module
 from .tools import session_config as session_config_module
 from .tools import sweep as sweep_module
 from .tools import tagging as tagging_module
 from .tools import templates as templates_module
+from .tools import timeline as timeline_module
 from .tools import visualize as visualize_module
 
 mcp = FastMCP("cdp-mcp")
@@ -215,6 +217,22 @@ prompts.register(mcp)
 
 # Phase 5: packaged examples library (cdp://examples/*, read via read_doc).
 examples_module.register(mcp)
+
+# Phase 6: gesture construction + discoverability.
+timeline_module.register(
+    mcp,
+    sessions=_session_manager,
+    knowledge_index=_index,
+    cdp_config_provider=lambda: _cdp_config,
+    latest_tracker=_latest_tracker,
+    cache_root=_cache_root,
+)
+search_programs_module.register(
+    mcp,
+    knowledge_index=_index,
+    index_path=_cache_root.parent / "programs_index.sqlite",
+)
+search_programs_module.register_prompt(mcp)
 
 
 def create_server() -> FastMCP:
