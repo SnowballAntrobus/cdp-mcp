@@ -133,6 +133,24 @@ async def _run(env, *, program, mode, input_name, params):
           "sweepfrq": 1.0, "tail": 0.5}, 0.05),
         # --- Phase 3 tranche 1 (single-input entries; multi-input rows
         # excluded — this fixture writes one in.wav) ---
+        ("scramble", "scramble", 2.0,
+         {"seed": 5},
+         0.05),
+        ("envspeak", "envspeak", 2.0,
+         {"wsize": 50.0, "splice": 15.0, "offset": 0, "repet": 2, "rand": 0.0},
+         0.05),
+        ("distort", "reform", 2.0,
+         {},
+         0.05),
+        ("newdelay", "newdelay", 2.0,
+         {"midipitch": 60.0, "mix": 1.0, "feedback": 0.7},
+         0.05),
+        ("quirk", "quirk", 2.0,
+         {"powfac": 0.7},
+         0.05),
+        ("silend", "silend", 2.0,
+         {"sildur": 1.0},
+         0.05),
         # (grain reverse/rerhythm/reposition + spec grab also excluded:
         # grain ops refuse the fixture's flat noise ('No grains found') and
         # rerhythm/reposition need aux timefiles the shared fixture cannot

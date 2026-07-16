@@ -1,0 +1,34 @@
+{
+  "program": "distort",
+  "mode": "reform",
+  "submode": 6,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Replaces every wavecycle (zero-crossing-bounded segment) with a burst of square pulses of random widths at the wavecycle's amplitude - the 'click stream' reform. Pinned to submode 6, the most characterful of the parameterless reform modes; submodes 1-5/7 swap in other waveforms (1/2 square fixed/scaled, 3/4 triangle fixed/scaled, 5 inverted half-cycles, 7 sinusoid - a subtle lowpass-like smoothing) and submode 8 (exaggerate contour) takes an extra exaggeration parameter - all reachable via execute(). Takes NO parameters. Output duration is static and sample-exact (frame counts equal input across tones, enveloped noise and flat noise). Although the pulse widths are drawn from drand48(), the program never seeds it, so the 'random' pattern is IDENTICAL on every run (verified byte-identical 1.2 s apart) - deterministic by construction. MONO input only.",
+  "musical_use": "A rattle-maker: pitched material keeps its pitch contour and amplitude envelope but its waveform becomes a buzzy, clicky pulse mishmash - somewhere between a ring-modulated buzz and a geiger-counter tuned to the source. Because wavecycle lengths are preserved, melodic and speech contours remain clearly audible through the grit; quiet material yields sparse soft clicks, loud material dense harsh buzz, so the source's dynamics directly play the texture. Great as a parallel layer under the dry sound for aggressive edge, or as a feed into filters (filter bank/sweeping) which re-pitch the click spectrum. For a gentler recolouring use submode 7 (sinusoid) via execute(); for classic square/triangle waveshaping use 2/4. Chain after distort delete or replace to rattle an already-decimated texture.",
+  "parameters": {},
+  "examples": [
+    {
+      "description": "Turn any mono sound into its click-stream double.",
+      "params": {},
+      "expected_use": "Same-length output; pitch/amplitude contours preserved as a buzzy rattle. Run is identical every time (unseeded fixed 'random' pulse pattern)."
+    }
+  ],
+  "known_issues": [
+    "The 'random' pulse widths are deterministic: genpulse() draws drand48() but distort never calls srand/srand48, so every run reproduces the identical output (verified decoded-identical 1.2 s apart) on this build - and POSIX drand48's unseeded initial state is fixed, so this should hold everywhere. There is no way to get a different pulse pattern from the same input.",
+    "Output duration is static and sample-exact (all 12 probe runs matched input frame counts exactly, including flat noise).",
+    "Stereo refused: 'Application doesn't work with this type of infile.' (exit 255) -> mono.",
+    "Submode is load-bearing: 1-7 take no parameters but sound very different; 8 adds an exaggeration positional (different argv shape). This entry is pinned to 6 (click stream)."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

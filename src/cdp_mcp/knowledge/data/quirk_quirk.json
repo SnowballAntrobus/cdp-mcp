@@ -1,0 +1,51 @@
+{
+  "program": "quirk",
+  "mode": "quirk",
+  "submode": 1,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Waveshaping by exponent: sample values are raised to the power powfac, rescaled over the amplitude range of each individual half-wavecycle (submode 1). powfac < 1 exaggerates the signal contour (pushes values toward the rails - harder, brighter, fuzz-like); powfac > 1 smooths it (pulls values toward zero - thinner, darker). Submode 2 applies the power over the ENTIRE signal's amplitude range instead (same argv shape, more expander/gate-like dynamics colouring - verified distinct output; separate entry if curated later). Output duration is static (exact on tones/noise; -0.11% worst on an enveloped tone - trailing partial half-cycle dropped). Deterministic. MONO only.",
+  "musical_use": "A one-knob tone-bender that lives between EQ and distortion. Because submode 1 renormalises per half-wavecycle, the effect tracks the waveform shape rather than the level: powfac 0.3-0.7 gives a present, gritty exaggeration that reads as saturation without the level pumping of a clipper (SoundThread's default sweet spot is 0.7); powfac 2-10 hollows the sound toward a duller, almost triangle-ish character; extremes (0.01-0.05 or 50-100) are full destruction/near-silence-shaping territory. Being static-duration and phase-shape-driven, it stacks predictably: use it pre-filter to add harmonics for the filter to carve, or post distort reform/replace to soften their edges. For level-dependent (dynamics-following) shaping use submode 2 via execute().",
+  "parameters": {
+    "powfac": {
+      "type": "float",
+      "min": 0.01,
+      "max": 100.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.7,
+      "flag": null,
+      "description": "The power each sample value is raised to (CDP-enforced 0.01 to 100; 0, negatives and 101 refused). < 1 exaggerates the contour (brighter/harder), > 1 smooths it (darker/thinner), 1.0 is a near-passthrough. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.').",
+      "musical_range": [0.3, 10.0]
+    }
+  },
+  "examples": [
+    {
+      "description": "Gritty contour exaggeration (SoundThread's default).",
+      "params": {"powfac": 0.7},
+      "expected_use": "Same-length output with a harder, saturated edge; deterministic."
+    },
+    {
+      "description": "Hollowed, smoothed double.",
+      "params": {"powfac": 4.0},
+      "expected_use": "Darker, thinner version of the source - waveform contour flattened toward zero between peaks."
+    }
+  ],
+  "known_issues": [
+    "UNIPOLAR-MATERIAL TRAP: input with no zero crossings (e.g. a one-sided click train or DC-offset material) produces a ZERO-FRAME output with exit 0 - no error is raised by CDP (verified: 2 s unipolar click train -> 0 samples). The engine's output verification catches the empty file, but the failure reads as a verification error, not a CDP refusal. Normal bipolar audio is unaffected.",
+    "Duration is static: sample-exact on symmetric tones and noise; -0.11% worst on an enveloped tone (trailing partial half-wavecycle dropped).",
+    "Stereo refused: 'ERROR: INVALID DATA / ERROR: File ... is not of correct type (must be mono)' -> mono.",
+    "Deterministic: two runs 1.2 s apart decoded-identical. Submode 1 and 2 outputs differ (verified); this entry is pinned to submode 1 (per-half-wavecycle scaling)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

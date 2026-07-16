@@ -77,3 +77,8 @@ timeline() is the open design question.
   data chunks); same-second clock-seed collisions; grain ops refuse flat
   noise fixtures; multi-input duration rows don't fit the shared formula
   fixture.
+
+- Sandbox landmine (2026-07-15): the FULL suite with CDP_PATH set stalls
+  near the end when run as one process in this sandbox (reproducible;
+  both alphabetical halves pass in ~20-26 s each, 1276/1276 green).
+  Chunk real-CDP runs in-sandbox; a real machine runs it whole.

@@ -1,0 +1,46 @@
+{
+  "program": "silend",
+  "mode": "silend",
+  "submode": 1,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + sildur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Appends sildur seconds of digital silence to the end of the file. Pinned to submode 1 (specify the silence duration); submode 2 instead takes the TOTAL output duration (refusing values below the input duration with a runtime range of indur+0.000002 to indur+32767) - same argv shape, reachable via execute(). Output duration is exactly indur + sildur (4-decimal-exact across 1/2/3 s inputs and sildur 0-2 s); the appended region is true zeros and the original audio is bit-identical (verified sample-exact head, max tail amplitude 0.0). Channel count preserved (stereo verified). Deterministic.",
+  "musical_use": "The workflow utility for making room at the end of a sound: give a reverb/delay/resonator tail somewhere to land before a process that reads to end-of-file (filters, revecho, newdelay all cut at input end plus their own tail logic), pad a sample to a fixed slot length for samplers or click-track alignment, or put breathing space after each item when assembling sequences by concatenation (afta8's classic use: pauses belong at the END of files). Also handy before spectral analysis when an event ends abruptly - trailing silence lets analysis/synthesis windows decay naturally instead of truncating. For total-length padding to an exact duration use submode 2 via execute(); to trim or cut instead, use sfedit cut.",
+  "parameters": {
+    "sildur": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Duration of silence to append (CDP-enforced 0.000002 to 32767; -1 refused; 0 is quietly accepted as a no-op copy despite the stated minimum). Values near the top fail obscurely at file-open rather than range-check (32768 gave 'ERROR: INVALID DATA / ERROR: Cannot open output file' - and anything huge makes a correspondingly huge file; the engine duration cap guards this via the expression). Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "One second of landing room for a downstream tail.",
+      "params": {"sildur": 1.0},
+      "expected_use": "Output is exactly indur + 1.0 s; original audio untouched, tail all zeros."
+    }
+  ],
+  "known_issues": [
+    "Duration model is exact: indur + sildur to 4 decimal places on every probe (1/2/3 s inputs; sildur 0, 0.5, 1.0, 2.0). Verified content: head bit-identical to the input, appended tail exactly zero.",
+    "sildur 0 is accepted (exit 0, output = input) even though the CDP-enforced minimum reads 0.000002; sildur 32768 fails with a misleading 'Cannot open output file' instead of a range refusal.",
+    "Very large sildur values render enormous files quickly (a probe at 7200 produced a multi-GB 2-hour file) - the pre-flight duration cap is the guard; keep sildur sensible.",
+    "Stereo accepted, channel count and duration rule preserved. Deterministic (two runs 1.2 s apart decoded-identical).",
+    "Submode 2 (total output duration) refuses outdur below the input duration with an input-dependent range message ('out of range (2.000002 to 32769.000000)' on a 2 s file)."
+  ],
+  "references": ["cdp://docs/html/cgroedit"]
+}

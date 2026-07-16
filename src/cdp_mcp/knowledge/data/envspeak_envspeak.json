@@ -1,0 +1,91 @@
+{
+  "program": "envspeak",
+  "mode": "envspeak",
+  "submode": 1,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur * repet"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Finds 'syllables' in the source by locating troughs in its amplitude envelope (search window wsize ms), then repeats each syllable repet times, splicing at the cuts. Pinned to submode 1 (REPEAT - the flagship); submodes 2 (reverse-repeat), 5/6 (repeat while shrinking from end/start), 3/4 (attenuate patterns), 7-12 (divide/lop/extract/random-reorder/N-wise reverse) and the cutsfile/timesfile variants 13-25 are reachable via execute(). Output duration is indur * repet at rand 0 and offset 0 (exact at repet 2; +1.4%/+2% splice-overlap drift at repet 3/4); offset > 0 leaves the first syllables unrepeated (shorter output) and rand > 0 randomly shortens repetitions. With rand = 0 (the curated default) the process is fully deterministic; with rand > 0 it is stochastic and IRREPRODUCIBLE - the randomisation is clock-seeded (srand(time(0)) in the source) and this mode has NO seed parameter. Works on mono and stereo input; needs material with envelope troughs (steady tones are refused).",
+  "musical_use": "Speech-rhythm stutter and extension: each detected syllable (or drum hit, or gesture) repeats in place, turning a phrase into insistent, chattering repetition while keeping its original order and contour. Tune wsize to the material's event rate - around 50 ms suits speech syllables; shorter windows (5-20 ms) catch faster articulations, longer ones merge events into bigger repeated chunks. offset preserves the opening (leave the first N peaks untouched, then stuttering begins - a natural intro). Small rand (0.1-0.3) humanises the repetition lengths at the cost of reproducibility; rand near 1 gives heavily broken, glitchy stutter. Time-varying (breakpoint) repet is the money move: ramp 2 to 6 across the file for accelerating obsession, or spike repeats on one word only. Splice stays short (5-15 ms) for percussive material, longer for smooth crossfades. Pairs well downstream with envel dovetail (tidy edges) and modify speed (chipmunk/slow stutter).",
+  "parameters": {
+    "wsize": {
+      "type": "float",
+      "min": 5.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 50.0,
+      "flag": null,
+      "description": "Size of the envelope-search window in milliseconds (CDP-enforced 5 to 1000; banner default 50; SoundThread's 5-100 is an advisory subset). Sets the granularity of syllable detection. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "splice": {
+      "type": "float",
+      "min": 2.0,
+      "max": 100.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 15.0,
+      "flag": null,
+      "description": "Splice length in milliseconds at each cut (CDP-enforced 2 to 100; 0 refused; banner default 15). Splice overlaps add the +1-2% duration drift at higher repet. Breakpoint file refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    },
+    "offset": {
+      "type": "int",
+      "min": 0,
+      "max": 100,
+      "unit": "peaks",
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Number of initial peaks to output unchanged before repetition starts (CDP-enforced 0 to 100). Values > 0 make the output shorter than indur * repet (verified: offset 2, repet 3 gave x2.60 instead of x3). Breakpoint file refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.')."
+    },
+    "repet": {
+      "type": "int",
+      "min": 1,
+      "max": 100,
+      "unit": "repeats",
+      "breakpoint_capable": true,
+      "default": 2,
+      "flag": null,
+      "description": "Number of repetitions of each syllable. DIVERGENCE: the banner says 'Range 2 upwards' but the binary enforces 1 to 100 - repet 1 runs (a near-passthrough with splices, x1.05 duration) and repet 1000 refuses 'out of range (1.000000 to 100.000000)'. May vary over time via a breakpoint file (banner-confirmed; verified: brk 2->6 differs from both scalar-endpoint renders)."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Randomisation of the lengths of repeated units, 0 to 1 (CDP-enforced). 0 (curated default) keeps the process deterministic. WARNING: any value > 0 is stochastic AND irreproducible - envspeak seeds from the clock (srand(time(0))) and mode 1 has no seed parameter (verified: two rand 0.5 runs 1.2 s apart differ in samples and duration; two runs within the same second WOULD collide). Accepts a breakpoint file (exit 0) even though the banner's time-varying list omits RAND."
+    }
+  },
+  "examples": [
+    {
+      "description": "Classic syllable stutter: every syllable spoken three times.",
+      "params": {"wsize": 50.0, "splice": 15.0, "offset": 0, "repet": 3, "rand": 0.0},
+      "expected_use": "Deterministic; output about 3x the input duration (verified +1.4% splice drift at repet 3)."
+    },
+    {
+      "description": "Humanised stutter that leaves the first two events untouched.",
+      "params": {"wsize": 50.0, "splice": 10.0, "offset": 2, "repet": 4, "rand": 0.2},
+      "expected_use": "Intro plays clean, then repetition with slightly varied lengths. NOT reproducible run-to-run (clock-seeded rand) - render once and keep the file."
+    }
+  ],
+  "known_issues": [
+    "CONTENT REFUSAL: material without amplitude troughs is refused - a steady 440 Hz tone gives 'ERROR: INVALID DATA / ERROR: FAILED TO FIND ANY ENVELOPE TROUGHS IN THE FILE.' (exit 255). Enveloped noise, click trains and flat noise all worked; sustained unmodulated tones and drones are the risk case.",
+    "rand > 0 is stochastic and UNSEEDABLE in this mode: the source calls initrand48() = srand(time(0)) whenever rand > 0, and the seed positional exists only in submode 11 (random reorder). Verified: rand 0.5 runs 1.2 s apart differ (3.7852 s vs 3.8439 s from the same input). Same-second launches would collide to identical output (the tranche-2 clock-seed trap). With rand 0 two runs 1.2 s apart are byte-identical.",
+    "Duration model 'indur * repet' is exact at repet 2 / rand 0 / offset 0 (4.4000 from a 2.2 s input; flat-noise fixture 4.0000 from 2.0) and drifts +1.4% (repet 3) / +2.0% (repet 4) from splice overlaps. offset > 0 and rand > 0 both REDUCE the output below the model (offset 2/repet 3 gave x2.60; rand 0.5/repet 2 gave x1.67-x1.75) - the model over-predicts there, the safe direction for the duration cap.",
+    "BANNER DIVERGENCE: repet's documented range is '2 upwards' but the binary enforces 1-100. Also the banner's time-varying list ('REPET, ATTENCNT, ATTEN and WHICH may vary over time') omits RAND, yet a rand breakpoint file is accepted (exit 0).",
+    "Stereo input accepted (2-channel in -> 2-channel out, duration model holds) despite SoundThread marking the process mono-ish; wsize/splice/offset refuse breakpoint files with 'brkpnt_files not permitted' (parameters 1-3)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

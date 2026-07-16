@@ -1,0 +1,76 @@
+{
+  "program": "newdelay",
+  "mode": "newdelay",
+  "submode": null,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "expression",
+    "expr": "indur + (1.0 / (440.0 * 2 ** ((midipitch - 69) / 12.0))) * 18.5 * ((feedback if feedback >= 0 else -feedback) + 1) / (2.0 * (1.0 - (feedback if feedback >= 0 else -feedback)))"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "A feedback delay whose delay TIME is specified as a MIDI pitch: the delay is one period of that pitch (midipitch 60 = 3.8 ms), so with feedback the line rings at the named note - a tuned Karplus-like resonator. Low/negative pseudo-MIDI values turn the same parameter into discrete echoes (midipitch -12 = ~245 ms slapback), connecting pitch and rhythm on one axis. Output = input + a decay tail that the program measures itself (it runs a silent test pass, 'Checking levels and length of tail'); the curated duration expression brackets that adaptive tail from above - it over-predicted by +0.7% to +5% across the probe grid (midipitch 24-84, |feedback| 0.3-0.99, mix 0.5-1) and by up to +37% at extreme low pitches (safe direction for the cap; never under-predicted). midipitch may vary over time (breakpoint verified); mix and feedback are scalar. Deterministic; mono and stereo input.",
+  "musical_use": "Play the delay line like an instrument: set midipitch to a note and push feedback toward +/-0.9 and any input - clicks, speech, noise bursts - excites a ringing tone at that pitch (comb-filter resonance at 1/period). Sweep midipitch with a breakpoint file to make the resonance GLISS - a tuned-delay melody riding on the source's energy. Around midipitch 20-40 the effect sits between timbre and pulse (rough, metallic flutter); below ~12 it becomes rhythmic echo whose rate is still expressed as pitch, so an octave down = half the echo rate - build tempo-pitch puns deliberately. mix low keeps the source upfront with a resonant halo; mix 1 is the pure resonator. Negative feedback inverts the fed-back phase (odd-harmonic, squarish colour, resonating an octave lower at hollow settings). Keep |feedback| <= 0.9 for musical decay lengths - the tail grows fast beyond that (0.99 gave a ~7 s ring from a 2 s source at pitch 60).",
+  "parameters": {
+    "midipitch": {
+      "type": "float",
+      "min": -76.0,
+      "max": 136.0,
+      "unit": "MIDI pitch",
+      "breakpoint_capable": true,
+      "default": 60.0,
+      "flag": null,
+      "description": "Pitch that sets the delay time (delay = one period of the pitch; fractional values fine). CDP's runtime range is -76.239452 to 136.765572 at 44.1 kHz (one sample period up to the maximum delay buffer - srate-dependent; the curated -76 to 136 stays inside it). Above ~0 reads as pitch/resonance, below as discrete echoes (-12 = ~1/4 s). May vary over time via a breakpoint file (banner: 'Delay may vary over time'; verified: brk 48->72 differs from both scalar-endpoint renders). NOTE: very low values inflate the decay tail (delay x ring count) - the pre-flight expression accounts for it.",
+      "musical_range": [12.0, 96.0]
+    },
+    "mix": {
+      "type": "float",
+      "min": 0.001,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Amount of delayed signal in the final mix: 0.001 nearly dry, 1 fully wet (CDP-enforced 0.001 to 1.0; 0 and negatives refused). Scalar only ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    },
+    "feedback": {
+      "type": "float",
+      "min": -0.99,
+      "max": 0.99,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.7,
+      "flag": null,
+      "description": "Amount fed back into the delay line - the resonance/echo-count control. CDP itself accepts -1.0 to 1.0, but feedback = +/-1 makes the tail-measuring test pass run away (a probe at 1.0 was still running after 40 s) - the curated range is engine-narrowed to +/-0.99 to keep every accepted call terminating. Negative values invert the fed-back phase. Tail length grows steeply toward +/-1 (0.99 gave a ~7 s ring at midipitch 60). Scalar only ('Cannot read parameter 3 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Tuned resonator: ring the input at concert A.",
+      "params": {"midipitch": 69.0, "mix": 1.0, "feedback": 0.9},
+      "expected_use": "Any transient-rich input excites a decaying 440 Hz resonance; output = input + tail (model predicts the tail within ~5%)."
+    },
+    {
+      "description": "Pitch-gliss delay: the resonance slides up an octave across the file.",
+      "params": {"midipitch": [[0.0, 48.0], [2.0, 60.0]], "mix": 0.6, "feedback": 0.8},
+      "expected_use": "Comb resonance sweeps C3 to C4 while the dry source stays present (mix 0.6)."
+    }
+  ],
+  "known_issues": [
+    "FEEDBACK +/-1 HANGS: CDP's enforced range is -1.0 to 1.0, but at exactly +/-1 the internal tail-measuring pass ('Checking levels and length of tail') never converges - a probe ran >40 s without completing on a 2 s input. The curated range is deliberately narrowed to +/-0.99 (an engine-side guard, like texture simple's position range).",
+    "The decay tail is measured adaptively by the binary (content- and buffer-dependent), so no exact closed form exists. The curated expression - tail = period(midipitch) * 18.5 * (|fb|+1) / (2 * (1-|fb|)) - over-predicted on every probe row: +0.7% to +5% across midipitch 24-84 / |feedback| 0.3-0.99, worst +37% at midipitch -12 (long-delay echo regime). It never under-predicted; treat predictions as upper bounds. Verified to evaluate under the repo's simpleeval (ternary + ** + bool ops).",
+    "Low midipitch values are expensive: the delay itself reaches ~10 s at the -76 floor and the tail is delay x ring-count, so a 2 s input at midipitch -12 / feedback 0.7 already renders 10.8 s. The duration-cap pre-flight sees this via the expression.",
+    "midipitch range is srate-dependent at both ends (refusal: 'out of range (-76.239452 to 136.765572)' at 44.1 kHz - one sample period to the delay-buffer maximum).",
+    "Stereo input accepted (2-in 2-out; the measured tail differs slightly from the mono case). Deterministic: two runs 1.2 s apart decoded-identical.",
+    "AFTA8 DIVERGENCE: afta8 lists midipitch -76..136 (matches) but defaults mix/feedback to 0.5/0.5 and claims default midipitch 12; the binary has no defaults (all three positionals required). The curated defaults are advisory."
+  ],
+  "references": ["cdp://docs/html/cgromody"]
+}

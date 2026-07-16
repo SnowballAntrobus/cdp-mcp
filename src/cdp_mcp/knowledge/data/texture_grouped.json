@@ -1,0 +1,341 @@
+{
+  "program": "texture",
+  "mode": "grouped",
+  "submode": 5,
+  "category": "texture",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "outdur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Scatters BURSTS of events ('groups') rather than texture simple's single events: group onsets fall at the packing interval, and each group contains gpsizelo-gpsizehi events spaced gppaklo-gppakhi milliseconds apart, spanning a random pitch range of gpranglo-gpranghi semitones, with optional per-group amplitude rise (amprise) and contour shaping. Pinned to submode 5 ('NONE' - free pitch range); submodes 1-4 constrain group pitches to harmonic fields/sets in the notedata file. The required notedata parameter is an auxiliary text file (write_data_file()): for mode 5 a single line with the input sound's assumed MIDI pitch (e.g. '60'). Genuinely stochastic with a working -r seed (same seed byte-identical; unseeded runs differ in samples AND frame count). Mono input only; output is always STEREO.",
+  "musical_use": "The gestural big sibling of texture simple: instead of a uniform cloud you get phrases - flurries, arpeggio-like bursts, stuttered chords - separated (or overlapped) by the packing interval. Think of gpsizelo/gpsizehi as notes-per-gesture and gppaklo/gppakhi as the speed of notes inside a gesture: 2-5 events at 20-100 ms reads as quick ornamental bursts; 10+ events at short paks fuse into granular swells. gpranglo/gpranghi set how far each burst roams in pitch from its start note; amprise + contour shape each burst's dynamic (crescendo, decay, arch). packing spaces the bursts themselves - long packing gives isolated gestures, short packing overlapping thickets. Time-varying (breakpoint) packing/gpsize/gppak sculpt density and gesture length over the piece. Keep maxdur and the group span (gpsizehi x gppakhi) small relative to outdur or the render runs long past it. Set a seed to pin a take before committing.",
+  "parameters": {
+    "notedata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Auxiliary text data file (any extension except .brk; produce with write_data_file()). Mode 5 needs only the first line: the assumed MIDI pitch of each input sound (single input here, e.g. '60'; fractional accepted). Modes 1-4 additionally need harmonic field/set NOTELIST rows. Resolved against the session's data/ directory, then the session root."
+    },
+    "outdur": {
+      "type": "float",
+      "min": 0.01,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Requested (minimum) duration of the output texture. Actual output lands from about 2% below outdur up to outdur plus the last group's tail (see known_issues - the tail scales with gpsizehi x gppakhi and maxdur, and can be many times outdur if those are large). Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "packing": {
+      "type": "float",
+      "min": 2.3e-05,
+      "max": 60.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Average time between GROUP onsets (CDP-enforced 0.000023 to 60; 0 refused). Long values isolate gestures, short values overlap them. Breakpoint-capable (verified: brk run differs from both scalar-endpoint renders at the same seed)."
+    },
+    "scatter": {
+      "type": "float",
+      "min": 0.0,
+      "max": 10.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Randomisation of group onsets in seconds (CDP range 0 to 10). Breakpoint-capable (exit 0 verified)."
+    },
+    "tgrid": {
+      "type": "float",
+      "min": 0.0,
+      "max": 10000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Minimum step in milliseconds for a quantised timegrid of group start times (default 0 = no grid). Breakpoint-capable (exit 0 verified)."
+    },
+    "sndfirst": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1,
+      "flag": null,
+      "description": "First sound to use from the input list (with this single-input entry, must be 1). Breakpoint-capable (exit 0 verified)."
+    },
+    "sndlast": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1,
+      "flag": null,
+      "description": "Last sound to use from the input list (with this single-input entry, must be 1). Breakpoint-capable (exit 0 verified)."
+    },
+    "mingain": {
+      "type": "int",
+      "min": 1,
+      "max": 127,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 64,
+      "flag": null,
+      "description": "Minimum level of texture events, 1-127 (CDP default 64). Breakpoint-capable (exit 0 verified)."
+    },
+    "maxgain": {
+      "type": "int",
+      "min": 1,
+      "max": 127,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 64,
+      "flag": null,
+      "description": "Maximum level of texture events, 1-127 (CDP default 64). Breakpoint-capable (exit 0 verified)."
+    },
+    "mindur": {
+      "type": "float",
+      "min": 0.016,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Minimum duration of events in the texture (CDP-enforced 0.016 minimum). Breakpoint-capable (exit 0 verified)."
+    },
+    "maxdur": {
+      "type": "float",
+      "min": 0.016,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum duration of events in the texture (must be >= mindur). Contributes to the stochastic duration overshoot past outdur (see known_issues); values far beyond the input duration fail obscurely (texture simple precedent). Breakpoint-capable (exit 0 verified)."
+    },
+    "minpich": {
+      "type": "float",
+      "min": 1.0,
+      "max": 127.0,
+      "unit": "MIDI pitch",
+      "breakpoint_capable": true,
+      "default": 60.0,
+      "flag": null,
+      "description": "Minimum pitch at which a group may start, as a MIDI value (fractional accepted); transposition is relative to the notedata assumed pitch. Breakpoint-capable (exit 0 verified)."
+    },
+    "maxpich": {
+      "type": "float",
+      "min": 1.0,
+      "max": 127.0,
+      "unit": "MIDI pitch",
+      "breakpoint_capable": true,
+      "default": 60.0,
+      "flag": null,
+      "description": "Maximum pitch at which a group may start, as a MIDI value. Breakpoint-capable (exit 0 verified)."
+    },
+    "phgrid": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Timegrid in milliseconds applying WITHIN groups (CDP-enforced 0 to 1000; 1001 refused). 0 = no grid. Breakpoint-capable (exit 0 verified)."
+    },
+    "gpspace": {
+      "type": "int",
+      "min": 0,
+      "max": 5,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Spatialisation type of event-groups (CDP-enforced 0 to 5; 6 refused): 0 all central, 1 scattered (default), 2 towards L, 3 towards R, 4 L-to-R across groups, 5 R-to-L. Breakpoint file REFUSED ('Cannot read parameter 14 [...]: brkpnt_files not permitted.') - see known_issues, the manual claims otherwise."
+    },
+    "gpsprange": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": null,
+      "description": "Spatial range of event-groups, 0 to 1 (CDP-enforced; 1.5 refused). Breakpoint-capable (exit 0 verified)."
+    },
+    "amprise": {
+      "type": "float",
+      "min": 0.0,
+      "max": 127.0,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Amplitude change within each group, 0-127 (CDP-enforced; 128 refused; default 0 = flat). Breakpoint-capable (exit 0 verified)."
+    },
+    "contour": {
+      "type": "int",
+      "min": 0,
+      "max": 6,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Amplitude contour of groups, 0 to 6 (CDP-enforced; 7 refused). Breakpoint file REFUSED ('Cannot read parameter 17 [...]: brkpnt_files not permitted.') - see known_issues, the manual claims otherwise."
+    },
+    "gpsizelo": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "events",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Smallest number of events in any group (CDP-enforced 1 to 32767; 0 refused). Breakpoint-capable (exit 0 verified)."
+    },
+    "gpsizehi": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "events",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Largest number of events in any group. WARNING: large values inflate the output far past outdur (gpsizehi 1001 with 100 ms paks turned outdur 5 into a 58.8 s render - see known_issues). Breakpoint-capable (verified, differs across the render)."
+    },
+    "gppaklo": {
+      "type": "float",
+      "min": 0.023,
+      "max": 60000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Shortest time between event onsets WITHIN a group, in milliseconds (CDP-enforced minimum is one sample period - 0.022676 at 44.1 kHz, srate-dependent; max 60000). Breakpoint-capable (exit 0 verified)."
+    },
+    "gppakhi": {
+      "type": "float",
+      "min": 0.023,
+      "max": 60000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Longest time between event onsets within a group, in milliseconds (same CDP range as gppaklo; 60001 refused). Together with gpsizehi this bounds each group's tail past the outdur grid. Breakpoint-capable (exit 0 verified)."
+    },
+    "gpranglo": {
+      "type": "float",
+      "min": 1.0,
+      "max": 127.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Minimum pitch range of the events in any group, in semitones (mode 5; CDP-enforced 1 to 127; 0 refused). In harmonic-field modes 1-4 this counts hfield notes instead. Breakpoint-capable (exit 0 verified)."
+    },
+    "gpranghi": {
+      "type": "float",
+      "min": 1.0,
+      "max": 127.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum pitch range of the events in any group, in semitones (CDP-enforced 1 to 127; 128 refused). Breakpoint-capable (exit 0 verified)."
+    },
+    "atten": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Overall attenuation of the output as a multiplier (CDP-enforced 0.000002 to 1.0; -a100 refused - afta8's 0-100 range is wrong, as with texture simple). Breakpoint-capable (exit 0 verified)."
+    },
+    "position": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Centre of the output stereo image: 0 = left, 1 = right (CDP default 0.5). Unlike texture simple, grouped DOES range-enforce it (-p2 refused 'Parameter[26] ... out of range (0.000000 to 1.000000)'). Breakpoint-capable (exit 0 verified)."
+    },
+    "spread": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Spatial spread of texture events, 0 to 1 (CDP default 0.1). Breakpoint-capable (exit 0 verified)."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Random seed - a WORKING seed (verified: -r5 twice 1.2 s apart byte-identical in decoded samples; -r5 vs -r9 differ; unseeded runs differ in samples AND frame count). CDP-enforced 0 to 32767 (-r32768 refused); 0 (or omitting the flag) seeds from the clock, differing each run. Breakpoint file refused ('Cannot read parameter 30 [...]: brkpnt_files not permitted.')."
+    },
+    "whole": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-w",
+      "flag_kind": "no_value",
+      "description": "Always play the whole input sound per event, ignoring mindur/maxdur (verified: changes output and extends the tail, +33% duration observed on the probe settings)."
+    },
+    "fixstep": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-d",
+      "flag_kind": "no_value",
+      "description": "Fixed timestep between the notes of a group (instead of random within gppaklo-gppakhi). Verified: changes output (exit 0, different render/duration)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Sparse ornamental bursts: 2-5 quick events per gesture, one gesture every ~1.2 s, roaming up to a fifth.",
+      "params": {"notedata": "nd60.txt", "outdur": 8.0, "packing": 1.2, "scatter": 0.3, "mindur": 0.1, "maxdur": 0.4, "gpsizelo": 2, "gpsizehi": 5, "gppaklo": 20.0, "gppakhi": 90.0, "gpranglo": 1.0, "gpranghi": 7.0, "seed": 5},
+      "expected_use": "Isolated stereo flurries of the source at its own pitch (write nd60.txt first: write_data_file('nd60.txt', '60')); rerun with seed 5 for the identical take."
+    },
+    {
+      "description": "Overlapping granular swells with per-group crescendo, wide pitch roam.",
+      "params": {"notedata": "nd60.txt", "outdur": 10.0, "packing": 0.4, "mindur": 0.05, "maxdur": 0.2, "minpich": 48.0, "maxpich": 72.0, "gpsizelo": 8, "gpsizehi": 16, "gppaklo": 15.0, "gppakhi": 60.0, "gpranglo": 2.0, "gpranghi": 12.0, "amprise": 60.0, "spread": 1.0, "seed": 9},
+      "expected_use": "Dense, gesturally-shaped stochastic texture; each burst crescendos (amprise) and roams up to an octave from its start pitch."
+    }
+  ],
+  "known_issues": [
+    "Duration honesty (set_by outdur): renders land from about 2% below outdur (7.843 from outdur 8) to well above it - the LAST GROUP's tail extends past the grid by up to gpsizehi x gppakhi ms plus maxdur. With small groups (probe: 5 events x 100 ms, maxdur 0.5) drift was -2% to +10.7% (maxdur 1.5); with gpsizehi 1001 a 5 s outdur rendered 58.8 s. Keep gpsizehi x gppakhi and maxdur small relative to outdur when length matters; unseeded duration also varies run to run.",
+    "Mono input -> STEREO output on every run; stereo input refused ('Application doesn't work with this type of infile.'). channel_constraint 'mono' describes the input side only.",
+    "Genuinely stochastic with a working -r seed: unseeded runs differ in samples and frame count (211225 vs 221414 frames observed); the same seed reproduces byte-identically.",
+    "MANUAL DIVERGENCE: cgrotext.htm says 'All parameters except notedata, outdur and seed may vary over time', but the binary REFUSES breakpoint files for gpspace ('Cannot read parameter 14') and contour ('Cannot read parameter 17'). All 21 other numeric parameters (including -a/-p/-s) accepted breakpoint files (exit 0; packing verified to differ from both scalar endpoints at the same seed).",
+    "CDP enforces option-flag ORDER: flags must follow the positionals in banner order -a -p -s -r -w -d -i ('-r5 -a0.5' refuses with 'option flag -a out of order on cmdline.'). The engine emits parameters in entry declaration order, which matches.",
+    "Unlike texture simple, position (-p) IS range-enforced here (0-1; -p2 refused). atten's real range is 0.000002-1.0 (multiplier), as with simple.",
+    "The -i switch ('each group not confined to a fixed instr') is meaningful only with multiple input sounds and is not exposed on this single-input entry (verified no-op here); the -c/-p multi-input switches from the texture family are likewise unexposed - reach for execute() with multiple inputs.",
+    "gppaklo/gppakhi minimum is one sample period (0.022676 ms at 44.1 kHz) - srate-dependent, so out-of-range refusals vary with the file."
+  ],
+  "references": ["cdp://docs/html/cgrotext"]
+}

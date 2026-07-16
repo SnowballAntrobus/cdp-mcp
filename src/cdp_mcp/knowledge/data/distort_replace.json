@@ -1,0 +1,62 @@
+{
+  "program": "distort",
+  "mode": "replace",
+  "submode": null,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "In each group of cyclecnt wavecycles, the STRONGEST wavecycle replaces all the others - a periodicity-enforcing waveshape freeze (no submode dimension). Where distort delete 2 keeps one cycle per group and shortens the file, replace keeps the timeline: every slot in the group is overwritten with copies of the group's loudest cycle. Output duration is static on periodic material (-0.1% to -1.1% across tones/AM/sweep at cyclecnt 4-8) but runs LONG on noise (+44% at cyclecnt 4 - each replaced slot takes on the strongest cycle's length, and noise's strongest cycles are longer than average). Deterministic. MONO only.",
+  "musical_use": "A robotiser/pitch-crystalliser: within each group the waveform becomes locally periodic, so noisy or complex material gains a buzzy, forced pitch quality while the overall envelope and phrasing survive. Small cyclecnt (2-8) adds gritty coherence - speech turns slightly vocoder-ish; large counts (20-100) hold each loudest cycle for so long the sound becomes a stepped, drone-like buzz that tracks the source's loudest moments (a waveset-domain sample-and-hold). A time-varying (breakpoint) cyclecnt morphs from natural to frozen across the file. On noise-heavy sources expect the output noticeably longer (up to ~+44%) and darker/more pitched. Chain into filters or distort reform for further stylisation; contrast with distort average, which smooths instead of freezing.",
+  "parameters": {
+    "cyclecnt": {
+      "type": "int",
+      "min": 2,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Group size: the strongest cycle of each cyclecnt-sized group replaces the others (CDP-enforced 2 to 32767; 1/0 refused; afta8's max 500 is advisory - 501 accepted). May vary over time via a breakpoint file (banner-confirmed; verified: brk 2->8 differs from both scalar-endpoint renders)."
+    },
+    "skipcycles": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Number of wavecycles to skip at the start of the file. The skipped material is DROPPED from the output, not passed through (verified: exactly 100 cycles of a 440 Hz tone, 0.2268 s, missing with -s100); excluded from the duration model. Breakpoint file refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Gentle robotisation - strongest cycle wins in every group of 4.",
+      "params": {"cyclecnt": 4},
+      "expected_use": "Same-length (periodic sources) buzzy, locally-periodic version; on noise expect up to ~44% longer output."
+    },
+    {
+      "description": "Waveset sample-and-hold drone.",
+      "params": {"cyclecnt": 60},
+      "expected_use": "Each loudest cycle repeats for 60 slots - stepped, frozen buzz tracking the source's dynamics."
+    }
+  ],
+  "known_issues": [
+    "Duration honesty: static within -0.1% to -1.1% on periodic material (tones, AM tone, sweep; the trailing partial group is dropped) but +44% LONGER on noise at cyclecnt 4 (enveloped and flat noise alike) - replaced slots inherit the strongest cycle's length. For this reason the entry is EXCLUDED from the shared flat-noise duration-row fixture (would fail its 5% tolerance by construction).",
+    "skipcycles drops the skipped region from the output entirely (verified sample-accurately); the duration model assumes skipcycles = 0.",
+    "Stereo refused: 'Application doesn't work with this type of infile.' -> mono.",
+    "Deterministic: two runs 1.2 s apart decoded-identical.",
+    "No submode: the CDP usage is 'distort replace infile outfile cyclecnt [-sskipcycles]' directly."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

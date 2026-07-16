@@ -1,0 +1,239 @@
+{
+  "generated_at": "2026-07-15",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build; Groucho programs banner 'CDP Release 7.1 2016'; scramble/envspeak/quirk print no version banner)",
+    "os": "Linux x86_64 sandbox",
+    "note": "To be re-verified on macOS r8 by the CDP-gated suite after integration."
+  },
+  "seed_link_trigger": {
+    "question": "Does scramble scramble fire the deferred stereo seed-link (channel machinery) trigger?",
+    "answer": "YES - first curated entry that is mono-only, genuinely stochastic AND seed-reproducible. Verified: science/scramble.c:1123 srand(seed) seeds the rand() behind the osbind drand48 shim; seed is a REQUIRED positional 0-256 with NO unseeded/clock path (omission = 'Insufficient parameters'); same seed byte-identical 1.2 s apart, different seeds differ whenever trns/atten > 0; seed 0 == seed 1 (glibc srand(0)==srand(1), byte-identical); with trns=atten=0 (defaults) the level-sort is deterministic and the seed is inert (seed 5 == seed 9). Stereo refused ('must be mono'). Channel machinery deliberately NOT built (Phase 6 reevaluation decision); entry ships with stereo_link_default 'related', phase_sensitive true, and a known_issues trigger record."
+  },
+  "entries": [
+    {
+      "program": "scramble",
+      "mode": "scramble",
+      "submode": 10,
+      "breakpoint_capable": {
+        "seed": false,
+        "cnt": false,
+        "trns": true,
+        "atten": true
+      },
+      "duration_row": ["scramble", "scramble", 2.0, {"seed": 5}, 0.05],
+      "stochastic": true,
+      "notes": [
+        "Pinned submode 10 (decreasing level - transient-first decay gesture); submode 9 verified as the exact mirror (first/last 300 ms RMS 0.084/0.466 flips to 0.466/0.084). LOADER CONSTRAINT: KnowledgeIndex keys by (program, mode), so only one scramble scramble entry can exist - a second submode needs an engine change, not a second JSON.",
+        "duration_model static: worst -0.23% (enveloped tone), flat-noise fixture -0.005%; trns > 0 adds +/-~1% seed-dependent drift (wavesets resampled) - documented, excluded from the model.",
+        "Seed verification: defaults deterministic and seed-inert; -t3 -a0.5 stochastic with working seed (s5==s5 1.2 s apart, s5!=s9, both modes 9 and 10); seed 0 == seed 1; no clock path; seed omission refused.",
+        "CDP-enforced ranges: seed 0-256, cnt -c 1-256, trns -t 0-12, atten -a 0-1. trns/atten breakpoint-capable through OUTPUT time (banner-confirmed; brk differs from both scalar endpoints at the same seed); cnt refuses 'Cannot read parameter 3', seed refuses 'Cannot read parameter 2'.",
+        "Flags NOT order-enforced (unlike texture); CDP still refuses to overwrite an existing output file (initially misread as an order refusal).",
+        "Engine argv verified: 'scramble scramble 10 in.wav out.wav 5 -c1 -t0 -a0' (defaults rendered) byte-equals the bare seed-5 run."
+      ]
+    },
+    {
+      "program": "texture",
+      "mode": "grouped",
+      "submode": 5,
+      "breakpoint_capable": {
+        "notedata": false,
+        "outdur": false,
+        "packing": true,
+        "scatter": true,
+        "tgrid": true,
+        "sndfirst": true,
+        "sndlast": true,
+        "mingain": true,
+        "maxgain": true,
+        "mindur": true,
+        "maxdur": true,
+        "minpich": true,
+        "maxpich": true,
+        "phgrid": true,
+        "gpspace": false,
+        "gpsprange": true,
+        "amprise": true,
+        "contour": false,
+        "gpsizelo": true,
+        "gpsizehi": true,
+        "gppaklo": true,
+        "gppakhi": true,
+        "gpranglo": true,
+        "gpranghi": true,
+        "atten": true,
+        "position": true,
+        "spread": true,
+        "seed": false,
+        "whole": false,
+        "fixstep": false
+      },
+      "duration_row": null,
+      "stochastic": true,
+      "notes": [
+        "Duration row EXCLUDED from the shared fixture: requires the aux notedata file the fixture cannot supply (texture simple precedent). set_by outdur honesty: -2.0% (outdur 8) to +10.7% (maxdur 1.5); gpsizehi 1001 turned outdur 5 into 58.8 s - the last group's tail scales with gpsizehi x gppakhi + maxdur (first-class landmine, in known_issues).",
+        "Working -r seed (mirrors simple): -r5 twice byte-identical, -r5 vs -r9 differ, unseeded differs in samples AND frame count (211225 vs 221414).",
+        "MANUAL DIVERGENCE: cgrotext.htm 'All parameters except notedata, outdur and seed may vary over time' - binary REFUSES brkpnt files for gpspace ('Cannot read parameter 14') and contour ('Cannot read parameter 17'); the other 21 numerics + -a/-p/-s all accept (packing verified to differ from both scalar endpoints at seed 5).",
+        "DIVERGENCE from texture simple: position -p IS range-enforced here (0-1, -p2 refused); atten 0.000002-1.0 and seed 0-32767 match simple; flag order enforced ('-r5 -a0.5' -> 'option flag -a out of order').",
+        "CDP-enforced ranges probed: packing 0.000023-60, gpspace 0-5, gpsprange 0-1, amprise 0-127, contour 0-6, gpsizelo 1-32767, gppaklo/hi 0.022676-60000 ms (srate-dependent min), gpranglo/hi 1-127, phgrid 0-1000.",
+        "-w (+33% dur) and -d exposed; -i left unexposed (meaningful only with multiple input sounds). Mono input -> STEREO output; stereo input refused."
+      ]
+    },
+    {
+      "program": "envspeak",
+      "mode": "envspeak",
+      "submode": 1,
+      "breakpoint_capable": {
+        "wsize": false,
+        "splice": false,
+        "offset": false,
+        "repet": true,
+        "rand": true
+      },
+      "duration_row": ["envspeak", "envspeak", 2.0, {"wsize": 50.0, "splice": 15.0, "offset": 0, "repet": 2, "rand": 0.0}, 0.05],
+      "stochastic": true,
+      "notes": [
+        "duration_model 'indur * repet': exact at repet 2 / rand 0 / offset 0 (4.4000 from 2.2 s; flat fixture 4.0000 from 2.0); +1.4%/+2.0% splice-overlap drift at repet 3/4; offset > 0 and rand > 0 REDUCE output below the model (safe direction).",
+        "CLOCK-SEEDED STOCHASTIC, UNSEEDABLE (first-class finding): rand > 0 calls initrand48() = srand(time(0)) (envspeak.c:1425 / osbind.c); mode 1 has no seed param (ESPK_SEED is mode 11 only, line 2122). rand 0.5 runs 1.2 s apart differ in samples AND duration (3.7852 vs 3.8439); same-second collision trap applies. rand 0 (curated default) fully deterministic.",
+        "CONTENT REFUSAL: steady tone -> 'FAILED TO FIND ANY ENVELOPE TROUGHS IN THE FILE.' Flat noise, click trains, enveloped noise all fine.",
+        "BANNER DIVERGENCES: repet documented 'Range 2 upwards' but binary enforces 1-100 (repet 1 runs, x1.05 near-passthrough); banner's time-varying list omits RAND yet a rand brk is accepted (exit 0). repet brk verified to differ from both scalar endpoints.",
+        "CDP-enforced ranges: wsize 5-1000 ms, splice 2-100 ms, offset 0-100, repet 1-100, rand 0-1. Stereo accepted (2ch in/out, model holds) -> 'any'.",
+        "ST covers submodes 1/2/5/6; 1 (REPEAT) pinned as flagship - others same argv family via execute()."
+      ]
+    },
+    {
+      "program": "morph",
+      "mode": "bridge",
+      "submode": 1,
+      "breakpoint_capable": {
+        "offset": false,
+        "sf2": false,
+        "sa2": false,
+        "ef2": false,
+        "ea2": false,
+        "start": false,
+        "end": false
+      },
+      "duration_row": null,
+      "stochastic": false,
+      "notes": [
+        "Duration row EXCLUDED from the shared fixture (multi-input; fixture writes one in.wav). Rule pinned by probes: default ef2/ea2=1 -> outdur = indur2 (verified both argument orders on a 2.0/1.5 s pair); ef2 or ea2 < 1 -> outdur = min(indur1, indur2) (both orders 1.5209); offset adds directly in both regimes (offset 0.5 + ef2 0.8 -> 2.0201 vs 2.0209 predicted). Curated expression 'offset + (indur2 if ef2 >= 1 and ea2 >= 1 else (indur1 if indur1 < indur2 else indur2))' verified under the repo's simpleeval.",
+        "BANNER DIVERGENCE: 'if EF2 or EA2 are set < 1.0, outsound ends at end of first sound' is wrong when infile2 is shorter - the binary uses the minimum.",
+        "AFTA8 DIVERGENCE (flag map, trust the binary): afta8 lists -a start -b end -c sf2 -d ef2 -e sa2 -f ea2 (CDP7 layout); r8 banner/binary use -a offset -b sf2 -c sa2 -d ef2 -e ea2 -f start -g end. Curated flags follow the binary.",
+        "All 7 params refuse breakpoint files ('Cannot read parameter N', N=1-7). Runtime ranges: offset/start 0 to indur1 (0-2.020136 on the probe pair); sf2/sa2/ef2/ea2 0-1; end 0.005805-2.025941 (window-quantised).",
+        "Deterministic (.ana data chunks identical 1.2 s apart). Wav input refused; mismatched analysis params refused ('Incompatible analysis-sample-rate'). Modes 2/3 verified distinct; submode 1 pinned, 2-6 same argv shape via execute().",
+        "Engine argv verified including fully-defaulted flag string (-a0.5 -b0 -c0 -d0.8 -e1 -f0 runs)."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "reform",
+      "submode": 6,
+      "breakpoint_capable": {},
+      "duration_row": ["distort", "reform", 2.0, {}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model static - sample-exact on all 12 probe runs (modes 2/4/6/7 x tone/enveloped noise/flat noise).",
+        "Submode 6 (click stream) pinned - most characterful of the parameterless modes; 2/4/6/7 (ST-covered) verified pairwise distinct; 1-5/7 same argv shape and 8 adds an exaggeration positional - execute() for those.",
+        "Deterministic 'randomness': genpulse() (distort.c:339) draws drand48() with NO srand anywhere in distort - byte-identical every run (verified 1.2 s apart); POSIX drand48's unseeded initial state is fixed, so deterministic on any build. version_sensitive false.",
+        "Stereo refused ('Application doesn't work with this type of infile.') -> mono. Zero parameters (parameters {})."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "delete",
+      "submode": 2,
+      "breakpoint_capable": {
+        "cyclecnt": true,
+        "skipcycles": false
+      },
+      "duration_row": null,
+      "stochastic": false,
+      "notes": [
+        "Duration row EXCLUDED from the shared flat-noise fixture with documented reason: 'indur / cyclecnt' holds +/-0.25% on periodic material (tone cc 2/4/8, AM tone, sweep) but noise runs +20.7% (cc 2) to +44.2% (cc 4) LONG on both enveloped and flat noise - the strongest wavecycle per group is biased toward longer cycles. Would fail the fixture's 5% tolerance by construction (tranche-6 grain-exclusion precedent).",
+        "cyclecnt CDP-enforced 2-32767 (ST 2-64 advisory); brk capable (banner-confirmed; brk 2->8 gave 0.4695 s, differs from both endpoints). skipcycles -s refuses brk ('Cannot read parameter 2') and DROPS the skipped region from the output (0.4989 -> 0.4422 with -s100 = minus 100 cycles/cc at 440 Hz); excluded from the model.",
+        "Submode 2 (strongest retained) distinct from 1 and 3 (verified). Stereo refused -> mono. Deterministic (1.2 s apart identical)."
+      ]
+    },
+    {
+      "program": "distort",
+      "mode": "replace",
+      "submode": null,
+      "breakpoint_capable": {
+        "cyclecnt": true,
+        "skipcycles": false
+      },
+      "duration_row": null,
+      "stochastic": false,
+      "notes": [
+        "Duration row EXCLUDED from the shared flat-noise fixture: static within -0.1%/-1.1% on periodic material but +44.1% on noise (enveloped and flat alike - replaced slots inherit the strongest cycle's length). Would fail the 5% tolerance by construction.",
+        "No submode ('distort replace infile outfile cyclecnt [-s]'). cyclecnt 2-32767 CDP-enforced (afta8's 500 advisory; 501 ran, 1.1361 s). brk capable (differs from both endpoints). skipcycles refuses brk and drops exactly 0.2268 s (100 cycles) with -s100.",
+        "-s0 (engine default rendering) verified byte-identical to the flagless run. Stereo refused -> mono. Deterministic."
+      ]
+    },
+    {
+      "program": "analjoin",
+      "mode": "join",
+      "submode": null,
+      "breakpoint_capable": {},
+      "duration_row": null,
+      "stochastic": false,
+      "notes": [
+        "Duration row EXCLUDED from the shared fixture (multi-input). Rule: 'indur1 + indur2' - 2.0230 + 1.5209 -> 3.5468 via pvoc synth (+0.08% frame padding); 3-input join verified (5.5728 = sum of three) - variadic upstream, entry pins input_arity 2 (submix interleave precedent), execute() for more.",
+        "Zero parameters. Deterministic (.ana data chunks identical). Refusals: one input 'Insufficient input files for this process'; wav input 'File ... is not of correct type'; mismatched analysis '(Incompatible analysis-sample-rate in input file ...)'.",
+        "Category spectral-time (splice/edit utility in the analysis domain)."
+      ]
+    },
+    {
+      "program": "newdelay",
+      "mode": "newdelay",
+      "submode": null,
+      "breakpoint_capable": {
+        "midipitch": true,
+        "mix": false,
+        "feedback": false
+      },
+      "duration_row": ["newdelay", "newdelay", 2.0, {"midipitch": 60.0, "mix": 1.0, "feedback": 0.7}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "FEEDBACK +/-1 HANGS (first-class landmine): CDP-enforced range is -1 to 1, but at exactly +/-1 the internal tail-measuring pass ('Checking levels and length of tail', domulti_test in new/newdelay.c) never converges - still running at 40 s on a 2 s input. Curated range engine-narrowed to +/-0.99 (0.99 completes <1 s, outdur 8.97).",
+        "The decay tail is measured adaptively by the binary (no closed form). Curated expression 'indur + period(midipitch) * 18.5 * (|fb|+1) / (2*(1-|fb|))' (Pade ln approximation, constant fitted high) over-predicts on EVERY probe row: +0.7% to +4.9% across midipitch 24-84 / |fb| 0.3-0.99 / mix 0.5-1, worst +37.1% at midipitch -12; never under-predicts. Verified to evaluate under the repo's simpleeval (ternary + ** + bool ops). Flat-noise fixture row: pred 2.2003 vs 2.1689 actual (+1.45%, within 0.05).",
+        "midipitch brk capable (banner 'Delay may vary over time'; brk 48->72 differs from both endpoints); mix/feedback refuse ('Cannot read parameter 2/3').",
+        "CDP-enforced ranges: midipitch -76.239452 to 136.765572 (srate-dependent: one sample period to delay-buffer max; curated -76..136 stays inside); mix 0.001-1 (0 refused).",
+        "AFTA8 DIVERGENCE: afta8 defaults mix/feedback 0.5/0.5 and midipitch 12; binary has no defaults (3 required positionals). Stereo accepted (2-in/2-out, tail slightly longer, 2.3290). Deterministic."
+      ]
+    },
+    {
+      "program": "quirk",
+      "mode": "quirk",
+      "submode": 1,
+      "breakpoint_capable": {
+        "powfac": false
+      },
+      "duration_row": ["quirk", "quirk", 2.0, {"powfac": 0.7}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model static: tones/noise exact, -0.11% worst (enveloped tone, trailing partial half-cycle dropped); flat fixture 1.9999.",
+        "UNIPOLAR TRAP (first-class finding): input with no zero crossings (one-sided click train) -> exit 0 and a 0-FRAME output. No CDP error; engine output verification is the only guard.",
+        "powfac CDP-enforced 0.01-100 (matches banner and ST); brk refused ('Cannot read parameter 1'). Submode 1 (per-half-wavecycle scaling) pinned per assignment; mode 2 (whole-signal scaling) verified distinct.",
+        "Stereo refused ('must be mono'). Deterministic."
+      ]
+    },
+    {
+      "program": "silend",
+      "mode": "silend",
+      "submode": 1,
+      "breakpoint_capable": {
+        "sildur": false
+      },
+      "duration_row": ["silend", "silend", 2.0, {"sildur": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model 'indur + sildur' exact to 4 dp on every probe (1/2/3 s inputs; sildur 0/0.5/1/2; stereo; flat fixture). Content verified: head bit-identical, appended tail exactly zero.",
+        "sildur CDP-enforced 0.000002-32767 but 0 quietly accepted (no-op copy); 32768 fails with misleading 'Cannot open output file' instead of a range refusal; sildur 7200 produced a 2-hour file (duration-cap pre-flight is the guard). brk refused ('Cannot read parameter 1').",
+        "Submode 2 (total outdur) verified working (3.5 -> 3.5000) and refusing outdur < indur with input-dependent range '(2.000002 to 32769.000000)'; submode 1 pinned per assignment.",
+        "Stereo accepted (channels preserved) -> 'any'. Deterministic."
+      ]
+    }
+  ],
+  "dropped": []
+}

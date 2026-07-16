@@ -31,6 +31,86 @@ from cdp_mcp.knowledge.loader import KnowledgeIndex
 # cdpr8/_cdp/_cdprogs). Updating any cell in this table is a curation
 # decision and must pair with an entry in docs/phase-2-breakpoint-review.md.
 _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
+    # --- Phase 5 wave 2b (tranche 8; see docs/curation/) ---
+    ("scramble", "scramble"): {
+        "seed": False,
+        "cnt": False,
+        "trns": True,
+        "atten": True,
+    },
+    ("texture", "grouped"): {
+        "notedata": False,
+        "outdur": False,
+        "packing": True,
+        "scatter": True,
+        "tgrid": True,
+        "sndfirst": True,
+        "sndlast": True,
+        "mingain": True,
+        "maxgain": True,
+        "mindur": True,
+        "maxdur": True,
+        "minpich": True,
+        "maxpich": True,
+        "phgrid": True,
+        "gpspace": False,
+        "gpsprange": True,
+        "amprise": True,
+        "contour": False,
+        "gpsizelo": True,
+        "gpsizehi": True,
+        "gppaklo": True,
+        "gppakhi": True,
+        "gpranglo": True,
+        "gpranghi": True,
+        "atten": True,
+        "position": True,
+        "spread": True,
+        "seed": False,
+        "whole": False,
+        "fixstep": False,
+    },
+    ("envspeak", "envspeak"): {
+        "wsize": False,
+        "splice": False,
+        "offset": False,
+        "repet": True,
+        "rand": True,
+    },
+    ("morph", "bridge"): {
+        "offset": False,
+        "sf2": False,
+        "sa2": False,
+        "ef2": False,
+        "ea2": False,
+        "start": False,
+        "end": False,
+    },
+    ("distort", "reform"): {
+        # no numeric parameters
+    },
+    ("distort", "delete"): {
+        "cyclecnt": True,
+        "skipcycles": False,
+    },
+    ("distort", "replace"): {
+        "cyclecnt": True,
+        "skipcycles": False,
+    },
+    ("analjoin", "join"): {
+        # no numeric parameters
+    },
+    ("newdelay", "newdelay"): {
+        "midipitch": True,
+        "mix": False,
+        "feedback": False,
+    },
+    ("quirk", "quirk"): {
+        "powfac": False,
+    },
+    ("silend", "silend"): {
+        "sildur": False,
+    },
     # --- Phase 5 wave 2a (tranche 7: unblocked entries; see docs/curation/) ---
     ("submix", "mix"): {
         "atten": False,

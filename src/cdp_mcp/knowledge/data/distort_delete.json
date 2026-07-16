@@ -1,0 +1,62 @@
+{
+  "program": "distort",
+  "mode": "delete",
+  "submode": 2,
+  "category": "distort",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur / cyclecnt"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Time-contracts a sound by deleting wavecycles: of every group of cyclecnt wavecycles, only the STRONGEST one is kept (submode 2 - the mode that best preserves recognisable features of the source). Submode 1 keeps 1 in cyclecnt positionally; submode 3 deletes only the weakest 1 in cyclecnt (mild thinning, little contraction) - same argv shape, separate entries if curated later. Output duration is indur / cyclecnt on periodic material (within +/-0.25% on tones across cyclecnt 2-8) but runs LONG on noisy material (+21% at cyclecnt 2, +44% at cyclecnt 4 on both enveloped and flat noise - the strongest wavecycles of noise are systematically longer than average). Deterministic. MONO only.",
+  "musical_use": "Wavecycle decimation as time-compression: the sound gets shorter AND rougher at once, keeping its loudest cellular material. Small cyclecnt (2-4) halves/quarters the duration with a gritty, aliased edge while the source stays recognisable; larger counts (8-30) collapse phrases into granular stutters of their prominent cycles. Because the strongest-cycle selection tracks the amplitude envelope, percussive and speech material keeps its rhythmic identity surprisingly well. A time-varying (breakpoint) cyclecnt sweeps the compression ratio - ramp 2 to 40 to make a sound eat itself accelerando. Use skipcycles to protect an attack from deletion (note it DROPS the skipped region from the output - see known_issues). Pair with distort repeat/interpolate (which stretch) to design push-pull time distortions, or feed the decimated result to distort reform 6 for full rattle.",
+  "parameters": {
+    "cyclecnt": {
+      "type": "int",
+      "min": 2,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Group size: the strongest 1 in cyclecnt wavecycles is retained (CDP-enforced 2 to 32767; 1 and 0 refused; SoundThread's 2-64 is an advisory subset). Sets the nominal time-contraction ratio. May vary over time via a breakpoint file (banner-confirmed; verified: brk 2->8 differs from both scalar-endpoint renders, duration between the endpoints)."
+    },
+    "skipcycles": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": "wavecycles",
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Number of wavecycles to skip at the start of the file before processing. The skipped material is DROPPED from the output entirely, not passed through (-s100 on a 440 Hz tone at cyclecnt 4: 0.4989 -> 0.4422 s, i.e. minus 100 cycles / 4) - same behavior as distort repeat/average; excluded from the duration model. Breakpoint file refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Quarter the duration, keep the strongest material.",
+      "params": {"cyclecnt": 4},
+      "expected_use": "On pitched/periodic sources: ~indur/4 output with a rough decimated timbre. On noisy sources expect up to ~44% longer than the prediction."
+    },
+    {
+      "description": "Accelerating self-consumption via time-varying group size.",
+      "params": {"cyclecnt": [[0.0, 2], [2.0, 40]]},
+      "expected_use": "Compression ratio deepens across the file - the sound collapses into stutter."
+    }
+  ],
+  "known_issues": [
+    "Duration honesty: 'indur / cyclecnt' holds within +/-0.25% on periodic material (440 Hz tone, cyclecnt 2/4/8; AM tone; sweep) but NOISE runs long - +21% (cyclecnt 2) and +44% (cyclecnt 4) on both enveloped and flat noise, because the strongest wavecycle in a noise group is biased toward longer cycles. The model under-predicts there; budget accordingly. For this reason the entry is EXCLUDED from the shared flat-noise duration-row fixture (would fail its 5% tolerance by construction).",
+    "skipcycles drops the skipped region from the output entirely (verified -0.0567 s = 100 cycles / cyclecnt at 440 Hz); the duration model assumes skipcycles = 0.",
+    "Stereo refused: 'Application doesn't work with this type of infile.' -> mono.",
+    "Deterministic: two runs 1.2 s apart decoded-identical. Submode 2 output differs from submodes 1 and 3 (verified).",
+    "cyclecnt breakpoint refusals number WITHOUT the positional: skipcycles is 'parameter 2'."
+  ],
+  "references": ["cdp://docs/html/cdistort"]
+}

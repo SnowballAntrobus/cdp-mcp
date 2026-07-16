@@ -1,0 +1,35 @@
+{
+  "program": "analjoin",
+  "mode": "join",
+  "submode": null,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur1 + indur2"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Splices analysis files end to end in the frequency domain: the output .ana plays infile1 followed by infile2 (verified by resynthesis: 2.023 s + 1.521 s -> 3.547 s, +0.08% frame padding). Takes NO parameters. The CDP usage is variadic ('analjoin join infile1 infile2 [infile3 ....] outfile' - a 3-input join verified, durations sum); this entry pins the 2-input form, reach for execute() to join more at once or chain joins. Because the join happens between spectral frames, the seam avoids the time-domain click/splice problem - transitions inherit the phase-vocoder's smoothness. All inputs must share analysis parameters ('Incompatible analysis-sample-rate' refusal otherwise). Deterministic.",
+  "musical_use": "The spectral-domain splice: concatenate materials WITHOUT leaving the analysis domain, so a whole chain (anal -> transform -> join -> more transforms -> synth) stays lossless between stages. Musically it shines for building composite sources for further spectral processing - join a vowel to a bowed note to a gong, then blur/stretch/morph the composite as one object so the processing rides across the seam and glues the identities together. Also the natural way to extend material before time-domain-hostile spectral ops, or to assemble A-B pairs for morph morph/bridge experiments from one continuous file. The seam itself is smoother than a plain waveform butt-splice but is NOT a crossfade - for a gradual transition use morph bridge/morph instead, or overlap-and-mix after resynthesis.",
+  "parameters": {},
+  "examples": [
+    {
+      "description": "Concatenate two analysis files into one continuous spectral object.",
+      "params": {},
+      "expected_use": "Output .ana = input1 then input2; duration is the sum (+<0.1% frame padding). Feed .wav sources and auto-PVOC converts both with matching settings."
+    }
+  ],
+  "known_issues": [
+    "Inputs must share analysis parameters: a -c2048 .ana against a default one refuses 'ERROR: INVALID DATA / ERROR: Incompatible analysis-sample-rate in input file ...'. The engine's auto-PVOC uses consistent defaults, so wav-fed chains are safe; pre-converted .ana files from other settings are the risk case.",
+    "Variadic upstream: 3+ input files are accepted by the binary (3-input join verified, outdur = sum of all three) but this entry pins input_arity 2; use execute() or chained joins for more.",
+    "A single input refuses with 'Insufficient input files for this process'; time-domain input refuses with 'File ... is not of correct type'.",
+    "Deterministic: two runs 1.2 s apart identical in the .ana data chunk (compare data chunks, not raw bytes - the RIFF date chunk differs).",
+    "Duration expression uses indur1 + indur2; for .ana inputs whose source durations aren't reachable in the graph the pre-flight skips (standard spectral-chain behavior) and the watchdog covers runaways."
+  ],
+  "references": ["cdp://docs/html/cspecedi"]
+}

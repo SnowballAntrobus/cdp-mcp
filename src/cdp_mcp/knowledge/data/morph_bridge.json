@@ -1,0 +1,123 @@
+{
+  "program": "morph",
+  "mode": "bridge",
+  "submode": 1,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "expression",
+    "expr": "offset + (indur2 if ef2 >= 1 and ea2 >= 1 else (indur1 if indur1 < indur2 else indur2))"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Makes a bridging interpolation between two spectra: a single analysis window is grabbed from each infile (at start/end times in infile1) and the output crossfades frequency and amplitude between those two FROZEN states - unlike morph morph, which interpolates the evolving spectra window by window. Pinned to submode 1 (output level is the direct interpolation result); submodes 2-6 shape the output level from the infile amplitudes (2 moment-to-moment minimum, 3 follows infile1, 4 follows infile2, 5 moves from file1's level to file2's, 6 the reverse) - same argv shape, reachable via execute(). All seven parameters are optional flags. Output duration: offset + indur2 with default ef2/ea2 (verified on equal and unequal input pairs); setting ef2 or ea2 below 1 changes the rule to the SHORTER input's duration (see known_issues). Deterministic (decoded data chunks identical across runs). Both inputs must share analysis parameters ('Incompatible analysis-sample-rate' refusal otherwise).",
+  "musical_use": "A spectral dissolve between two sonic identities - because each end of the bridge is one frozen window, the result is a smooth, ghostly glide between two STATIC colours rather than a living morph (vibrato and internal motion are lost by design; use morph morph when you want them). Works best between stable-spectrum sounds - held vowels, bowed strings, organ tones, resonant drones. sf2/sa2 vs ef2/ea2 set how much of sound 2's frequency/amplitude is present at the start and end of the interpolation: the defaults (0 to 1) give a complete A-to-B bridge; partial values blend fixed proportions for hybrid, suspended in-between timbres. Decoupling frequency from amplitude interpolation (e.g. frequencies morph early, amplitudes late) gives eerie intermediate stages. start/end confine the interpolation to a segment of infile1's timeline; offset delays sound 2's entry, lengthening the output. Resynthesize (auto-PVOC handles it) and layer the bridge under the two sources to smooth a transition in a mix.",
+  "parameters": {
+    "offset": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Time at which infile2 starts relative to the start of infile1 (runtime-enforced 0 to infile1's duration: -a-0.5 and -a3 on a ~2 s file refused 'out of range (0.000000 to 2.020136)'). Adds directly to the output duration (verified: offset 0.5 -> outdur 2.5223 from 2.0230). Scalar only ('brkpnt_files not permitted', parameter 1)."
+    },
+    "sf2": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Fraction of the 2nd sound's FREQUENCIES interpolated at the START (CDP-enforced 0-1, default 0). Scalar only ('brkpnt_files not permitted', parameter 2)."
+    },
+    "sa2": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Fraction of the 2nd sound's AMPLITUDES interpolated at the START (CDP-enforced 0-1, default 0). Scalar only (parameter 3)."
+    },
+    "ef2": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Fraction of the 2nd sound's FREQUENCIES interpolated at the END (CDP-enforced 0-1, default 1). Setting it below 1 also flips the duration rule to the shorter input (see known_issues). Scalar only (parameter 4)."
+    },
+    "ea2": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Fraction of the 2nd sound's AMPLITUDES interpolated at the END (CDP-enforced 0-1, default 1). Same duration-rule effect as ef2. Scalar only (parameter 5)."
+    },
+    "start": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-f",
+      "flag_kind": "attached_value",
+      "description": "Time in infile1 of the START window for the interpolation (runtime-enforced 0 to infile1's duration; -f3 on a ~2 s file refused). Default 0. Scalar only (parameter 6)."
+    },
+    "end": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Time in infile1 of the END window for the interpolation (runtime-enforced roughly one window to just past infile1's duration: -g3 on a ~2 s file refused 'out of range (0.005805 to 2.025941)' - both bounds input/analysis-rate-dependent). Default: end of file. Scalar only (parameter 7)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Full A-to-B spectral dissolve across the whole of sound 1's timeline.",
+      "params": {},
+      "expected_use": "Defaults do the classic bridge: starts as infile1's grabbed window, ends as infile2's. Output duration = infile2's duration."
+    },
+    {
+      "description": "Delayed, partial hybrid: sound 2 enters at 0.5 s and only reaches an 80% blend.",
+      "params": {"offset": 0.5, "ef2": 0.8, "ea2": 0.8},
+      "expected_use": "Suspended in-between timbre that never fully becomes sound 2; output = offset + the shorter input's duration."
+    }
+  ],
+  "known_issues": [
+    "Duration rule (all verified via pvoc synth round-trips): with default ef2/ea2 (= 1) the output takes INFILE2's duration regardless of which input is longer (2 s + 1.5 s pairs gave 1.5209 and 2.0230 depending only on argument order); with ef2 or ea2 < 1 it takes the SHORTER input's duration (both orderings gave 1.5209); offset adds directly in both regimes (offset 0.5 + ef2 0.8 on the unequal pair gave 2.0201 vs predicted 2.0209). The curated expression encodes all three cases. BANNER DIVERGENCE: the banner's '...outsound ends at end of first sound' claim for ef2/ea2 < 1 is wrong when infile2 is shorter.",
+    "AFTA8 DIVERGENCE (trust the binary): afta8's flag map for bridge (-a start, -b end, -c sf2, -d ef2, -e sa2, -f ea2) matches the OLD CDP7 layout; the r8 banner and binary use -a offset, -b sf2, -c sa2, -d ef2, -e ea2, -f start, -g end. The curated flags follow the binary.",
+    "All seven parameters reject breakpoint files ('Cannot read parameter N [...]: brkpnt_files not permitted.', N = 1-7) - the bridge itself is the only time-variation on offer.",
+    "Both inputs must come from the same analysis setup: a -c2048 .ana against a default one refuses 'ERROR: INVALID DATA / ERROR: Incompatible analysis-sample-rate in input file ...'. Convert both sources with the same PVOC settings (the engine's auto-PVOC defaults satisfy this).",
+    "Time-domain input refused ('Application doesn't work with this type of infile.') - inputs must be .ana (auto-PVOC inserts the conversion).",
+    "Deterministic: two runs 1.2 s apart are identical in the .ana data chunk (raw-byte comparison is invalid - RIFF date chunk differs; compare data chunks or resyntheses).",
+    "offset/start/end ranges are runtime-enforced against infile1's analysed duration (and 'end' against the analysis window), so refusal bounds vary with the input."
+  ],
+  "references": ["cdp://docs/html/cmorph"]
+}
