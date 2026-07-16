@@ -62,9 +62,15 @@
     sm3 (timeline() headroom = curated call); gate -> retime chain
     verified; overload map per submix mode; forensics P6-1
     (aarch64 signed-char, build script fixed). Suite 1749/1874.
-  - Waves 2-6 pending: T14 sfedit/editing + T15 gesture; T16 waveset
-    + T17 synthesis; T18 texture/filter + T19 grain/FOF; T20+T21
-    spectral tail; T22 pitch-data + T23 text utilities.
+  - Wave 2 DONE (2026-07-16): T14 sfedit/editing (21) + T15 gesture
+    (18) -> **207 curated / 355 total** (14 stubs retired).
+    isolate->rejoin contract pinned (round-trip bit-faithful);
+    strans stereo-vibrato corruption -> curated as modify speed 6;
+    extend freeze pshift/ampcut brk no-op; sorter esiz brk
+    version-sensitive. Suite 1958 hermetic / 2107 real-CDP.
+  - Waves 3-6 pending: T16 waveset + T17 synthesis; T18
+    texture/filter + T19 grain/FOF; T20+T21 spectral tail; T22
+    pitch-data + T23 text utilities.
 
 ## Phase 5 wave 2 — DONE (commits 5715795 + c45b714, 2026-07-15)
 
