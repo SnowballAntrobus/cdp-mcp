@@ -102,13 +102,24 @@
     Remaining 99 stubs = out-of-scope spatial family, toolkit
     plumbing, and defect-dropped programs (all evidenced in
     docs/curation/tranche12..23 findings).
-  - **Two NEW engine gaps for the Phase 6 build queue** (join
-    free_string): (a) .frq/.trn OUTPUT kinds — the entire 15-program
-    binary pitch-transform layer (approx/exag/invert/quantise/
-    randomise/vibrato/...) is verified WORKING but schema-blocked,
-    all execute()-reachable meanwhile; (b) the mode-token argv gap
-    (flag-first/no-verb shapes) — forecloses columns/tabedit incl.
-    the time-list generators gesture workflows want.
+- **PHASE 6 COMPLETE (2026-07-16)** — record:
+  `docs/phase-6-handoff.md`. Shipped: timeline() (tool #33, headroom
+  staging via curated getlevel; submix-only by decision, sequence2 =
+  the pitch-aware sibling); IOI/density rhythm block in segments()
+  (accelerando detection, cache v2); search_programs() (tool #34) +
+  recommend_transforms prompt (discoverability over 348 entries);
+  11-pattern stdout-refusal error mapping; free_string + .frq/.trn
+  schema gaps closed (blur/distort shuffle + 8 repitch transforms
+  promoted — full curated pitch workflow, no execute() escape).
+  **348 curated / 447 total; 34 tools + 4 prompts; suite 3160
+  hermetic.** Skipped on user instruction: the Bucephalus example
+  recipe (machinery all shipped; first real gesture session makes
+  it). Deferred with triggers: mode-token argv gap, Phase 6b stereo
+  seed-link, export_to_ableton, process-output cache.
+  **THE CURRENT NEXT STEP: real-material usage.** Run the manual
+  checklist in the handoff (search quality, recommend_transforms on
+  a real sample, a real timeline() gesture); usage evidence drives
+  Phase 7 scoping.
 
 ## Phase 5 wave 2 — DONE (commits 5715795 + c45b714, 2026-07-15)
 
