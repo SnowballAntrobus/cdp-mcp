@@ -36,6 +36,7 @@ from ..graph import GraphDir, LatestTracker, build_context_block
 from ..knowledge.loader import KnowledgeIndex
 from ..schema import ContextBlock, ErrorEntry
 from ..session import SessionManager, SessionNotActiveError
+from .entry_lookup import resolve_entry
 from .node_execution import execute_validated_node
 from .node_validation import validate_node
 
@@ -47,6 +48,7 @@ async def batch_impl(
     inputs: list[str | list[str]],
     params: dict[str, Any] | None = None,
     timeout_seconds: float = 120.0,
+    submode: int | None = None,
     *,
     sessions: SessionManager,
     knowledge_index: KnowledgeIndex,
@@ -72,16 +74,10 @@ async def batch_impl(
             ),
         )])
 
-    entry = knowledge_index.get(program, mode)
-    if entry is None or not entry.curated:
-        return _failure(session, latest_tracker, [ErrorEntry(
-            type="not_curated",
-            message=f"No curated knowledge entry for {program!r} {mode!r}.",
-            fix=(
-                "Use list_programs() to see curated entries. For "
-                "uncurated CDP programs, use execute()."
-            ),
-        )])
+    entry, lookup_error = resolve_entry(knowledge_index, program, mode, submode)
+    if lookup_error is not None:
+        return _failure(session, latest_tracker, [lookup_error])
+    assert entry is not None  # resolve_entry contract
 
     # Arity-0 exclusion (Phase 5 wave 2a, documented choice): batch()
     # maps one op over MANY inputs — a generator has no inputs to map
@@ -316,6 +312,7 @@ def register(
         inputs: list[str | list[str]],
         params: dict[str, Any] | None = None,
         timeout_seconds: float = 120.0,
+        submode: int | None = None,
     ) -> dict:
         """Run one curated program over MANY inputs — exploration in bulk.
 
@@ -339,6 +336,10 @@ def register(
         (constants, breakpoint tuple lists, ``.brk`` paths); relative
         breakpoint envelopes are compiled per-element against each
         input's own duration. ``timeout_seconds`` applies per element.
+
+        ``submode`` selects among multiple curated submodes of the same
+        (program, mode) — only needed when the pair is curated in more
+        than one submode (``submode_required`` lists the valid values).
         """
         return await batch_impl(
             ctx,
@@ -347,6 +348,7 @@ def register(
             inputs,
             params,
             timeout_seconds,
+            submode,
             sessions=sessions,
             knowledge_index=knowledge_index,
             cdp_config_provider=cdp_config_provider,

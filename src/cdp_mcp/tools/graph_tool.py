@@ -42,10 +42,13 @@ from ..graph import GraphDir, LatestTracker, build_context_block
 from ..knowledge.loader import KnowledgeIndex
 from ..schema import ContextBlock, ErrorEntry
 from ..session import SessionManager, SessionNotActiveError
+from .entry_lookup import resolve_entry
 from .node_execution import execute_validated_node
 from .node_validation import validate_node
 
-_ALLOWED_NODE_KEYS = frozenset({"id", "op", "in", "params", "output_name"})
+_ALLOWED_NODE_KEYS = frozenset(
+    {"id", "op", "in", "params", "output_name", "submode"}
+)
 _RESERVED_IDS = frozenset({"latest", "prev_1", "prev_2", "prev_3", "prev_4"})
 
 
@@ -110,20 +113,21 @@ async def graph_impl(
     for spec in node_specs:
         nid = spec["id"]
         program, mode = spec["_program"], spec["_mode"]
-        entry = knowledge_index.get(program, mode)
-        if entry is None or not entry.curated:
-            graph_errors.append(ErrorEntry(
-                type="not_curated",
-                message=(
-                    f"node {nid!r}: no curated knowledge entry for "
-                    f"{program!r} {mode!r}."
-                ),
-                fix=(
-                    "Use list_programs() to see curated entries. graph() "
-                    "only orchestrates curated programs."
-                ),
-            ))
+        # Lookup keyed by (program, mode, submode); a bad or ambiguous
+        # submode is a validation-phase node error like any other
+        # (submode_required / not_curated), caught before anything runs.
+        entry, lookup_error = resolve_entry(
+            knowledge_index, program, mode, spec["_submode"],
+            where=f"node {nid!r}",
+            not_curated_fix=(
+                "Use list_programs() to see curated entries. graph() "
+                "only orchestrates curated programs."
+            ),
+        )
+        if lookup_error is not None:
+            graph_errors.append(lookup_error)
             continue
+        assert entry is not None  # resolve_entry contract
         # Arity-0 exclusion (Phase 5 wave 2a, documented choice): node
         # specs require a non-empty 'in' by construction, so a
         # generator node is inexpressible in graph()'s wiring grammar.
@@ -647,6 +651,20 @@ def _check_nodes_shape(
             ))
             continue
 
+        submode = spec.get("submode")
+        if submode is not None and (
+            not isinstance(submode, int) or isinstance(submode, bool)
+        ):
+            errors.append(ErrorEntry(
+                type="graph_spec_error",
+                message=f"{where}: submode {submode!r} is not an integer.",
+                fix=(
+                    "Pass submode as an integer (see "
+                    "get_program_info(program, mode)), or omit it."
+                ),
+            ))
+            continue
+
         raw_in = spec["in"]
         in_list = [raw_in] if isinstance(raw_in, str) else raw_in
         if (
@@ -665,6 +683,7 @@ def _check_nodes_shape(
         enriched = dict(spec)
         enriched["_program"], enriched["_mode"] = parts
         enriched["_in"] = in_list
+        enriched["_submode"] = submode
         specs.append(enriched)
     return specs
 
@@ -802,6 +821,11 @@ def register(
         - ``params`` — same polymorphic parameters as ``process()``
           (constants, breakpoint tuple lists, ``.brk`` paths).
         - ``output_name`` — optional output filename, as in ``process()``.
+        - ``submode`` — optional integer selecting among multiple curated
+          submodes of the node's (program, mode); only needed when the
+          pair is curated in more than one submode. A missing-but-needed
+          or wrong submode fails validation (``submode_required`` /
+          ``not_curated``) before anything runs.
 
         ``output`` optionally names the node whose result you intend as
         the graph's product (checked to exist; informational in dry-run).

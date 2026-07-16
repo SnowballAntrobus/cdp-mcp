@@ -41,6 +41,7 @@ from ..graph import GraphDir, LatestTracker, build_context_block
 from ..knowledge.loader import KnowledgeIndex
 from ..schema import ContextBlock, ErrorEntry
 from ..session import SessionManager, SessionNotActiveError
+from .entry_lookup import resolve_entry
 from .node_execution import execute_validated_node
 from .node_validation import validate_node
 
@@ -58,6 +59,7 @@ async def sweep_impl(
     input: str,
     param_sets: list[dict[str, Any]],
     timeout_seconds: float = 120.0,
+    submode: int | None = None,
     *,
     sessions: SessionManager,
     knowledge_index: KnowledgeIndex,
@@ -81,16 +83,10 @@ async def sweep_impl(
             ),
         )])
 
-    entry = knowledge_index.get(program, mode)
-    if entry is None or not entry.curated:
-        return _failure(session, latest_tracker, [ErrorEntry(
-            type="not_curated",
-            message=f"No curated knowledge entry for {program!r} {mode!r}.",
-            fix=(
-                "Use list_programs() to see curated entries. For "
-                "uncurated CDP programs, use execute()."
-            ),
-        )])
+    entry, lookup_error = resolve_entry(knowledge_index, program, mode, submode)
+    if lookup_error is not None:
+        return _failure(session, latest_tracker, [lookup_error])
+    assert entry is not None  # resolve_entry contract
 
     # Arity-0 exclusion (Phase 5 wave 2a, documented choice): sweep()'s
     # signature requires ONE source reference; a generator has none, so
@@ -336,6 +332,7 @@ def register(
         input: str,
         param_sets: list[dict[str, Any]],
         timeout_seconds: float = 120.0,
+        submode: int | None = None,
     ) -> dict:
         """Explore ONE sound across parameter settings in a single call.
 
@@ -367,6 +364,10 @@ def register(
         Per-variant reports are compact ({index, params, node_id,
         status, output, exit_code, duration_ms, errors, warnings}) —
         far cheaper than N ``process()`` envelopes.
+
+        ``submode`` selects among multiple curated submodes of the same
+        (program, mode) — only needed when the pair is curated in more
+        than one submode (``submode_required`` lists the valid values).
         """
         return await sweep_impl(
             ctx,
@@ -375,6 +376,7 @@ def register(
             input,
             param_sets,
             timeout_seconds,
+            submode,
             sessions=sessions,
             knowledge_index=knowledge_index,
             cdp_config_provider=cdp_config_provider,

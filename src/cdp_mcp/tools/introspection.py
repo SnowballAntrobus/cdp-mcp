@@ -15,7 +15,13 @@ from typing import Literal
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 
-from ..knowledge.loader import KnowledgeIndex
+from ..knowledge.loader import KnowledgeIndex, SubmodeAmbiguousError
+
+
+def _first_sentence(text: str) -> str:
+    """First sentence of a description — a compact chooser summary."""
+    idx = text.find(". ")
+    return text[: idx + 1] if idx != -1 else text
 
 
 def register(mcp: FastMCP, index: KnowledgeIndex) -> None:
@@ -44,9 +50,11 @@ def register(mcp: FastMCP, index: KnowledgeIndex) -> None:
         """List programs (and their modes) matching the optional filters.
 
         Returns one short summary dict per entry — ``program``, ``mode``,
-        ``category``, ``domain``, ``curated``, ``description`` — suitable
-        for at-a-glance scanning. Use :func:`get_program_info` for the full
-        entry with parameter schemas and examples.
+        ``submode``, ``category``, ``domain``, ``curated``,
+        ``description`` — suitable for at-a-glance scanning. A pair
+        curated in multiple submodes lists once per submode. Use
+        :func:`get_program_info` for the full entry with parameter
+        schemas and examples.
 
         ``category`` and ``domain`` compose with AND semantics. Pass neither
         to list everything.
@@ -58,6 +66,7 @@ def register(mcp: FastMCP, index: KnowledgeIndex) -> None:
             {
                 "program": e.program,
                 "mode": e.mode,
+                "submode": e.submode,
                 "category": e.category,
                 "domain": e.domain,
                 "curated": e.curated,
@@ -67,14 +76,57 @@ def register(mcp: FastMCP, index: KnowledgeIndex) -> None:
         ]
 
     @mcp.tool()
-    async def get_program_info(ctx: Context, program: str, mode: str) -> dict:
+    async def get_program_info(
+        ctx: Context,
+        program: str,
+        mode: str,
+        submode: int | None = None,
+    ) -> dict:
         """Return the full curated knowledge entry for ``(program, mode)``.
 
         Raises a tool error if no such entry exists. Use :func:`list_programs`
-        to see what's available. In Phase 1a every curated program has exactly
-        one curated mode, so the call requires both arguments explicitly.
+        to see what's available.
+
+        Some pairs are curated in several submodes (distinct CDP
+        behaviors with distinct parameters). Pass ``submode`` to fetch a
+        specific one. Without ``submode``, an ambiguous pair returns a
+        chooser payload instead of an error: ``{"status": "ok",
+        "program", "mode", "submodes": [{"submode", "summary",
+        "musical_use"}, ...]}`` — pick one and call again with
+        ``submode=<n>``. Unambiguous pairs return the full entry as
+        before.
         """
-        entry = index.get(program, mode)
+        if submode is not None:
+            entry = index.get(program, mode, submode)
+            if entry is None:
+                known = [e.submode for e in index.get_pair(program, mode)]
+                extra = (
+                    f" Known submodes for this pair: {known}." if known else ""
+                )
+                raise ToolError(
+                    f"No knowledge entry for {program} {mode} submode "
+                    f"{submode}.{extra} "
+                    "Call list_programs() to see what's available."
+                )
+            return entry.model_dump(mode="json")
+        try:
+            entry = index.get(program, mode)
+        except SubmodeAmbiguousError:
+            # Multiple submodes and no pick — return a chooser rather
+            # than erroring, so the LLM can decide from the summaries.
+            return {
+                "status": "ok",
+                "program": program,
+                "mode": mode,
+                "submodes": [
+                    {
+                        "submode": e.submode,
+                        "summary": _first_sentence(e.description),
+                        "musical_use": e.musical_use,
+                    }
+                    for e in index.get_pair(program, mode)
+                ],
+            }
         if entry is None:
             raise ToolError(
                 f"No knowledge entry for {program} {mode}. "

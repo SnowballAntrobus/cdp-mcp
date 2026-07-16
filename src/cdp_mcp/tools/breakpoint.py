@@ -28,6 +28,7 @@ from mcp.server.fastmcp import FastMCP
 
 from ..knowledge.loader import KnowledgeIndex
 from ..schema import ErrorEntry, ParameterSpec
+from .entry_lookup import resolve_entry
 
 # Sharp transitions (step / pulse_train edges) need two points straddling
 # the transition time. The gap must exceed the compiler's 1e-6 dedup
@@ -403,10 +404,15 @@ async def breakpoint_impl(
     steepness: float | None = None,
     duty: float | None = None,
     seed: int | None = None,
+    submode: int | None = None,
     knowledge_index: KnowledgeIndex,
 ) -> dict:
     """Build a relative-time breakpoint envelope of the named ``shape`` for
     ``(program, mode).param``, validated against the curated knowledge entry.
+
+    ``submode`` selects among multiple curated submodes of the same
+    (program, mode); required (``submode_required`` error) only when the
+    pair is curated in more than one submode.
 
     ``shape="custom"`` takes the agent's own ``pairs=[[time, value], ...]``
     (relative times in [0, 1]) — the freeform path for shapes no named
@@ -431,17 +437,17 @@ async def breakpoint_impl(
             "warnings": warnings,
         }
 
-    # 1. Entry lookup.
-    entry = knowledge_index.get(program, mode)
-    if entry is None or not entry.curated:
-        return _fail(ErrorEntry(
-            type="not_curated",
-            message=f"No curated knowledge entry for {program!r} {mode!r}.",
-            fix=(
-                "Use list_programs() to see curated entries. breakpoint() "
-                "only targets curated parameters."
-            ),
-        ))
+    # 1. Entry lookup — keyed by (program, mode, submode).
+    entry, lookup_error = resolve_entry(
+        knowledge_index, program, mode, submode,
+        not_curated_fix=(
+            "Use list_programs() to see curated entries. breakpoint() "
+            "only targets curated parameters."
+        ),
+    )
+    if lookup_error is not None:
+        return _fail(lookup_error)
+    assert entry is not None  # resolve_entry contract
 
     # 2. Param exists.
     if param not in entry.parameters:
@@ -596,6 +602,7 @@ def register(mcp: FastMCP, knowledge_index: KnowledgeIndex) -> None:
         steepness: float | None = None,
         duty: float | None = None,
         seed: int | None = None,
+        submode: int | None = None,
     ) -> dict:
         """Construct a breakpoint envelope for a curated parameter.
 
@@ -630,10 +637,14 @@ def register(mcp: FastMCP, knowledge_index: KnowledgeIndex) -> None:
           a freeform envelope for a non-capable parameter, or with an
           out-of-range value, is caught here, not inside ``process()``.
 
-        ``program``/``mode``/``param`` name the target. The tool validates
-        that the parameter is breakpoint-capable and rejects with a clear
-        error if not — so you learn here, not inside a later ``process()``
-        call, whether an envelope is allowed.
+        ``program``/``mode``/``param`` name the target. ``submode``
+        selects among multiple curated submodes of the same
+        (program, mode) — only needed when the pair is curated in more
+        than one submode (``submode_required`` lists the valid values).
+        The tool validates that the parameter is breakpoint-capable and
+        rejects with a clear error if not — so you learn here, not
+        inside a later ``process()`` call, whether an envelope is
+        allowed.
 
         Times are relative: 0.0 is the start of the output, 1.0 (the default
         ``duration_relative``) is the end. The actual seconds are resolved
@@ -645,5 +656,6 @@ def register(mcp: FastMCP, knowledge_index: KnowledgeIndex) -> None:
             duration_relative=duration_relative,
             points=points, count=count, steps=steps, values=values,
             pairs=pairs, curve=curve, steepness=steepness, duty=duty, seed=seed,
+            submode=submode,
             knowledge_index=knowledge_index,
         )

@@ -21,6 +21,7 @@ from ..graph import LatestTracker, build_context_block
 from ..knowledge.loader import KnowledgeIndex
 from ..schema import ContextBlock, ErrorEntry, ResultEnvelope
 from ..session import SessionManager, SessionNotActiveError
+from .entry_lookup import resolve_entry
 from .node_execution import execute_validated_node
 from .node_validation import validate_node
 
@@ -33,6 +34,7 @@ async def process_impl(
     params: dict[str, Any] | None = None,
     output_name: str | None = None,
     timeout_seconds: float = 120.0,
+    submode: int | None = None,
     *,
     sessions: SessionManager,
     knowledge_index: KnowledgeIndex,
@@ -69,6 +71,10 @@ async def process_impl(
     entries — ``synth noise`` / ``synth wave`` / ``submix mix`` take no
     audio inputs (Phase 5 wave 2a). Arity mismatches either way return
     the structured ``arity_mismatch`` error.
+
+    ``submode`` selects among multiple curated submodes of the same
+    (program, mode); required (``submode_required`` error) only when
+    the pair is curated in more than one submode.
     """
     params_dict: dict[str, Any] = params or {}
 
@@ -98,27 +104,18 @@ async def process_impl(
             ],
         )
 
-    # 3. Knowledge lookup.
-    entry = knowledge_index.get(program, mode)
-    if entry is None or not entry.curated:
+    # 3. Knowledge lookup — keyed by (program, mode, submode). A pair
+    # curated in multiple submodes without an explicit submode surfaces
+    # the structured submode_required error.
+    entry, lookup_error = resolve_entry(knowledge_index, program, mode, submode)
+    if lookup_error is not None:
         return _failed_envelope(
             session,
             latest_tracker,
             active_graph=None,
-            errors=[
-                ErrorEntry(
-                    type="not_curated",
-                    message=(
-                        f"No curated knowledge entry for "
-                        f"{program!r} {mode!r}."
-                    ),
-                    fix=(
-                        "Use list_programs() to see curated entries. "
-                        "For uncurated CDP programs, use execute()."
-                    ),
-                )
-            ],
+            errors=[lookup_error],
         )
+    assert entry is not None  # resolve_entry contract
 
     # 4–10: pre-subprocess validation and planning, factored out so the
     # same chain serves graph(dry_run=True) and batch() without drift.
@@ -224,6 +221,7 @@ def register(
         params: dict[str, Any] | None = None,
         output_name: str | None = None,
         timeout_seconds: float = 120.0,
+        submode: int | None = None,
     ) -> dict:
         """Run a curated CDP program with full bookkeeping.
 
@@ -254,6 +252,12 @@ def register(
         entirely. submix mix instead reads its sources from a mixfile
         written with ``write_data_file()`` and passed as the
         ``mixfile`` parameter.
+
+        ``submode`` selects among multiple curated submodes of the same
+        (program, mode). Only needed when the pair is curated in more
+        than one submode — the ``submode_required`` error lists the
+        valid values; ``get_program_info(program, mode)`` describes
+        each.
         """
         return await process_impl(
             ctx,
@@ -263,6 +267,7 @@ def register(
             params,
             output_name,
             timeout_seconds,
+            submode,
             sessions=sessions,
             knowledge_index=knowledge_index,
             cdp_config_provider=cdp_config_provider,
