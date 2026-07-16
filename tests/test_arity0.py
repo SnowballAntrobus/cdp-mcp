@@ -94,11 +94,14 @@ def synth_env(tmp_path):
     }
 
 
-async def _run_process(env, program, mode, input=None, params=None) -> dict:
+async def _run_process(
+    env, program, mode, input=None, params=None, submode=None
+) -> dict:
     return await process_impl(
         _FakeCtx(),
         program=program,
         mode=mode,
+        submode=submode,
         input=input,
         params=params,
         sessions=env["sessions"],
@@ -151,7 +154,7 @@ async def test_synth_wave_submode_and_frq_positional_order(synth_env):
     — submode before the output, positionals in banner order after it."""
     env = synth_env
     r = await _run_process(
-        env, "synth", "wave", params={"dur": 2.0, "frq": 220.0}
+        env, "synth", "wave", submode=1, params={"dur": 2.0, "frq": 220.0}
     )
     assert r["status"] == "ok", r["errors"]
     graph_id = r["context"]["active_graph"]
@@ -222,7 +225,7 @@ async def test_generator_breakpoint_axis_is_output_duration(synth_env):
     env = synth_env
     vr = await validate_node(
         ctx=None,
-        entry=env["knowledge"].get("synth", "wave"),
+        entry=env["knowledge"].get("synth", "wave", 1),
         inputs=[],
         params={"dur": 4.0, "frq": [[0.0, 220.0], [1.0, 880.0]]},
         output_name=None,
@@ -242,7 +245,7 @@ async def test_generator_breakpoint_axis_is_output_duration(synth_env):
 async def test_generator_breakpoint_end_to_end(synth_env):
     env = synth_env
     r = await _run_process(
-        env, "synth", "wave",
+        env, "synth", "wave", submode=1,
         params={"dur": 2.0, "frq": [[0.0, 220.0], [1.0, 880.0]]},
     )
     assert r["status"] == "ok", r["errors"]
@@ -392,7 +395,7 @@ async def test_synth_wave_real_cdp_frq_breakpoint(real_synth_env):
     async def run(params, name):
         return await process_impl(
             _FakeCtx(),
-            program="synth", mode="wave",
+            program="synth", mode="wave", submode=1,
             params=params,
             output_name=name,
             sessions=env["sessions"],

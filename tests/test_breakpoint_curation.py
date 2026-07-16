@@ -30,15 +30,66 @@ from cdp_mcp.knowledge.loader import KnowledgeIndex
 # Empirical findings from the Task 5 probe pass (run against CDP r8 in
 # cdpr8/_cdp/_cdprogs). Updating any cell in this table is a curation
 # decision and must pair with an entry in docs/phase-2-breakpoint-review.md.
-_EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
-    # --- Phase 5 wave 2b (tranche 8; see docs/curation/) ---
-    ("scramble", "scramble"): {
+_EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]] = {
+    # --- Phase 5 wave 3 (tranche 9: sibling submodes of already-curated
+    # pairs; see docs/curation/tranche9_submodes_findings.json) ---
+    ("scramble", "scramble", 9): {
         "seed": False,
         "cnt": False,
         "trns": True,
         "atten": True,
     },
-    ("texture", "grouped"): {
+    ("filter", "bank", 5): {
+        "q": True, "gain": False, "lof": False, "hif": False,
+        "filtcnt": False, "tail": False, "scat": False, "double": False,
+    },
+    ("filter", "bank", 6): {
+        "q": True, "gain": False, "lof": False, "hif": False,
+        "interval": False, "tail": False, "scat": False, "double": False,
+    },
+    ("morph", "bridge", 2): {
+        "offset": False, "sf2": False, "sa2": False,
+        "ef2": False, "ea2": False, "start": False, "end": False,
+    },
+    ("morph", "bridge", 3): {
+        "offset": False, "sf2": False, "sa2": False,
+        "ef2": False, "ea2": False, "start": False, "end": False,
+    },
+    ("modify", "radical", 2): {
+        "repeats": False, "chunklen": False,
+        "scatter": False, "smooth": False,
+    },
+    ("modify", "radical", 5): {
+        "modfrq": True,
+    },
+    ("modify", "speed", 5): {
+        "accel": False, "goaltime": False, "starttime": False,
+    },
+    ("envspeak", "envspeak", 2): {
+        "wsize": False, "splice": False, "offset": False,
+    },
+    ("synth", "wave", 2): {
+        "srate": False, "chans": False, "dur": False,
+        "frq": True, "amp": True, "tabsize": False,
+    },
+    ("synth", "wave", 4): {
+        "srate": False, "chans": False, "dur": False,
+        "frq": True, "amp": True, "tabsize": False,
+    },
+    ("specfnu", "specfnu", 2): {
+        "squeeze": True, "centre": False, "gain": False,
+        "at_trough": False, "force_fundamental": False,
+        "short_window": False, "exclude_nonharmonic": False,
+        "kill_harmonic": False, "silence_unpitched": False,
+    },
+    # --- Phase 5 wave 2b (tranche 8; see docs/curation/) ---
+    ("scramble", "scramble", 10): {
+        "seed": False,
+        "cnt": False,
+        "trns": True,
+        "atten": True,
+    },
+    ("texture", "grouped", 5): {
         "notedata": False,
         "outdur": False,
         "packing": True,
@@ -70,14 +121,14 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
         "whole": False,
         "fixstep": False,
     },
-    ("envspeak", "envspeak"): {
+    ("envspeak", "envspeak", 1): {
         "wsize": False,
         "splice": False,
         "offset": False,
         "repet": True,
         "rand": True,
     },
-    ("morph", "bridge"): {
+    ("morph", "bridge", 1): {
         "offset": False,
         "sf2": False,
         "sa2": False,
@@ -86,74 +137,74 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
         "start": False,
         "end": False,
     },
-    ("distort", "reform"): {
+    ("distort", "reform", 6): {
         # no numeric parameters
     },
-    ("distort", "delete"): {
+    ("distort", "delete", 2): {
         "cyclecnt": True,
         "skipcycles": False,
     },
-    ("distort", "replace"): {
+    ("distort", "replace", None): {
         "cyclecnt": True,
         "skipcycles": False,
     },
-    ("analjoin", "join"): {
+    ("analjoin", "join", None): {
         # no numeric parameters
     },
-    ("newdelay", "newdelay"): {
+    ("newdelay", "newdelay", None): {
         "midipitch": True,
         "mix": False,
         "feedback": False,
     },
-    ("quirk", "quirk"): {
+    ("quirk", "quirk", 1): {
         "powfac": False,
     },
-    ("silend", "silend"): {
+    ("silend", "silend", 1): {
         "sildur": False,
     },
     # --- Phase 5 wave 2a (tranche 7: unblocked entries; see docs/curation/) ---
-    ("submix", "mix"): {
+    ("submix", "mix", None): {
         "atten": False,
     },
-    ("envel", "extract"): {
+    ("envel", "extract", 1): {
         "wsize": False,
     },
-    ("formants", "get"): {
+    ("formants", "get", None): {
         "fbands": False,
     },
-    ("formants", "put"): {
+    ("formants", "put", 1): {
         "quicksearch": False, "lof": False, "hif": False, "gain": False,
     },
-    ("synth", "noise"): {
+    ("synth", "noise", None): {
         "srate": False, "chans": False, "dur": False, "amp": True,
     },
-    ("synth", "wave"): {
+    ("synth", "wave", 1): {
         "srate": False, "chans": False, "dur": False,
         "frq": True, "amp": True, "tabsize": False,
     },
     # --- Phase 5 tranches 5-6 (sandbox-CDP probed; see docs/curation/) ---
-    ("submix", "interleave"): {
+    ("submix", "interleave", None): {
         # no numeric parameters
     },
-    ("envel", "impose"): {
+    ("envel", "impose", 1): {
         "wsize": False,
     },
-    ("envel", "replace"): {
+    ("envel", "replace", 1): {
         "wsize": False,
     },
-    ("formants", "vocode"): {
+    ("formants", "vocode", None): {
         "fbands": False,
         "lof": False,
         "hif": False,
         "gain": False,
     },
-    ("spec", "grab"): {
+    ("spec", "grab", None): {
         "time": False,
     },
-    ("modify", "loudness"): {
+    ("modify", "loudness", 1): {
         "gain": True,
     },
-    ("filter", "bank"): {
+    ("filter", "bank", 1): {
         "q": True,
         "gain": False,
         "lof": False,
@@ -162,14 +213,14 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
         "scat": False,
         "double": False,
     },
-    ("grain", "reverse"): {
+    ("grain", "reverse", None): {
         "len": False,
         "gate": True,
         "minhole": False,
         "winsize": False,
         "ignore_last": False,
     },
-    ("grain", "duplicate"): {
+    ("grain", "duplicate", None): {
         "repeats": True,
         "len": False,
         "gate": True,
@@ -177,7 +228,7 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
         "winsize": False,
         "ignore_last": False,
     },
-    ("grain", "timewarp"): {
+    ("grain", "timewarp", None): {
         "ratio": True,
         "len": False,
         "gate": True,
@@ -185,7 +236,7 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
         "winsize": False,
         "ignore_last": False,
     },
-    ("grain", "rerhythm"): {
+    ("grain", "rerhythm", 1): {
         "multfile": False,
         "len": False,
         "gate": True,
@@ -193,7 +244,7 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
         "winsize": False,
         "ignore_last": False,
     },
-    ("grain", "reposition"): {
+    ("grain", "reposition", None): {
         "timefile": False,
         "offset": False,
         "len": False,
@@ -202,33 +253,33 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
         "winsize": False,
         "ignore_last": False,
     },
-    ("pitch", "tune"): {
+    ("pitch", "tune", 1): {
         "frequency": False,
         "focus": True,
         "clarity": True,
         "trace": True,
         "bcut": True,
     },
-    ("combine", "interleave"): {
+    ("combine", "interleave", None): {
         "leafsize": False,
     },
-    ("combine", "max"): {
+    ("combine", "max", None): {
         # no numeric parameters
     },
-    ("strange", "shift"): {
+    ("strange", "shift", 4): {
         "frqshift": True,
         "frqlo": True,
         "frqhi": True,
         "log_interp": False,
     },
-    ("distort", "interact"): {
+    ("distort", "interact", 2): {
         # no numeric parameters
     },
-    ("clip", "clip"): {
+    ("clip", "clip", 2): {
         "fraction": False,
     },
     # --- Phase 3 tranche 3 (sandbox-CDP probed; see docs/curation/) ---
-    ("texture", "simple"): {
+    ("texture", "simple", 5): {
         "notedata": False,
         "outdur": False,
         "packing": True,
@@ -249,7 +300,7 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
         "seed": False,
         "whole": False,
     },
-    ("modify", "stack"): {
+    ("modify", "stack", None): {
         "transpos": False,
         "count": False,
         "lean": False,
@@ -258,20 +309,20 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
         "dur": False,
         "normalise": False,
     },
-    ("distort", "divide"): {
+    ("distort", "divide", None): {
         "divider": True,
         "interpolate": False,
     },
-    ("distort", "omit"): {
+    ("distort", "omit", None): {
         "omit": True,
         "group": False,
     },
-    ("extend", "doublets"): {
+    ("extend", "doublets", None): {
         "segdur": True,
         "repets": False,
         "sync": False,
     },
-    ("bounce", "bounce"): {
+    ("bounce", "bounce", None): {
         "count": False,
         "startgap": False,
         "shorten": False,
@@ -281,33 +332,33 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
         "cut_overlap": False,
         "trim_start": False,
     },
-    ("specfnu", "specfnu"): {
+    ("specfnu", "specfnu", 1): {
         "narrow": True,
         "gain": False,
     },
-    ("stretch", "spectrum"): {
+    ("stretch", "spectrum", 1): {
         "frq_divide": False,
         "maxstretch": False,
         "exponent": False,
         "depth": True,
     },
-    ("focus", "fold"): {
+    ("focus", "fold", None): {
         "lofrq": True,
         "hifrq": True,
     },
-    ("focus", "step"): {
+    ("focus", "step", None): {
         "timestep": False,
     },
-    ("blur", "spread"): {
+    ("blur", "spread", None): {
         "fchans": False,
         "pbands": False,
         "spread": True,
     },
-    ("blur", "suppress"): {
+    ("blur", "suppress", None): {
         "n": True,
     },
     # --- Phase 3 tranche 2 (sandbox-CDP probed; see docs/curation/) ---
-    ("modify", "revecho"): {
+    ("modify", "revecho", 2): {
         "delay": False,
         "mix": False,
         "feedback": False,
@@ -319,71 +370,71 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
         "prescale": False,
         "seed": False,
     },
-    ("distort", "average"): {
+    ("distort", "average", None): {
         "cyclecnt": True,
         "maxwavelen": False,
         "skipcycles": False,
     },
-    ("distort", "fractal"): {
+    ("distort", "fractal", None): {
         "scaling": True,
         "loudness": True,
         "pre_attenuation": False,
     },
-    ("distort", "interpolate"): {
+    ("distort", "interpolate", None): {
         "multiplier": True,
         "skipcycles": False,
     },
-    ("envel", "dovetail"): {
+    ("envel", "dovetail", 1): {
         "infadedur": False,
         "outfadedur": False,
         "intype": False,
         "outtype": False,
         "times": False,
     },
-    ("sfedit", "cut"): {
+    ("sfedit", "cut", 1): {
         "start": False,
         "end": False,
         "splice": False,
     },
-    ("stretch", "time"): {
+    ("stretch", "time", 1): {
         "timestretch": True,
     },
-    ("strange", "glis"): {
+    ("strange", "glis", 1): {
         "fchans": False,
         "pbands": False,
         "glisrate": True,
         "topfrq": False,
     },
-    ("strange", "invert"): {
+    ("strange", "invert", 1): {
         # no numeric parameters
     },
-    ("hilite", "trace"): {
+    ("hilite", "trace", 1): {
         "n": True,
     },
-    ("spec", "magnify"): {
+    ("spec", "magnify", None): {
         "time": False,
         "dur": False,
     },
-    ("focus", "accu"): {
+    ("focus", "accu", None): {
         "decay": True,
         "glis": True,
     },
     # --- Phase 3 tranche 1 (sandbox-CDP probed; see docs/curation/) ---
-    ("modify", "radical"): {
+    ("modify", "radical", 1): {
         # no numeric parameters
     },
-    ("modify", "speed"): {
+    ("modify", "speed", 2): {
         "semitones": True,
     },
-    ("distort", "multiply"): {
+    ("distort", "multiply", None): {
         "multiplier": True,
     },
-    ("distort", "repeat"): {
+    ("distort", "repeat", None): {
         "multiplier": True,
         "cyclecnt": True,
         "skipcycles": False,
     },
-    ("extend", "zigzag"): {
+    ("extend", "zigzag", 1): {
         "start": False,
         "end": False,
         "dur": False,
@@ -392,70 +443,73 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str], dict[str, bool]] = {
         "maxzig": False,
         "seed": False,
     },
-    ("extend", "scramble"): {
+    ("extend", "scramble", 1): {
         "minseglen": False,
         "maxseglen": False,
         "outdur": False,
         "splen": False,
         "seed": False,
     },
-    ("filter", "lohi"): {
+    ("filter", "lohi", 1): {
         "attenuation": False,
         "passband": False,
         "stopband": False,
         "tail": False,
         "prescale": False,
     },
-    ("blur", "avrg"): {
+    ("blur", "avrg", None): {
         "n": True,
     },
-    ("blur", "scatter"): {
+    ("blur", "scatter", None): {
         "keep": True,
         "blocksize": True,
     },
-    ("blur", "drunk"): {
+    ("blur", "drunk", None): {
         "range": False,
         "starttime": False,
         "duration": False,
     },
-    ("focus", "exag"): {
+    ("focus", "exag", None): {
         "exaggeration": True,
     },
-    ("combine", "diff"): {
+    ("combine", "diff", None): {
         "crossover": True,
         "subzero": False,
     },
-    ("morph", "glide"): {
+    ("morph", "glide", None): {
         "duration": False,
     },
-    ("blur", "blur"): {
+    ("blur", "blur", None): {
         "blurring": True,
     },
-    ("extend", "loop"): {
+    ("extend", "loop", 3): {
         "cnt": False, "start": False, "len": False,
         "step": False, "splen": False, "scat": False,
     },
-    ("filter", "sweeping"): {
+    ("filter", "sweeping", 2): {
         "acuity": True, "gain": False,
         "lofrq": True, "hifrq": True, "sweepfrq": True,
         "tail": False, "phase": False,
     },
-    ("modify", "brassage"): {
+    ("modify", "brassage", 2): {
         "velocity": True,
     },
-    ("morph", "morph"): {
+    ("morph", "morph", 1): {
         "as": False, "ae": False, "fs": False, "fe": False,
         "expa": False, "expf": False, "stagger": False,
     },
 }
 
 
-def _matrix_cases() -> list[tuple[str, str, str, bool]]:
-    """Flatten the expectation table to one (program, mode, param, expected)
-    case per row for pytest's parametrize."""
+def _matrix_cases() -> list[tuple[str, str, int | None, str, bool]]:
+    """Flatten the expectation table to one (program, mode, submode, param,
+    expected) case per row for pytest's parametrize. Since the
+    (program, mode, submode) re-keying (commit 728b986) each key carries
+    its entry's declared submode — None for submode-less entries — so
+    lookups stay exact-triple even on pairs curated in several submodes."""
     return [
-        (program, mode, param, expected)
-        for (program, mode), params in _EXPECTED_BREAKPOINT_CAPABLE.items()
+        (program, mode, submode, param, expected)
+        for (program, mode, submode), params in _EXPECTED_BREAKPOINT_CAPABLE.items()
         for param, expected in params.items()
     ]
 
@@ -466,16 +520,17 @@ def knowledge_index() -> KnowledgeIndex:
 
 
 @pytest.mark.parametrize(
-    ("program", "mode", "param", "expected"), _matrix_cases(),
+    ("program", "mode", "submode", "param", "expected"), _matrix_cases(),
     ids=[
-        f"{p}_{m}_{param}_{expected}"
-        for (p, m, param, expected) in _matrix_cases()
+        f"{p}_{m}_sm{s}_{param}_{expected}"
+        for (p, m, s, param, expected) in _matrix_cases()
     ],
 )
 def test_breakpoint_capable_matches_empirical(
     knowledge_index: KnowledgeIndex,
     program: str,
     mode: str,
+    submode: int | None,
     param: str,
     expected: bool,
 ) -> None:
@@ -483,11 +538,13 @@ def test_breakpoint_capable_matches_empirical(
     empirical probe outcome. The probe ran scalar + envelope invocations
     against real CDP r8; ``brkpnt_files not permitted`` → False, exit-0
     with output produced → True. See docs/phase-2-breakpoint-review.md."""
-    entry = knowledge_index.get(program, mode)
-    assert entry is not None, f"No curated entry for {program} {mode}"
+    entry = knowledge_index.get(program, mode, submode)
+    assert entry is not None, (
+        f"No curated entry for {program} {mode} sm{submode}"
+    )
     spec = entry.parameters[param]
     assert spec.breakpoint_capable is expected, (
-        f"{program} {mode}.{param}: knowledge JSON says "
+        f"{program} {mode} sm{submode}.{param}: knowledge JSON says "
         f"breakpoint_capable={spec.breakpoint_capable}, empirical Task 5 "
         f"probe says {expected}. Either CDP r8's behavior changed (re-run "
         f"the probe in docs/phase-2-breakpoint-review.md §methodology) "
@@ -495,23 +552,24 @@ def test_breakpoint_capable_matches_empirical(
     )
 
 
-def _flipped_to_true() -> list[tuple[str, str, str]]:
+def _flipped_to_true() -> list[tuple[str, str, int | None, str]]:
     return [
-        (p, m, param)
-        for (p, m), params in _EXPECTED_BREAKPOINT_CAPABLE.items()
+        (p, m, s, param)
+        for (p, m, s), params in _EXPECTED_BREAKPOINT_CAPABLE.items()
         for param, expected in params.items()
         if expected
     ]
 
 
 @pytest.mark.parametrize(
-    ("program", "mode", "param"), _flipped_to_true(),
-    ids=[f"{p}_{m}_{param}" for (p, m, param) in _flipped_to_true()],
+    ("program", "mode", "submode", "param"), _flipped_to_true(),
+    ids=[f"{p}_{m}_sm{s}_{param}" for (p, m, s, param) in _flipped_to_true()],
 )
 def test_newly_capable_param_compiles_an_envelope(
     knowledge_index: KnowledgeIndex,
     program: str,
     mode: str,
+    submode: int | None,
     param: str,
     tmp_path,
 ) -> None:
@@ -520,7 +578,7 @@ def test_newly_capable_param_compiles_an_envelope(
     behaviorally relevant at this layer — the compiler just needs a
     breakpoint-capable spec, a non-empty value, and writeable envelope
     storage."""
-    entry = knowledge_index.get(program, mode)
+    entry = knowledge_index.get(program, mode, submode)
     assert entry is not None
     spec = entry.parameters[param]
 
@@ -541,8 +599,8 @@ def test_newly_capable_param_compiles_an_envelope(
         envelopes_dir=tmp_path / "envelopes",
     )
     assert result.errors == [], (
-        f"{program} {mode}.{param}: compile_breakpoint_value returned "
-        f"errors despite breakpoint_capable=True: {result.errors}"
+        f"{program} {mode} sm{submode}.{param}: compile_breakpoint_value "
+        f"returned errors despite breakpoint_capable=True: {result.errors}"
     )
     assert result.record is not None
     assert result.compiled_path is not None and result.compiled_path.exists()

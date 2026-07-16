@@ -53,8 +53,10 @@ def test_categories_sorted_and_unique(real_index):
 
 def test_list_entries_by_category(real_index):
     entries = real_index.list_entries(category="filter")
-    assert [(e.program, e.mode) for e in entries] == [
-        ("filter", "bank"), ("filter", "lohi"), ("filter", "sweeping"),
+    # bank appears once per curated submode since Phase 5 wave 3.
+    assert [(e.program, e.mode, e.submode) for e in entries] == [
+        ("filter", "bank", 1), ("filter", "bank", 5), ("filter", "bank", 6),
+        ("filter", "lohi", 1), ("filter", "sweeping", 2),
     ]
 
 
@@ -86,8 +88,8 @@ def test_curated_only_passthrough_includes_all(real_index):
     # All curated entries are curated, so curated_only=False just returns the
     # same set. The flag's behavior is exercised; the data doesn't (yet)
     # contain uncurated entries to filter out.
-    assert len(real_index.list_entries(curated_only=False)) == 260
-    assert len(real_index.list_entries(curated_only=True)) == 78
+    assert len(real_index.list_entries(curated_only=False)) == 272
+    assert len(real_index.list_entries(curated_only=True)) == 90
 
 
 def test_get_returns_none_for_missing(real_index):

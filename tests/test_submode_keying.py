@@ -125,9 +125,10 @@ def test_backward_compat_get_single_entry_pair_real_index():
     blur = real.get("blur", "blur")
     assert blur is not None and blur.submode is None
     # Curated entry that carries a submode but is its pair's only entry:
-    # still resolvable without passing submode.
-    bank = real.get("filter", "bank")
-    assert bank is not None and bank.submode == 1
+    # still resolvable without passing submode. (filter bank stopped
+    # qualifying when wave 3 curated submodes 5/6 — lohi is still single.)
+    lohi = real.get("filter", "lohi")
+    assert lohi is not None and lohi.submode == 1
 
 
 def test_get_pair_sorted_none_first():

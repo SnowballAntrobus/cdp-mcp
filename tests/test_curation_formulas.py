@@ -93,10 +93,11 @@ async def _measured_duration(env, output_path_str: str) -> float:
     return sf.info(str(wav)).duration
 
 
-async def _run(env, *, program, mode, input_name, params):
+async def _run(env, *, program, mode, input_name, params, submode=None):
     ctx = _FakeCtx()
     return await process_impl(
         ctx, program=program, mode=mode, input=input_name, params=params,
+        submode=submode,
         sessions=env.sessions, knowledge_index=env.knowledge,
         cdp_config_provider=lambda: env.cdp_config,
         latest_tracker=env.latest_tracker, cache_root=env.cache_root,
@@ -110,165 +111,216 @@ async def _run(env, *, program, mode, input_name, params):
 
 @pytest.mark.timeout(60)
 @pytest.mark.parametrize(
-    ("program", "mode", "indur", "params", "rel_tol"),
+    ("program", "mode", "submode", "indur", "params", "rel_tol"),
+    # Since the (program, mode, submode) re-keying (commit 728b986) every
+    # row carries its entry's declared submode — None for submode-less
+    # entries, the JSON's value otherwise — so lookups stay exact-triple
+    # even on pairs curated in several submodes.
     [
         # extend loop: duration_model "cnt * len / 1000" (len in ms).
-        ("extend", "loop", 3.0, {"cnt": 3, "start": 0.0, "len": 500.0}, 0.05),
-        ("extend", "loop", 3.0, {"cnt": 5, "start": 0.0, "len": 200.0}, 0.05),
+        ("extend", "loop", 3, 3.0, {"cnt": 3, "start": 0.0, "len": 500.0}, 0.05),
+        ("extend", "loop", 3, 3.0, {"cnt": 5, "start": 0.0, "len": 200.0}, 0.05),
         # modify brassage: duration_model "indur / velocity" (granular splice
         # overhead → a few % slack).
-        ("modify", "brassage", 2.0, {"velocity": 0.5}, 0.05),
-        ("modify", "brassage", 2.0, {"velocity": 2.0}, 0.05),
+        ("modify", "brassage", 2, 2.0, {"velocity": 0.5}, 0.05),
+        ("modify", "brassage", 2, 2.0, {"velocity": 2.0}, 0.05),
         # filter sweeping: duration_model "indur + tail". The -t tail
         # exists only in the binary's banner (not the HTML manual) and
         # omitting it appends a default tail anyway (observed +1.00 s,
         # manual QA 2026-07-14) — so the engine always emits -t
         # explicitly and the model adds it. Default (1.0) and explicit
         # cases both pinned.
-        ("filter", "sweeping", 3.0,
+        ("filter", "sweeping", 2, 3.0,
          {"acuity": 0.1, "gain": 0.5, "lofrq": 200.0, "hifrq": 4000.0,
           "sweepfrq": 1.0}, 0.05),
-        ("filter", "sweeping", 3.0,
+        ("filter", "sweeping", 2, 3.0,
          {"acuity": 0.1, "gain": 0.5, "lofrq": 200.0, "hifrq": 4000.0,
           "sweepfrq": 1.0, "tail": 0.5}, 0.05),
         # --- Phase 3 tranche 1 (single-input entries; multi-input rows
         # excluded — this fixture writes one in.wav) ---
-        ("scramble", "scramble", 2.0,
+        ("scramble", "scramble", 10, 2.0,
          {"seed": 5},
          0.05),
-        ("envspeak", "envspeak", 2.0,
+        ("envspeak", "envspeak", 1, 2.0,
          {"wsize": 50.0, "splice": 15.0, "offset": 0, "repet": 2, "rand": 0.0},
          0.05),
-        ("distort", "reform", 2.0,
+        ("distort", "reform", 6, 2.0,
          {},
          0.05),
-        ("newdelay", "newdelay", 2.0,
+        ("newdelay", "newdelay", None, 2.0,
          {"midipitch": 60.0, "mix": 1.0, "feedback": 0.7},
          0.05),
-        ("quirk", "quirk", 2.0,
+        ("quirk", "quirk", 1, 2.0,
          {"powfac": 0.7},
          0.05),
-        ("silend", "silend", 2.0,
+        ("silend", "silend", 1, 2.0,
          {"sildur": 1.0},
          0.05),
         # (grain reverse/rerhythm/reposition + spec grab also excluded:
         # grain ops refuse the fixture's flat noise ('No grains found') and
         # rerhythm/reposition need aux timefiles the shared fixture cannot
         # supply — duration rules pinned in docs/curation/tranche6 transcript.)
-        ("modify", "loudness", 2.0,
+        ("modify", "loudness", 1, 2.0,
          {"gain": 0.5},
          0.05),
-        ("filter", "bank", 2.0,
+        ("filter", "bank", 1, 2.0,
          {"q": 50.0, "gain": 1.0, "lof": 220.0, "hif": 4400.0, "tail": 1.0},
          0.05),
-        ("grain", "duplicate", 2.0,
+        ("grain", "duplicate", None, 2.0,
          {"repeats": 2},
          0.05),
-        ("grain", "timewarp", 2.0,
+        ("grain", "timewarp", None, 2.0,
          {"ratio": 1.0},
          0.05),
-        ("pitch", "tune", 2.0,
+        ("pitch", "tune", 1, 2.0,
          {"frequency": 440.0},
          0.05),
-        ("strange", "shift", 2.0,
+        ("strange", "shift", 4, 2.0,
          {"frqshift": 200.0, "frqlo": 100.0, "frqhi": 8000.0},
          0.05),
-        ("clip", "clip", 2.0,
+        ("clip", "clip", 2, 2.0,
          {"fraction": 0.7},
          0.05),
-        ("modify", "stack", 2.0,
+        ("modify", "stack", None, 2.0,
          {"transpos": -12.0, "count": 3, "lean": 1.0, "atk_offset": 0.0, "gain": 1.0, "dur": 1.0},
          0.05),
-        ("distort", "divide", 2.0,
+        ("distort", "divide", None, 2.0,
          {"divider": 2},
          0.05),
-        ("distort", "omit", 2.0,
+        ("distort", "omit", None, 2.0,
          {"omit": 2, "group": 5},
          0.05),
-        ("extend", "doublets", 2.0,
+        ("extend", "doublets", None, 2.0,
          {"segdur": 0.25, "repets": 3},
          0.05),
-        ("bounce", "bounce", 2.0,
+        ("bounce", "bounce", None, 2.0,
          {"count": 3, "startgap": 0.5, "shorten": 0.8, "endlevel": 0.5, "ewarp": 1.0},
          0.05),
-        ("specfnu", "specfnu", 2.0,
+        ("specfnu", "specfnu", 1, 2.0,
          {"narrow": 4.0},
          0.05),
-        ("stretch", "spectrum", 2.0,
+        ("stretch", "spectrum", 1, 2.0,
          {"frq_divide": 1000.0, "maxstretch": 2.0, "exponent": 1.0},
          0.05),
-        ("focus", "fold", 2.0,
+        ("focus", "fold", None, 2.0,
          {"lofrq": 500.0, "hifrq": 1000.0},
          0.05),
-        ("focus", "step", 2.0,
+        ("focus", "step", None, 2.0,
          {"timestep": 0.25},
          0.05),
-        ("blur", "spread", 2.0,
+        ("blur", "spread", None, 2.0,
          {"pbands": 8, "spread": 1.0},
          0.05),
-        ("blur", "suppress", 2.0,
+        ("blur", "suppress", None, 2.0,
          {"n": 10},
          0.05),
-        ("modify", "revecho", 2.0,
+        ("modify", "revecho", 2, 2.0,
          {"delay": 250.0, "mix": 0.5, "feedback": 0.5, "lfomod": 0.3,
           "lfofreq": 1.0, "lfophase": 0.0, "lfodelay": 0.0, "tail": 1.0},
          0.05),
-        ("distort", "average", 2.0,
+        ("distort", "average", None, 2.0,
          {"cyclecnt": 5}, 0.05),
-        ("distort", "fractal", 2.0,
+        ("distort", "fractal", None, 2.0,
          {"scaling": 4, "loudness": 1.0}, 0.05),
-        ("distort", "interpolate", 2.0,
+        ("distort", "interpolate", None, 2.0,
          {"multiplier": 3}, 0.05),
-        ("envel", "dovetail", 2.0,
+        ("envel", "dovetail", 1, 2.0,
          {"infadedur": 0.3, "outfadedur": 0.5, "intype": 1, "outtype": 1}, 0.05),
-        ("sfedit", "cut", 2.0,
+        ("sfedit", "cut", 1, 2.0,
          {"start": 0.5, "end": 1.5}, 0.05),
-        ("stretch", "time", 2.0,
+        ("stretch", "time", 1, 2.0,
          {"timestretch": 2.0}, 0.05),
-        ("strange", "glis", 2.0,
+        ("strange", "glis", 1, 2.0,
          {"pbands": 8, "glisrate": 2.0}, 0.05),
-        ("strange", "invert", 2.0,
+        ("strange", "invert", 1, 2.0,
          {}, 0.05),
-        ("hilite", "trace", 2.0,
+        ("hilite", "trace", 1, 2.0,
          {"n": 10}, 0.05),
-        ("spec", "magnify", 2.0,
+        ("spec", "magnify", None, 2.0,
          {"time": 0.5, "dur": 2.0}, 0.05),
-        ("focus", "accu", 2.0,
+        ("focus", "accu", None, 2.0,
          {"decay": 0.5, "glis": 0.5}, 0.05),
-        ("modify", "radical", 2.0, {}, 0.05),
-        ("modify", "speed", 2.0, {"semitones": -12.0}, 0.05),
-        ("distort", "multiply", 2.0, {"multiplier": 2}, 0.05),
-        ("distort", "repeat", 2.0, {"multiplier": 3}, 0.05),
-        ("extend", "scramble", 2.0,
+        ("modify", "radical", 1, 2.0, {}, 0.05),
+        ("modify", "speed", 2, 2.0, {"semitones": -12.0}, 0.05),
+        ("distort", "multiply", None, 2.0, {"multiplier": 2}, 0.05),
+        ("distort", "repeat", None, 2.0, {"multiplier": 3}, 0.05),
+        ("extend", "scramble", 1, 2.0,
          {"minseglen": 0.1, "maxseglen": 0.2, "outdur": 5.0}, 0.05),
-        ("filter", "lohi", 2.0,
+        ("filter", "lohi", 1, 2.0,
          {"attenuation": -60.0, "passband": 1000.0, "stopband": 4000.0}, 0.05),
-        ("blur", "avrg", 2.0, {"n": 9}, 0.05),
-        ("blur", "scatter", 2.0, {"keep": 8}, 0.05),
-        ("blur", "drunk", 2.0, {"range": 5, "starttime": 0.5, "duration": 1.5}, 0.05),
-        ("focus", "exag", 2.0, {"exaggeration": 2.0}, 0.05),
+        ("blur", "avrg", None, 2.0, {"n": 9}, 0.05),
+        ("blur", "scatter", None, 2.0, {"keep": 8}, 0.05),
+        ("blur", "drunk", None, 2.0, {"range": 5, "starttime": 0.5, "duration": 1.5}, 0.05),
+        ("focus", "exag", None, 2.0, {"exaggeration": 2.0}, 0.05),
+        # --- Phase 5 wave 3 (tranche 9: sibling submodes of already-curated
+        # pairs; rows from docs/curation/tranche9_submodes_findings.json) ---
+        ("scramble", "scramble", 9, 2.0,
+         {"seed": 5},
+         0.05),
+        ("filter", "bank", 5, 2.0,
+         {"q": 50.0, "gain": 5.0, "lof": 200.0, "hif": 4000.0,
+          "filtcnt": 8, "tail": 1.0},
+         0.05),
+        ("filter", "bank", 6, 2.0,
+         {"q": 50.0, "gain": 5.0, "lof": 200.0, "hif": 4000.0,
+          "interval": 3.0, "tail": 1.0},
+         0.05),
+        # (morph bridge 2/3 also excluded: 2-input entries, incompatible
+        # with the single-input duration fixture — same as sibling sm1;
+        # duration rules min(indur1 - offset, indur2) / min(indur1, indur2)
+        # verified via pvoc synth round-trips in the tranche9 findings.)
+        ("modify", "radical", 2, 2.0,
+         {"repeats": 3, "chunklen": 0.1},
+         0.05),
+        ("modify", "radical", 5, 2.0,
+         {"modfrq": 440.0},
+         0.05),
+        ("modify", "speed", 5, 2.0,
+         {"accel": 2.0, "goaltime": 1.0},
+         0.05),
+        ("envspeak", "envspeak", 2, 2.0,
+         {"wsize": 50.0, "splice": 15.0, "offset": 0},
+         0.05),
+        # synth wave 2/4: arity-0 generators — indur None means no input
+        # fixture is written and the model evaluates with no indurs
+        # (set_by dur).
+        ("synth", "wave", 2, None,
+         {"dur": 2.0, "frq": 440.0, "amp": 0.5},
+         0.05),
+        ("synth", "wave", 4, None,
+         {"dur": 2.0, "frq": 440.0, "amp": 0.5},
+         0.05),
+        ("specfnu", "specfnu", 2, 2.0,
+         {"squeeze": 4.0, "centre": 1},
+         0.05),
     ],
 )
 async def test_duration_model_matches_cdp(
-    cdp_env, program, mode, indur, params, rel_tol
+    cdp_env, program, mode, submode, indur, params, rel_tol
 ):
     """The curated duration_model, run through the real preflight
     evaluator, must predict CDP's actual output duration. Cross-checks
     the structured curated field against the binary — a wrong formula
     fails here rather than silently mispredicting at process() time."""
     env = cdp_env
-    _write_noise(env.session.inputs_dir / "in.wav", indur)
+    if indur is not None:
+        _write_noise(env.session.inputs_dir / "in.wav", indur)
 
-    entry = env.knowledge.get(program, mode)
-    predicted = _evaluate_duration_model(entry, params, [indur])
+    entry = env.knowledge.get(program, mode, submode)
+    indurs = [indur] if indur is not None else []
+    predicted = _evaluate_duration_model(entry, params, indurs)
     assert predicted is not None
 
-    r = await _run(env, program=program, mode=mode, input_name="in.wav", params=params)
+    r = await _run(
+        env, program=program, mode=mode, submode=submode,
+        input_name="in.wav" if indur is not None else None, params=params,
+    )
     assert r["status"] == "ok", r["errors"]
     actual = await _measured_duration(env, r["output"])
 
     assert actual == pytest.approx(predicted, rel=rel_tol), (
-        f"{program} {mode} {params}: duration_model predicted {predicted:.3f}s "
+        f"{program} {mode} sm{submode} {params}: "
+        f"duration_model predicted {predicted:.3f}s "
         f"but CDP produced {actual:.3f}s (rel_tol={rel_tol}). The curated "
         f"duration_model may have drifted from CDP behavior."
     )

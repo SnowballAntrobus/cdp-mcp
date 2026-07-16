@@ -48,6 +48,20 @@ hermetic / 1276 real-CDP (chunked halves in-sandbox).
    quirk, silend.
    Target after wave 2: ~75 entries, all known Phase 6 blockers cleared.
 
+## Phase 5 wave 3 — DONE (tranche 9, commit 634864e + integration)
+
+12 second/third-submode entries on the (program, mode, submode) keying
+(728b986): scramble sm9, filter bank 5/6, morph bridge 2/3, modify
+radical 2/5, modify speed 5, envspeak 2, synth wave 2/4, specfnu 2 —
+**90 curated / 272 total**, zero drops. Integration folded the findings
+into the pinned tables (breakpoint matrix + duration rows now keyed by
+triple; loader counts 90/272; pair-shaped lookups that went ambiguous —
+synth wave, filter bank — fixed with explicit submodes). Headline finds:
+filter bank 5 is GEOMETRIC spacing (not "equal Hz" per SoundThread);
+bank vintage hang covers modes 4–6; morph bridge per-mode duration rules
+diverge from sm1. Suite: 1301 hermetic / 1383 real-CDP (chunked halves
+in-sandbox), ruff clean.
+
 ## Phase 5 remainder (THE CURRENT NEXT STEP)
 
 - Generalization test matrix (clarinet-ish / field-recording / synth
@@ -56,6 +70,11 @@ hermetic / 1276 real-CDP (chunked halves in-sandbox).
 - Examples library (`cdp://examples/*`, sourced from saved graphs).
 - Phase 5 handoff + README status bump (README currently says Phase 4 /
   31 tools / 43 entries — the 43 is stale, rest accurate).
+- AFTER Phase 5 close-out (user-queued 2026-07-15): promote the wave-2
+  bug finds — newdelay feedback ±1 hang, submix mix overload WRAP,
+  quirk unipolar zero-frame silent success — from the tranche 7/8
+  transcripts into `docs/forensics.md`'s P5 section (P5-1 filter bank
+  is already there).
 
 ## Phase 6 (preliminary design committed, reevaluate after Phase 5)
 
