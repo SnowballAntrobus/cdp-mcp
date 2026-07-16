@@ -1,0 +1,152 @@
+{
+  "program": "spectune",
+  "mode": "tune",
+  "submode": 1,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "AUTO-TUNE TO THE TEMPERED SCALE: finds the most prominent pitch in the analysis file, then transposes the WHOLE file so that pitch lands on the nearest tempered pitch (verified: a 228 Hz harmonic tone reported 'INFO: Transposing from MIDI 57.62 to 58.000000 : by ratio 1.022113' and rendered accordingly). Duration static (verified 2.0230 -> 2.0230); deterministic. The pitch search is tunable via optional flags (match/lop/hip/stim/etim/intune/wins/nois and the -r/-b switches); -f transposes without preserving the formant envelope (verified output-changing). Siblings sharing the argv: mode 2/3 tune to the nearest pitch in a tuning file (mode 3 admits octave equivalents), mode 5 tunes spectral peaks to a pedal pitch, mode 6 reports median pitch per segment; mode 4 is INFO-ONLY - it takes NO outfile argv (an extra name refuses 'Unknown parameter') and just prints 'INFO: <midi>' to stdout, so it is engine-incompatible (use execute() for the bare report).",
+  "musical_use": "Snap a wayward source onto the grid without changing its length or (by default) its formant colour: the whole spectrum is shifted by one global ratio, so intervals inside the sound are preserved - this is a tuner, not a quantiser of internal pitch movement. Run it on instrument samples before building chords or textures from them, or on found sounds so they sit in tune with composed material. The INFO line on stdout ('Transposing from MIDI x to y : by ratio r') doubles as a free pitch report - the ratio tells you exactly how far off the source was. The search window flags matter on real material: stim/etim confine the search to a stable region (skip a noisy attack), nois ignores windows too far below the loudest, -b smooths pitch blips first, and -r ignores loudness when voting for the prominent pitch. On unpitched material the tracker will still 'find' something and transpose by it (verified on noise) - garbage in, garbage out; check the INFO line.",
+  "parameters": {
+    "match": {
+      "type": "int",
+      "min": 1.0,
+      "max": 8.0,
+      "breakpoint_capable": false,
+      "default": 5,
+      "flag": "-m",
+      "flag_kind": "attached_value",
+      "description": "Number of partials that must lie on a harmonic series to affirm a pitch (CDP-enforced 1-8, refusal '-m0' verbatim '(1.000000 to 8.000000)'; banner default 5)."
+    },
+    "lop": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "MIDI",
+      "breakpoint_capable": false,
+      "default": 4.0,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Minimum (MIDI) pitch to accept (banner default 4 ~= 10 Hz)."
+    },
+    "hip": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "MIDI",
+      "breakpoint_capable": false,
+      "default": 127.0,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Maximum (MIDI) pitch to accept (banner default 127)."
+    },
+    "stim": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Time in the file where the pitch search begins (banner default 0)."
+    },
+    "etim": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Time in the file where the pitch search ends (banner default: end of file)."
+    },
+    "intune": {
+      "type": "float",
+      "min": 0.0,
+      "max": 6.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-i",
+      "flag_kind": "attached_value",
+      "description": "How closely tuned harmonics must be, in semitones (CDP-enforced 0-6, refusal '-i13' verbatim '(0.000000 to 6.000000)'; banner default 1)."
+    },
+    "wins": {
+      "type": "int",
+      "min": null,
+      "max": null,
+      "breakpoint_capable": false,
+      "default": 2,
+      "flag": "-w",
+      "flag_kind": "attached_value",
+      "description": "Minimum consecutive pitched windows to confirm a pitch (banner default 2)."
+    },
+    "nois": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "dB",
+      "breakpoint_capable": false,
+      "default": 80.0,
+      "flag": "-n",
+      "flag_kind": "attached_value",
+      "description": "Signal-to-noise ratio: windows more than this many dB below the loudest are ignored (banner default 80). Breakpoint refused on this slot ('Cannot read parameter 8 ... brkpnt_files not permitted.') - the flag params are scalar-only."
+    },
+    "loudness_blind": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-r",
+      "flag_kind": "no_value",
+      "description": "Ignore relative loudness of pitched windows when assessing the most prominent pitch."
+    },
+    "smooth_first": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "no_value",
+      "description": "Smooth the pitch data and eliminate blips before searching for the most prominent pitch."
+    },
+    "ignore_formants": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-f",
+      "flag_kind": "no_value",
+      "description": "Ignore (do not preserve) the formant envelope when transposing (verified accepted, output differs from the formant-preserving default)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Snap a slightly sharp source to the tempered grid.",
+      "params": {},
+      "expected_use": "Defaults find the prominent pitch and transpose the whole file to the nearest tempered pitch; check the stdout INFO line for the detected pitch and ratio."
+    },
+    {
+      "description": "Tune from the sustained body only, ignoring a noisy attack.",
+      "params": {"stim": 0.3, "nois": 40.0},
+      "expected_use": "Pitch search confined past 0.3 s and to windows within 40 dB of the loudest."
+    }
+  ],
+  "known_issues": [
+    "MODE 4 IS INFO-ONLY: no outfile argv (a supplied name refuses 'Unknown parameter ...'); it prints 'INFO: <midi>' to stdout - engine-incompatible, use execute() for the bare pitch report. This entry's mode-1 INFO transposition line gives the same information for free anyway.",
+    "Unpitched material is still 'tuned': the tracker found MIDI 97.5 in flat noise and transposed by it (verified) - no refusal on unpitched input; sanity-check the INFO line.",
+    "Modes 2/3 (tuning-file), 5 (pedal-pitch + peakcnt 1-128) and 6 (segment report) share this argv family and remain uncurated siblings.",
+    "Optional-flag params are scalar-only (brk refused on the probed slot, 'Cannot read parameter 8'); ranges beyond -m/-i are banner values, not refusal-probed.",
+    "Duration static; deterministic (byte-identical data chunks). Progress spam and 'WARNING: failed to write PEAK data' harmless.",
+    "Bool switches are execute()-side until the engine accepts bool params."
+  ],
+  "references": ["cdp://docs/html/cspectune"]
+}

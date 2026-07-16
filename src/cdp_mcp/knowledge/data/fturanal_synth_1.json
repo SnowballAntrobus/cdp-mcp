@@ -1,0 +1,60 @@
+{
+  "program": "fturanal",
+  "mode": "synth",
+  "submode": 1,
+  "category": "edit",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "FEATURE-ORDERED REASSEMBLY (synthesis half): cuts the MONO source wav at the segment times listed in an fturanal anal featurefile and splices the segments back in order of the measured features - mode 1 = ascending 1st formant (modes 2-7 and 9-10: descending F1, F2 up/down, F3 up/down, brightness up, formant-sum up/down; the banner's mode list omits 8 but mode 8 is ACCEPTED and runs - presumably descending brightness). Duration approximately static: splice overlaps shave a little (2.0 s source, 5 segments, default 5 ms splices -> 1.9800 s, -1.0%). Deterministic; output verified audible (-11.3 dBFS). Featurefile times at or beyond the wav's end are ignored with 'WARNING: Times at or beyond end of sndfile (...) ... Ignoring them.' (verified - the .ana-derived duration row exceeds the wav length by one analysis window, so this warning is NORMAL on every straight anal->synth chain).",
+  "musical_use": "A remix whose sorting key is timbre: the phrase's own events are re-strung from dark to bright (or by vowel colour, choosing a formant mode) instead of in time order - speech becomes a vowel-sorted incantation, a drum phrase becomes a rising sizzle, a melodic phrase reorders into a spectral crescendo. The featurefile is plain text and the synth only trusts its TIMES row for cutting (features determine order), so you can also hand-edit the feature rows to force an arbitrary segment order - a general cut-and-resequence engine driven by a text file. Splicelen trades click-safety against transient sharpness (2-15 ms). Pair: analyse once with fturanal anal, then render several synth modes from the same featurefile for a family of orderings of the same material.",
+  "parameters": {
+    "featurefile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED feature datafile from fturanal anal run on THIS wav's analysis (5 rows: times+duration, F1, F2, F3, brightness). Times beyond the wav's end are ignored with a WARNING (normal for .ana-derived times). Reference its session path."
+    },
+    "splicelen": {
+      "type": "float",
+      "min": 2.0,
+      "max": 15.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 5.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Splice length for cutting segments (CDP-enforced 2-15 ms, refusal '-s20' verbatim '(2.000000 to 15.000000)'; banner default 5)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Re-string a phrase by rising first formant.",
+      "params": {"featurefile": "phrase_ftr.txt"},
+      "expected_use": "Segments splice back in ascending-F1 order; duration ~= source minus splice losses."
+    },
+    {
+      "description": "Softer joins for sustained material.",
+      "params": {"featurefile": "phrase_ftr.txt", "splicelen": 12.0},
+      "expected_use": "Longer crossfades between reordered segments."
+    }
+  ],
+  "known_issues": [
+    "Duration is static within ~1% (splice overlaps shave a few ms per join: 5 segments/5 ms -> -1.0% on 2 s); more segments or longer splices shave more - the model is 'static' with that safe drift.",
+    "BANNER GAP: the mode list documents 1-7 and 9-10 but skips 8; the usage line says '1-10' and mode 8 IS accepted and runs (presumably descending brightness). Mode 11 refused 'Program mode value [11] is out of range [1 - 10].'",
+    "'WARNING: Times at or beyond end of sndfile ... Ignoring them.' appears on normal chains (analysis-derived times overshoot the wav by one window) - not an error.",
+    "MONO source only (banner: 'reassemble MONO source file').",
+    "The featurefile must describe THIS sound's timeline - foreign feature files cut at meaningless times (garbage-in reordering, no refusal).",
+    "Deterministic (byte-identical decoded samples run to run)."
+  ],
+  "references": ["cdp://docs/html/cfturanal"]
+}

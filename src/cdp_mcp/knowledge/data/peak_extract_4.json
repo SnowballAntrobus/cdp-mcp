@@ -1,0 +1,134 @@
+{
+  "program": "peak",
+  "mode": "extract",
+  "submode": 4,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "SPECTRAL PEAK STREAMS, mode 4 (time-invariant summary): parses the whole analysis file, finds the most-visited semitone regions (the prominent pitch-streams), then writes each stream's AVERAGE pitch and relative amplitude to a text DATA file - one 'frq<TAB>amp' line per stream, amps normalised to the loudest = 1.0 (verified on a 220 Hz harmonic tone: 6 streams, '223.48 0.105 / 893.31 0.228 / ... / 2225.33 1.000'). With -f the same data is written as a 2-line filter varibank file (times 0 and 1000, verified), with -m as MIDI values - so the output feeds filter varibank/userbank directly. Modes 1-3 share the argv (1 = per-window time-varying peak list, 2/3 = time-varying pitch-stream assignment); mode 4 pinned as the always-small, always-non-empty summary. Deterministic. The duration_model 'static' is a schema placeholder - data outputs skip the audio pre-flight.",
+  "musical_use": "Distil a sound's resonant identity into a handful of numbers: the average pitch-streams ARE the sound's stable partials/formant positions, ready to seed a filter bank (write the -f varibank form and hand it to filter varibank; or the plain form to filter userbank) so any other material can be filtered through THIS sound's resonances. winsiz is the semitone granularity of the peak search; peak sets how much louder than the window's median a channel must be to count (raise it to keep only true peaks); floor discards everything below a fraction of the file's maximum; lo/hi confine the search band. -h with a tune value discards peaks that are harmonics of stronger peaks (keep only fundamentals of parallel streams); -q quantises the reported pitches to quarter-tones and -m converts to MIDI for pitch-data workflows. For evolving sounds where streams move, use sibling modes 1-3 via execute() - mode 4 deliberately averages that motion away.",
+  "parameters": {
+    "winsiz": {
+      "type": "float",
+      "min": 1.0,
+      "max": 96.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [2.0, 12.0],
+      "description": "Semitone width of the window used to search for peaks (CDP-enforced 1-96, refusals at 0/97 verbatim). Breakpoint refused ('Cannot read parameter 1 ... brkpnt_files not permitted.')."
+    },
+    "peak": {
+      "type": "float",
+      "min": 1.0,
+      "max": 1000.0,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [3.0, 20.0],
+      "description": "A channel must be this many times louder than the median of all channels in the window to count as a peak (CDP-enforced 1-1000, refusal verbatim)."
+    },
+    "floor": {
+      "type": "float",
+      "min": 0.0001,
+      "max": 1.0,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Peaks must exceed floor * (max channel amp found anywhere in the file) to be retained (CDP-enforced 0.0001-1, refusal verbatim '(0.000100 to 1.000000)')."
+    },
+    "lo": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Minimum frequency to accept as a peak (CDP-enforced analysis-channel-width to nyquist - refusal verbatim '(43.066406 to 22050.000000)' at pvoc anal 1 defaults; input-dependent)."
+    },
+    "hi": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Maximum frequency to accept as a peak (same input-dependent bounds as lo)."
+    },
+    "tune": {
+      "type": "float",
+      "min": 0.0,
+      "max": 6.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "If non-zero, any peak that is a harmonic of another peak (within 'tune' semitones) is discarded; 0 retains all peaks (banner range 0-6). Verified accepted."
+    },
+    "lose_amps": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-a",
+      "flag_kind": "no_value",
+      "description": "Discard the amplitude information (frequency column only; with -f, all varibank amps become 1.0)."
+    },
+    "as_midi": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-m",
+      "flag_kind": "no_value",
+      "description": "Output frequencies as MIDI values (verified: '57.27 0.105 / 81.26 0.228 / ...')."
+    },
+    "quantise": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-q",
+      "flag_kind": "no_value",
+      "description": "Quantise reported frequencies to the tempered scale, in quarter-tones."
+    },
+    "varibank": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-f",
+      "flag_kind": "no_value",
+      "description": "Write in filter varibank format (verified: two identical 'time frq amp frq amp ...' rows at times 0 and 1000) - directly consumable by filter varibank. Cancels -z."
+    }
+  },
+  "examples": [
+    {
+      "description": "Harvest a sound's average resonance table.",
+      "params": {"winsiz": 3.0, "peak": 5.0, "floor": 0.001, "lo": 50.0, "hi": 4000.0},
+      "expected_use": "Output .txt: one 'frq amp' line per prominent stream, loudest = 1.0. Feed to filter userbank."
+    },
+    {
+      "description": "Straight to a varibank filter definition.",
+      "params": {"winsiz": 3.0, "peak": 5.0, "floor": 0.001, "lo": 50.0, "hi": 4000.0, "varibank": true},
+      "expected_use": "Two-row varibank file; hand it to filter varibank to filter other material through this sound's resonances."
+    }
+  ],
+  "known_issues": [
+    "DATA OUTPUT (.txt): 'frq<TAB>amp' per stream (or MIDI with -m; 2-row varibank with -f) - filter-bank food, not audio. Duration pre-flight skipped; duration_row null in the findings (no audio duration).",
+    "Reserved audio extensions refused for the output ('ERROR: Cannot open a textfile (pko.wav) with a reserved extension.' verbatim) - the engine names data outputs .txt, which CDP accepts.",
+    "lo/hi bounds are input-dependent (analysis channel width to nyquist).",
+    "Mode 4 assumes a relatively constant spectrum (banner) - it averages stream motion away; time-varying stream data lives in sibling modes 1-3 (mode 1's per-window peak counts vary; 2/3 stream them).",
+    "Deterministic (byte-identical text run to run). Bool switches are execute()-side until the engine accepts bools."
+  ],
+  "references": ["cdp://docs/html/cpeak"]
+}

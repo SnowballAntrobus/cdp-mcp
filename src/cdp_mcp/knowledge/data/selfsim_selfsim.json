@@ -1,0 +1,49 @@
+{
+  "program": "selfsim",
+  "mode": "selfsim",
+  "submode": null,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "INCREASE SPECTRAL SELF-SIMILARITY: replaces spectral windows with the most similar, LOUDER window(s) of the same file. With index 1, the loudest window replaces the single window most similar to it (loudness-scaled), the next-loudest replaces the window most similar to IT, and so on; index N lets each replacing window take over its N most-similar windows - and replacement chains (if A replaces B, windows most similar to B are also replaced by A), so higher indices rapidly homogenise the file toward its loudest moments. Duration static (verified 2.0230 -> 2.0230, 3.0215 -> 3.0215 via pvoc synth round-trips, two input lengths plus a vowel source). Deterministic. Single parameter, scalar-only.",
+  "musical_use": "A spectral 'freeze-by-vote': the sound's own loudest, most characteristic moments colonise the windows that already resemble them, so quiet, transitional or noisy material is progressively replaced by the strong material it is closest to. Low indices (1-3) subtly firm up a wavering sound - transitions snap toward the nearest strong timbre. High indices turn an evolving source into a quasi-static texture built from a handful of its loudest windows - a self-referential freeze that, unlike focus freeze/hold, never imports anything foreign and never extends the file. Interesting on speech (vowels colonise the consonants) and on decaying sounds (the attack recaptures the tail). The ceiling of the index is the file's own window count, so short files saturate quickly.",
+  "parameters": {
+    "selfsim": {
+      "type": "int",
+      "min": 1.0,
+      "max": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [1.0, 20.0],
+      "description": "Self-similarity index: how many most-similar windows each louder window replaces (CDP-enforced 1 to the input's analysis-window count - refusal on a ~2 s file verbatim '(1.000000 to 697.000000)', input-dependent ceiling). Breakpoint refused ('Cannot read parameter 1 ... brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Gentle firming-up of a wavering source.",
+      "params": {"selfsim": 2},
+      "expected_use": "Each strong window takes over its two nearest relatives; the sound's character sharpens without obvious repetition."
+    },
+    {
+      "description": "Colonise the file with its loudest timbres.",
+      "params": {"selfsim": 40},
+      "expected_use": "Large index on a 2 s file: most windows are replaced by a few loud ones - a static, self-derived texture."
+    }
+  ],
+  "known_issues": [
+    "The parameter ceiling is the input's window count (input-dependent; 697 on the ~2 s probe at pvoc anal 1 defaults) - values above it refuse with the range error rather than clamping.",
+    "Duration static and deterministic (byte-identical data chunks run to run; compare data chunks, not raw bytes - the .ana DATE stamp differs).",
+    "Wav input refused ('File ... is not of correct type') - the engine auto-PVOCs wav inputs."
+  ],
+  "references": ["cdp://docs/html/cselfsim"]
+}

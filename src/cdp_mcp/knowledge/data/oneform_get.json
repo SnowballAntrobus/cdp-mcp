@@ -1,0 +1,54 @@
+{
+  "program": "oneform",
+  "mode": "get",
+  "submode": null,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": ".for",
+  "output_format": ".for",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "EXTRACT A SINGLE-MOMENT FORMANT: pulls the formant envelope at one chosen time out of an existing formant data file (the .for output of curated formants get) and writes it as a 'single-moment-formants' binary datafile - the input format of oneform put (impose that instant's spectral colour on any analysis file) and oneform combine. Arity-0 entry: the formant file is the pre-output aux parameter, the time is the only other argv slot. EXTENSION LANDMINE (verified): CDP keeps a '.for'-named output as-is, but any unrecognised extension (or none) gets '.wav' APPENDED - 'out.txt' becomes 'out.txt.wav', a pseudo-wav RIFF container that would poison audio consumers; the engine's declared .for output naming avoids this. time is runtime-enforced 0 to the formant file's duration (refusal verbatim '(0.000000 to 2.025941)' on a ~2 s file). Deterministic up to the embedded DATE stamp (data chunks byte-identical run to run; raw files differ only in the header date).",
+  "musical_use": "The freeze-frame of the formant workflow: a sound's spectral colouration changes moment to moment (that is what vowels ARE), and this captures exactly one instant of it - the 'ey' of a spoken phrase, the bite of a bow attack - as a reusable object. The chain is: analyse (auto-PVOC or specanal), formants get -> .for, oneform get at your chosen time -> single-moment formant, then oneform put to stamp that colour onto any other analysis file, giving a static vowel-mask or resonance-print of one instant. Choose the time where the formant structure is clear and stable (mid-vowel, mid-sustain) - a time in silence or transition yields a junk envelope and buzzy puts; synthetic tones without formant structure yield junk everywhere (the manual is blunt about this). Extract several instants from one voice ('ah', 'ee', 'oo') and you have a vowel palette to impose on drones, noise or instruments downstream.",
+  "parameters": {
+    "formantfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "The source formant data file (.for), normally produced by a curated formants get run - reference its session path. Renders in the argv BEFORE the output slot. Note formants get itself requires its -f or -p flag ('Insufficient parameters' without one)."
+    },
+    "time": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time in the formant file at which the single-moment formant is extracted (runtime-enforced 0 to the file's duration - refusals at 5 and -1 verbatim '(0.000000 to 2.025941)' on a ~2 s file). Pick a moment with clear, stable formant structure."
+    }
+  },
+  "examples": [
+    {
+      "description": "Capture a vowel's colour one second into a phrase.",
+      "params": {"formantfile": "voice.for", "time": 1.0},
+      "expected_use": "Output: single-moment-formants .for datafile - the 1f-infile slot of oneform put."
+    }
+  ],
+  "known_issues": [
+    "DATA OUTPUT (binary single-moment-formants file in a RIFF container, declared .for): not audio, not a full formant file - its only consumers are oneform put and oneform combine. Duration pre-flight skipped; duration_row null in the findings.",
+    "EXTENSION TRAP (verified): output names without a recognised extension get '.wav' appended by CDP ('v1fb' -> 'v1fb.wav', 'x.txt' -> 'x.txt.wav') - a pseudo-wav that passes casual audio checks; '.for' names are kept verbatim, so the engine's .for naming is load-bearing.",
+    "Arity-0 entry (the formant file rides the pre-output aux slot): call process() with no input argument; provenance is the aux path in params.",
+    "The upstream formants get is curated separately; oneform combine (pitchfile + 1f -> ana) additionally needs a binary pitchfile from the not-yet-curated repitch layer (tranche 22) and stays uncurated for now.",
+    "Deterministic: repeat runs differ ONLY in the embedded DATE stamp (data chunks byte-identical) - compare data chunks, not raw bytes."
+  ],
+  "references": ["cdp://docs/html/coneform"]
+}

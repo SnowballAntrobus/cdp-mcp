@@ -1,0 +1,53 @@
+{
+  "program": "fturanal",
+  "mode": "anal",
+  "submode": 1,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".txt",
+  "stability": "unstable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "AUTOMATIC FEATURE EXTRACTION (analysis half): given a marklist of segment times (Heads and Tails - e.g. consonant onsets and vowel continuations, first mark assumed a Head), extracts per-segment spectral features from the analysis file and writes a 5-line text DATA file: (1) segment start-times plus the source duration, then the per-segment (2) median 1st-formant, (3) 2nd-formant, (4) 3rd-formant frequencies and (5) spectral brightness 0-1 (verified format: '0.000000 0.300000 ... 2.025941 / 257.89... / 630.64... / 1261.28... / 0.0389...'). Mode 1 cuts Tails to segments approximately Head-sized; MODES 2 AND 3 SEGFAULT ON THIS BUILD (exit 139, zero-byte outputs, multiple sources/marklists probed) - only mode 1 is usable, hence stability 'unstable'/version_sensitive. The feature file is the exact input of fturanal synth (reassemble the SOURCE WAV in feature order). -r (0-1) randomises Tail-segment timing but is deterministic on this build (two -r0.5 runs byte-identical - no live seed) and was a byte-identical no-op against the base on the probe. Deterministic.",
+  "musical_use": "The listening half of a segment-intelligence pair: mark up a sound's event boundaries (peakfind's output or hand-written times via write_data_file) and this measures each segment's formant identity and brightness, so fturanal synth can then RE-ORDER THE ACTUAL SOUND by those measurements - ascending 1st formant, descending brightness, and so on: a data-driven remix where the sorting key is timbre, not position. Speech is the designed target (Heads = consonants, Tails = vowels; the reassembly orders by vowel colour), but any material with marked events works - drum phrases sort by brightness into rising sizzle, instrumental phrases sort by formant into vowel-like sweeps. The feature file is plain text: read the formant rows to LEARN about the source, or edit them before synthesis - the synth only trusts the times, so the analysis is also simply a compact per-segment formant/brightness report.",
+  "parameters": {
+    "marklist": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text file of time marks in the source (one ascending time per line, seconds), marking paired Heads and Tails; the first mark is assumed a Head. Write with write_data_file() or harvest with peakfind. Probe file '0.0/0.3/0.8/1.2/1.6' verified."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Randomise timing of Tail segments (CDP-enforced 0-1, refusal '-r2' verbatim '(0.000000 to 1.000000)'). DETERMINISTIC on this build (repeat -r0.5 runs byte-identical; also a no-op against the base on the probe material) - do not rely on it for variants."
+    }
+  },
+  "examples": [
+    {
+      "description": "Measure a marked-up phrase for feature-ordered reassembly.",
+      "params": {"marklist": "marks.txt"},
+      "expected_use": "Output .txt: start-times row + F1/F2/F3/brightness rows per segment. Feed as fturanal synth's featurefile against the SOURCE WAV."
+    }
+  ],
+  "known_issues": [
+    "MODES 2 AND 3 SEGFAULT on this build (exit 139, zero-byte output; reproduced across two sources and two marklists) - mode 1 is the only working anal mode. Entry marked unstable/version_sensitive for that reason; mode 1 itself probed clean repeatedly.",
+    "DATA OUTPUT (.txt): 5 rows (times+duration, F1, F2, F3, brightness) - the exact featurefile format of fturanal synth. Duration pre-flight skipped; duration_row null in the findings.",
+    "The feature file is bound to its source: fturanal synth cuts the SOURCE WAV at these times (times at/beyond the wav's end are ignored with a WARNING).",
+    "-r is accepted and range-enforced but produced byte-identical output to the base AND across repeat runs (no live seed) on the probes.",
+    "Deterministic (byte-identical text run to run)."
+  ],
+  "references": ["cdp://docs/html/cfturanal"]
+}

@@ -1,0 +1,73 @@
+{
+  "program": "superaccu",
+  "mode": "superaccu",
+  "submode": 1,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + 14.5 / (10000 * (1 - decay**0.0001))"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "The extended FOCUS ACCU: each spectral band SUSTAINS until louder data appears in that band (per-channel max-hold accumulator), with per-second decay and glissando of the held material - and, unlike focus accu (static duration), the accumulator RINGS PAST THE END of the input, appending a resonant tail until the held spectrum decays to (float-)zero. DEFAULT DIVERGENCE (first-class, source-verified): the banner claims decay 'Default 1.0 (no attenuation)', but superaccu.c sets default_val[SUPACDECAY] = 0.01 - and the enforced range is 0.00001-0.9, so 'no attenuation' is not even legal; flag-less runs equal -d0.01 (verified: identical durations). Tail model (calibrated on ~0.8-peak sources): tail ~= 14.5/-ln(decay) seconds - measured outputs 2.023 s -> 4.83 (default), 7.68 (-d0.1), 12.89 (-d0.3), 20.97 (-d0.5); indur-independent (3.02 s -> same tail). The tail ends at an ABSOLUTE level threshold, so it is content-dependent: flat noise rang ~20% longer than the tone at the same decay (6.90 s vs 5.66 s at -d0.1) - the duration expression is a staging estimate, not sample-exact. decay and glis both accept breakpoint files (verified live); mode 2 forces resonance starts to the tempered scale, modes 3/4 to a tuning file. Deterministic.",
+  "musical_use": "Turns any evolving sound into its own reverberant resonator: every band holds its loudest recent value, so the spectrum only ever accretes until decay lets it fall - speech becomes a swelling organ of its own vowels (the manual quotes a 6 s speech file ringing for 78 s at decay 0.88... on this build decay caps at 0.9 and the tail is level-dependent). decay IS the reverb-time dial: 0.01 gives a discreet ~3 s halo, 0.3-0.5 tails of ten to twenty seconds, 0.9 minutes-long drones - budget disk space before pushing it high, and remember a decay BREAKPOINT rising late in the file can stretch the tail far beyond the scalar prediction (verified: a 0.5->0.8 ramp gave a 61.7 s output from 2 s). glis makes the held material slide (octaves/sec, negative = downward) - shimmering Risset-like drift on sustained sources; add -r to let glissing bands migrate to their proper channels (only meaningful while glissing; a no-op otherwise). Follow with stretch time for the classic slow-motion resonance wash, or spectune/tunevary to pitch the accumulated field. Mode 2 (tempered) is the celebrated one for speech; this entry pins mode 1, the free version.",
+  "parameters": {
+    "decay": {
+      "type": "float",
+      "min": 0.00001,
+      "max": 0.9,
+      "breakpoint_capable": true,
+      "default": 0.01,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "musical_range": [0.01, 0.7],
+      "description": "Sustained channel data attenuates by this factor per second (CDP-enforced 0.00001-0.9, refusals at 0 and 0.95 verbatim '(0.000010 to 0.900000)'). DEFAULT IS 0.01 (source), not the banner's impossible '1.0'. Directly sets the resonant-tail length (~14.5/-ln(decay) s). BREAKPOINT-CAPABLE (verified: out-of-range values inside a brkfile are range-checked 'in brkpntfile ...', and a valid 0.5->0.8 ramp ran, output 61.7 s); the envelope keeps being read through the tail, holding its last value."
+    },
+    "glis": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "octaves/sec",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "musical_range": [-4.0, 4.0],
+      "description": "Held channel data glisses at this many octaves per second (banner 'Approx Range: -11.7 to 11.7'; source bound is MAXGLISRATE/frametime - analysis-rate-dependent, and -g12 was accepted on the probe file). Changes content, not duration (verified). Breakpoint-capable (verified: brk render differs from scalar)."
+    },
+    "reassign": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-r",
+      "flag_kind": "no_value",
+      "description": "Reassign glissing pitches to the appropriate channels once they leave their own (source: active only while glissing AND only when a better channel is quieter). Accepted; byte-identical no-op on the probe source even with -g2 - effect is source-dependent. Bool switch: execute()-side until the engine accepts bools."
+    }
+  },
+  "examples": [
+    {
+      "description": "Discreet self-resonance halo (defaults).",
+      "params": {},
+      "expected_use": "Per-band sustain with the default 0.01/s decay; ~2.8 s resonant tail appended after the input ends."
+    },
+    {
+      "description": "Long ringing accumulation with downward drift.",
+      "params": {"decay": 0.5, "glis": -0.5},
+      "expected_use": "Held spectrum sinks half an octave per second while ringing ~19 s past the input - budget the file size."
+    }
+  ],
+  "known_issues": [
+    "BANNER DIVERGENCE (first-class): decay's documented default '1.0 (no attenuation)' is outside the enforced range (0.00001-0.9); the real source default is 0.01 (flag-less == -d0.01, duration-verified). There is no 'no attenuation' setting.",
+    "DURATION EXTENDS past the input: outdur = indur + resonant tail, tail ~= 14.5/-ln(decay) s (probes: decay 0.01/0.1/0.3/0.5 -> tails 2.80/5.66/10.87/18.95 s on a tone; indur-independent). The tail ends at an ABSOLUTE amplitude threshold, so it is CONTENT-DEPENDENT: broadband/louder material rings longer (flat noise: 3.40/6.90 s at 0.01/0.1 - ~20% over the model). Treat the pre-flight as a +/-20% staging estimate, and expect far longer outputs when a decay breakpoint rises above its starting value (0.5->0.8 ramp -> 61.7 s from 2 s).",
+    "Contrast focus accu (curated): same sustain idea, but STATIC duration - choose superaccu when you want the ring-out, focus accu when you want the length preserved.",
+    "Siblings: mode 2 = resonance starts forced to the tempered scale (verified running, distinct output); modes 3/4 take a tuning file that - despite the banner calling it 'a set of frequencies' - is parsed as MIDI pitch values (verbatim refusal for 220: 'Pitch out of range (10.000000 - 14700.000000)... file tun1.txt'; MIDI-valued files run). Divergence recorded for their future curation.",
+    "-r verified a byte-identical no-op unless material is actually glissing into other channels - source-dependent, not a bug.",
+    "Deterministic (byte-identical data chunks 1.2 s apart). 'WARNING: failed to write PEAK data' family warning harmless."
+  ],
+  "references": ["cdp://docs/html/csuperaccu"]
+}

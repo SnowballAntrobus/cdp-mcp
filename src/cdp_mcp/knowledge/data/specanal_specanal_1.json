@@ -1,0 +1,61 @@
+{
+  "program": "specanal",
+  "mode": "specanal",
+  "submode": 1,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "PARAMETERIZED PVOC ANALYSIS: mode 1 performs a PVOC analysis of a mono soundfile with explicit control of the channel count and window overlap, writing a standard .ana file - the knob-equipped alternative to the engine's fixed-default auto-PVOC. Duration static (2.0 s wav -> 2.0027 s round-trip at 1024/3; 3.0 -> 3.0012; the exact figure shifts slightly with chs/ovlp: 1024/1 -> 2.0085). RANGE DIVERGENCE: the banner demands 'a multiple of 4 (4 - 32768)' for chs, but the binary enforces 2-32768 (refusal verbatim '(2.000000 to 32768.000000)') and accepts non-multiples like 5 (verified: runs and resynthesises). Deterministic; mono only ('must be mono' verbatim); .ana input refused. Siblings pinned: modes 2-6 write one textfile PER ANALYSIS WINDOW (verified: 690 files from a 2 s source - Sound Loom 'movie' data, engine-incompatible multi-output); mode 9 SEGFAULTS on this build; modes 7 (semitone-bin level list, 127 lines), 8 (harmonic-field varibank/MIDI) and 10 (time-varying HF varibank) write single textfiles usable via execute().",
+  "musical_use": "Reach for this instead of the automatic conversion when the analysis itself is the creative decision: channel count trades frequency against time resolution (big chs = fine pitch discrimination, smeared transients; small chs = crisp attacks, coarse pitch), and overlap sets how densely windows tile. Bass-heavy or microtonally dense material wants 2048-8192 channels before spectral processing; percussive material keeps its snap near 512-1024 with overlap 4. Because every downstream spectral program inherits the analysis grid, resolution chosen here IS the resolution of any blur/morph/stretch that follows - but note CDP's multi-input spectral programs refuse mixed analysis parameters, so make BOTH sides of a morph with the same chs/ovlp. The engine's auto-PVOC equivalents remain the compatible default; use this entry when deviating from it deliberately, then feed the .ana onward as usual.",
+  "parameters": {
+    "chs": {
+      "type": "int",
+      "min": 2.0,
+      "max": 32768.0,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [512.0, 8192.0],
+      "description": "Number of analysis points/channels (CDP-enforced 2-32768, refusal at 40000 verbatim; the banner's 'multiple of 4 (4 - 32768)' is NOT enforced - 5 and 2 both accepted and resynthesise). Powers of two are conventional. Breakpoint not applicable."
+    },
+    "ovlp": {
+      "type": "int",
+      "min": 1.0,
+      "max": 4.0,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Analysis window overlap factor 1-4 for the PVOC analysis (CDP-enforced, refusal at 5 verbatim '(1.000000 to 4.000000)')."
+    }
+  },
+  "examples": [
+    {
+      "description": "High-resolution analysis for dense harmonic material.",
+      "params": {"chs": 4096, "ovlp": 3},
+      "expected_use": "Fine frequency grid for downstream spectral work where pitch precision beats transient snap."
+    },
+    {
+      "description": "Transient-preserving analysis for percussive sources.",
+      "params": {"chs": 512, "ovlp": 4},
+      "expected_use": "Coarse frequency but tight time resolution; attacks survive later spectral processing better."
+    }
+  ],
+  "known_issues": [
+    "BANNER DIVERGENCE: chs enforced 2-32768, not the documented 'multiple of 4 (4-32768)' - odd and tiny values are accepted silently (verified 5 and 2 run and round-trip). Stick to powers of two unless experimenting.",
+    "Analyses made with non-default chs/ovlp are INCOMPATIBLE with auto-PVOC'd .ana files in multi-input spectral programs (the family's 'Incompatible analysis-sample-rate/params' refusals) - make matching analyses for both inputs of any pair process.",
+    "Sibling modes pinned for the record: 2-6 write one textfile per window (690 files verified from 2 s - multi-output, engine-incompatible); mode 9 (pitch varibank) SEGFAULTS on this build (exit 139); modes 7/8/10 write single data textfiles and work via execute().",
+    "Mono only ('File ... is not of correct type (must be mono)' verbatim); .ana input refused ('is not of correct type').",
+    "Duration static within ~0.5% but the exact window-quantised length varies with chs/ovlp (2.0027 s at 1024/3 vs 2.0085 s at 1024/1 from a 2.0 s source).",
+    "Deterministic (byte-identical data chunks run to run)."
+  ],
+  "references": ["cdp://docs/html/cspecanal"]
+}

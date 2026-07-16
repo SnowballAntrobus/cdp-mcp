@@ -1,0 +1,95 @@
+{
+  "program": "spectwin",
+  "mode": "spectwin",
+  "submode": 4,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur_min"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "SPECTRAL TWINING, mode 4 (total envelope of file 1 v total envelope of file 2): builds each output window as a weighted mix of the two inputs' channel data - frequency = frq1*(1-frqint) + frq2*frqint, amplitude = amp1*(1-envint) + amp2*envint (source-verified). CRITICAL DEFAULT TRAP: frqint and envint both DEFAULT TO 1.0, which weights infile1's contribution to exactly ZERO - the flag-less render is a verbatim copy of infile2's data (verified: outputs byte-identical regardless of what infile1 is). ALWAYS set -f/-e below 1 for an actual blend. Duration = the SHORTER input (min rule, verified both orders and on a (3.0, 2.0) pair via pvoc synth round-trips). Modes 1-3 substitute the extracted FORMANT envelope for the raw amplitudes of file 1 and/or file 2 (1 = formant v formant, 2 = formant v total, 3 = total v formant); at default weights modes 1/3 render identically (file 2's formant envelope) and 2/4 identically (file 2 verbatim) - the file-1 side of the mode choice only matters once envint < 1. Deterministic.",
+  "musical_use": "One of CDP's three 'intermediate spectrum' experiments (with newmorph and specsphinx): a STATIC weighted crossbreed rather than a time-evolving morph - the whole file sits at one blend point, set by two independent dials. frqint chooses whose PARTIAL FREQUENCIES the hybrid lives on (0 = file 1's, 1 = file 2's), envint whose AMPLITUDE weighting colours them - so frqint 1 / envint 0.3 plays sound 2's pitch skeleton dressed mostly in sound 1's spectral colour, and the reverse puts sound 2's colour on sound 1's skeleton. Equal mid-values (0.5/0.5) give the true average spectrum. The dupl/step/dec trio thickens SOUND 1 with pitch-transposed copies of itself (dupl copies at step semitones apart, each dec quieter) before the blend - audible only when frqint/envint < 1. For a blend that moves over time, this is the wrong tool (its interpolation weights are frozen - see known_issues); render several blend points and crossfade, or use newmorph.",
+  "parameters": {
+    "frqint": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-f",
+      "flag_kind": "attached_value",
+      "musical_range": [0.2, 0.8],
+      "description": "Dominance of infile2's spectral FREQUENCIES (CDP-enforced 0-1; default 1.0 = file 2's frequencies only, file 1 silent in the frequency dimension). Set below 1 or infile1 contributes nothing. BREAKPOINT BUG: a brkfile is accepted (bogus filenames refused, so it IS parsed) but its values are never applied - constant-0 and 0->1 ramp files both render byte-identical to the flag-less default (source: the interpolation weights are snapshotted into locals before the per-window brk read). Treat as scalar-only."
+    },
+    "envint": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "musical_range": [0.2, 0.8],
+      "description": "Dominance of infile2's spectral envelope/AMPLITUDES (CDP-enforced 0-1; default 1.0 = file 2 only). Same accepted-but-ignored breakpoint bug as frqint - scalar only."
+    },
+    "dupl": {
+      "type": "int",
+      "min": 0.0,
+      "max": 8.0,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Duplicate SOUND 1 'dupl' times at higher pitches before blending (CDP-enforced 0-8, refusal '-d100' verbatim '(0.000000 to 8.000000)'). NO-OP at the default frqint/envint of 1.0 (verified byte-identical) - only audible once file 1 actually contributes."
+    },
+    "step": {
+      "type": "float",
+      "min": 0.0,
+      "max": 48.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Pitch step in semitones between successive duplications (CDP-enforced 0-48, refusal verbatim). Meaningful only with dupl > 0."
+    },
+    "dec": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Level multiplier from one transposed duplication to the next (CDP-enforced 0-1, refusal '-r2' verbatim). Meaningful only with dupl > 0."
+    }
+  },
+  "examples": [
+    {
+      "description": "True average spectrum of two sounds.",
+      "params": {"frqint": 0.5, "envint": 0.5},
+      "expected_use": "Frequencies and amplitudes both sit halfway between the sources; output = the shorter input's duration."
+    },
+    {
+      "description": "Sound 2's skeleton in sound 1's colours, thickened.",
+      "params": {"frqint": 0.9, "envint": 0.25, "dupl": 3, "step": 7.0, "dec": 0.6},
+      "expected_use": "File 2's partial positions, amplitude-weighted 75% toward file 1, with three stacked-fifths copies of file 1 folded in."
+    }
+  ],
+  "known_issues": [
+    "DEFAULT TRAP (first-class): flag-less runs (frqint = envint = 1.0) output infile2's data VERBATIM - infile1 is ignored entirely (verified: swapping in a completely different infile1 leaves the output byte-identical). Any real use needs -f and/or -e below 1.",
+    "BREAKPOINT BUG (binary, source-diagnosed): -f/-e accept breakpoint files (bad paths are refused) but the values are never applied - constant and ramp files render byte-identical to the DEFAULT, not even to the file's first value (spectwin.c snapshots fi/ei into locals before read_values_from_all_existing_brktables runs). Both curated scalar-only.",
+    "Duration = min(indur1, indur2), verified both orders and on unequal pairs - multi-input entry, pre-flight uses indur_min.",
+    "MODE COINCIDENCES at default weights: modes 1/3 render identically and 2/4 render identically (only the file-2 side of the formant-vs-total choice is live when envint = 1). The mode pairs separate once envint < 1. This entry pins mode 4 (total v total, the most literal blend); modes 1-3 share the argv.",
+    "dupl/step/dec transform SOUND 1 only, so they are byte-identical no-ops at default weights (verified).",
+    "Deterministic (repeat runs byte-identical in the data chunk). Family 'WARNING: failed to write PEAK data' harmless."
+  ],
+  "references": ["cdp://docs/html/cspectwin"]
+}

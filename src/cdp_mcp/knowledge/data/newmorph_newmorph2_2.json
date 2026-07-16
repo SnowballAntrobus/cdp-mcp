@@ -1,0 +1,98 @@
+{
+  "program": "newmorph",
+  "mode": "newmorph2",
+  "submode": 2,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "MORPH TOWARD A LISTED HARMONIC FIELD: the single-input sibling of newmorph's 2-file morph - the sound's spectral peaks are gradually tuned toward the goal-peak frequencies listed in a text peaksfile (most prominent first; the output format of newmorph newmorph2 mode 1, or hand-written). Linear interpolation in time; submode 3 is the identical argv with timewise-cosinusoidal interpolation (verified running, distinct sha). Duration is STATIC (verified 1.5209 -> 1.5209, 2.0230 -> 2.0230 via pvoc synth round-trips). Unlike the 2-input newmorph modes, endmorph beyond the file's end is ACCEPTED (verified: endmorph 5 on a 1.5 s file runs - the morph simply never completes), and there is no stagger/attack constraint. -r randomises the goal peak frequencies - but is DETERMINISTIC on this build (two -r0.5 runs 1.3 s apart byte-identical; the random path has no live seed). All four positional parameters are scalar-only.",
+  "musical_use": "Pull any sound toward a chosen resonant skeleton without ever loading a second input: harvest a peaksfile from a bell, a vowel, a chord (newmorph2 mode 1), or write one by hand with write_data_file(), then let the source's peaks glide onto those frequencies between startmorph and endmorph. Because the goal is just a frequency list, this is the cleanest way to 'morph toward harmony' - list a spectral chord and the sound tunes itself into it as it plays. exponent shapes the approach (< 1 arrives early and sits; > 1 drifts then locks late); an endmorph past the file's end leaves the morph forever incomplete - a perpetual approach that never quite lands. peakcnt controls how many of the file's listed goals are used; -r smears the goal frequencies for a detuned, less gridded landing (repeatable on this build). Use submode 3 when the motion should ease in and out instead of moving at constant rate.",
+  "parameters": {
+    "peaksfile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Text file of goal-peak frequencies in Hz, one per line, most prominent first (write with write_data_file(), any extension except .brk, or produce with newmorph newmorph2 mode 1). Asking for more peaks (peakcnt) than the file lists is accepted (verified: peakcnt 8 against a 6-line file runs)."
+    },
+    "startmorph": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time at which the morph starts. Breakpoint refused ('Cannot read parameter 2 ... brkpnt_files not permitted.')."
+    },
+    "endmorph": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time at which the morph ends. May exceed the file's duration (accepted; the morph never completes) - unlike the 2-input newmorph modes. Scalar only (parameter 3)."
+    },
+    "exponent": {
+      "type": "float",
+      "min": 0.02,
+      "max": 50.0,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.3, 3.0],
+      "description": "Exponent of interpolation (CDP-enforced 0.02-50, refusal verbatim). 1 = constant-rate approach. Scalar only (parameter 4)."
+    },
+    "peakcnt": {
+      "type": "int",
+      "min": 1.0,
+      "max": 16.0,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Number of most-prominent source peaks to move (CDP-enforced 1-16, refusal verbatim '(1.000000 to 16.000000)'). Scalar only (parameter 5)."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Randomisation of the goal peak frequencies (CDP-enforced 0-1, refusal '-r2' verbatim '(0.000000 to 1.000000)'). Output-changing but DETERMINISTIC on this build - two -r0.5 runs 1.3 s apart are byte-identical (no live seed); A/B variants are not available."
+    }
+  },
+  "examples": [
+    {
+      "description": "Tune a sustained sound into a harvested resonance skeleton.",
+      "params": {"peaksfile": "peaks6.txt", "startmorph": 0.3, "endmorph": 1.2, "exponent": 1.0, "peakcnt": 6},
+      "expected_use": "The source's six strongest peaks glide onto the listed frequencies between 0.3 s and 1.2 s; duration unchanged."
+    },
+    {
+      "description": "Perpetual approach - endmorph beyond the file end.",
+      "params": {"peaksfile": "peaks6.txt", "startmorph": 0.0, "endmorph": 6.0, "exponent": 0.5, "peakcnt": 4},
+      "expected_use": "The morph is still incomplete when the sound ends: an unresolved drift toward the target field."
+    }
+  ],
+  "known_issues": [
+    "Duration static (verified two input lengths). Single-input entry despite living in the newmorph binary - the 'second sound' is the aux peaksfile.",
+    "endmorph beyond the file's end is legal here (verified) - the 2-input newmorph refusal 'end of interpolation is beyond end of one of soundfiles.' does NOT apply to newmorph2.",
+    "-r accepted and output-changing but deterministic on this build (no live seed; same osbind drand48-shim family as other CDP 'random' paths) - do not expect run-to-run variants.",
+    "peakcnt larger than the peaksfile's line count is accepted (verified 8 vs 6 lines).",
+    "Positional params 2-5 refuse breakpoint files (parameter-N refusals probed).",
+    "Progress spam and 'WARNING: failed to write PEAK data' on every run - harmless. Deterministic (byte-identical data chunks)."
+  ],
+  "references": ["cdp://docs/html/cnewmorph"]
+}

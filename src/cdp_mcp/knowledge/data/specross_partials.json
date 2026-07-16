@@ -1,0 +1,132 @@
+{
+  "program": "specross",
+  "mode": "partials",
+  "submode": null,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur2"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Interpolates the HARMONIC PARTIALS of pitched source 1 towards those of pitched source 2 - a pitched-sound-specific crossover, distinct from newmorph (which moves spectral peaks) and morph (whole-spectrum). Source-verified engine: the output is built window-by-window on INFILE2's frames and timeline - each output window keeps infile2's partial frequencies, every NON-harmonic channel is ZEROED, and each harmonic's amplitude is interpolated from infile2's level toward infile1's harmonic-amplitude profile by 'interp' (0 = infile2's own harmonic levels, 1 = infile1's colouration fully imposed). DURATION RULE (verified both orders via pvoc synth round-trips): output = infile2's duration, always - (2.0, 1.5) pair -> 1.5122, (1.5, 2.0) -> 2.0114, (3.0, 1.5) -> 1.5122 (within ~1 analysis window of indur2; infile1's length never matters). Before interpolating, the program pitch-tracks both files and finds infile1's ATTACK (loudest harmonic-energy window); windows after the attack are mapped by the ratio of the two files' tail lengths. Deterministic (byte-identical data chunks run to run). All 9 parameters are required positionals; only interp accepts a breakpoint file.",
+  "musical_use": "Recolour one pitched sound with the harmonic colouration of another: because everything non-harmonic is zeroed and the frequencies stay infile2's, the render is a purified, harmonics-only version of sound 2 whose partial LEVELS lean toward sound 1 as interp rises - a formant-like colouration transfer between pitched sources (the manual likens results to GLISTEN; NEWMORPH is the peak-based alternative and usually the smoother morph). With a rising interp breakpoint (0 -> 1 over the file) sound 2 progressively takes on sound 1's harmonic balance as it plays. tuning widens the semitone tolerance for counting a partial as harmonic (forgiving values use more of the sound); thresh discards weak partials (high thresh + high interp leaves virtually only the colouration); level scales infile1's contribution. Works only on material the pitch-tracker can follow - use cleanly pitched sources with a clear attack near the start, and put the sound whose TIMELINE you want to keep in the infile2 slot (the output is always infile2's length).",
+  "parameters": {
+    "tuning": {
+      "type": "float",
+      "min": 0.0,
+      "max": 6.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.5, 2.0],
+      "description": "Range in semitones within which partials count as 'in tune' with the harmonic series (CDP-enforced 0-6, refusal verbatim '(0.000000 to 6.000000)'; source default 1). Higher = more forgiving, more of sound 2 kept. Breakpoint refused ('Cannot read parameter 1 ... brkpnt_files not permitted.')."
+    },
+    "minwin": {
+      "type": "int",
+      "min": 0.0,
+      "max": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Minimum number of adjacent pitched windows for a pitch value to register (source default 2). CDP-enforced 0 to an input-dependent window-count ceiling ('(0.000000 to 525.000000)' on the 2.0 s + 1.5 s probe pair). Scalar only (parameter 2)."
+    },
+    "signois": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1000.0,
+      "unit": "dB",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Signal-to-noise ratio in dB; windows further below the loudest are ignored by the pitch tracker (CDP-enforced 0-1000; source default 80). Scalar only (parameter 3)."
+    },
+    "harmcnt": {
+      "type": "int",
+      "min": 1.0,
+      "max": 8.0,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "How many of the 8 loudest spectral peaks must be harmonics to confirm the sound is pitched (CDP-enforced 1-8; source default 5). Scalar only (parameter 4)."
+    },
+    "lo": {
+      "type": "float",
+      "min": 10.0,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Lowest acceptable pitch (CDP-enforced 10 Hz to nyquist/8 - '(10.000000 to 2756.250000)' at 44.1 kHz, input-dependent ceiling). lo >= hi refused 'ERROR: Impossible pitch range specified.' Scalar only (parameter 5)."
+    },
+    "hi": {
+      "type": "float",
+      "min": 10.0,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Highest acceptable pitch (same CDP-enforced bounds as lo). Scalar only (parameter 6)."
+    },
+    "thresh": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Minimum acceptable partial level, relative (CDP-enforced 0-1; source default 0.02). High values strip everything but the strongest partials. Scalar only (parameter 7)."
+    },
+    "level": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Scales SOURCE 1's harmonic-level contribution before interpolation (source: src1level *= level; CDP-enforced 0-1, default 1). Scalar only (parameter 8)."
+    },
+    "interp": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "input2",
+      "default": null,
+      "flag": null,
+      "musical_range": [0.3, 1.0],
+      "description": "Degree of interpolation of the harmonic amplitudes from infile2's own levels (0) toward infile1's profile (1). The ONLY time-variable parameter (brk verified: 0->1 ramp differs from both scalar endpoints). CDP itself RESCALES the breakpoint's time axis to infile2's duration (source: ratio = duration2/lasttime); first time must be 0, times must advance, values 0-1, ';' comments allowed; a single-pair file collapses to a scalar."
+    }
+  },
+  "examples": [
+    {
+      "description": "Full harmonic recolouring: sound 2 purified to its partials, levels drawn to sound 1's balance.",
+      "params": {"tuning": 1.0, "minwin": 2, "signois": 80.0, "harmcnt": 5, "lo": 50.0, "hi": 2000.0, "thresh": 0.1, "level": 1.0, "interp": 1.0},
+      "expected_use": "Output = infile2's duration; non-harmonic material removed, harmonic amplitudes follow infile1."
+    },
+    {
+      "description": "Progressive takeover - interp as a rising breakpoint (e.g. '0 0 / 2 1').",
+      "params": {"tuning": 1.0, "minwin": 2, "signois": 80.0, "harmcnt": 5, "lo": 50.0, "hi": 2000.0, "thresh": 0.02, "level": 1.0, "interp": 1.0},
+      "expected_use": "Sound 2 starts as its own harmonics-only self and ends wearing sound 1's harmonic balance."
+    }
+  ],
+  "known_issues": [
+    "DURATION: always infile2's duration (verified (2.0,1.5)->1.5122, (1.5,2.0)->2.0114, (3.0,1.5)->1.5122 via pvoc synth round-trips; ~1 window short). Put the timeline-owner second. Multi-input entry - the duration pre-flight uses indur2.",
+    "ATTACK GATE (content refusal): infile1's attack (loudest harmonic-energy window) must fall before the END of infile2 - verbatim 'ERROR: Attack time on 1st source is at or beyond end of 2nd.' A slow-swelling infile1 whose peak lands late also triggers 'WARNING: Attack time of 1st sound not close to start of sound'. Use sources with an attack near the start.",
+    "Output is HARMONICS-ONLY: every channel not matching a harmonic of infile2's tracked pitch is zeroed (source spec_interp), so even at interp 0 the render is a purified version of sound 2, not a pass-through.",
+    "UNDOCUMENTED FLAG -a (source vflag AMP_SCALING): shapes sound 2's level fluctuations under sound 1's gross envelope; accepted and output-changing (verified). A second declared flag -p is accepted but was a byte-identical no-op on the probes - left uncurated.",
+    "Parameters 1-8 all refuse breakpoint files ('Cannot read parameter N ... brkpnt_files not permitted.', N = 1-8, all probed); only interp (parameter 9) is time-variable, and CDP rescales its time axis to infile2's duration itself.",
+    "Floods stdout with one '0 min X.XX sec' progress print per window plus the family 'WARNING: failed to write PEAK data' - harmless, not errors.",
+    "Wav input refused ('File ... is not of correct type') - inputs must be .ana; the engine auto-PVOCs wav inputs.",
+    "Deterministic: repeat runs byte-identical in the data chunk (compare data chunks, not raw bytes - the .ana header DATE stamp differs)."
+  ],
+  "references": ["cdp://docs/html/cspecross"]
+}

@@ -1,0 +1,272 @@
+{
+  "generated_at": "2026-07-16",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (-fsigned-char rebuild; banners 'CDP Release 7.1 2016' where printed)",
+    "os": "Linux x86_64 sandbox",
+    "note": "Tranche 21 - spectral tail II (heavy/multi-input spectral). Fixtures /tmp/probe21b (attack-shaped harmonic tone pairs 220/330/277 Hz, 228 Hz detuned tone, 110 Hz formant vowel, flat noise; pvoc anal 1 defaults). .ana durations via pvoc-synth round-trips; repeat-run comparisons on DATA chunks (header DATE stamp always differs). PINNED RULE: 2-input entries get duration_row null + model in the reason (morph bridge precedent); data outputs get null (no audio duration). Aux-referencing rows need _AUX_FILES additions listed under aux_files. To be re-verified on macOS r8 by the CDP-gated suite after integration.",
+    "aux_files": {
+      "ptmp1.txt": "0 57 64 69\n1.5 57 64 69\n",
+      "pk6.txt": "157.016924\n81.590736\n76.337778\n54.753339\n48.560505\n47.812285\n",
+      "ftr21.txt": "0.000000 0.300000 0.800000 1.200000 1.600000 2.025941 \n257.894745 257.894745 257.894745 257.894745 257.894745 0.000000 \n630.641357 630.641357 630.641357 630.641357 630.641357 0.000000 \n1261.282715 1261.282715 1261.282715 1261.282715 1261.282715 0.000000 \n0.038986 0.038986 0.038986 0.038986 0.038986 0.000000 \n"
+    }
+  },
+  "entries": [
+    {
+      "program": "specross",
+      "mode": "partials",
+      "submode": null,
+      "breakpoint_capable": ["interp"],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry; incompatible with the single-input duration fixture. Model 'indur2' verified via pvoc synth round-trips both orders: (2.0,1.5)->1.5122, (1.5,2.0)->2.0114, (3.0,1.5)->1.5122 (~1 window short of indur2; infile1's length never matters - source interp_spectra loops over infile2's windows). Engine spot-check: process_impl two-wav auto-PVOC run -> outdur 1.5209 = indur2.",
+      "stochastic": false,
+      "notes": [
+        "THE PITCHED-PAIR INTERPOLATOR: output rides infile2's frames/timeline, non-harmonic channels ZEROED, harmonic amplitudes interpolated src2->src1 by interp (source get_newlevel: diff=(src1level-src2level)*interp; level scales src1).",
+        "ATTACK GATE (content refusal): infile1's attack (loudest harmonic-energy window) must precede infile2's end - 'ERROR: Attack time on 1st source is at or beyond end of 2nd.' (hit organically with AM-enveloped fixtures whose attack landed at 1.78 s).",
+        "interp is the only time-variable param (brk differs from both scalar endpoints); CDP itself RESCALES the brk time axis to infile2's duration (read_data_from_interp_file: ratio=duration2/lasttime; first time 0, times advance, values 0-1, ';' comments) -> breakpoint_duration_source input2. Params 1-8 refuse brks (verbatim parameter-N).",
+        "Ranges verbatim: tuning 0-6, minwin 0-525 (input-dependent window count), signois 0-1000, harmcnt 1-8, lo/hi 10-2756.25 (nyquist/8, input-dependent), thresh/level/interp 0-1; lo>=hi 'Impossible pitch range specified.'",
+        "UNDOCUMENTED FLAGS (source set_vflgs 'ap'): -a AMP_SCALING output-changing (curated bool); -p accepted byte-identical no-op (left uncurated).",
+        "Deterministic; wav input refused; per-window stdout progress spam + 'WARNING: failed to write PEAK data' harmless."
+      ]
+    },
+    {
+      "program": "newmorph",
+      "mode": "newmorph",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry. Model 'stagger + indur2' verified via pvoc synth round-trips: (2.0,1.5) stagger 0/0.5 -> 1.5209/2.0201; (1.5,2.0) -> 2.0230/2.5223; -e cuts at infile1's end = min(stagger+indur2, indur1) ((1.5,2.0) stagger 0.5 -e -> 1.5209); rule re-verified in mode 5 (2.0201).",
+      "stochastic": false,
+      "notes": [
+        "Peak-anchored morph for DISSIMILAR spectra (up to 16 peaks move src1->src2). Modes 1-6 share argv and duration rule (all ran, six distinct shas); -n (peaks only) and -f (frq only) output-changing.",
+        "Ordering constraints verbatim: startmorph < stagger -> 'start of amp interpolation is set before entry of 2nd soundfile.'; endmorph beyond either file -> 'end of interpolation is beyond end of one of soundfiles.'",
+        "Ranges verbatim: stagger 0 to indur1 ('(0.000000 to 2.023039)'), exponent 0.02-50, peaks 1-16. All five positionals refuse brks (parameter-N verbatim).",
+        "MODE 7 DROP: writes outcnt numbered files (nm70/nm71/nm72.ana verified) - multi-output, no outfile argv.",
+        "Deterministic (identical repeat data chunks)."
+      ]
+    },
+    {
+      "program": "newmorph",
+      "mode": "newmorph2",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (.txt peaksfile) - no audio duration; duration pre-flight skipped (getlevel-3/peakfind precedent).",
+      "stochastic": false,
+      "notes": [
+        "Peaksfile extractor: one peak frequency per line, most prominent FIRST (verified '157.016924/81.590736/...' peakcnt 6 on a 220 Hz tone - spectral-envelope peaks, not necessarily harmonics). Exact input format of newmorph2 modes 2-3.",
+        "peakcnt CDP-enforced 1-16 (0/17 refused verbatim). Deterministic (byte-identical text)."
+      ]
+    },
+    {
+      "program": "newmorph",
+      "mode": "newmorph2",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": ["newmorph", "newmorph2", 2, 2.0, {"peaksfile": "pk6.txt", "startmorph": 0.3, "endmorph": 1.2, "exponent": 1.0, "peakcnt": 6}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Single-input morph toward a LISTED harmonic field (aux peaksfile). Duration STATIC (1.5209->1.5209, 2.0230->2.0230). Mode 3 = cosinusoidal sibling (runs, distinct sha).",
+        "endmorph beyond file end ACCEPTED (verified endmorph 5 on 1.5 s - morph never completes), unlike the 2-input newmorph refusal. peakcnt 8 vs 6-line file accepted.",
+        "Ranges verbatim: exponent 0.02-50, peakcnt 1-16, rand -r 0-1. startmorph brk refused (parameter 2).",
+        "-r randomisation is DETERMINISTIC on this build (two -r0.5 runs 1.3 s apart byte-identical; no live seed) though output-changing vs base - curated with the no-op-seed warning.",
+        "Aux row: pk6.txt (contents in environment.aux_files) - the mode-1 output of the probe."
+      ]
+    },
+    {
+      "program": "spectwin",
+      "mode": "spectwin",
+      "submode": 4,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry. Model 'indur_min' verified: (2.0,1.5)/(1.5,2.0) -> 1.5209 both orders; (3.0,2.0) -> 2.0230. Source: ssampsread = min(sampsread0, sampsread1).",
+      "stochastic": false,
+      "notes": [
+        "DEFAULT TRAP (first-class): frqint/envint default 1.0 makes the output infile2 VERBATIM - swapping a totally different infile1 leaves the render byte-identical (verified sha-equal across qa2/vow2 as infile1). Any real blend needs -f/-e < 1.",
+        "BRK BUG (first-class, source-diagnosed): -f/-e brkfiles accepted (bogus path refused, so parsed) but values NEVER applied - ramp and constant-0 files render byte-identical to the flag-less DEFAULT, not even the first brk value (spectwin.c snapshots fi/ei into locals before the per-window brk read). Curated scalar-only.",
+        "Mode coincidences at defaults: 1/3 byte-identical (file2 formant env) and 2/4 byte-identical (file2 verbatim); file-1 side of the formant-vs-total choice live only when envint < 1.",
+        "-d/-s/-r (dupl/step/dec) transform SOUND 1 only -> byte-identical no-ops at default weights (verified), live at -f0 -e0. Ranges verbatim: -f/-e 0-1, -d 0-8, -s 0-48, -r 0-1.",
+        "Deterministic."
+      ]
+    },
+    {
+      "program": "selfsim",
+      "mode": "selfsim",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["selfsim", "selfsim", null, 2.0, {"selfsim": 3}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Replaces spectral windows with their most-similar LOUDER windows (chaining replacement). Static duration (2.0230/3.0215/vowel), deterministic.",
+        "Param CDP-enforced 1 to the input's window count (verbatim '(1.000000 to 697.000000)' on ~2 s at pvoc anal 1 defaults - input-dependent ceiling); brk refused (parameter 1). Wav input refused."
+      ]
+    },
+    {
+      "program": "superaccu",
+      "mode": "superaccu",
+      "submode": 1,
+      "breakpoint_capable": ["decay", "glis"],
+      "duration_row": ["superaccu", "superaccu", 1, 2.0, {"decay": 0.1}, 0.2],
+      "stochastic": false,
+      "notes": [
+        "DEFAULT DIVERGENCE (first-class): banner 'decay Default 1.0 (no attenuation)' vs source default_val[SUPACDECAY]=0.01 and enforced range 0.00001-0.9 - 'no attenuation' is illegal; flag-less == -d0.01 (duration-verified).",
+        "DURATION EXTENDS: outdur = indur + resonant tail ~= 14.5/-ln(decay) s (probed tails 2.80/5.66/10.87/18.95 s at decay 0.01/0.1/0.3/0.5, indur-independent). Curated expr 'indur + 14.5 / (10000 * (1 - decay**0.0001))' (ln-free). Tail ends at an ABSOLUTE float-zero threshold (source flteq(sum,0)) -> CONTENT-DEPENDENT: flat noise tails 3.40/6.90 s at 0.01/0.1 (~20% over the tone model) - row rel_tol 0.20, entry documents +/-20%. Engine spot-check: decay 0.1 -> 7.68 vs 7.67 model.",
+        "decay BRK-CAPABLE (out-of-range value inside brk refused verbatim 'in brkpntfile'; valid 0.5->0.8 ramp -> 61.7 s from 2 s - duration explodes past the scalar model). glis BRK-CAPABLE (differs from scalar). Brks read through the tail (hold last value).",
+        "-g2 changes content not duration; -g12 accepted (banner 'approx -11.7 to 11.7' advisory; source bound MAXGLISRATE/frametime). -r byte-identical no-op unless bands actually gliss into better channels (source-conditional).",
+        "Modes 3/4 tuning file parses MIDI not Hz (banner 'set of frequencies' wrong): 220 refused 'Pitch out of range (10.000000 - 14700.000000) : line 1'; MIDI file runs. Mode 2 (tempered) runs, distinct sha. Contrast curated focus accu: static duration.",
+        "Deterministic."
+      ]
+    },
+    {
+      "program": "spectune",
+      "mode": "tune",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": ["spectune", "tune", 1, 2.0, {}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Auto-tune to nearest tempered pitch: whole-file transposition by one ratio, formants preserved unless -f. Verified 'INFO: Transposing from MIDI 57.62 to 58.000000 : by ratio 1.022113' on a 228 Hz tone. Static, deterministic.",
+        "MODE 4 INFO-ONLY: no outfile argv ('Unknown parameter' with one; prints 'INFO: 57.621337' bare) - engine-incompatible sibling, pinned.",
+        "Unpitched input NOT refused - noise 'tuned' by its accidental prominent pitch (MIDI 97.50). Ranges verbatim: -m 1-8, -i 0-6; -n brk refused (parameter 8) - flag params scalar-only.",
+        "Modes 2/3 (tuning file), 5 (pedal + peakcnt 1-128), 6 (segment report) uncurated siblings."
+      ]
+    },
+    {
+      "program": "tunevary",
+      "mode": "tunevary",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["tunevary", "tunevary", null, 2.0, {"pitch_template": "ptmp1.txt"}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Time-varying pitch tune via 'time midi [midi...]' template lines (aux, post-output positional). Static (2.0230/3.0215), deterministic, all four flags output-changing as scalars.",
+        "BANNER DIVERGENCE (first-class): 'All parameters may vary over time' is FALSE on this build - -f/-b brkfiles accepted but silently IGNORED (ramp/constant/step files all byte-identical to the flag-less default; scalars differ); -c/-t brkfiles alter output but constant files do NOT reproduce the equivalent scalar. All four curated scalar-only; time-variation belongs in the template's time column (which works).",
+        "Ranges verbatim: -f/-c 0-1, -t 1-513 (channel count, input-dependent), -b 9-22050. Template refusals verbatim: 'Input data times do not increase at line 2'; 'Line 2 has different number of entries to previous lines'.",
+        "Aux row: ptmp1.txt (contents in environment.aux_files). Engine spot-check with session-data aux: ok."
+      ]
+    },
+    {
+      "program": "peak",
+      "mode": "extract",
+      "submode": 4,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (.txt stream summary) - no audio duration; pre-flight skipped.",
+      "stochastic": false,
+      "notes": [
+        "Time-invariant pitch-stream summary: 'frq<TAB>amp' per stream, loudest=1.0 (6 streams verified on the probe tone). -f = 2-row filter-varibank form (verified); -m = MIDI; -h tune discards harmonics of stronger peaks. Modes 1-3 = time-varying siblings (per-window list / stream assignment).",
+        "Ranges verbatim: winsiz 1-96, peak 1-1000, floor 0.0001-1, lo/hi 43.066406-22050 (chanwidth-nyquist, input-dependent). Brk refused (parameter 1).",
+        "Reserved extension refusal verbatim: 'Cannot open a textfile (pko.wav) with a reserved extension.' Deterministic. Engine spot-check (data output): ok, content verified."
+      ]
+    },
+    {
+      "program": "get_partials",
+      "mode": "harmonic",
+      "submode": 3,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (.txt harmonic-partial list) - no audio duration; pre-flight skipped.",
+      "stochastic": false,
+      "notes": [
+        "Harmonic-partial snapshot at a chosen time: 'frq  amp' per integer harmonic of the stated fundamental, fundamental-normalised (textbook 1/h recovered on the probe tone). Mode 4 = MIDI; -v = varibank2 block format (verified).",
+        "Modes 1-2 REFUSE multi-window files ('This mode only works with single-window analysis files' verbatim) - modes 3-4 are the general-purpose forms.",
+        "Ranges verbatim: fundamental 10-22050, threshold 0.000002-1, time 0-indur (input-dependent). Brk refused (parameter 1). Deterministic."
+      ]
+    },
+    {
+      "program": "specanal",
+      "mode": "specanal",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": ["specanal", "specanal", 1, 2.0, {"chs": 1024, "ovlp": 3}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Parameterized PVOC analysis (wav -> ana with chs/ovlp control). Static-ish (2.0->2.0027 at 1024/3, 2.0085 at 1024/1; 3.0->3.0012). Deterministic; mono only; .ana input refused.",
+        "chs DIVERGENCE: banner 'multiple of 4 (4-32768)'; binary enforces 2-32768 (refusal verbatim) and accepts 5 and 2 (both resynthesise).",
+        "Siblings pinned: modes 2-6 one-textfile-PER-WINDOW multi-output (690 files verified - drop); mode 9 SEGFAULT (exit 139); modes 7/8/10 single-textfile data outs usable via execute() (uncurated).",
+        "Non-default analyses are incompatible with auto-PVOC'd .ana in multi-input programs - noted in the entry."
+      ]
+    },
+    {
+      "program": "oneform",
+      "mode": "get",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (.for single-moment-formants binary) with a data-file (.for) aux input - no audio duration; arity-0 entry (formant file rides the pre-output aux slot).",
+      "stochastic": false,
+      "notes": [
+        "Extracts the formant envelope at one time from a formants-get .for file into a single-moment-formants datafile (oneform put/combine food).",
+        "EXTENSION TRAP (verified): unrecognised/absent output extensions get '.wav' APPENDED ('x.txt' -> 'x.txt.wav', bare -> '.wav') - pseudo-wav RIFF poison; '.for' names kept verbatim, so the entry's declared .for output naming is load-bearing.",
+        "time runtime-enforced 0 to the formant file's duration (refusals at 5/-1 verbatim '(0.000000 to 2.025941)').",
+        "Deterministic modulo the header DATE stamp (data chunks byte-identical; raw bytes differ at the date).",
+        "oneform combine DEFERRED: needs a binary pitchfile from the uncurated repitch layer (tranche 22)."
+      ]
+    },
+    {
+      "program": "oneform",
+      "mode": "put",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Aux is a BINARY single-moment-formants file (oneform get output) that cannot be expressed as an _AUX_FILES text row; duration static verified manually (2.0230->2.0230, 3.0215->3.0215 via pvoc synth round-trips).",
+      "stochastic": false,
+      "notes": [
+        "Replace-formants imposition (mode 2; mode 1 ADDS instead - both run, distinct shas). 1f file sits BETWEEN input and output -> pre_output aux (argv order verified the hard way: outfile-first refuses 'cannot open input file ... to read data.').",
+        "Wrong file type in the 1f slot: 'ERROR: Second fvile is not a formant file' (binary typo verbatim).",
+        "-h enforced 5-22050 (verbatim); -g0 ACCEPTED (silence, no lower bound); -g brk refused (parameter 3); -l200/-h6000/-g2 all output-changing.",
+        "Static, deterministic (data chunks)."
+      ]
+    },
+    {
+      "program": "fturanal",
+      "mode": "anal",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (.txt 5-row feature file) - no audio duration; pre-flight skipped.",
+      "stochastic": false,
+      "notes": [
+        "Feature extraction against a marklist aux (ascending times, first mark = Head): writes times+duration row then per-segment median F1/F2/F3 and brightness rows (verbatim content in environment.aux_files ftr21.txt).",
+        "MODES 2 AND 3 SEGFAULT on this build (exit 139, zero-byte outputs; reproduced across two sources and two marklists) - mode 1 the only working anal mode; entry marked unstable/version_sensitive.",
+        "-r range-enforced 0-1 (verbatim); -r0.5 deterministic across runs AND byte-identical to the base on the probe (no live seed).",
+        "Deterministic."
+      ]
+    },
+    {
+      "program": "fturanal",
+      "mode": "synth",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": ["fturanal", "synth", 1, 2.0, {"featurefile": "ftr21.txt"}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Reassembles the MONO source wav in ascending-F1 order of the featurefile's segments. Duration ~static: 2.0 s / 5 segments / 5 ms splices -> 1.9800 (-1.0%, splice losses). Deterministic; output -11.3 dBFS.",
+        "Feature times at/beyond the wav end ignored with 'WARNING: Times at or beyond end of sndfile (...) ... Ignoring them.' - NORMAL on anal->synth chains (.ana-derived times overshoot by one window); also what makes the noise-fixture row valid (last time 2.025941 ignored).",
+        "splicelen -s enforced 2-15 ms (verbatim, default 5). BANNER GAP: mode list skips 8 but mode 8 runs; mode 11 refused 'Program mode value [11] is out of range [1 - 10].'",
+        "Aux row: ftr21.txt (contents in environment.aux_files - the probe's actual anal-1 output)."
+      ]
+    }
+  ],
+  "dropped": [
+    {
+      "program": "speculate",
+      "mode": "speculate",
+      "reason": "Generic-name MULTI-OUTPUT: 'speculate speculate in.ana spc 200 2000' wrote 84 numbered files (spc0.wav..spc83.wav; Plain Bob channel-permutation sequence) with no single-outfile argv. Drop per multi-output precedent."
+    },
+    {
+      "program": "specgrids",
+      "mode": "specgrids",
+      "reason": "MULTI-OUTPUT: writes outfilecnt numbered files (sg0.ana/sg1.ana verified from outfilecnt 2; changrouping enforced 1-256 verbatim). afta8 comments it out as '[Doesn't work - multiple outs]'; manual says identical to SPECNU SLICE mode 1. Drop."
+    },
+    {
+      "program": "specvu",
+      "mode": "specvu",
+      "reason": "CRASHES on this build: both modes abort with heap corruption ('specvu: malloc.c:2617: sysmalloc: Assertion ... failed.', SIGABRT/exit 134, core dump) leaving ZERO-BYTE output files (modes 1 and 2, repeated). Would also fail non-empty data verification. Drop."
+    },
+    {
+      "program": "features",
+      "mode": "get",
+      "reason": "Fails every engine contract: mode 1 exits 0 but writes ZERO-BYTE .txt on both probe sources (fails non-empty data verification - getlevel-2 precedent); mode 2 writes NUMBERED files (f2out0.txt - multi-output); mode 3 exit 255; modes 4-6 take NO outfile argv (stdout only, mode 4 verified). Drop."
+    }
+  ]
+}

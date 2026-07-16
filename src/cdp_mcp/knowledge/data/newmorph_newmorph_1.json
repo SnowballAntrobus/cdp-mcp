@@ -1,0 +1,116 @@
+{
+  "program": "newmorph",
+  "mode": "newmorph",
+  "submode": 1,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "stagger + indur2"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "MORPH BETWEEN DISSIMILAR SPECTRA, mode 1 (linear interpolation between average peak channels): unlike morph morph, the interpolation is anchored on the (up to 16) spectral PEAKS of the two sounds - peaks physically move from sound 1's positions to sound 2's while all remaining channels interpolate - which is what lets it handle spectrally distant sources. DURATION RULE (verified via pvoc synth round-trips, both orders): output = stagger + indur2 - (2.0, 1.5) pair -> 1.5209 at stagger 0, 2.0201 at stagger 0.5; (1.5, 2.0) -> 2.0230 / 2.5223; with -e the output is instead CUT at infile1's end, i.e. min(stagger + indur2, indur1) (verified: (1.5, 2.0) stagger 0.5 -e -> 1.5209). Constraint: startmorph must be >= stagger, or the run refuses 'start of amp interpolation is set before entry of 2nd soundfile.'; endmorph past the end of either file refuses 'end of interpolation is beyond end of one of soundfiles.' Modes 2-6 share this argv and the same duration rule (mode 5 spot-verified): 2 = cosinusoidal spline, 3/4 = channel-by-channel peaks, 5/6 = tune sound 1 to sound 2's averaged harmonic field; mode 7 (multi-output steps) is engine-incompatible. Deterministic; all five positionals scalar-only.",
+  "musical_use": "The morph to reach for when the two sounds are NOT already similar (morph morph's home turf is near-neighbours): peak-anchored interpolation keeps something perceptually solid - the resonant peaks - sliding from one spectral skeleton to the other instead of dissolving into an averaged blur. stagger delays sound 2's entry (and lengthens the output by exactly that much); startmorph/endmorph frame the transition inside sound 1's timeline, so you can hold pure sound 1, transition over a chosen span, then ride out on sound 2's remainder. exponent warps the interpolation curve (< 1 front-loads the movement, > 1 holds back then snaps). peaks sets how many spectral peaks anchor the morph - few peaks (1-4) = a strong, simple formant glide; more = finer-grained. -e stamps sound 1's loudness envelope on the result (and cuts the output at sound 1's end); -n morphs ONLY the peaks, leaving the rest of the spectrum alone; -f moves only the peak FREQUENCIES toward sound 2. Siblings: mode 2 for a smoother S-curve, modes 5/6 to tune sound 1 into sound 2's harmonic field rather than fully morphing.",
+  "parameters": {
+    "stagger": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time before entry of file 2 (CDP-enforced 0 to infile1's duration - refusal '(0.000000 to 2.023039)' on a ~2 s file, input-dependent). ADDS to the output duration (stagger + indur2). Must be <= startmorph. Breakpoint refused ('Cannot read parameter 1 ... brkpnt_files not permitted.')."
+    },
+    "startmorph": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time (in file 1's timeline) at which the morph starts. Runtime constraint: >= stagger, else 'ERROR: start of amp interpolation is set before entry of 2nd soundfile.' (verified: stagger 0.9/startmorph 0.5 refused; equal values run). Scalar only (parameter 2)."
+    },
+    "endmorph": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time (in file 1's timeline) at which the morph ends. Must lie within BOTH files: 1.9 on a (2.0 s, 1.5 s) pair refused 'ERROR: end of interpolation is beyond end of one of soundfiles.' Scalar only (parameter 3)."
+    },
+    "exponent": {
+      "type": "float",
+      "min": 0.02,
+      "max": 50.0,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.3, 3.0],
+      "description": "Exponent of the interpolation curve: 1 = linear, > 1 = increasing slope (late movement), < 1 = decreasing (early movement). CDP-enforced 0.02-50 (refusals at 0 and 100 verbatim). Scalar only (parameter 4)."
+    },
+    "peaks": {
+      "type": "int",
+      "min": 1.0,
+      "max": 16.0,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [1.0, 8.0],
+      "description": "Number of spectral peaks to interpolate (CDP-enforced 1-16). Scalar only (parameter 5)."
+    },
+    "retain_env": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-e",
+      "flag_kind": "no_value",
+      "description": "Retain the loudness envelope of the FIRST sound; the output then CUTS OFF at sound 1's end - duration becomes min(stagger + indur2, indur1) (verified). Bool switches are execute()-side until the engine accepts bools."
+    },
+    "peaks_only": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "No interpolation of anything except the peaks (verified accepted, output differs)."
+    },
+    "frq_only": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-f",
+      "flag_kind": "no_value",
+      "description": "Only frequency is determined by the peaks in sound 2 (verified accepted, output differs)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Straight peak-morph across the whole overlap.",
+      "params": {"stagger": 0.0, "startmorph": 0.0, "endmorph": 1.4, "exponent": 1.0, "peaks": 4},
+      "expected_use": "Sound 1's spectral peaks slide linearly to sound 2's over 1.4 s; output = indur2."
+    },
+    {
+      "description": "Held opening, late snap.",
+      "params": {"stagger": 0.5, "startmorph": 0.5, "endmorph": 1.4, "exponent": 3.0, "peaks": 2},
+      "expected_use": "Sound 2 enters at 0.5 s, the two-peak morph holds back then snaps late (exp 3); output = 0.5 + indur2."
+    }
+  ],
+  "known_issues": [
+    "DURATION: stagger + indur2 in all probed regimes (both orders, stagger 0/0.5, modes 1 and 5); -e switches the rule to min(stagger + indur2, indur1). Multi-input entry - the pre-flight expression uses indur2 and the stagger parameter.",
+    "Runtime ordering constraints (verbatim): startmorph < stagger -> 'ERROR: start of amp interpolation is set before entry of 2nd soundfile.'; endmorph past either file's end -> 'ERROR: end of interpolation is beyond end of one of soundfiles.'",
+    "All five positional parameters refuse breakpoint files ('Cannot read parameter 1 ... brkpnt_files not permitted.' verified on the stagger slot; all five probed slots refuse) - the morph trajectory is shaped by exponent, not envelopes.",
+    "MODE 7 IS ENGINE-INCOMPATIBLE: it writes 'outcnt' numbered files (verified: nm70.ana/nm71.ana/nm72.ana from outcnt 3) with no single-outfile argv - dropped per multi-output precedent. Modes 2-6 are curatable siblings sharing this argv shape (all ran; all shas distinct; mode 5's duration rule re-verified).",
+    "Progress spam ('0 min X.XX sec' per window) and 'WARNING: failed to write PEAK data' on every run - harmless.",
+    "Deterministic (repeat runs byte-identical in the data chunk). Bool switches (-e/-n/-f) are documented for execute() until the engine accepts bool params."
+  ],
+  "references": ["cdp://docs/html/cnewmorph"]
+}

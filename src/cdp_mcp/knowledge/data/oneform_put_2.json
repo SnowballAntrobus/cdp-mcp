@@ -1,0 +1,81 @@
+{
+  "program": "oneform",
+  "mode": "put",
+  "submode": 2,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "IMPOSE A SINGLE-MOMENT FORMANT, mode 2 (REPLACE): strips the analysis file's own evolving formants and re-colours the whole sound with the fixed formant envelope captured in a single-moment-formants datafile (oneform get's output) - a static graphic-EQ shaped like one instant of another sound. Mode 1 (same argv) ADDS the moment-formant to the existing formants instead - denser, often buzzier (both verified running, distinct outputs). The 1f-infile occupies the argv slot BETWEEN input and output (pre-output aux). Duration static (verified 2.0230 -> 2.0230, 3.0215 -> 3.0215 via pvoc synth round-trips); deterministic; -l/-h/-g flags verified output-changing. Passing an ordinary .ana in the 1f slot refuses 'ERROR: Second fvile is not a formant file' (typo verbatim).",
+  "musical_use": "The stamp half of the single-moment-formant chain: whatever instant oneform get captured - a vowel, a bow bite, a bell's bloom - becomes a fixed spectral mask over the entire target sound. Mode 2's replacement is the cleaner recolouring (mode 1's addition thickens the existing formants and can buzz). Like all filtering it needs something to filter: broadband and noisy targets take the imposed colour vividly, narrowband tones may only change level. Classic move: extract 'ey' from speech, replace a drone's formants with it, and the drone speaks the vowel indefinitely; or mask a cymbal wash with a cello's resonance-print. lolim/hilim zero the spectrum outside a band (brutal but effective isolation of the coloured region); gain compensates for level lost in replacement. For a MOVING vocal mask use formants put/vocode instead - this one is deliberately frozen.",
+  "parameters": {
+    "onefile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "The single-moment-formants datafile (.for) produced by oneform get - reference its session path. Renders in the argv BETWEEN the input and output slots. An ordinary formant file or .ana here refuses 'Second fvile is not a formant file' (verbatim, typo included)."
+    },
+    "lolim": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Low frequency limit - the spectrum is zeroed below it (verified output-changing at 200 Hz; -l5 accepted, bounds not refusal-probed below that)."
+    },
+    "hilim": {
+      "type": "float",
+      "min": 5.0,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "High frequency limit - the spectrum is zeroed above it (CDP-enforced 5 Hz to nyquist: '-h23000' refused verbatim '(5.000000 to 22050.000000)')."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Overall output gain (verified output-changing at 2; -g0 is ACCEPTED - renders silence, no range refusal observed). Breakpoint refused ('Cannot read parameter 3 ... brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Recolour a drone with a captured vowel.",
+      "params": {"onefile": "ey_1f.for", "gain": 1.5},
+      "expected_use": "The drone's own formants are replaced by the frozen 'ey' envelope; gain makes up replacement losses."
+    },
+    {
+      "description": "Vowel-mask only the mid band.",
+      "params": {"onefile": "ah_1f.for", "lolim": 200.0, "hilim": 6000.0},
+      "expected_use": "Spectrum zeroed outside 200-6000 Hz, the masked band wearing the 'ah' colour."
+    }
+  ],
+  "known_issues": [
+    "Mode 1 (ADD) vs mode 2 (REPLACE): mode 1 layers the moment-formant onto the existing formants (denser/buzzier), mode 2 substitutes them (cleaner recolouring) - both verified running with distinct outputs; this entry pins mode 2.",
+    "The 1f slot validates its file type ('Second fvile is not a formant file', binary typo verbatim) - only oneform get outputs belong there.",
+    "-g0 is accepted without refusal and yields silence - no lower bound is enforced on gain.",
+    "Imposition is only audible where the target has energy to shape - broadband targets recolour vividly, narrow tones may only change level.",
+    "Duration static; deterministic (byte-identical data chunks; compare data chunks, not raw bytes - DATE stamp differs)."
+  ],
+  "references": ["cdp://docs/html/coneform"]
+}

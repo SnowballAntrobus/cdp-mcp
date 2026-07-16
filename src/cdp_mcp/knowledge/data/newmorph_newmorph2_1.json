@@ -1,0 +1,44 @@
+{
+  "program": "newmorph",
+  "mode": "newmorph2",
+  "submode": 1,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "PEAKSFILE EXTRACTOR: finds the frequencies of the most prominent spectral peaks of an analysis file (in order of prominence) and writes them to a text DATA file, one frequency per line, most prominent first (verified on a 220 Hz harmonic tone: '157.016924 / 81.590736 / 76.337778 / 54.753339 / 48.560505 / 47.812285' for peakcnt 6 - values are spectral-envelope peak frequencies, not necessarily the fundamental). This peaksfile is the exact input format of newmorph newmorph2 modes 2-3 (tune a sound toward a listed harmonic field), and is a plain frequency list you can also hand-edit or write directly. Deterministic. The duration_model 'static' is a schema placeholder - data outputs skip the audio pre-flight.",
+  "musical_use": "The analysis half of the newmorph2 chain: harvest the resonant skeleton of one sound here, then tune ANY other sound toward that skeleton with newmorph2 mode 2 (linear) or 3 (cosinusoidal) - a morph toward a sound that never has to be present as a second input. Because the file is just frequencies (one per line, prominence order), you can also compose the target field by hand: write a chord's frequencies with write_data_file() and pull a source toward a harmony that never existed as audio. peakcnt sets how many peaks are listed; extract more than you plan to use and let the consumer's own peakcnt choose how deep into the list to reach.",
+  "parameters": {
+    "peakcnt": {
+      "type": "int",
+      "min": 1.0,
+      "max": 16.0,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [4.0, 8.0],
+      "description": "Number of most-prominent peaks to find (CDP-enforced 1-16, refusals at 0 and 17 verbatim '(1.000000 to 16.000000)'). One output line per peak."
+    }
+  },
+  "examples": [
+    {
+      "description": "Harvest a 6-peak harmonic field from a resonant source.",
+      "params": {"peakcnt": 6},
+      "expected_use": "Output .txt: six frequencies, most prominent first. Feed as the peaksfile of newmorph newmorph2 2/3."
+    }
+  ],
+  "known_issues": [
+    "DATA OUTPUT (.txt): one peak frequency per line (C '%lf' format), most prominent FIRST - the exact peaksfile format of newmorph newmorph2 modes 2-3. Cannot be auditioned or fed to audio inputs; duration pre-flight skipped; duration_row null in the findings (no audio duration).",
+    "The listed values are peaks of the spectral envelope - on a harmonic tone they need not be the fundamental or exact harmonics (probe above). For an exact harmonic target, write the peaksfile by hand instead.",
+    "Deterministic (byte-identical text run to run)."
+  ],
+  "references": ["cdp://docs/html/cnewmorph"]
+}

@@ -1,0 +1,90 @@
+{
+  "program": "tunevary",
+  "mode": "tunevary",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "REPLACE SPECTRAL FREQUENCIES BY HARMONICS OF SPECIFIED PITCH(ES): the time-varying extension of pitch tune - a text pitch_template lists lines of 'time midi [midi ...]' and the spectrum's partials are focused onto the harmonics of those (possibly moving) pitches. Duration static (verified 2.0230 -> 2.0230, 3.0215 -> 3.0215); deterministic; all four optional flags verified output-changing as scalars. BANNER DIVERGENCE (first-class): the usage claims 'All parameters may vary over time', but breakpoint handling is BROKEN on this build - -f (focus) and -b (bcut) brkfiles are accepted yet silently IGNORED (constant-0.2 focus brk == flag-less default render, byte-identical; likewise a step file), while -c (clarity) and -t (trace) brkfiles change the output but do NOT match their constant-scalar equivalents (-c0.5 scalar != constant-0.5 brk). All four are therefore curated scalar-only. Template rules (verbatim refusals): times must increase line to line ('Input data times do not increase at line 2') and every line needs the same number of pitch entries ('Line 2 has different number of entries to previous lines').",
+  "musical_use": "Retune a spectrum onto a harmony that MOVES: where pitch tune locks a file to one chord, the template's time column lets the target pitches change mid-sound - write a chord progression as template lines and the sound's partials migrate from harmony to harmony as it plays (entries can be duplicated on a line, and fractional MIDI is legal, so microtonal fields work). focus sets how hard partials are pulled onto the template (1 = fully); clarity suppresses whatever does not belong to the template - the pair spans gentle harmonic tinting (focus 0.3, clarity 0) to full harmonic replacement (focus 1, clarity 1). trace limits treatment to the N most prominent channels per window (small N = only the strong partials get retuned, the haze stays put); bcut protects the bass below a cutoff. Because the flags are scalar-only in practice on this build, stage any evolving focus/clarity by rendering sections and splicing.",
+  "parameters": {
+    "pitch_template": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text file (write with write_data_file(); any extension except .brk): one line per time, 'time midi [midi ...]' with possibly fractional MIDI values. Times must start at 0 and increase line to line; all lines need equal entry counts (duplicates allowed) - verbatim refusals pinned in known_issues. Example: '0 57 64 69' then '1.5 57 64 69'."
+    },
+    "focus": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-f",
+      "flag_kind": "attached_value",
+      "musical_range": [0.3, 1.0],
+      "description": "Degree of focusing of partial pitches onto the template (CDP-enforced 0-1, refusal '-f2' verbatim; default 1). Scalar-only ON THIS BUILD: brkfiles are accepted but silently ignored - the render stays byte-identical to the default (verified with constant and step files)."
+    },
+    "clarity": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "musical_range": [0.0, 1.0],
+      "description": "Degree to which non-template partials are suppressed (CDP-enforced 0-1; default 0). Scalar-only: a brkfile changes the output but does NOT match the equivalent constant scalar (verified -c0.5 scalar vs constant-0.5 brk differ) - broken time-variation, use scalars."
+    },
+    "trace": {
+      "type": "int",
+      "min": 1.0,
+      "max": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Number of most-prominent channels (window by window) to be replaced by template frequencies (CDP-enforced 1 to the channel count - refusal '-t0' verbatim '(1.000000 to 513.000000)' at pvoc anal 1 defaults, input-dependent). Scalar-only: same inconsistent-brk behavior as clarity."
+    },
+    "bcut": {
+      "type": "float",
+      "min": 9.0,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Bass cutoff: frequencies below this are ignored (CDP-enforced 9 Hz to nyquist - refusal '-b30000' verbatim '(9.000000 to 22050.000000)'). Scalar-only: brkfiles accepted but silently ignored (constant-300 brk == default render)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Tune a sustained source onto an A-minor field.",
+      "params": {"pitch_template": "amin.txt", "clarity": 0.5},
+      "expected_use": "Template '0 57 64 69 / 2 57 64 69': partials focus onto harmonics of A3/E4/A4, non-template material half-suppressed."
+    },
+    {
+      "description": "Moving harmony - the template's time column carries the progression.",
+      "params": {"pitch_template": "prog.txt", "focus": 1.0, "clarity": 1.0, "trace": 30},
+      "expected_use": "Template lines at 0 s and 1.5 s hold different chords; the 30 strongest channels migrate between them as the sound plays."
+    }
+  ],
+  "known_issues": [
+    "BANNER DIVERGENCE (first-class): 'All parameters may vary over time' is false on this build. -f/-b breakpoint files are parsed (bad paths refuse) but their values are never applied - renders stay byte-identical to the flag-less default (same accepted-but-ignored pathology as spectwin's -f/-e). -c/-t brkfiles DO alter the render but a constant-valued file does not reproduce the equivalent scalar - inconsistent semantics. All four flags curated scalar-only; time-vary the harmony via the template's time column instead, which works.",
+    "Template refusals verbatim: non-increasing times -> 'ERROR: Input data times do not increase at line 2'; unequal entry counts -> 'ERROR: Line 2 has different number of entries to previous lines'. Values are MIDI (fractional legal).",
+    "trace's ceiling is the analysis channel count (513 at pvoc anal 1 defaults) - input-dependent.",
+    "Duration static; deterministic (byte-identical data chunks). 'WARNING: failed to write PEAK data' harmless."
+  ],
+  "references": ["cdp://docs/html/ctunevary"]
+}

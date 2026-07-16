@@ -1,0 +1,78 @@
+{
+  "program": "get_partials",
+  "mode": "harmonic",
+  "submode": 3,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "HARMONIC-PARTIAL SNAPSHOT: extracts the relative amplitudes of the HARMONIC partials (integer multiples of a stated fundamental) from the analysis window at a chosen time, writing a text DATA file of 'frq  amp' lines with the fundamental's amplitude normalised to 1.0 (verified on a 220 Hz harmonic tone at time 0.5: '220 1.0 / 440 0.488 / 660 0.310 / ...' - textbook 1/h rolloff recovered). Mode 4 is the same with MIDI values; modes 1-2 are the single-window-file variants and REFUSE multi-window files ('ERROR: This mode only works with single-window analysis files' verbatim). With -v the output is written in filter varibank2 block format (verified: 'time frq amp' rows bracketed by '#'). Deterministic; all three positionals scalar-only. The duration_model 'static' is a schema placeholder - data outputs skip the audio pre-flight.",
+  "musical_use": "The harmonic sieve: unlike peak extract (any prominent peak) this lists ONLY partials sitting on the harmonic series of the fundamental you name - so it answers 'what does this sound's harmonic spectrum look like at this instant?' and hands the answer straight to the filter family (plain output = filter userbank food; -v output = filter varibank2). Name the fundamental deliberately: give it the true pitch for the sound's own harmonic recipe, or a DIFFERENT pitch to harvest whatever energy the sound has along that alternative series - a harmonic reinterpretation. threshold discards weak partials (raise it for a skeletal recipe of only the strong harmonics); time picks the analysis instant, so sample the attack and the sustain separately to compare recipes or to build a filter that plays one moment of a sound forever. Pairs naturally with synth spectra or filter userbank to resynthesise/impose the harvested spectrum.",
+  "parameters": {
+    "fundamental": {
+      "type": "float",
+      "min": 10.0,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Fundamental frequency whose integer multiples are searched for (CDP-enforced 10 Hz to nyquist - refusal verbatim '(10.000000 to 22050.000000)'). Breakpoint refused ('Cannot read parameter 1 ... brkpnt_files not permitted.')."
+    },
+    "threshold": {
+      "type": "float",
+      "min": 0.000002,
+      "max": 1.0,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.001, 0.1],
+      "description": "Relative level below which partials are ignored (CDP-enforced - refusal verbatim '(0.000002 to 1.000000)'). Scalar only (parameter 2)."
+    },
+    "time": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time of the analysis window to sample (CDP-enforced 0 to the file's duration - refusal verbatim '(0.000000 to 2.025941)' on a ~2 s file, input-dependent). Scalar only (parameter 3)."
+    },
+    "varibank2": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-v",
+      "flag_kind": "no_value",
+      "description": "Write the output in filter varibank2 block format (verified: '0 220.0 1.0 / 100000 220.0 1.0 / #' style time-blocks) instead of the plain 'frq amp' list."
+    }
+  },
+  "examples": [
+    {
+      "description": "Harvest a sound's harmonic recipe mid-sustain.",
+      "params": {"fundamental": 220.0, "threshold": 0.01, "time": 0.5},
+      "expected_use": "Output .txt: 'frq amp' per harmonic, fundamental = 1.0. Feed to filter userbank or use as a synth spectra recipe."
+    },
+    {
+      "description": "Reinterpret the sound along a foreign harmonic series.",
+      "params": {"fundamental": 130.81, "threshold": 0.005, "time": 1.0},
+      "expected_use": "Lists whatever energy the sound holds on C3's harmonics - a harmonic re-hearing of the source."
+    }
+  ],
+  "known_issues": [
+    "DATA OUTPUT (.txt): 'frq  amp' per line, fundamental-normalised (MIDI in sibling mode 4; varibank2 blocks with -v) - filter-bank/pitch-data food, not audio. Duration pre-flight skipped; duration_row null in the findings.",
+    "Modes 1-2 (the banner's primary modes) require SINGLE-WINDOW analysis files and refuse ordinary .ana ('This mode only works with single-window analysis files' verbatim) - for engine use on normal analyses, modes 3-4 with a time are the working forms; pair modes 1-2 with a spec grab-style single-window extraction via execute() if ever needed.",
+    "time's ceiling is the file duration (input-dependent).",
+    "Deterministic (byte-identical text run to run). The -v switch is execute()-side until the engine accepts bools."
+  ],
+  "references": ["cdp://docs/html/cgetpartials"]
+}
