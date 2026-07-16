@@ -1,0 +1,57 @@
+{
+  "program": "filter",
+  "mode": "bankfrqs",
+  "submode": 1,
+  "category": "filter",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "DATA OUTPUT (curated on the getlevel-3 precedent): computes the frequency list that 'filter bank' would use and writes it to a TEXT FILE instead of filtering - one frequency per line, printf '%.6f' format (probed: 200.000000 / 400.000000 / ...). Pinned to submode 1 (HARMONIC SERIES over lof, capped at hif); submodes 2-6 (alternate harmonics, subharmonic series below hif - probed: 2000, 1000, 666.666667, 500 -, harmonic+linear-offset, equal-Hz-count and equal-semitone-interval - the tranche-9 geometric/semitone findings for bank 5/6 carry) take the same argv, modes 4-6 with one extra param. The input sound is ONLY a properties donor - no audio is read for content and stereo is accepted; the banner's 'srate determines frq range' is NOT enforced (a 22.05 kHz file accepted hif 8000 > srate/3; real enforced range is the constant 0.1-22050, verbatim refusal probed). hif < lof is SILENTLY SWAPPED (byte-identical list - family behavior). Deterministic (two runs byte-identical text). The output does NOT feed userbank/varibank directly: those need 'pitch amp' PAIRS and refuse a bare frequency column ('Not enough values on line 1') - append an amplitude to each line first (the banner says exactly this).",
+  "musical_use": "The bank-designer's scratchpad: generate the harmonic series (or its siblings) as editable text, then sculpt - delete members, detune a few, append per-filter amplitudes - and feed the result to filter userbank (or use the frequencies in varibank lines). This turns the closed harmonic bank into an open one: keep only odd harmonics for hollow clarinet resonance, thin the top for darkness, nudge members off-grid for bell inharmonicity. Also handy as pure reference data: read the file to know exactly which frequencies filter bank mode 1 would ring for given lof/hif before committing to a heavy render. Chain: bankfrqs -> edit/add amps (write_data_file) -> userbank.",
+  "parameters": {
+    "lof": {
+      "type": "float",
+      "min": 0.1,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Fundamental of the series / low frequency limit. CDP-enforced 0.1 to 22050 ('Parameter[1] Value (-5.000000) out of range (0.100000 to 22050.000000)') - the banner's '0 to srate/3' is not what the binary checks. Breakpoint refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.' - stage numbering)."
+    },
+    "hif": {
+      "type": "float",
+      "min": 0.1,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Upper frequency limit - harmonics above this are omitted (a ceiling, not a member; last listed value sits below it). Same real range as lof; hif < lof silently swapped (verified byte-identical list); values above srate/3 accepted silently even on low-rate files."
+    }
+  },
+  "examples": [
+    {
+      "description": "Harmonic series over 110 Hz up to 2 kHz, as editable text.",
+      "params": {"lof": 110.0, "hif": 2000.0},
+      "expected_use": "Writes 110.000000, 220.000000, ... one per line. Edit, append amplitudes, then feed to filter userbank."
+    }
+  ],
+  "known_issues": [
+    "DATA OUTPUT: the result is a text file (one '%.6f' frequency per line), not audio - duration model static per data-output convention; verify_output checks existence/size only.",
+    "NOT directly consumable by userbank/varibank: they demand 'pitch amp' pairs and refuse the bare column ('ERROR: Not enough values on line 1: file ...' - verified). Append an amplitude to every line first.",
+    "The input soundfile is a properties donor only; despite the banner ('sampling rate of input soundfile determines frq range'), the enforced range is the constant 0.1-22050 (a 22.05 kHz input accepted hif 8000 > srate/3, exit 0). Stereo inputs accepted.",
+    "hif < lof silently swapped (byte-identical output) - the bank-family inverted-range behavior.",
+    "Submodes 2-6 share the argv (4-6 add one param: offset Hz / filter count / semitone interval) and inherit the tranche-9 bank findings: mode 5 spacing is GEOMETRIC (equal pitch intervals) despite 'equally spaced' wording, mode 6 steps 2^(interval/12) from lof and never reaches hif. Separate triples, not curated.",
+    "Deterministic (byte-identical reruns). An existing output file of the same name is refused (CDP no-overwrite), matching the engine's fresh-name policy."
+  ],
+  "references": ["cdp://docs/html/cgrofilt"]
+}

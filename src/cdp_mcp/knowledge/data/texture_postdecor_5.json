@@ -1,0 +1,377 @@
+{
+  "program": "texture",
+  "mode": "postdecor",
+  "submode": 5,
+  "category": "texture",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "set_by",
+    "param": "outdur"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Texture of ORNAMENTAL BURSTS attached to a composed LINE, with decoration placement FORCED AFTER each line note - the POSTDECOR sibling of the curated texture decorated (which randomly permutes placement per note; source texture4.c:1032-37 GET_DECORNPOS -> vflag[IS_PRE]). All three siblings verified DISTINCT at the same seed (byte-proof in the tranche-18 findings). Same argv and notedata grammar as decorated: line 1 = assumed MIDI pitch of each input sound, then '#N' and N rows of 'time infile_no pitch amp dur' - the decorated line; the engine repeats that line every skiptime seconds and hangs a random decoration-group (gpsizlo-gpsizhi events, gppaklo-gppakhi ms apart, spanning gpranglo-gpranghi semitones, amprise/contour-shaped, centring-positioned) on its notes, always AFTER the note in this mode. Pinned to submode 5 ('NONE' - free decoration pitch; modes 1-4 lock to harmonic fields). Banner divergences re-verified in this mode: centring enforced 0-6 ('Parameter[21] Value (7.000000) out of range (0.000000 to 6.000000)') though the banner claims 0-7; position (-p) enforced 0-1 ('Parameter[23] Value (-1.000000) out of range (0.000000 to 1.000000)') though this banner claims '-1(Left) 1(Right): default 0'. Genuinely stochastic with a WORKING -r seed (-r5 twice 1.2 s apart byte-identical; -r9 differs). Duration honesty: outdur 5 -> 6.52 (+10.3%), outdur 8 -> 8.89 (+11.1%). Breakpoints: outdur, gpspace, contour, centring and seed refuse (parameters 1/14/17/26/30 verbatim); every other numeric positional plus -a/-p/-s accepts (full per-parameter sweep in this mode; skiptime brk exit 0, differ-from-endpoints proof on the decorated sibling). Mono input only ('Application doesn't work with this type of infile.'); output always STEREO; option flags ORDER-ENFORCED (-a -p -s -r then switches).",
+  "musical_use": "As texture decorated, but with consistent gesture direction - release-energy: every ornament FALLS AWAY from its line note - after-ring flourishes, bounce-back clusters, echo tails that decay off the beat. Use plain decorated when placement itself should vary. Everything else carries over: keep the line short and let skiptime set the phrase period; gpsizlo/hi and gppaklo/hi shape ornament density and speed; centring 0-6 sits ornaments on/above/below the line pitch; -k keeps only the ornaments (ghost armature); contour 7/8 are the decorated-family directed shapes. Always set a seed to pin a take.",
+  "parameters": {
+    "notedata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text file (write with write_data_file()): line 1 = assumed MIDI pitch of each input sound (single value here); then '#N' and N notelist rows 'time infile_no pitch amp dur' (times non-decreasing; infile_no 1 with one input; amp is MIDI-style 1-127; dur in seconds) - the line the ornaments decorate. All format refusals are verbatim in the entry description. Resolved against the session's data/ directory."
+    },
+    "outdur": {
+      "type": "float",
+      "min": 0.01,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Requested duration. Actual output overshoots by roughly the line length plus the last ornament's tail (+0.6-0.75 s on a 0.2 s one-note line with small groups: 5 -> 5.71, 8 -> 8.60, 3 -> 3.74) - keep line+ornament small relative to outdur when length matters. Breakpoint file refused ('Cannot read parameter 1')."
+    },
+    "skiptime": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 100.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Time between repetitions of the decorated line - the phrase period (family range 0.000002-100). Breakpoint accepted (exit 0, re-verified in this mode; differ-from-endpoints proof on the decorated sibling). LANDMINE (family): a literal 0 slipped the range check and HUNG the binary on the decorated curation fixtures (content-dependent - this mode's probe exited cleanly at 0); keep it positive."
+    },
+    "sndfirst": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1,
+      "flag": null,
+      "description": "First sound to use from the input list (single-input entry: must be 1; 2 refused 'FIRST SND-IN-LIST TO USE > count of files entered: cannot proceed.'). Breakpoint-capable (exit 0)."
+    },
+    "sndlast": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1,
+      "flag": null,
+      "description": "Last sound to use from the input list (must be 1 here). Breakpoint-capable (exit 0)."
+    },
+    "mingain": {
+      "type": "int",
+      "min": 1,
+      "max": 127,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 64,
+      "flag": null,
+      "description": "Minimum event level 1-127 (family standard). Breakpoint-capable (exit 0)."
+    },
+    "maxgain": {
+      "type": "int",
+      "min": 1,
+      "max": 127,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 64,
+      "flag": null,
+      "description": "Maximum event level 1-127. Breakpoint-capable (exit 0)."
+    },
+    "mindur": {
+      "type": "float",
+      "min": 0.016,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Minimum event duration (family floor 0.016). Breakpoint-capable (exit 0)."
+    },
+    "maxdur": {
+      "type": "float",
+      "min": 0.016,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum event duration (>= mindur; values far beyond the input duration fail obscurely - family finding). Contributes to the duration overshoot. Breakpoint-capable (exit 0)."
+    },
+    "phgrid": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Timegrid in ms applying WITHIN decorations (0 = none). Breakpoint-capable (exit 0)."
+    },
+    "gpspace": {
+      "type": "int",
+      "min": 0,
+      "max": 5,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Spatialisation of decoration-groups, CDP-enforced 0-5 ('Parameter[11] Value (6.000000) out of range (0.000000 to 5.000000)'): 0 still, 1 scattered (default), 2 towards centre, 3 away, 4/5 follow/counter texture motion. Breakpoint REFUSED ('Cannot read parameter 14 [...]: brkpnt_files not permitted.') - same manual divergence as texture grouped."
+    },
+    "gpsprange": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": null,
+      "description": "Spatial range of decoration-groups 0-1. Breakpoint-capable (exit 0)."
+    },
+    "amprise": {
+      "type": "float",
+      "min": 0.0,
+      "max": 127.0,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Amplitude change within each decoration, CDP-enforced 0-127 ('Parameter[13] Value (128.000000) out of range (0.000000 to 127.000000)'; default 0 = flat). Breakpoint-capable (exit 0)."
+    },
+    "contour": {
+      "type": "int",
+      "min": 0,
+      "max": 8,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Amplitude contour of decorations, CDP-enforced 0-8 ('Parameter[14] Value (9.000000) out of range (0.000000 to 8.000000)'): 0 mixed, 1 cresc, 2 flat, 3 decresc, 4-6 combinations, 7 directed_to_event, 8 dir_or_flat (7-8 are decorated-family extras; grouped stops at 6). Breakpoint REFUSED ('Cannot read parameter 17')."
+    },
+    "gpsizlo": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "events",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Smallest number of events in a decoration. Breakpoint-capable (exit 0)."
+    },
+    "gpsizhi": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "events",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Largest number of events in a decoration - with gppakhi this bounds the ornament tail past outdur (family warning: large values inflate the render). Breakpoint-capable (exit 0)."
+    },
+    "gppaklo": {
+      "type": "float",
+      "min": 0.023,
+      "max": 60000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Shortest time between event onsets within a decoration, ms (family floor = one sample period, srate-dependent). Breakpoint-capable (exit 0)."
+    },
+    "gppakhi": {
+      "type": "float",
+      "min": 0.023,
+      "max": 60000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Longest time between event onsets within a decoration, ms. Breakpoint-capable (exit 0)."
+    },
+    "gpranglo": {
+      "type": "float",
+      "min": 1.0,
+      "max": 127.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Minimum pitch range of decorations in semitones (mode 5; hfield-note counts in modes 1-4). Breakpoint-capable (exit 0)."
+    },
+    "gpranghi": {
+      "type": "float",
+      "min": 1.0,
+      "max": 127.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum pitch range of decorations in semitones. Breakpoint-capable (exit 0)."
+    },
+    "centring": {
+      "type": "int",
+      "min": 0,
+      "max": 6,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "How decoration pitches centre on the line pitch, ENFORCED 0-6 ('Parameter[21] Value (8.000000) out of range (0.000000 to 6.000000)' - the banner's 'Range 0-7' is WRONG): 0 centred, 1 above, 2 below, 3-6 combinations. Breakpoint REFUSED ('Cannot read parameter 26')."
+    },
+    "atten": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Overall attenuation multiplier, CDP-enforced 0.000002-1 ('Parameter[22] Value (1.500000) out of range (0.000002 to 1.000000)'). Breakpoint-capable (exit 0). Flag order enforced: -a before -p -s -r."
+    },
+    "position": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.5,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Centre of the stereo image - ENFORCED 0-1 ('Parameter[23] Value (-1.000000) out of range (0.000000 to 1.000000)'; the banner's '-1(Left) 1(Right): default 0' is WRONG on both range and default). Breakpoint-capable (verified with an in-range 0.1->0.9 ramp after an out-of-range brk value refused)."
+    },
+    "spread": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Spatial spread of texture events 0-1 ('Parameter[24]' refusal verbatim). Breakpoint-capable (exit 0)."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Random seed - WORKING (-r5 twice 1.2 s apart byte-identical in samples AND frame count, sha 58ff4922727fefa3; -r5 vs -r9 differ). 0 (or omission) seeds from the clock. Family range 0-32767. Breakpoint refused ('Cannot read parameter 30')."
+    },
+    "whole": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-w",
+      "flag_kind": "no_value",
+      "description": "Play the whole input per event, ignoring mindur/maxdur (verified in this mode: changes render)."
+    },
+    "fixstep": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-d",
+      "flag_kind": "no_value",
+      "description": "Fixed timestep between decoration notes instead of random gppaklo-gppakhi (verified in this mode: changes render)."
+    },
+    "instrvary": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-i",
+      "flag_kind": "no_value",
+      "description": "Instruments vary within decorations - multi-input only (family no-op on single input, verified on the decorated sibling)."
+    },
+    "dectop": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-h",
+      "flag_kind": "no_value",
+      "description": "Decorate the TOP note of line chords (family behavior; no-op without chords, verified on the decorated sibling)."
+    },
+    "decall": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-e",
+      "flag_kind": "no_value",
+      "description": "Decorate ALL notes of line chords (family behavior; no-op without chords, verified on the decorated sibling)."
+    },
+    "discardline": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-k",
+      "flag_kind": "no_value",
+      "description": "Discard the original line after decoration - ornaments only (verified in this mode: changes render)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Ornamented two-note ostinato with every decoration after its note.",
+      "params": {
+        "notedata": "ndec.txt",
+        "outdur": 8.0,
+        "skiptime": 1.5,
+        "mindur": 0.1,
+        "maxdur": 0.3,
+        "gpsizlo": 2,
+        "gpsizhi": 5,
+        "gppaklo": 20.0,
+        "gppakhi": 80.0,
+        "gpranglo": 3.0,
+        "gpranghi": 8.0,
+        "seed": 5
+      },
+      "expected_use": "First write_data_file('ndec.txt', '60\\n#2\\n0 1 60 64 0.5\\n1 1 62 64 0.5'). Identical grammar to texture decorated; placement forced after; rerun with seed 5 for the identical take."
+    },
+    {
+      "description": "Ghost armature: line discarded, ornaments pushed above the line pitch.",
+      "params": {
+        "notedata": "ndec.txt",
+        "outdur": 10.0,
+        "skiptime": 0.8,
+        "mindur": 0.08,
+        "maxdur": 0.2,
+        "gpsizlo": 4,
+        "gpsizhi": 9,
+        "gppaklo": 15.0,
+        "gppakhi": 50.0,
+        "gpranglo": 2.0,
+        "gpranghi": 12.0,
+        "centring": 1,
+        "contour": 1,
+        "amprise": 50.0,
+        "discardline": true,
+        "seed": 9
+      }
+    }
+  ],
+  "known_issues": [
+    "Duration honesty (set_by outdur): outdur 5 -> 6.52 (+10.3%), outdur 8 -> 8.89 (+11.1%) on the 0.5 s-ping probe (1 s two-note line, small groups) - overshoot is about the line span plus the last decoration's tail; duration row pinned at outdur 8, tol 0.2, seed 5.",
+    "Placement is FORCED AFTER each line note (source texture4.c ISPRE/ISPOST_DECORORN); plain decorated permutes randomly. All three siblings DIFFER at the same seed (byte-proof recorded) - pick this mode for consistent gesture direction.",
+    "BANNER ERRORS re-verified in this mode (binary wins): centring 0-6 not the banner's 0-7 (parameter 21 refusal verbatim); position (-p) 0-1 with default 0.5, not the banner's -1..1 default 0 (parameter 23 refusal verbatim). contour genuinely 0-8 (decorated-family 7/8 extras).",
+    "Breakpoint surface (full per-parameter sweep in this mode): outdur, gpspace, contour, centring, seed REFUSE (parameters 1/14/17/26/30 verbatim); every other numeric positional plus -a/-p/-s accepts (exit 0).",
+    "Option flags ORDER-ENFORCED: -a -p -s -r then switches ('option flag -a out of order on cmdline.' - family).",
+    "Mono input only ('Application doesn't work with this type of infile.'); output always STEREO. Working -r seed; -r0/omission = clock.",
+    "skiptime 0: exited cleanly on this probe but HUNG the binary on the decorated-curation fixtures - content-dependent, never map 0 through (curated floor 0.000002).",
+    "-i/-h/-e content-dependent no-ops (single input, chord-free line; family finding). Modes 1-4 (harmonic-field decorations) remain execute()-only."
+  ],
+  "references": [
+    "cdp://docs/html/cgrotext"
+  ]
+}

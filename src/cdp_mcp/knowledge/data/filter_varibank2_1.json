@@ -1,0 +1,91 @@
+{
+  "program": "filter",
+  "mode": "varibank2",
+  "submode": 1,
+  "category": "filter",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + tail"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "varibank with a second, TIME-VARYING PARTIALS score: the moving pitch-bands additionally carry a spectrum of (possibly fractional) partials whose numbers and amplitudes evolve over time. Pinned to submode 1 (Hz; submode 2 = MIDI). The fdata file has two '#'-separated sections: first varibank-style lines 'time pitch1 amp1 [pitch2 amp2 ...]' (equal pair counts, ascending times), then a line starting '#', then partials lines 'time partialno1 amp1 [partialno2 amp2 ...]' (partial numbers may be fractional, e.g. 3.5 for inharmonic timbres). BOTH sections' first time MUST be zero - refusals verbatim: 'FIRST TIME VALUE FOR PITCHES MUST BE ZERO' (a 0.5-start pitch section, which plain varibank accepts, is refused here) and 'FAILED TO GET SECOND SET OF DATA (PARTIALS INFORMATION) AFTER HASH SIGN' (missing # block). Output = indur + tail exactly with the family's undocumented 1.0 s tail default (pinned). Q time-variable (brk verified against both endpoints); gain refuses brks. Undocumented -n normalize switch (banner lists only -d; source vflag[1] -> do_norm): runs the level-assessment pre-pass, verified live (RMS 0.0067 -> 0.146). Deterministic; mono and stereo accepted; no vintage-hang exposure (varybank slots exist).",
+  "musical_use": "Where varibank moves plain resonant bands, varibank2 moves TIMBRES: each band is a little additive spectrum whose partial recipe is itself automated. Fractional partial numbers (2.76, 3.5) build bell/gong inharmonicity that plain harmonic stacks (varibank -h) cannot; morph the partials block over time to make a band's character mutate - odd-partial 'clarinet' opening into a dense bell cloud - while the pitch block glides the fundamentals. Sound-design sweet spots: drawn formant glides with vowel-like interior colour, tuned-percussion resonance imposed on noise or breath, slow spectral 'lighting changes' on sustained drones. Both scores must start at t=0; keep partial counts modest (bands x partials sets the filter count and the render cost). High Q rings the recipe pure; -n rescues the level afterwards.",
+  "parameters": {
+    "fdata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text file (write_data_file()): varibank-style pitch lines (first time 0.0), then '#', then partials lines 'time partialno amp ...' (first time 0.0; fractional partial numbers legal). Refusals verbatim in the entry description. ';' comments legal. Resolved against the session's data/ directory."
+    },
+    "q": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Filter tightness (family range 0.001-10000). Time-variable and VERIFIED: a 20->500 breakpoint rendered and differs from both scalar-endpoint renders."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Overall gain (family range). Breakpoint refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.' - family numbering)."
+    },
+    "tail": {
+      "type": "float",
+      "min": 0.01,
+      "max": 20.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Ring-out appended after the input; output = indur + tail sample-exact (verified 1 s/2 s inputs, -t2). Undocumented default 1.0 s, pinned explicitly; family tail-0 bug assumed, curated min 0.01."
+    },
+    "double": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-d",
+      "flag_kind": "no_value",
+      "description": "Double filtering - steeper rolloff."
+    },
+    "normalize": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "UNDOCUMENTED (banner lists only -d; source filters0.c do_norm via vflag[1]): level-assessment pre-pass plus gain rescale, verified live (RMS 0.0067 -> 0.146; 'INFO: Assessing input level.' printed). Roughly triples render time."
+    }
+  },
+  "examples": [
+    {
+      "description": "Gliding two-band spectrum whose partial recipe morphs from near-harmonic to inharmonic.",
+      "params": {"fdata": "vb2_morph.txt", "q": 80.0, "gain": 1.0, "normalize": true},
+      "expected_use": "First write_data_file('vb2_morph.txt', '0.0  300 1.0  1200 0.5\\n1.5  600 1.0  900 0.8\\n#\\n0.0  1 1.0  2 0.5\\n1.5  1 1.0  3.5 0.8'). Fundamentals glide while partial 2 morphs to inharmonic 3.5; output = indur + 1."
+    }
+  ],
+  "known_issues": [
+    "BOTH data sections must start at time 0.0 ('FIRST TIME VALUE FOR PITCHES MUST BE ZERO' verbatim) - stricter than plain varibank, which accepts a late first time. Missing '#' partials block: 'FAILED TO GET SECOND SET OF DATA (PARTIALS INFORMATION) AFTER HASH SIGN'.",
+    "UNDOCUMENTED -n normalize switch (source vflag[1] -> do_norm; banner lists only -d). Varybank internal-param slots cover the pre-pass write - no P5-1 vintage hang; version_sensitive false.",
+    "Undocumented tail default 1.0 s re-verified sample-exact; entry pins -t explicitly. tail 0 not probed - family bug assumed, curated min 0.01.",
+    "Only Q accepts breakpoint files (verified against both endpoints); gain refuses as parameter 2.",
+    "Deterministic (probe pair byte-identical); stereo accepted.",
+    "Unlike varibank there are NO -h/-r harmonic switches here - the partials block IS the harmonic mechanism. Submode 2 (MIDI) same argv - separate triple, not curated."
+  ],
+  "references": ["cdp://docs/html/cgrofilt"]
+}

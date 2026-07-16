@@ -1,0 +1,298 @@
+{
+  "generated_at": "2026-07-16",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (-fsigned-char rebuild; banners 'CDP Release 7.1 2016')",
+    "os": "Linux x86_64 sandbox",
+    "note": "Tranche 18 - texture depth (ornate/motifs/timed families) + filter depth (fixed/variable/userbank/varibank/varibank2/iterated/phasing/bankfrqs). Fixtures /tmp/probe18a (0.5 s ping texture source; 1-3 s noise). To be re-verified on macOS r8 by the CDP-gated suite after integration."
+  },
+  "entries": [
+    {
+      "program": "filter",
+      "mode": "iterated",
+      "submode": 1,
+      "breakpoint_capable": ["pshift", "ashift"],
+      "duration_row": ["filter", "iterated", 1, 1.0, {"q": 50.0, "gain": 1.0, "delay": 0.5, "dur": 3.0}, 0.05],
+      "duration_row_aux": {"fbank": "440 1.0\n660 0.5\n880 0.25\n"},
+      "stochastic": false,
+      "notes": [
+        "BUFFER LANDMINE (first-class): inputs > ~1.48 s at 44.1k mono FAIL at the default CDP buffer ('ERROR: INTERNAL ERROR: (Bug?)' + 'Failed to read all of source file: readsamps_with_wrap()', exit 255); CDP_MEMORY_BBSIZE=8000 fixes (2 s mono+stereo verified). Duration row uses a 1 s input deliberately.",
+        "Duration = last iteration onset + indur (onsets at multiples of delay strictly < dur); expression indur + dur - delay exact at integer dur/delay (3.5000 pinned), under-predicts by < delay otherwise (worst +0.1 s observed). dur runtime min = indur (range quote '(2.000000 to 32767.000000)' on a 2 s file).",
+        "delay 0 HANGS (slips the 0.000002 floor; timeout-killed). Clock-seeded unseedable stochastic when rand/pshift/ashift > 0 (fltpcon.c:87 initrand48 = srand(time(0)); pairs 1.2 s apart differ; same-second collision trap); all three at 0 = deterministic (byte-identical pair) - stochastic:false refers to the pinned row.",
+        "Q NOT brk-capable despite afta8 ('Cannot read parameter 1'); gain/delay/dur/prescale/rand refuse (params 2/3/4/7/8); pshift/ashift accept brks (parstruct 'ddDD' confirmed empirically).",
+        "Ranges verbatim: Q/gain 0.001-10000; delay 0.000002-32767; prescale -1 to 1 (banner 0-1); rand 0-1; pshift 0-48 st (banner '>=0', afta8 0-100); ashift 0-1. fbank pitch checked in-file 0.1-22050 ('frq (30000.000) on line 1 out of range (0.1 to 22050.0)').",
+        "fbank format: 'pitch amp' pairs, dB amps + ';' comments legal; refusals 'Not enough values on line 1' / 'Too many values on line 1'. -i is a byte-identical no-op without pshift; -d/-e/-n change render. Stereo accepted. Mode 2 = MIDI pitches, verified working, not curated.",
+        "Engine spot-check via process_impl: ok, 3.49998 s vs predicted 3.5."
+      ]
+    },
+    {
+      "program": "filter",
+      "mode": "userbank",
+      "submode": 1,
+      "breakpoint_capable": ["q"],
+      "duration_row": ["filter", "userbank", 1, 2.0, {"q": 50.0, "gain": 1.0, "tail": 1.0}, 0.05],
+      "duration_row_aux": {"fbank": "440 1.0\n660 0.5\n880 0.25\n"},
+      "stochastic": false,
+      "notes": [
+        "User-tuned fixed bank; indur + tail sample-exact with the family's undocumented tail default 1.0 (pinned explicitly in the entry).",
+        "Q brk capable (differs from both endpoints); gain refuses (param 2), tail (param 6). Ranges verbatim 0.001-10000 both.",
+        "tail=0 bug variant: garbage tail length tracks the buffer size (244690 frames at BBSIZE 8000 vs bank's fixed 262144 at default); curated min 0.01.",
+        "Raw bankfrqs output refused ('Not enough values on line 1') - amps must be added. In-file pitch range 0.1-22050, not banner's sr/3.",
+        "Deterministic; stereo accepted; -d changes render. NO do_norm pre-pass (FLTBANKU not in filters0.c switch) - P5-1 vintage hang does not apply, version_sensitive false."
+      ]
+    },
+    {
+      "program": "filter",
+      "mode": "varibank",
+      "submode": 1,
+      "breakpoint_capable": ["q"],
+      "duration_row": ["filter", "varibank", 1, 2.0, {"q": 50.0, "gain": 1.0, "tail": 1.0}, 0.05],
+      "duration_row_aux": {"fdata": "0.0  300 1.0  1200 0.5\n1.5  600 1.0  900 0.8\n"},
+      "stochastic": false,
+      "notes": [
+        "Time-varying user bank. fdata lines 'time pitch1 amp1 [pitch2 amp2 ...]': equal pair counts ('Too many entries in row 2 of file ...'), ascending times ('Time is out of sequence on line 3'), first time need NOT be 0 (0.5-start verified) - contrast varibank2.",
+        "UNDOCUMENTED SWITCHES (first-class, source parstruct.c vflags 'don'): -o (drop-out-at-overflow; accepted, no-op on clean render) and -n (NORMALIZE: runs the 'Assessing input/output level' do_norm pre-pass, RMS 0.0042 -> 0.178). Banner lists only -d.",
+        "P5-1 scope resolved from source: do_norm runs only for FLTBANKN (always) / FLTBANKV vflag[2]=-n / FLTBANKV2 vflag[1]=-n; the pre-fix OOB write sat in that pre-pass but varybank internal params allocate slots 20/21 - no vintage hang for varibank even with -n; version_sensitive false.",
+        "indur + tail sample-exact, undocumented default 1.0 pinned. Q brk capable (differ-both-endpoints); gain refuses (param 2). -h3/-r-6 live; rolloff enforced -96..0 verbatim.",
+        "Deterministic; stereo accepted. Mode 2 = MIDI, not curated. Engine spot-check via process_impl with aux fdata + normalize: ok, 2.0 s from 1 s input."
+      ]
+    },
+    {
+      "program": "filter",
+      "mode": "varibank2",
+      "submode": 1,
+      "breakpoint_capable": ["q"],
+      "duration_row": ["filter", "varibank2", 1, 2.0, {"q": 50.0, "gain": 1.0, "tail": 1.0}, 0.05],
+      "duration_row_aux": {"fdata": "0.0  300 1.0  1200 0.5\n1.5  600 1.0  900 0.8\n#\n0.0  1 1.0  2 0.5\n1.5  1 1.0  3.5 0.8\n"},
+      "stochastic": false,
+      "notes": [
+        "varibank + time-varying PARTIALS block (fractional partial numbers legal - inharmonic recipes). fdata = pitch lines, '#', partials lines 'time partialno amp ...'.",
+        "BOTH sections must start at t=0: 'FIRST TIME VALUE FOR PITCHES MUST BE ZERO' (stricter than varibank); missing block: 'FAILED TO GET SECOND SET OF DATA (PARTIALS INFORMATION) AFTER HASH SIGN'.",
+        "Undocumented -n normalize (vflag[1] -> do_norm; RMS 0.0067 -> 0.146); no -h/-r here (partials block replaces them). indur + tail sample-exact, default 1.0 pinned; Q brk capable; gain refuses; deterministic; stereo accepted; version_sensitive false (varybank slots)."
+      ]
+    },
+    {
+      "program": "filter",
+      "mode": "fixed",
+      "submode": 3,
+      "breakpoint_capable": [],
+      "duration_row": ["filter", "fixed", 3, 2.0, {"bwidth": 400.0, "boost_cut": -12.0, "freq": 1000.0, "tail": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Peaking-band EQ (boost/cut a band, dB). NOTHING time-variable: params 1-3 + tail (6) all refuse brks - 'fixed' is literal.",
+        "Ranges verbatim: boost_cut -96 to +36 dB; freq 0.1-22050; bwidth 0.001-22050; prescale -s 0.005-200. Undocumented tail default 1.0 (indur+tail sample-exact); -t0 legal (no bank garbage tail) but +~20 ms constant slop (2.0 -> 2.0200).",
+        "Modes 1/2 (shelving below/above, argv without bwidth) probed working and distinct (mode 1 -12dB@1k RMS .128 vs mode 2 .040 on 2 s noise; boost verified) - SCOPE DROP, full probe data here, execute().",
+        "Deterministic; stereo accepted; EQ process has no do_norm pre-pass - version_sensitive false."
+      ]
+    },
+    {
+      "program": "filter",
+      "mode": "variable",
+      "submode": 1,
+      "breakpoint_capable": ["acuity", "frq"],
+      "duration_row": ["filter", "variable", 1, 2.0, {"acuity": 0.05, "gain": 1.0, "frq": 1000.0, "tail": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "NOTCH with draw-your-own frequency/acuity contours - both brk-capable and verified against both endpoints (frq 400->4000: c46562f6 vs e16889e4/56564a55; acuity 0.01->0.5: eaba7c79 vs 5b889d85/bd151a2d). gain refuses (param 2), tail (param 6).",
+        "Ranges verbatim: acuity 0.0001-1; frq 0.1-22050 (banner claims srate/2). Undocumented tail default 1.0, indur+tail sample-exact.",
+        "Modes 2 (band-pass) / 3 (low-pass) / 4 (high-pass) probed working, four distinct shas on identical args - dropped for overlap with curated sweeping (bandpass LFO) and lohi (static lo/hi); execute().",
+        "Deterministic; stereo accepted; FSTATVAR has no do_norm - version_sensitive false."
+      ]
+    },
+    {
+      "program": "filter",
+      "mode": "phasing",
+      "submode": 2,
+      "breakpoint_capable": ["delay"],
+      "duration_row": ["filter", "phasing", 2, 2.0, {"gain": 0.6, "delay": 30.0, "tail": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "PHASING EFFECT (source + allpass copy). delay (MS, floor one sample period 0.022676 srate-dependent, max 1000) brk-capable verified against both endpoints; gain refuses (param 2). -l (linear delay interp) changes render under a delay brk.",
+        "gain 1.0 = COMPLETE CANCELLATION verified (RMS 0.0000, exit 0) - banner-honest silence trap. gain enforced -1 to 1; prescale -s enforced -1 to 1 (banner says 0-1).",
+        "Undocumented tail default 1.0, indur+tail sample-exact. Mode 1 (raw allpass) probed: magnitude-transparent standalone (RMS 0.134 vs source 0.144) - SCOPE DROP, execute().",
+        "Deterministic; stereo accepted; ALLPASS has no do_norm - version_sensitive false."
+      ]
+    },
+    {
+      "program": "filter",
+      "mode": "bankfrqs",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (.txt, one '%.6f' frequency per line) - no audio duration; duration_model static per getlevel-3 precedent.",
+      "stochastic": false,
+      "notes": [
+        "Curated as a DATA OUTPUT (probe answered yes, getlevel-3 precedent): harmonic-series frequency list to a text file for hand-editing into userbank/varibank data. Engine spot-check via process_impl: ok, .txt written and verified (110/220/330...).",
+        "userbank REFUSES the raw output ('Not enough values on line 1') - amplitudes must be appended per line (banner says so; pinned empirically).",
+        "Input soundfile is a properties donor only; banner's 'srate determines frq range' NOT enforced (22.05 kHz file accepted hif 8000 > srate/3; real range constant 0.1-22050 verbatim). hif<lof silently swapped (byte-identical). Stereo input accepted. Deterministic (byte-identical text reruns). lof brk refused ('Cannot read parameter 3').",
+        "Modes 2-6 probed (alternate/subharm/offset/equal-Hz/equal-semitone; mode 3 output 2000, 1000, 666.666667, 500; mode 5 reproduces the tranche-9 GEOMETRIC-spacing divergence) - same argv family, not curated."
+      ]
+    },
+    {
+      "program": "texture",
+      "mode": "ornate",
+      "submode": 5,
+      "breakpoint_capable": ["skiptime", "sndfirst", "sndlast", "mingain", "maxgain", "mindur", "maxdur", "phgrid", "gpsprange", "amprise", "multlo", "multhi", "atten", "position", "spread"],
+      "duration_row": ["texture", "ornate", 5, 0.5, {"notedata": "_AUX_", "outdur": 8.0, "skiptime": 1.5, "sndfirst": 1, "sndlast": 1, "mingain": 64, "maxgain": 64, "mindur": 0.1, "maxdur": 0.3, "phgrid": 0.0, "gpspace": 1, "gpsprange": 1.0, "amprise": 0.0, "contour": 0, "multlo": 0.5, "multhi": 1.5, "seed": 5}, 0.2],
+      "duration_row_aux": {"notedata": "60\n#2\n0 1 60 64 0.5\n1 1 62 64 0.5\n#3\n0 1 60 64 0.1\n0.08 1 62 64 0.1\n0.16 1 64 64 0.1\n"},
+      "stochastic": true,
+      "notes": [
+        "USER-SPECIFIED ornaments on a composed line. Notedata = pitch line + '#N' LINE block + one-or-more '#N' ORNAMENT blocks ('Insufficient motifs in notedata file.' under two blocks; extras legal, 3-block file verified). Row semantics 'time infile_no pitch amp dur' (decorated family).",
+        "PLACEMENT source-pinned (texture4.c:1032-37): plain ornate randomly permutes ornament-before/after per note; preornate/postornate force it. Seed-5 byte-proof: ornate e0a76479, preornate 02bb1994, postornate 3392ba49 - all distinct, no redundancy drop.",
+        "Working -r seed (pair byte-identical, -r9 differs, unseeded differs). Duration honesty: outdur 5 -> +23%, outdur 8 -> +9.9% (row at 8, tol 0.2, seeded).",
+        "Full per-parameter brk sweep: outdur/gpspace/contour/seed refuse (params 1/14/17/30 verbatim - decorated numbering); everything else + -a/-p/-s accepts; skiptime verified against both endpoints at seed 5.",
+        "multlo/multhi CDP-enforced 0.01-100 verbatim (params 15/16); contour 0-8; gpspace 0-5; atten 0.000002-1 (param 17); flag order enforced ('option flag -a out of order on cmdline.').",
+        "Mono-only in, STEREO out; -w/-d change render, -i/-h/-e byte-identical no-ops (single input, chord-free line). skiptime 0 exited cleanly here (decorated hang is content-dependent - warning retained). Engine spot-check via process_impl (aux notedata in session data/): ok, frame-identical to the probe render."
+      ]
+    },
+    {
+      "program": "texture",
+      "mode": "preornate",
+      "submode": 5,
+      "breakpoint_capable": ["skiptime", "sndfirst", "sndlast", "mingain", "maxgain", "mindur", "maxdur", "phgrid", "gpsprange", "amprise", "multlo", "multhi", "atten", "position", "spread"],
+      "duration_row": ["texture", "preornate", 5, 0.5, {"notedata": "_AUX_", "outdur": 8.0, "skiptime": 1.5, "sndfirst": 1, "sndlast": 1, "mingain": 64, "maxgain": 64, "mindur": 0.1, "maxdur": 0.3, "phgrid": 0.0, "gpspace": 1, "gpsprange": 1.0, "amprise": 0.0, "contour": 0, "multlo": 0.5, "multhi": 1.5, "seed": 5}, 0.2],
+      "duration_row_aux": {"notedata": "60\n#2\n0 1 60 64 0.5\n1 1 62 64 0.5\n#3\n0 1 60 64 0.1\n0.08 1 62 64 0.1\n0.16 1 64 64 0.1\n"},
+      "stochastic": true,
+      "notes": [
+        "Ornaments FORCED BEFORE each line note (ISPRE_DECORORN -> vflag[IS_PRE]=1). Distinct from ornate and postornate at the same seed (byte-proof); own seed pair byte-identical (sha 02bb1994), -r9 differs.",
+        "Duration: outdur 5 -> 6.2362 (+4.7%), outdur 8 -> 8.6105 (+7.6%); row at 8, tol 0.2.",
+        "Full brk sweep re-run in this mode: same refuse set (1/14/17/30), same accept set; skiptime brk exit 0 (differ-endpoints proof on the ornate sibling). -w/-d change render."
+      ]
+    },
+    {
+      "program": "texture",
+      "mode": "postornate",
+      "submode": 5,
+      "breakpoint_capable": ["skiptime", "sndfirst", "sndlast", "mingain", "maxgain", "mindur", "maxdur", "phgrid", "gpsprange", "amprise", "multlo", "multhi", "atten", "position", "spread"],
+      "duration_row": ["texture", "postornate", 5, 0.5, {"notedata": "_AUX_", "outdur": 8.0, "skiptime": 1.5, "sndfirst": 1, "sndlast": 1, "mingain": 64, "maxgain": 64, "mindur": 0.1, "maxdur": 0.3, "phgrid": 0.0, "gpspace": 1, "gpsprange": 1.0, "amprise": 0.0, "contour": 0, "multlo": 0.5, "multhi": 1.5, "seed": 5}, 0.2],
+      "duration_row_aux": {"notedata": "60\n#2\n0 1 60 64 0.5\n1 1 62 64 0.5\n#3\n0 1 60 64 0.1\n0.08 1 62 64 0.1\n0.16 1 64 64 0.1\n"},
+      "stochastic": true,
+      "notes": [
+        "Ornaments FORCED AFTER each line note (ISPOST_DECORORN). Distinct from ornate/preornate at the same seed; own seed pair byte-identical (sha 3392ba49).",
+        "Duration: outdur 5 -> 6.3073 (+6.1%), outdur 8 -> 8.7391 (+9.2%); row at 8, tol 0.2.",
+        "Full brk sweep re-run: same refuse/accept surface as ornate. -w/-d change render."
+      ]
+    },
+    {
+      "program": "texture",
+      "mode": "motifs",
+      "submode": 5,
+      "breakpoint_capable": ["packing", "scatter", "tgrid", "sndfirst", "sndlast", "mingain", "maxgain", "minpich", "maxpich", "phgrid", "gpsprange", "amprise", "multlo", "multhi", "atten", "position", "spread"],
+      "duration_row": ["texture", "motifs", 5, 0.5, {"notedata": "_AUX_", "outdur": 8.0, "packing": 0.8, "scatter": 0.0, "tgrid": 0.0, "sndfirst": 1, "sndlast": 1, "mingain": 64, "maxgain": 64, "minpich": 55.0, "maxpich": 70.0, "phgrid": 0.0, "gpspace": 1, "gpsprange": 1.0, "amprise": 0.0, "contour": 0, "multlo": 0.5, "multhi": 1.5, "seed": 5}, 0.2],
+      "duration_row_aux": {"notedata": "60\n#3\n0 1 60 64 0.3\n0.15 1 64 64 0.3\n0.3 1 67 64 0.3\n"},
+      "stochastic": true,
+      "notes": [
+        "Whole written motifs scattered simple-style (packing/scatter grid, random start pitch minpich-maxpich). Notedata = pitch line + one-or-more motif blocks ('Insufficient motifs in notedata file.' with none).",
+        "Duration: outdur 5 -> +4.1%, 8 -> +7.6% (row at 8, tol 0.2, seeded). Working -r seed. packing brk verified against both endpoints at seed 5.",
+        "Full brk sweep: refuse set outdur/gpspace/contour/seed (1/14/17/30); all 13 other positionals + -a/-p/-s accept. multlo range verbatim 0.01-100 (param 17 in this layout).",
+        "-i accepted though absent from the banner's usage line (single-input no-op); -w/-d change render. Mono-only in, stereo out.",
+        "SIBLING DROP motifsin: no mode 5 ('Program mode value [5] is out of range [1 - 4].'); motifs 1 vs motifsin 1 same seed = same frame count (236885), different shas (start-notes-on-field vs all-notes-on-field) - HF-only variant, execute()."
+      ]
+    },
+    {
+      "program": "texture",
+      "mode": "timed",
+      "submode": 5,
+      "breakpoint_capable": ["skiptime", "sndfirst", "sndlast", "mingain", "maxgain", "mindur", "maxdur", "minpich", "maxpich", "atten", "position", "spread"],
+      "duration_row": ["texture", "timed", 5, 0.5, {"notedata": "_AUX_", "outdur": 8.0, "skiptime": 1.0, "sndfirst": 1, "sndlast": 1, "mingain": 64, "maxgain": 64, "mindur": 0.1, "maxdur": 0.3, "minpich": 55.0, "maxpich": 70.0, "seed": 5}, 0.3],
+      "duration_row_aux": {"notedata": "60\n#2\n0 1 60 64 0.3\n0.5 1 62 64 0.3\n"},
+      "stochastic": true,
+      "notes": [
+        "Events at COMPOSED times: notedata = pitch line + EXACTLY ONE timing block ('Incorrect number [0] of motifs in notedata file (expected 1).' / '[2] ... (expected 1).' both probed).",
+        "CYCLING RULE content-verified by onset detection: cell {0, 0.5} at skiptime 1.0 -> attacks 0, 0.5, 1.5, 2.0, 3.0, 3.5 ... = cell restarts at last-cell-onset + skiptime (period = span + skiptime, not skiptime).",
+        "Duration: outdur 5 -> +26%, 8 -> +14% (row at 8, tol 0.3, seeded). Working -r seed; skiptime brk verified against both endpoints at seed 5.",
+        "Brk surface: ONLY outdur and seed refuse (params 1/30) - no gpspace/contour slots in this mode; all 9 other positionals + -a/-p/-s accept. position (-p) enforced 0-1 (param 13 verbatim).",
+        "-w only switch (changes render). Mono-only in, stereo out. skiptime 0 exited cleanly on these fixtures (family warning retained)."
+      ]
+    },
+    {
+      "program": "texture",
+      "mode": "tgrouped",
+      "submode": 5,
+      "breakpoint_capable": ["skip", "sndfirst", "sndlast", "mingain", "maxgain", "mindur", "maxdur", "minpitch", "maxpitch", "phgrid", "gpsprange", "amprise", "gpsizelo", "gpsizehi", "gppacklo", "gppackhi", "gpranglo", "gpranghi", "atten", "position", "spread"],
+      "duration_row": ["texture", "tgrouped", 5, 0.5, {"notedata": "_AUX_", "outdur": 8.0, "skip": 1.0, "sndfirst": 1, "sndlast": 1, "mingain": 64, "maxgain": 64, "mindur": 0.1, "maxdur": 0.3, "minpitch": 55.0, "maxpitch": 70.0, "phgrid": 0.0, "gpspace": 1, "gpsprange": 1.0, "amprise": 0.0, "contour": 0, "gpsizelo": 2, "gpsizehi": 5, "gppacklo": 20.0, "gppackhi": 80.0, "gpranglo": 1.0, "gpranghi": 7.0, "seed": 5}, 0.3],
+      "duration_row_aux": {"notedata": "60\n#2\n0 1 60 64 0.3\n0.5 1 62 64 0.3\n"},
+      "stochastic": true,
+      "notes": [
+        "Grouped-style random bursts fired on the timed cell (one timing block, timed-family notedata rules; cell period = span + skip).",
+        "Duration: outdur 5 -> +28%, 8 -> +15% (row at 8, tol 0.3, seeded); grouped-family blowup warning carried (gpsizehi x gppackhi).",
+        "Full brk sweep of all 21 positionals: refuse set outdur/gpspace/contour/seed (1/14/17/30); the 17 others + -a/-p/-s accept; skip verified against both endpoints at seed 5; gpsizehi brk re-verified.",
+        "Working -r seed; -w/-d change render, -i single-input no-op; mono-only in, stereo out."
+      ]
+    },
+    {
+      "program": "texture",
+      "mode": "tmotifs",
+      "submode": 5,
+      "breakpoint_capable": ["skip", "sndfirst", "sndlast", "mingain", "maxgain", "minpitch", "maxpitch", "phgrid", "gpsprange", "amprise", "multlo", "multhi", "atten", "position", "spread"],
+      "duration_row": ["texture", "tmotifs", 5, 0.5, {"notedata": "_AUX_", "outdur": 8.0, "skip": 1.0, "sndfirst": 1, "sndlast": 1, "mingain": 64, "maxgain": 64, "minpitch": 55.0, "maxpitch": 70.0, "phgrid": 0.0, "gpspace": 1, "gpsprange": 1.0, "amprise": 0.0, "contour": 0, "multlo": 0.5, "multhi": 1.5, "seed": 5}, 0.3],
+      "duration_row_aux": {"notedata": "60\n#2\n0 1 60 64 0.3\n0.5 1 62 64 0.3\n#3\n0 1 60 64 0.1\n0.08 1 62 64 0.1\n0.16 1 64 64 0.1\n"},
+      "stochastic": true,
+      "notes": [
+        "Written motifs fired on the timed cell. Notedata block order source-pinned: pitch line -> TIMING block -> motif block(s) ('Insufficient motifs in notedata file.' when motif blocks missing; extras legal).",
+        "Duration: outdur 5 -> +23%, 8 -> +16% (row at 8, tol 0.3, seeded). Working -r seed; skip brk verified against both endpoints at seed 5.",
+        "Full brk sweep: refuse 1/14/17/30; 11 other positionals + -a/-p/-s accept. -w/-d change, -i no-op; mono-only in, stereo out.",
+        "SIBLING DROP tmotifsin + BANNER BUG (first-class): its usage line omits outdur/skiptime but the binary REQUIRES them ('Insufficient cmdline parameters.' without; runs with); tmotifs 1 vs tmotifsin 1 same seed = same frames (296723), different shas; modes 1-4 only - execute()."
+      ]
+    },
+    {
+      "program": "texture",
+      "mode": "predecor",
+      "submode": 5,
+      "breakpoint_capable": ["skiptime", "sndfirst", "sndlast", "mingain", "maxgain", "mindur", "maxdur", "phgrid", "gpsprange", "amprise", "gpsizlo", "gpsizhi", "gppaklo", "gppakhi", "gpranglo", "gpranghi", "atten", "position", "spread"],
+      "duration_row": ["texture", "predecor", 5, 0.5, {"notedata": "_AUX_", "outdur": 8.0, "skiptime": 1.5, "sndfirst": 1, "sndlast": 1, "mingain": 64, "maxgain": 64, "mindur": 0.1, "maxdur": 0.3, "phgrid": 0.0, "gpspace": 1, "gpsprange": 1.0, "amprise": 0.0, "contour": 0, "gpsizlo": 2, "gpsizhi": 5, "gppaklo": 20.0, "gppakhi": 80.0, "gpranglo": 3.0, "gpranghi": 8.0, "centring": 0, "seed": 5}, 0.2],
+      "duration_row_aux": {"notedata": "60\n#2\n0 1 60 64 0.5\n1 1 62 64 0.5\n"},
+      "stochastic": true,
+      "notes": [
+        "Decorations FORCED BEFORE each line note (ISPRE_DECORORN). Seed-5 byte-proof vs siblings: decorated 4812007a, predecor b0dd3cdd, postdecor 58ff4922 - all distinct; own seed pair byte-identical, -r9 differs.",
+        "Duration: outdur 5 -> 6.2906 (+5.8%), 8 -> 8.7216 (+9.0%); row at 8, tol 0.2, seeded.",
+        "Decorated banner errors re-verified in-mode: centring 0-6 (param 21 verbatim, banner claims 0-7); position 0-1 (param 23 verbatim, banner claims -1..1).",
+        "Full brk sweep: refuse outdur/gpspace/contour/centring/seed (1/14/17/26/30); all 15 other positionals + -a/-p/-s accept. -w/-d/-k change render.",
+        "skiptime 0 family re-probe on these fixtures: decorated AND both siblings exited 0 - the decorated-curation hang is CONTENT-DEPENDENT; warning retained in all entries. Mono-only in, stereo out."
+      ]
+    },
+    {
+      "program": "texture",
+      "mode": "postdecor",
+      "submode": 5,
+      "breakpoint_capable": ["skiptime", "sndfirst", "sndlast", "mingain", "maxgain", "mindur", "maxdur", "phgrid", "gpsprange", "amprise", "gpsizlo", "gpsizhi", "gppaklo", "gppakhi", "gpranglo", "gpranghi", "atten", "position", "spread"],
+      "duration_row": ["texture", "postdecor", 5, 0.5, {"notedata": "_AUX_", "outdur": 8.0, "skiptime": 1.5, "sndfirst": 1, "sndlast": 1, "mingain": 64, "maxgain": 64, "mindur": 0.1, "maxdur": 0.3, "phgrid": 0.0, "gpspace": 1, "gpsprange": 1.0, "amprise": 0.0, "contour": 0, "gpsizlo": 2, "gpsizhi": 5, "gppaklo": 20.0, "gppakhi": 80.0, "gpranglo": 3.0, "gpranghi": 8.0, "centring": 0, "seed": 5}, 0.2],
+      "duration_row_aux": {"notedata": "60\n#2\n0 1 60 64 0.5\n1 1 62 64 0.5\n"},
+      "stochastic": true,
+      "notes": [
+        "Decorations FORCED AFTER each line note (ISPOST_DECORORN). Distinct from decorated/predecor at seed 5 (byte-proof, sha 58ff4922); own seed pair byte-identical, -r9 differs.",
+        "Duration: outdur 5 -> 6.5161 (+10.3%), 8 -> 8.8912 (+11.1%); row at 8, tol 0.2, seeded.",
+        "Full brk sweep: same refuse set as predecor (1/14/17/26/30); same accept set. Centring/position banner errors carry (family)."
+      ]
+    }
+  ],
+  "dropped": [
+    {
+      "program": "texture",
+      "mode": "motifsin",
+      "reason": "No free mode: 'Program mode value [5] is out of range [1 - 4].' (verbatim). Harmonic-field-only variant of curated motifs - motifs 1 vs motifsin 1 at the same seed render the same frame count (236885) with different samples (motifs forces only motif START notes onto the field, motifsin all notes). HF modes are execute()-only across the curated texture family (submode-5 pinning precedent)."
+    },
+    {
+      "program": "texture",
+      "mode": "tmotifsin",
+      "reason": "Same HF-only rationale as motifsin (modes 1-4 only; tmotifs 1 vs tmotifsin 1 same-frames/different-samples at seed 5, 296723 frames) PLUS a first-class BANNER BUG: the usage line omits outdur/skiptime but the binary requires them ('Insufficient cmdline parameters.' without; runs with the full timed-family argv)."
+    },
+    {
+      "program": "filter",
+      "mode": "fixed",
+      "submode": "1-2",
+      "reason": "Shelving pair (boost/cut below/above), fully probed (working, distinct, same ranges/duration model as curated mode 3 minus bwidth) - scope drop in favour of the peaking mode 3; execute() with the recorded ranges."
+    },
+    {
+      "program": "filter",
+      "mode": "variable",
+      "submode": "2-4",
+      "reason": "Band-pass/low-pass/high-pass shapes probed working and mutually distinct; overlap with curated filter sweeping 2 (band-pass LFO) and curated filter lohi (static lo/hi-pass). Notch (submode 1) curated as the shape nothing else provides."
+    },
+    {
+      "program": "filter",
+      "mode": "phasing",
+      "submode": 1,
+      "reason": "Raw allpass: magnitude-transparent standalone (RMS 0.134 vs source 0.144 on 2 s noise) - phase-rotation building block rather than an audible effect; mode 2 (the phasing effect) curated. execute()."
+    }
+  ]
+}

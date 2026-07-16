@@ -1,0 +1,286 @@
+{
+  "program": "texture",
+  "mode": "motifs",
+  "submode": 5,
+  "category": "texture",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "outdur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Scatters whole USER-WRITTEN MOTIFS the way texture simple scatters single events: motif onsets fall at the packing interval (randomised by scatter), each statement transposed to a random start pitch between minpich and maxpich, its internal shape exactly as written. The notedata file carries line 1 = assumed MIDI pitch of the input, then ONE OR MORE '#N' motif blocks (rows 'time infile_no pitch amp dur'); several blocks give the texture a vocabulary to pick from; zero blocks refuse 'Insufficient motifs in notedata file.' Pinned to submode 5 (NONE - free pitch; modes 1-4 force notes onto hfield/hset blocks, and mode 1 was verified to differ from its 'motifsin' sibling at the same seed: motifs forces only motif START notes onto the field, motifsin bends EVERY note). multlo/multhi (CDP-enforced 0.01-100 verbatim) scale each statement's duration. Genuinely stochastic with a WORKING -r seed (-r5 twice 1.2 s apart byte-identical; -r9 differs). Duration honesty: outdur 5 -> 5.20 (+4.1%), outdur 8 -> 8.61 (+7.6%). Breakpoints: outdur/gpspace/contour/seed refuse (parameters 1/14/17/30 verbatim); every other numeric positional plus -a/-p/-s accepts (full sweep; packing additionally VERIFIED against both scalar endpoints at seed 5). Mono input only ('Application doesn't work with this type of infile.'); output always STEREO. Flag order enforced (family).",
+  "musical_use": "A cloud of melodies instead of a cloud of dots: write one or more little tunes and the engine strews transposed statements of them across the texture - birdsong-like scatterings, gamelan figuration, canonic swarms where the same shape enters at many pitches. packing is the density knob (tight = overlapping polyphony, sparse = isolated calls); minpich-maxpich sets the transposition field (keep both at the notedata pitch for unison-height statements); multlo/multhi vary statement pacing (sub-1 values snap motifs into ornament-length bursts, >1 stretch them into slow lines). Multiple '#N' blocks build a motif vocabulary the texture rotates among - two contrasting shapes at wide packing reads as call-and-response. Time-varying (breakpoint) packing sculpts swarm density; time-varying minpich/maxpich sweeps the register. Contrast texture grouped (random shapes) and tmotifs (motifs at COMPOSED times). Always seed to pin a take.",
+  "parameters": {
+    "notedata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text file (write_data_file()): line 1 = assumed MIDI pitch of the input sound; then one or more '#N' blocks of rows 'time infile_no pitch amp dur' - the motif shapes (times ascending within a block; amp 1-127; dur seconds). No blocks: 'Insufficient motifs in notedata file.' Resolved against the session's data/ directory."
+    },
+    "outdur": {
+      "type": "float",
+      "min": 0.01,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Requested (minimum) duration; actual ran +4.1% (outdur 5) to +7.6% (outdur 8) over - the last motif statement's tail extends past the grid. Breakpoint refused ('Cannot read parameter 1')."
+    },
+    "packing": {
+      "type": "float",
+      "min": 2.3e-05,
+      "max": 60.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Average time between MOTIF onsets (family range). Breakpoint-capable and VERIFIED: a 0.3->1.5 brk at seed 5 differs from both scalar-endpoint renders."
+    },
+    "scatter": {
+      "type": "float",
+      "min": 0.0,
+      "max": 10.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Randomisation of motif onsets (family range 0-10). Breakpoint accepted (exit 0)."
+    },
+    "tgrid": {
+      "type": "float",
+      "min": 0.0,
+      "max": 10000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Quantised timegrid for motif start times, ms (0 = none). Breakpoint accepted (exit 0)."
+    },
+    "sndfirst": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1,
+      "flag": null,
+      "description": "First sound from the input list (must be 1 here). Breakpoint accepted (exit 0)."
+    },
+    "sndlast": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1,
+      "flag": null,
+      "description": "Last sound from the input list (must be 1 here). Breakpoint accepted (exit 0)."
+    },
+    "mingain": {
+      "type": "int",
+      "min": 1,
+      "max": 127,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 64,
+      "flag": null,
+      "description": "Minimum event level 1-127. Breakpoint accepted (exit 0)."
+    },
+    "maxgain": {
+      "type": "int",
+      "min": 1,
+      "max": 127,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 64,
+      "flag": null,
+      "description": "Maximum event level 1-127. Breakpoint accepted (exit 0)."
+    },
+    "minpich": {
+      "type": "float",
+      "min": 1.0,
+      "max": 127.0,
+      "unit": "MIDI pitch",
+      "breakpoint_capable": true,
+      "default": 60.0,
+      "flag": null,
+      "description": "Minimum start pitch of motif statements (MIDI; transposition relative to the notedata pitch). Breakpoint accepted (exit 0)."
+    },
+    "maxpich": {
+      "type": "float",
+      "min": 1.0,
+      "max": 127.0,
+      "unit": "MIDI pitch",
+      "breakpoint_capable": true,
+      "default": 60.0,
+      "flag": null,
+      "description": "Maximum start pitch of motif statements (MIDI). Breakpoint accepted (exit 0)."
+    },
+    "phgrid": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Timegrid in ms WITHIN motifs (0 = none). Breakpoint accepted (exit 0)."
+    },
+    "gpspace": {
+      "type": "int",
+      "min": 0,
+      "max": 5,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Spatialisation of motif-groups 0-5 (family values). Breakpoint REFUSED ('Cannot read parameter 14')."
+    },
+    "gpsprange": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": null,
+      "description": "Spatial range of motif-groups 0-1. Breakpoint accepted (exit 0)."
+    },
+    "amprise": {
+      "type": "float",
+      "min": 0.0,
+      "max": 127.0,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Amplitude change within motifs 0-127 (default 0). Breakpoint accepted (exit 0)."
+    },
+    "contour": {
+      "type": "int",
+      "min": 0,
+      "max": 6,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Amplitude contour of groups 0-6 (banner; grouped-family set, no 7/8 extras here). Breakpoint REFUSED ('Cannot read parameter 17')."
+    },
+    "multlo": {
+      "type": "float",
+      "min": 0.01,
+      "max": 100.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Minimum multiplier of each motif statement's total duration (CDP-enforced 0.01-100: 'Parameter[17] Value (0.000000) out of range (0.010000 to 100.000000)'). Breakpoint accepted (exit 0)."
+    },
+    "multhi": {
+      "type": "float",
+      "min": 0.01,
+      "max": 100.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum motif-duration multiplier (>= multlo). Breakpoint accepted (exit 0)."
+    },
+    "atten": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Overall attenuation multiplier (family range 0.000002-1). Breakpoint accepted. Flag order enforced: -a -p -s -r then switches."
+    },
+    "position": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.5,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Centre of the stereo image 0-1. Breakpoint accepted (exit 0)."
+    },
+    "spread": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Spatial spread of texture events 0-1. Breakpoint accepted (exit 0)."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Random seed - WORKING (-r5 pair byte-identical; -r9 differs). 0/omission = clock. Breakpoint refused ('Cannot read parameter 30')."
+    },
+    "whole": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-w",
+      "flag_kind": "no_value",
+      "description": "Play the whole input per event, ignoring duration values (verified: changes render)."
+    },
+    "samedur": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-d",
+      "flag_kind": "no_value",
+      "description": "Notes of any one motif all take the same duration (verified: changes render)."
+    },
+    "instrvary": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-i",
+      "flag_kind": "no_value",
+      "description": "Motifs not confined to a fixed instrument - multi-input only. Listed in the banner's parameter text though absent from its usage line; ACCEPTED (verified byte-identical no-op on this single-input entry)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Birdsong swarm: a rising three-note motif scattered every ~0.8 s across an octave.",
+      "params": {"notedata": "nd_mtf.txt", "outdur": 8.0, "packing": 0.8, "minpich": 55.0, "maxpich": 70.0, "multlo": 0.5, "multhi": 1.5, "seed": 5},
+      "expected_use": "First write_data_file('nd_mtf.txt', '60\\n#3\\n0 1 60 64 0.3\\n0.15 1 64 64 0.3\\n0.3 1 67 64 0.3'). Transposed statements strew across the stereo field; rerun with seed 5 for the identical take."
+    },
+    {
+      "description": "Density swell: packing breakpoint tightening from sparse calls to overlapping polyphony.",
+      "params": {"notedata": "nd_mtf.txt", "outdur": 10.0, "packing": [[0.0, 1.5], [1.0, 0.15]], "scatter": 0.2, "minpich": 48.0, "maxpich": 72.0, "spread": 1.0, "seed": 9}
+    }
+  ],
+  "known_issues": [
+    "Duration honesty (set_by outdur): +4.1% at outdur 5, +7.6% at outdur 8 on the 0.5 s-ping probe; duration row pinned at outdur 8, tol 0.2, seed 5.",
+    "Notedata needs the pitch line plus at least ONE '#N' motif block ('Insufficient motifs in notedata file.' otherwise); several blocks legal (vocabulary).",
+    "SIBLING BYTE-PROOF: motifs 1 vs motifsin 1 at the same seed render the SAME LENGTH but different samples (motifs forces only motif START notes onto the harmonic field; motifsin bends every note). motifsin has NO mode 5 ('Program mode value [5] is out of range [1 - 4].' verbatim) and is dropped - its useful modes are all harmonic-field modes, which the curated texture set leaves to execute().",
+    "Breakpoint surface: outdur/gpspace/contour/seed refuse (parameters 1/14/17/30 verbatim); all 13 other numeric positionals plus -a/-p/-s accept (full sweep; packing verified against both endpoints at seed 5).",
+    "The banner's usage line lists only [-w] [-d] but -i is accepted (and described lower in the same banner) - single-input no-op, multi-input only.",
+    "Mono input only ('Application doesn't work with this type of infile.'); output always STEREO. Flag order enforced (family). Working -r seed."
+  ],
+  "references": ["cdp://docs/html/cgrotext"]
+}

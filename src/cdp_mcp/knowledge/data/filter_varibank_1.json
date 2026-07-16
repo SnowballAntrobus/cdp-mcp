@@ -1,0 +1,126 @@
+{
+  "program": "filter",
+  "mode": "varibank",
+  "submode": 1,
+  "category": "filter",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + tail"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "A user-defined filterbank whose band FREQUENCIES AND AMPLITUDES MOVE OVER TIME - the time-varying sibling of userbank. Pinned to submode 1 (pitches in Hz; submode 2 = MIDI, same argv). The fdata parameter is an auxiliary text file (write_data_file()): each line is 'time pitch1 amp1 [pitch2 amp2 ...]' - every line must carry the SAME number of pairs (refusal verbatim: 'Too many entries in row 2 of file ...'); times ascending ('Time is out of sequence on line 3'); the first time need NOT be zero (a 0.5-start file rendered, exit 0 - contrast varibank2 which demands 0); kill a band mid-file by setting its amp to 0; amps may be dB; ';' comments legal. The bank interpolates between the timed states. Output = indur + tail exactly, with the family's undocumented tail default 1.0 s (pinned explicitly). Q is time-variable (brk verified against both endpoints); gain refuses brks. UNDOCUMENTED SWITCHES (source cdp2k/parstruct.c set_vflgs 'don'): besides the bannered -d (double filtering), the binary accepts -o (drop-out-at-overflow, DROP_OUT_AT_OVFLOW - byte-identical no-op on a non-overflowing render) and -n (auto-NORMALIZE: runs the 'Assessing input/output level' pre-pass and rescales gain - RMS 0.0042 -> 0.178 on the probe). The -n pre-pass is the do_norm path (filters0.c:85 vflag[2]) but the varybank internal-param slots exist, so the P5-1 vintage OOB-write does not apply. Deterministic; mono and stereo accepted.",
+  "musical_use": "Draw a spectral trajectory as text and pour any sound through it: gliding chords, formant morphs (vowel A to vowel O as two timed band-sets), converging/diverging cluster glissandi, slow spectral tides. Each line of the fdata file is a snapshot of the whole bank; CDP glides every band between snapshots, so two lines make one big morph and many lines make an evolving score. Amp columns voice each band independently - fade bands in/out over time by automating their amps toward 0. Use -h to give every pitch a stack of harmonics (instant rich 'vocal' resonance; watch speed, pitches x harmonics costs time) with -r tilting the stack darker. High Q + noise input = pure moving chords; low Q keeps the source audible inside the moving colour. Layer a Q breakpoint on top for focus that tightens as the bands move. The -n switch normalizes the result when high Q eats all the level.",
+  "parameters": {
+    "fdata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text file (write_data_file()): lines of 'time pitch1 amp1 [pitch2 amp2 ...]', same pair-count per line, times ascending (need not start at 0), pitches in Hz (this submode), amps numeric or dB (0 silences a band). Refusals verbatim in the entry description. Resolved against the session's data/ directory."
+    },
+    "q": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Filter tightness (family range 0.001-10000). Time-variable and VERIFIED: a 20->500 breakpoint rendered and differs from both scalar-endpoint renders."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Overall gain (family range 0.001-10000). Breakpoint refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    },
+    "tail": {
+      "type": "float",
+      "min": 0.01,
+      "max": 20.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Ring-out appended after the input; output = indur + tail sample-exact (verified 1 s and 2 s inputs, -t2). Undocumented CDP default 1.0 s - pinned explicitly. Family tail-0 bug assumed live; curated minimum 0.01."
+    },
+    "hcnt": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "harmonics",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Number of harmonics of each pitch to include (default 1 = fundamentals only; -h3 verified, changes render). High harmonics of high pitches may exceed Nyquist; pitches x harmonics sets processing cost."
+    },
+    "rolloff": {
+      "type": "float",
+      "min": -96.0,
+      "max": 0.0,
+      "unit": "dB",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Level drop from one harmonic to the next, CDP-enforced -96 to 0 dB ('Parameter[6] Value (5.000000) out of range (-96.000000 to 0.000000)'). Only meaningful with hcnt > 1."
+    },
+    "double": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-d",
+      "flag_kind": "no_value",
+      "description": "Double filtering - steeper rolloff."
+    },
+    "overflow_dropout": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-o",
+      "flag_kind": "no_value",
+      "description": "UNDOCUMENTED (absent from the usage banner; source vflag DROP_OUT_AT_OVFLOW): abandon the run if the output overflows. Accepted, byte-identical no-op on a non-overflowing render."
+    },
+    "normalize": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "UNDOCUMENTED (absent from the banner; source filters0.c do_norm via vflag[2]): pre-scans input and output levels ('INFO: Assessing input level.' / 'Assessing output level.') and rescales gain to match input level - verified live (RMS 0.0042 -> 0.178). Adds a full extra pass; render time roughly triples."
+    }
+  },
+  "examples": [
+    {
+      "description": "Two-band spectral glide: 300+1200 Hz opening out to 600+900 Hz over 1.5 s.",
+      "params": {"fdata": "vb_glide.txt", "q": 50.0, "gain": 1.0, "normalize": true},
+      "expected_use": "First write_data_file('vb_glide.txt', '0.0  300 1.0  1200 0.5\\n1.5  600 1.0  900 0.8'). Bands glide between the two states; -n restores level; output = indur + 1 (pinned tail default)."
+    },
+    {
+      "description": "Vowel-ish morph with harmonic stacks: 3 harmonics per pitch, dark tilt, tightening Q.",
+      "params": {"fdata": "vb_glide.txt", "q": [[0.0, 20.0], [1.0, 300.0]], "gain": 2.0, "hcnt": 3, "rolloff": -6.0},
+      "expected_use": "Each moving band carries 3 harmonics at -6 dB/step while the Q breakpoint tightens the focus across the file."
+    }
+  ],
+  "known_issues": [
+    "UNDOCUMENTED SWITCHES -o and -n (first-class): the banner lists only -d, but parstruct.c declares switches 'don' and both are accepted. -n runs the normalization pre-pass (do_norm, filters0.c:85) and rescales gain; -o enables drop-out-at-overflow. On pre-11cdcb4 vintage binaries the -n pre-pass epilogue wrote FLT_FRQ_INDEX/FLT_TIMES_CNT unguarded, but varybank internal-param slots include indices 20/21, so the write was in-bounds - no P5-1 hang here; version_sensitive stays false.",
+    "fdata format enforced per line: equal pair counts ('Too many entries in row 2 of file ...'), ascending times ('Time is out of sequence on line 3' - line numbers count comment lines too). Times may start after 0 (0.5-start verified, exit 0) - contrast varibank2's zero-start rule.",
+    "Undocumented tail default 1.0 s (re-verified: 2 s -> 3.0000 sample-exact with no -t); entry pins it. tail 0 not probed here - family bug assumed, curated min 0.01.",
+    "Only Q accepts breakpoint files (verified against both endpoints); gain refuses as parameter 2.",
+    "Deterministic (two runs 1.2 s apart byte-identical); stereo accepted.",
+    "Submode 2 (MIDI pitch columns) same argv - separate triple, not curated. 'filter vfilters' generates fixed-pitch fdata files from pitch data if needed (execute())."
+  ],
+  "references": ["cdp://docs/html/cgrofilt"]
+}

@@ -1,0 +1,284 @@
+{
+  "program": "texture",
+  "mode": "ornate",
+  "submode": 5,
+  "category": "texture",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "outdur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Texture of USER-SPECIFIED ORNAMENTS hung on a composed line: where texture decorated throws random-shaped bursts at its line, ORNATE plays exact little melodies you write. The notedata file carries line 1 = assumed MIDI pitch of the input sound, then TWO OR MORE '#N' note blocks (rows 'time infile_no pitch amp dur'): block 1 = the line to ornament (restated every skiptime), blocks 2+ = the ornament shape(s) - with several ornament blocks the engine picks among them. Source-pinned placement (texture4.c:1032-37): plain ornate RANDOMLY PERMUTES whether each ornament falls before or after its line note; the preornate/postornate siblings force before/after (all three verified DISTINCT at the same seed - separate curated entries). Fewer than two blocks refuses 'Insufficient motifs in notedata file.' (verbatim; extra blocks legal - a 3-block file rendered). Pinned to submode 5 (NONE - no harmonic field; modes 1-4 lock pitches to hfield/hset blocks and add a block to the expected count). multlo/multhi (CDP-enforced 0.01-100, verbatim) scale each ornament statement's total duration relative to the ornamented note. Genuinely stochastic with a WORKING -r seed (-r5 twice 1.2 s apart byte-identical; -r9 differs; unseeded runs differ). Duration honesty: outdur 5 -> 6.14 (+23%), outdur 8 -> 8.79 (+9.9%) - overshoot is roughly the line span plus the last ornament's tail. Breakpoints: every numeric positional accepted a brk file EXCEPT outdur, gpspace and contour (refusals verbatim 'Cannot read parameter 1/14/17'); flags -a/-p/-s brk-capable, seed refused (parameter 30); skiptime brk VERIFIED against both scalar endpoints at seed 5. Unlike texture decorated, skiptime 0 did NOT hang here (exit 0, valid render) - but keep it positive, the decorated hang was content-dependent. Mono input only ('Application doesn't work with this type of infile.'); output always STEREO. Flags are ORDER-ENFORCED ('option flag -a out of order on cmdline.').",
+  "musical_use": "Composed embellishment at texture density: write a mordent, a turn, a five-note flourish as a '#N' block and the engine grafts it onto every note of your line, transposed to the line pitch, restated every skiptime - baroque ornamentation, gamelan-style kotekan flickers, or grace-note halos, all from one sample. Because ornament SHAPES are exact (contrast decorated's dice-rolled clusters), motives stay recognisable across restatements while placement (before/after each note) is permuted for life - force it with preornate/postornate when you need consistency. multlo/multhi are the phrase-time knobs: below 1 compresses ornaments into snaps, above 1 relaxes them into slow arabesques, and a multlo->multhi spread randomises pacing per statement. Give the line long dur values and the ornaments short ones for figure-and-ground; -k does not exist here (that is decorated) but -w rings every event to the source's end for overlapping halos. Multiple ornament blocks = a small vocabulary the texture rotates through. Always set a seed to pin a take.",
+  "parameters": {
+    "notedata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text file (write_data_file()): line 1 = assumed MIDI pitch of each input sound (single value here); then '#N' + N rows 'time infile_no pitch amp dur' for the LINE to ornament; then one or more further '#N' blocks = ornament shapes (times within a block ascending from 0; amp MIDI-style 1-127; dur seconds). Under two blocks: 'Insufficient motifs in notedata file.' Resolved against the session's data/ directory."
+    },
+    "outdur": {
+      "type": "float",
+      "min": 0.01,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Requested (minimum) duration. Actual overshoots by about the line span plus the final ornament tail: +23% at outdur 5, +9.9% at outdur 8 on the 0.5 s-ping probe - keep line+ornament small relative to outdur when length matters. Breakpoint refused ('Cannot read parameter 1')."
+    },
+    "skiptime": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 100.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Time between restatements of the ornamented line (family range 0.000002-100). Breakpoint-capable and VERIFIED: a 0.8->2.0 brk at seed 5 differs from both scalar-endpoint renders. skiptime 0 exited 0 with a valid render on this mode's probe, but the decorated-family hang is content-dependent - keep it positive."
+    },
+    "sndfirst": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1,
+      "flag": null,
+      "description": "First sound to use from the input list (single-input entry: must be 1). Breakpoint accepted (exit 0)."
+    },
+    "sndlast": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1,
+      "flag": null,
+      "description": "Last sound to use from the input list (must be 1 here). Breakpoint accepted (exit 0)."
+    },
+    "mingain": {
+      "type": "int",
+      "min": 1,
+      "max": 127,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 64,
+      "flag": null,
+      "description": "Minimum event level 1-127 (family standard). Breakpoint accepted (exit 0)."
+    },
+    "maxgain": {
+      "type": "int",
+      "min": 1,
+      "max": 127,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 64,
+      "flag": null,
+      "description": "Maximum event level 1-127. Breakpoint accepted (exit 0)."
+    },
+    "mindur": {
+      "type": "float",
+      "min": 0.016,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Minimum event duration (family floor 0.016). Breakpoint accepted (exit 0)."
+    },
+    "maxdur": {
+      "type": "float",
+      "min": 0.016,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum event duration (>= mindur; values far beyond the input duration fail obscurely - family finding). Breakpoint accepted (exit 0)."
+    },
+    "phgrid": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Timegrid in ms applying WITHIN ornaments (0 = none). Breakpoint accepted (exit 0)."
+    },
+    "gpspace": {
+      "type": "int",
+      "min": 0,
+      "max": 5,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Spatialisation of ornament-groups, CDP-enforced 0-5 ('Parameter[11] Value (6.000000) out of range (0.000000 to 5.000000)'): 0 still, 1 scattered (default), 2 towards centre, 3 away, 4/5 follow/counter motion. Breakpoint REFUSED ('Cannot read parameter 14') - family manual divergence."
+    },
+    "gpsprange": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": null,
+      "description": "Spatial range of ornament-groups 0-1. Breakpoint accepted (exit 0)."
+    },
+    "amprise": {
+      "type": "float",
+      "min": 0.0,
+      "max": 127.0,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Amplitude change within each ornament, 0-127 (default 0 = flat). Breakpoint accepted (exit 0)."
+    },
+    "contour": {
+      "type": "int",
+      "min": 0,
+      "max": 8,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Amplitude contour of ornaments, CDP-enforced 0-8 ('Parameter[14] Value (9.000000) out of range (0.000000 to 8.000000)'): 0 mixed, 1 cresc, 2 flat, 3 decresc, 4-6 combinations, 7/8 directed-to-event extras (ornate/decorated family). Breakpoint REFUSED ('Cannot read parameter 17')."
+    },
+    "multlo": {
+      "type": "float",
+      "min": 0.01,
+      "max": 100.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Minimum multiplier of each ornament statement's total duration (CDP-enforced 0.01-100: 'Parameter[15] Value (0.000000) out of range (0.010000 to 100.000000)'). Below 1 compresses the written shape in time. Breakpoint accepted (exit 0, rendered)."
+    },
+    "multhi": {
+      "type": "float",
+      "min": 0.01,
+      "max": 100.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum ornament-duration multiplier (>= multlo; same enforced range, 200 refused verbatim). The multlo-multhi spread randomises ornament pacing per statement. Breakpoint accepted (exit 0)."
+    },
+    "atten": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Overall attenuation multiplier, CDP-enforced 0.000002-1 ('Parameter[17] Value (1.500000) out of range (0.000002 to 1.000000)'; -a0.5 verified halving RMS). Breakpoint accepted. Flag order enforced: -a before -p -s -r."
+    },
+    "position": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.5,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Centre of the stereo image 0-1 (family-enforced; banner default 0.5). Breakpoint accepted (exit 0)."
+    },
+    "spread": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Spatial spread of texture events 0-1. Breakpoint accepted (exit 0)."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Random seed - WORKING (-r5 twice 1.2 s apart byte-identical in samples AND frame count; -r5 vs -r9 differ; unseeded runs differ). 0/omission = clock. Breakpoint refused ('Cannot read parameter 30')."
+    },
+    "whole": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-w",
+      "flag_kind": "no_value",
+      "description": "Play the whole input per event, ignoring mindur/maxdur (verified: changes render, +0.3 s tail on the probe settings)."
+    },
+    "samedur": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-d",
+      "flag_kind": "no_value",
+      "description": "Ornament notes all take the duration of the ornamented line note (verified: changes render)."
+    },
+    "instrvary": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-i",
+      "flag_kind": "no_value",
+      "description": "Ornaments not confined to the ornamented note's instrument - multi-input only (verified byte-identical no-op on this single-input entry)."
+    },
+    "orntop": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-h",
+      "flag_kind": "no_value",
+      "description": "Ornament the HIGHEST note of line chords (default: first listed). Verified byte-identical no-op on a chord-free line."
+    },
+    "ornall": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-e",
+      "flag_kind": "no_value",
+      "description": "Ornament ALL notes of line chords. Verified byte-identical no-op without chords."
+    }
+  },
+  "examples": [
+    {
+      "description": "A rising three-note ornament grafted onto a two-note line, restated every 1.5 s.",
+      "params": {"notedata": "nd_orn.txt", "outdur": 8.0, "skiptime": 1.5, "mindur": 0.1, "maxdur": 0.3, "multlo": 0.5, "multhi": 1.5, "seed": 5},
+      "expected_use": "First write_data_file('nd_orn.txt', '60\\n#2\\n0 1 60 64 0.5\\n1 1 62 64 0.5\\n#3\\n0 1 60 64 0.1\\n0.08 1 62 64 0.1\\n0.16 1 64 64 0.1'). Ornament placement (before/after each note) is randomly permuted; rerun with seed 5 for the identical take."
+    },
+    {
+      "description": "Slow arabesques: ornaments stretched 2-4x, crescendo contour, phrase period accelerating via breakpoint skiptime.",
+      "params": {"notedata": "nd_orn.txt", "outdur": 12.0, "skiptime": [[0.0, 2.5], [1.0, 0.8]], "mindur": 0.15, "maxdur": 0.5, "amprise": 50.0, "contour": 1, "multlo": 2.0, "multhi": 4.0, "seed": 9}
+    }
+  ],
+  "known_issues": [
+    "Duration honesty (set_by outdur): +23% at outdur 5, +9.9% at outdur 8 with a 1.5 s line and small ornaments (0.5 s ping source) - overshoot is about the line span plus the final ornament's tail; duration row pinned at outdur 8, tol 0.2, seed 5.",
+    "Notedata needs at least TWO '#N' blocks after the pitch line (line, then ornament(s)); one or zero blocks refuse 'Insufficient motifs in notedata file.' verbatim. Extra ornament blocks are legal (3-block file verified).",
+    "Ornament placement before/after each line note is randomly permuted per note (source texture4.c PM_ORNPOS); preornate/postornate force it (separate curated entries; all three DIFFER at the same seed - byte-proof recorded).",
+    "Breakpoint surface: outdur/gpspace/contour/seed refuse (parameters 1/14/17/30 verbatim - same numbering as texture decorated); all other numeric positionals plus -a/-p/-s accept (full per-parameter sweep, exit 0; skiptime additionally verified against both endpoints at seed 5).",
+    "Flags ORDER-ENFORCED: -a -p -s -r then switches ('option flag -a out of order on cmdline.' verbatim).",
+    "Mono input only ('Application doesn't work with this type of infile.'); output always STEREO. Working -r seed; -r0/omission = clock.",
+    "-i/-h/-e are content-dependent no-ops here (single input, chord-free line; each verified byte-identical) - live with multiple inputs / chordal lines via execute(). Modes 1-4 (harmonic fields) remain execute()-only.",
+    "skiptime 0 exited cleanly on this probe (contrast the decorated-family hang) but the hang is content-dependent - never map 0 through."
+  ],
+  "references": ["cdp://docs/html/cgrotext"]
+}

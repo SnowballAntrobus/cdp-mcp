@@ -1,0 +1,167 @@
+{
+  "program": "filter",
+  "mode": "iterated",
+  "submode": 1,
+  "category": "filter",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + dur - delay"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Iterates the source at 'delay'-second intervals until 'dur' is filled, filtering CUMULATIVELY through a user-defined resonator bank on every pass - early iterations sound like the source, later ones dissolve into pure tuned resonance. Pinned to submode 1 (filter pitches in Hz; submode 2 takes MIDI values with the same argv - verified working). The fbank parameter is an auxiliary text file (write_data_file()): one 'pitch amp' pair per line ('440 1.0'); amps may be dB values ('-6dB'); ';' comment lines legal; pitch is CDP-enforced 0.1-22050 in the file itself ('frq (30000.000) on line 1 out of range (0.1 to 22050.0):file ...'). Refusals verbatim: 'Not enough values on line 1: file ...' / 'Too many values on line 1: file ...'. Duration: iterations start at multiples of delay strictly below dur, so outdur = last-onset + indur; the curated expression indur + dur - delay is EXACT when dur/delay is an integer (probed 3.5000 from dur 3/delay 0.5/indur 1) and under-predicts by less than one delay otherwise (worst observed +0.1 s at dur 5/delay 0.3). Deterministic with rand/pshift/ashift at 0 (two runs 1.2 s apart byte-identical); any of them > 0 makes the render CLOCK-SEEDED, UNSEEDABLE stochastic (fltpcon.c:87 initrand48() = srand(time(0)); no seed argv) - runs differ every second and collide within the same second. Mono and stereo accepted.",
+  "musical_use": "The musically distinctive filter in the family: a pulse-train-to-resonance morph in one pass. Each iteration re-enters the (still-sounding) filter bank, so the source's identity decays into the bank's chord - tune the fbank file to a harmony and any percussive source becomes that harmony. delay is the key knob: very short (<0.05 s) gives granular pulsation fusing into a wash; 0.1-0.2 s gives rapid-fire pulses dissolving into ringing; longer than the input gives discrete filtered repeats with gaps. Q controls how fast the dissolve happens - under ~10 holds the source character, hundreds ring pure. Add pshift (a few semitones, breakpoint-rampable) for weaving detuned strands, ashift for dying-away textures, -e for exponential per-segment decay (strong pulsation), -n to disable normalisation (raw cumulative gain - watch levels, overload is not reported). Keep rand/pshift/ashift at 0 when you need a reproducible take; there is no seed.",
+  "parameters": {
+    "fbank": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED auxiliary text file (write with write_data_file(); any extension except .brk): one 'pitch amp' pair per line, pitch in Hz (this submode), amp 0.001-10000 or dB ('-6dB' verified). ';' comments legal. Error surface verbatim in the entry description. Resolved against the session's data/ directory."
+    },
+    "q": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Filter tightness (CDP-enforced 0.001 to 10000, verbatim refusal probed both ends). High Q dissolves the source into pure resonance sooner. DIVERGENCE: afta8 marks Q breakpoint-capable, but the binary REFUSES brk files here ('Cannot read parameter 1 [...]: brkpnt_files not permitted.') - unlike userbank/varibank, iterated's Q is scalar-only."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Overall gain in the filtering process (CDP-enforced 0.001 to 10000). Breakpoint refused ('Cannot read parameter 2')."
+    },
+    "delay": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Average time between iterations (CDP range 0.000002 to 32767, verbatim from the 40000 refusal). LANDMINE: a literal 0 slips the range check and HANGS the binary (timeout-killed, empty output left behind) - keep it positive. Values longer than the input give separated repeats. Breakpoint refused ('Cannot read parameter 3')."
+    },
+    "dur": {
+      "type": "float",
+      "min": 1.0,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Minimum duration of the output - the runtime minimum is the INPUT duration ('Parameter[5] Value (1.500000) out of range (2.000000 to 32767.000000)' on a 2 s file; the curated min 1.0 is the 1 s probe floor, real floor = indur). Sets the iteration span; output ends indur after the last onset below dur. Breakpoint refused ('Cannot read parameter 4')."
+    },
+    "prescale": {
+      "type": "float",
+      "min": -1.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Gain on the INPUT to the filtering process. DIVERGENCE: banner says 'Range (0.0 - 1.0)' but the binary enforces -1.0 to 1.0 ('Parameter[6] Value (2.000000) out of range (-1.000000 to 1.000000)') - negative values legal (polarity inversion). 0.0 auto-divides input level by the max overlay count. Breakpoint refused ('Cannot read parameter 7')."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Randomisation of the delay times, 0 (none) to 1 (max, CDP-enforced). ANY value > 0 makes the render clock-seeded stochastic with NO seed flag (two -r0.5 runs 1.2 s apart differ in samples AND frame count); 0 is fully deterministic. Breakpoint refused ('Cannot read parameter 8')."
+    },
+    "pshift": {
+      "type": "float",
+      "min": 0.0,
+      "max": 48.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Maximum random pitch shift of any segment in (possibly fractional) semitones. CDP-enforced 0 to 48 (banner's '>=0' and afta8's 0-100 are wrong: 'Parameter[8] Value (200.000000) out of range (0.000000 to 48.000000)'). Stochastic and unseeded when > 0 (also changes output length: segments resample shorter/longer). BREAKPOINT-CAPABLE (a 0->6 ramp rendered, exit 0) - the shift CEILING can evolve over time."
+    },
+    "ashift": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Maximum random amplitude reduction of any segment, 0 to 1 (CDP-enforced). Stochastic and unseeded when > 0. BREAKPOINT-CAPABLE (a 0->0.8 ramp rendered, exit 0)."
+    },
+    "double": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-d",
+      "flag_kind": "no_value",
+      "description": "Double filtering - steeper isolation (verified: changes the render, duration unchanged)."
+    },
+    "interp_off": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-i",
+      "flag_kind": "no_value",
+      "description": "Turn OFF interpolation during pitch shift (fast but dirty). NO-OP without pshift (verified byte-identical to the base render at pshift 0) - only meaningful with -p."
+    },
+    "expdecay": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-e",
+      "flag_kind": "no_value",
+      "description": "Exponential decay added: each segment gets quieter before the next enters (verified: changes render, RMS drops 0.109 -> 0.019 on the probe settings - strong pulsation)."
+    },
+    "nonorm": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "Turns OFF normalisation: segments may grow or fall in level quickly; gain has more impact but overload is NOT reported (verified: changes render)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Percussive source dissolving into an A-major resonance: pulses every 0.25 s over 6 s.",
+      "params": {"fbank": "fb_A.txt", "q": 80.0, "gain": 1.0, "delay": 0.25, "dur": 6.0},
+      "expected_use": "First write_data_file('fb_A.txt', '220 1.0\\n277.2 0.7\\n330 0.7\\n440 0.5'). Deterministic (no rand/pshift/ashift); output = indur + 6 - 0.25."
+    },
+    {
+      "description": "Weaving detuned strands: pitch-shift ceiling ramping up, exponential per-segment decay.",
+      "params": {"fbank": "fb_A.txt", "q": 400.0, "gain": 1.0, "delay": 0.15, "dur": 8.0, "pshift": [[0.0, 0.0], [1.0, 4.0]], "expdecay": true},
+      "expected_use": "High-Q ringing with segments roaming up to 4 st by the end. Clock-seeded: every run differs, no seed exists."
+    }
+  ],
+  "known_issues": [
+    "BUFFER LANDMINE (first-class): with the default CDP memory buffer the process FAILS on inputs longer than about 1.48 s at 44.1 kHz mono ('ERROR: INTERNAL ERROR: (Bug?)' + 'ERROR: Failed to read all of source file: readsamps_with_wrap()', exit 255; 1 s works, 2 s fails). The whole input must fit one internal buffer (FLTITER uses 4 buffers from the CDP_MEMORY_BBSIZE pool, default 1 MB). Setting CDP_MEMORY_BBSIZE=8000 in the environment fixes it (2 s mono and stereo then run clean). Stereo halves the sample ceiling. Keep sources short or raise the env var.",
+    "delay 0 HANGS the binary (slips the 0.000002 floor, timeout is the only guard, empty .wav left behind) - never map 0 through.",
+    "CLOCK-SEEDED STOCHASTIC, UNSEEDABLE: rand/pshift/ashift > 0 randomise via srand(time(0)) (fltpcon.c:87 initrand48(), osbind.c) with no seed argv slot - runs 1.2 s apart differ; runs launched within the same second would collide byte-identically (family trap, cf. modify shred). rand=pshift=ashift=0 is fully deterministic (verified byte-identical pair).",
+    "Duration model indur + dur - delay is exact (to 1 frame) when dur/delay is an integer; otherwise the true output is up to one delay LONGER (last onset = largest multiple of delay strictly below dur). rand > 0 additionally jitters the final onset. Duration row pinned at the integer-ratio point delay 0.5/dur 3/indur 1 -> 3.5000.",
+    "Q is NOT time-variable here despite afta8 marking it brk ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'); only -p pshift and -a ashift accept breakpoint files.",
+    "prescale's real range is -1.0 to 1.0 (banner says 0-1); pshift's real range is 0-48 st (banner '>=0', afta8 0-100).",
+    "The fbank pitch column is range-checked inside the datafile at 0.1-22050 Hz, not the banner's '0Hz to srate/3'.",
+    "Submode 2 (MIDI pitch values in the fbank file) verified working with identical argv - separate triple, not curated; same file format with MIDI numbers in column 1."
+  ],
+  "references": ["cdp://docs/html/cgrofilt"]
+}

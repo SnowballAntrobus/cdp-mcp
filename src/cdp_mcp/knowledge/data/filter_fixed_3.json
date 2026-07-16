@@ -1,0 +1,91 @@
+{
+  "program": "filter",
+  "mode": "fixed",
+  "submode": 3,
+  "category": "filter",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + tail"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Parametric EQ band: BOOST OR CUT a band of given bandwidth centred on a given frequency, in dB. Pinned to submode 3 (peaking band - the only fixed mode with all three parameters); submodes 1/2 are the low/high shelving pair (boost/cut BELOW or ABOVE the frequency, same argv minus bwidth - both probed working, see the tranche-18 findings; not curated, reach for execute()). NOTHING is time-variable: bwidth, boost_cut and freq all refuse breakpoint files ('Cannot read parameter 1/2/3 [...]: brkpnt_files not permitted.'), tail as parameter 6 - for moving filters use filter variable/sweeping. Output duration = indur + tail with the family's undocumented tail default 1.0 s (pinned explicitly); -t0 is legal here (no bank-style buffer bug) but adds a constant ~20 ms ring-out slop (2.0 s -> 2.0200). Ranges verbatim: boost_cut -96 to +36 dB; freq 0.1-22050; bwidth 0.001-22050; prescale -s 0.005-200. Deterministic (probe pair byte-identical); mono and stereo accepted. No normalization pre-pass (EQ process) - no vintage-hang exposure.",
+  "musical_use": "The engine's plain parametric EQ - the corrective/creative band tool the curated set otherwise lacks (lohi = attenuation-only pass filters; bank = resonators). Cut mode (-dB) notches hums, boxiness or a resonance peak: set freq on the offender, bwidth to taste (narrow = surgical). Boost mode (+dB, up to +36) pushes a formant region forward, adds presence (2-5 kHz), or weights a fundamental. FILTER FIXED wants precise frequency targets - find the energy first (spectrum analysis) rather than guessing; a boost centred where nothing lives does nothing. For shelving corrections (rumble, hiss) the sibling modes 1/2 do boost/cut below/above a corner - via execute() until curated. Fixed Q character, no motion: automate nothing here, chain multiple runs for multi-band work.",
+  "parameters": {
+    "bwidth": {
+      "type": "float",
+      "min": 0.001,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Filter bandwidth in Hz (CDP-enforced 0.001 to 22050: 'Parameter[1] Value (0.000000) out of range (0.001000 to 22050.000000)'). Narrow = surgical notch/peak, wide = broad tonal shaping. Breakpoint refused (parameter 1)."
+    },
+    "boost_cut": {
+      "type": "float",
+      "min": -96.0,
+      "max": 36.0,
+      "unit": "dB",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Boost (positive) or cut (negative) in dB, CDP-enforced -96 to +36 ('Parameter[1] Value (-100.000000) out of range (-96.000000 to 36.000000)' - CDP numbers it 1 in modes 1/2 where bwidth is absent). Breakpoint refused (parameter 2 in this mode)."
+    },
+    "freq": {
+      "type": "float",
+      "min": 0.1,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Centre frequency of the band (CDP-enforced 0.1 to 22050 verbatim). Breakpoint refused (parameter 3)."
+    },
+    "tail": {
+      "type": "float",
+      "min": 0.0,
+      "max": 20.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Decay tail appended after the input; output = indur + tail (sample-exact at the 1.0 default and probed values). Undocumented default 1.0 s - pinned explicitly. -t0 is safe here (no bank buffer bug) but the render still lands ~0.02 s long (89081 frames from 88200). Breakpoint refused (parameter 6)."
+    },
+    "prescale": {
+      "type": "float",
+      "min": 0.005,
+      "max": 200.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Gain on the INPUT to the filter, CDP-enforced 0.005 to 200 ('Parameter[5] Value (300.000000) out of range (0.005000 to 200.000000)'). Use to create headroom before a big boost (verified: -s0.5 halves the render level)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Notch a 400 Hz-wide band around 1 kHz by 12 dB.",
+      "params": {"bwidth": 400.0, "boost_cut": -12.0, "freq": 1000.0},
+      "expected_use": "Surgical cut; output = indur + 1 (pinned tail default)."
+    },
+    {
+      "description": "Presence push: +9 dB, 1.5 kHz wide, centred at 3 kHz, input pre-attenuated for headroom.",
+      "params": {"bwidth": 1500.0, "boost_cut": 9.0, "freq": 3000.0, "prescale": 0.7, "tail": 0.5}
+    }
+  ],
+  "known_issues": [
+    "NO parameter is time-variable (bwidth/boost_cut/freq refuse brk files as parameters 1-3, tail as 6) - fixed means fixed; moving filters live in filter variable (curated, notch) and filter sweeping (curated).",
+    "Undocumented tail default 1.0 s (family finding re-verified: 2 s -> 3.0000 sample-exact with no -t); the entry pins tail explicitly. -t0 legal (no bank-style garbage tail) but adds a constant ~20 ms.",
+    "Submodes 1 (boost/cut BELOW freq) and 2 (ABOVE) probed working with argv 'boost_cut freq' (no bwidth): mode 1 -12dB@1kHz kills lows (RMS 0.144->0.128 on 2 s noise), mode 2 kills highs (0.040) - shelving siblings left to execute(), ranges identical.",
+    "Deterministic (two runs 1.2 s apart byte-identical); stereo accepted; no normalization pre-pass (P5-1 does not apply)."
+  ],
+  "references": ["cdp://docs/html/cgrofilt"]
+}

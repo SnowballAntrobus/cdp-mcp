@@ -1,0 +1,91 @@
+{
+  "program": "filter",
+  "mode": "phasing",
+  "submode": 2,
+  "category": "filter",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + tail"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Classic PHASING effect: the source is mixed with an allpass-shifted copy, carving a sweeping comb/notch coloration. Pinned to submode 2 (PHASING EFFECT - source + shifted copy); submode 1 is the raw allpass alone (probed: same argv, near-transparent on steady material - RMS 0.134 vs source 0.144, phase rotation only; dropped for scope, execute()). gain sets the allpass feedback polarity/depth (-1 to 1): the effect deepens toward +1, and gain = 1.0 is TOTAL CANCELLATION - verified, the render is digital silence (RMS 0.0000) exactly as the banner warns. delay (in MS) is breakpoint-capable and VERIFIED (a 5->60 ms glide differs from both scalar-endpoint renders) - a moving delay is what makes the phaser sweep; -l switches the delay interpolation from logarithmic to linear (verified: changes the render under a delay brk). Output = indur + tail with the family's undocumented 1.0 s default (pinned). Ranges verbatim: gain -1 to 1; delay 0.022676-1000 ms (floor = one sample period at 44.1k, srate-dependent); prescale -s -1 to 1 (banner says 0-1). Deterministic; mono and stereo accepted; no vintage-hang exposure.",
+  "musical_use": "The aeroplane-flyover sweep. Static delay values already colour: under 20 ms stays dry-ish, 20-45 ms adds a touch of resonance, ~50 ms turns echoey-reverberant, past 100 ms discrete repeats emerge - gain and delay raised in tandem control how reverberant it gets. The musical move is a delay BREAKPOINT: glide 5 -> 60 ms across the file for one long phaser pass, or zigzag for slow watery motion (logarithmic interpolation default suits wide sweeps; -l linear for mechanical precision). Push gain toward +0.9 for deep hollow combing, negative gain for the inverted-comb variant; stop short of 1.0 unless you actually want silence (or exploit near-1 values for extreme thinning). Feed it stereo for linked-channel phasing.",
+  "parameters": {
+    "gain": {
+      "type": "float",
+      "min": -1.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Allpass gain, CDP-enforced -1 to 1 ('Parameter[1] Value (1.500000) out of range (-1.000000 to 1.000000)'). Effect deepens from -1 toward +1; EXACTLY 1.0 gives complete phase cancellation = silent output (verified RMS 0.0000). Breakpoint refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    },
+    "delay": {
+      "type": "float",
+      "min": 0.023,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Allpass delay in MILLISECONDS, CDP-enforced 0.022676 to 1000 (floor = one sample period at 44.1 kHz - srate-dependent; verbatim refusals at 0 and 100000). Breakpoint-capable, VERIFIED against both endpoints - the sweep control."
+    },
+    "tail": {
+      "type": "float",
+      "min": 0.01,
+      "max": 20.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Decay tail appended after the input; output = indur + tail sample-exact. Undocumented default 1.0 s - pinned explicitly."
+    },
+    "prescale": {
+      "type": "float",
+      "min": -1.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Gain on the INPUT to the filter. DIVERGENCE: banner says 'Range (0.0 - 1.0)' but the binary enforces -1 to 1 ('Parameter[4] Value (2.000000) out of range (-1.000000 to 1.000000)') - negative legal (polarity flip). Verified live at 0.5."
+    },
+    "linear": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-l",
+      "flag_kind": "no_value",
+      "description": "Linear interpolation of changing delay values (default logarithmic). Verified: changes the render when delay is a breakpoint file; no effect worth using with a static delay."
+    }
+  },
+  "examples": [
+    {
+      "description": "One long phaser pass: delay gliding 5 to 60 ms, deep positive gain.",
+      "params": {"gain": 0.8, "delay": [[0.0, 5.0], [1.0, 60.0]]},
+      "expected_use": "Classic sweep across the whole file (relative-time breakpoints); output = indur + 1."
+    },
+    {
+      "description": "Static hollow resonance at 30 ms, moderate depth, short tail.",
+      "params": {"gain": 0.6, "delay": 30.0, "tail": 0.5}
+    }
+  ],
+  "known_issues": [
+    "gain = 1.0 renders DIGITAL SILENCE by design (complete phase cancellation; verified RMS 0.0000, exit 0) - the banner warns, the entry range still permits it; back off to <= 0.95 for audible output.",
+    "delay is in MILLISECONDS (not seconds); floor is one sample period (0.022676 ms at 44.1 kHz, srate-dependent refusal).",
+    "prescale's real range is -1 to 1, not the banner's 0-1.",
+    "Only delay accepts breakpoint files (verified against both endpoints); gain refuses as parameter 2. -l is only meaningful with a delay contour (verified).",
+    "Submode 1 (raw ALLPASS) probed working with identical argv: near-transparent alone on steady material (RMS 0.134 vs source 0.144 - phase rotation, magnitude untouched); its uses are pre-mix phase tricks - dropped for scope, execute().",
+    "Undocumented tail default 1.0 s re-verified sample-exact; entry pins -t. Deterministic; stereo accepted; no normalization pre-pass (P5-1 does not apply)."
+  ],
+  "references": ["cdp://docs/html/cgrofilt"]
+}

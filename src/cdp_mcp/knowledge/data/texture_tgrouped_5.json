@@ -1,0 +1,326 @@
+{
+  "program": "texture",
+  "mode": "tgrouped",
+  "submode": 5,
+  "category": "texture",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "outdur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "TIMED texture of EVENT-GROUPS: texture grouped's random bursts (gpsizelo-gpsizehi events, gppacklo-gppackhi ms apart, spanning gpranglo-gpranghi semitones) hung on a COMPOSED timing cell instead of a stochastic packing grid. The notedata file carries line 1 = assumed MIDI pitch, then EXACTLY ONE '#N' timing block (rows 'time infile_no pitch amp dur'; zero/extra blocks refuse 'Incorrect number [N] of motifs in notedata file (expected 1).' - timed-family rule); the cell restarts every last-onset + skip seconds (timed-family cycling, content-verified on the timed sibling). Pinned to submode 5 (NONE - free pitch; modes 1-4 = harmonic fields). Genuinely stochastic with a WORKING -r seed (-r5 twice 1.2 s apart byte-identical; -r9 differs). Duration honesty: outdur 5 -> 6.39 (+28%), outdur 8 -> 9.22 (+15%) - last cell plus group tails extend past the grid; keep gpsizehi x gppackhi and maxdur small relative to outdur (grouped-family warning: huge groups inflate the render massively). Breakpoints: outdur/gpspace/contour/seed refuse (parameters 1/14/17/30 verbatim); ALL 17 other numeric positionals plus -a/-p/-s accept (full per-parameter sweep; skip additionally VERIFIED against both scalar endpoints at seed 5; gpsizehi brk re-verified). Mono input only ('Application doesn't work with this type of infile.'); output always STEREO; flag order enforced (family).",
+  "musical_use": "Rhythmically-placed flurries: each hit of your composed cell fires a burst - grace-note clusters on the downbeats, granular swells in a fixed groove, antiphonal splashes locked to a limping ostinato. The cell gives placement discipline that plain grouped's packing knob cannot; the group engine keeps every burst's interior alive (count, speed, pitch-roam and contour re-diced per statement). gpsizelo/hi x gppacklo/hi set burst character (2-5 events at 20-90 ms = ornamental flicks; 10+ at short packs = granular puffs); gpranglo/hi how far each burst roams from its start pitch; amprise/contour its dynamic arc. skip breakpoints accelerate or relax the groove across the piece; gpsize breakpoints grow the bursts from single grace notes to avalanches. Siblings: timed (single events on the cell), tmotifs (written motifs on the cell), grouped (bursts on a stochastic grid). Always seed to pin a take.",
+  "parameters": {
+    "notedata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text file (write_data_file()): line 1 = assumed MIDI pitch of the input; then EXACTLY ONE '#N' timing block of rows 'time infile_no pitch amp dur' (the rhythmic cell; timed-family refusals verbatim for zero/extra blocks). Resolved against the session's data/ directory."
+    },
+    "outdur": {
+      "type": "float",
+      "min": 0.01,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Requested (minimum) duration; ran +28% (outdur 5) to +15% (outdur 8) over on the probe with small groups. Breakpoint refused ('Cannot read parameter 1')."
+    },
+    "skip": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 100.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Gap between statements of the timing cell (period = last cell onset + skip). Breakpoint-capable and VERIFIED: a 0.8->2.0 brk at seed 5 differs from both scalar-endpoint renders. Keep positive (family skiptime-0 caution)."
+    },
+    "sndfirst": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1,
+      "flag": null,
+      "description": "First sound from the input list (must be 1 here). Breakpoint accepted (exit 0)."
+    },
+    "sndlast": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1,
+      "flag": null,
+      "description": "Last sound from the input list (must be 1 here). Breakpoint accepted (exit 0)."
+    },
+    "mingain": {
+      "type": "int",
+      "min": 1,
+      "max": 127,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 64,
+      "flag": null,
+      "description": "Minimum event level 1-127. Breakpoint accepted (exit 0)."
+    },
+    "maxgain": {
+      "type": "int",
+      "min": 1,
+      "max": 127,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 64,
+      "flag": null,
+      "description": "Maximum event level 1-127. Breakpoint accepted (exit 0)."
+    },
+    "mindur": {
+      "type": "float",
+      "min": 0.016,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Minimum event duration (family floor 0.016). Breakpoint accepted (exit 0)."
+    },
+    "maxdur": {
+      "type": "float",
+      "min": 0.016,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum event duration (>= mindur; contributes to the overshoot; far-beyond-input values fail obscurely - family finding). Breakpoint accepted (exit 0)."
+    },
+    "minpitch": {
+      "type": "float",
+      "min": 1.0,
+      "max": 127.0,
+      "unit": "MIDI pitch",
+      "breakpoint_capable": true,
+      "default": 60.0,
+      "flag": null,
+      "description": "Minimum pitch at which a group may start (MIDI). Breakpoint accepted (exit 0)."
+    },
+    "maxpitch": {
+      "type": "float",
+      "min": 1.0,
+      "max": 127.0,
+      "unit": "MIDI pitch",
+      "breakpoint_capable": true,
+      "default": 60.0,
+      "flag": null,
+      "description": "Maximum pitch at which a group may start (MIDI). Breakpoint accepted (exit 0)."
+    },
+    "phgrid": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Timegrid in ms WITHIN groups (0 = none). Breakpoint accepted (exit 0)."
+    },
+    "gpspace": {
+      "type": "int",
+      "min": 0,
+      "max": 5,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Spatialisation of event-groups 0-5 (family values). Breakpoint REFUSED ('Cannot read parameter 14') - family manual divergence."
+    },
+    "gpsprange": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": null,
+      "description": "Spatial range of event-groups 0-1. Breakpoint accepted (exit 0)."
+    },
+    "amprise": {
+      "type": "float",
+      "min": 0.0,
+      "max": 127.0,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Amplitude change within each group 0-127 (default 0 = flat). Breakpoint accepted (exit 0)."
+    },
+    "contour": {
+      "type": "int",
+      "min": 0,
+      "max": 6,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Amplitude contour of groups 0-6 (grouped-family set). Breakpoint REFUSED ('Cannot read parameter 17')."
+    },
+    "gpsizelo": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "events",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Smallest number of events in any group. Breakpoint accepted (exit 0)."
+    },
+    "gpsizehi": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "events",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Largest number of events in any group - grouped-family warning: large values inflate the render far past outdur. Breakpoint accepted (verified with a 2->8 ramp)."
+    },
+    "gppacklo": {
+      "type": "float",
+      "min": 0.023,
+      "max": 60000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Shortest time between event onsets within a group, ms (family floor = one sample period, srate-dependent). Breakpoint accepted (exit 0)."
+    },
+    "gppackhi": {
+      "type": "float",
+      "min": 0.023,
+      "max": 60000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Longest time between event onsets within a group, ms. Breakpoint accepted (exit 0)."
+    },
+    "gpranglo": {
+      "type": "float",
+      "min": 1.0,
+      "max": 127.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Minimum pitch range of group events in semitones (mode 5; hfield-note counts in modes 1-4). Breakpoint accepted (exit 0)."
+    },
+    "gpranghi": {
+      "type": "float",
+      "min": 1.0,
+      "max": 127.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum pitch range of group events in semitones. Breakpoint accepted (exit 0)."
+    },
+    "atten": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Overall attenuation multiplier (family range). Breakpoint accepted. Flag order enforced: -a -p -s -r then switches."
+    },
+    "position": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.5,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Centre of the stereo image 0-1 (family-enforced). Breakpoint accepted (exit 0)."
+    },
+    "spread": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Spatial spread of texture events 0-1. Breakpoint accepted (exit 0)."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Random seed - WORKING (-r5 pair byte-identical; -r9 differs). 0/omission = clock. Breakpoint refused ('Cannot read parameter 30')."
+    },
+    "whole": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-w",
+      "flag_kind": "no_value",
+      "description": "Play the whole input per event, ignoring mindur/maxdur (verified: changes render)."
+    },
+    "fixstep": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-d",
+      "flag_kind": "no_value",
+      "description": "Fixed timestep between group notes instead of random gppacklo-gppackhi (verified: changes render and length)."
+    },
+    "instrvary": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-i",
+      "flag_kind": "no_value",
+      "description": "Groups not confined to a fixed instrument - multi-input only (verified byte-identical no-op on this single-input entry)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Grace-note flurries on a two-hit cell: 2-5 events per burst, roaming up to a fifth.",
+      "params": {"notedata": "nd_tim.txt", "outdur": 8.0, "skip": 1.0, "mindur": 0.1, "maxdur": 0.3, "minpitch": 55.0, "maxpitch": 70.0, "gpsizelo": 2, "gpsizehi": 5, "gppacklo": 20.0, "gppackhi": 80.0, "gpranglo": 1.0, "gpranghi": 7.0, "seed": 5},
+      "expected_use": "First write_data_file('nd_tim.txt', '60\\n#2\\n0 1 60 64 0.3\\n0.5 1 62 64 0.3'). Bursts land on the cycled cell (period = cell span + skip); rerun with seed 5 for the identical take."
+    },
+    {
+      "description": "Bursts growing from grace notes to avalanches via a gpsizehi breakpoint, crescendo contours.",
+      "params": {"notedata": "nd_tim.txt", "outdur": 12.0, "skip": 0.8, "mindur": 0.05, "maxdur": 0.2, "minpitch": 48.0, "maxpitch": 72.0, "gpsizelo": 2, "gpsizehi": [[0.0, 2.0], [1.0, 12.0]], "gppacklo": 15.0, "gppackhi": 60.0, "gpranglo": 2.0, "gpranghi": 12.0, "amprise": 60.0, "contour": 1, "seed": 9}
+    }
+  ],
+  "known_issues": [
+    "Duration honesty (set_by outdur): +28% at outdur 5, +15% at outdur 8 on the 0.5 s-ping probe with small groups; large gpsizehi x gppackhi inflates far more (grouped-family: 5 s -> 58.8 s observed with 1001-event groups). Duration row pinned at outdur 8, tol 0.3, seed 5.",
+    "Notedata: EXACTLY ONE timing block after the pitch line (timed-family refusals verbatim). Cell cycling: period = last cell onset + skip (content-verified on the timed sibling).",
+    "Breakpoint surface: outdur/gpspace/contour/seed refuse (parameters 1/14/17/30 verbatim - same gpspace/contour manual divergence as texture grouped); all 17 other numeric positionals plus -a/-p/-s accept (full sweep; skip verified against both endpoints at seed 5).",
+    "Mono input only ('Application doesn't work with this type of infile.'); output always STEREO; flag order enforced; working -r seed.",
+    "-i is a single-input no-op (verified byte-identical); goes live with multiple inputs via execute(). Modes 1-4 (harmonic fields) remain execute()-only.",
+    "gppacklo/gppackhi floor is one sample period (0.022676 ms at 44.1 kHz, srate-dependent) - grouped-family finding."
+  ],
+  "references": ["cdp://docs/html/cgrotext"]
+}

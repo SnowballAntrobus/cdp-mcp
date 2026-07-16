@@ -1,0 +1,200 @@
+{
+  "program": "texture",
+  "mode": "timed",
+  "submode": 5,
+  "category": "texture",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "outdur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Texture with COMPOSED EVENT TIMES: instead of texture simple's stochastic packing grid, event onsets follow a timing motif you write, cycled until outdur is filled. The notedata file carries line 1 = assumed MIDI pitch of the input, then EXACTLY ONE '#N' block (rows 'time infile_no pitch amp dur') whose TIMES form the rhythmic cell - refusals verbatim both directions: 'Incorrect number [0] of motifs in notedata file (expected 1).' (pitch line only) and 'Incorrect number [2] ... (expected 1).' (an extra block). CONTENT-VERIFIED CYCLING: a cell with onsets {0, 0.5} at skiptime 1.0 rendered attacks at 0, 0.5, 1.5, 2.0, 3.0, 3.5, ... - the cell restarts at (last cell onset + skiptime), so the phrase period is last-onset + skiptime, not skiptime alone. Event pitches are randomised between minpich and maxpich (this is mode 5 NONE; modes 1-4 lock them to harmonic fields), levels between mingain/maxgain, durations between mindur/maxdur. Genuinely stochastic in pitch/level with a WORKING -r seed (-r5 twice 1.2 s apart byte-identical; -r9 differs). Duration honesty: outdur 5 -> 6.28 (+26%), outdur 8 -> 9.12 (+14%) - the last cell completes past the grid. Breakpoints: outdur and seed refuse (parameters 1/30 verbatim); ALL other numeric positionals (skiptime, sndfirst/sndlast, gains, durs, pitches) plus -a/-p/-s accept (full sweep; skiptime additionally VERIFIED against both scalar endpoints at seed 5). Mono input only; output always STEREO; flag order enforced (family).",
+  "musical_use": "Rhythm you compose, colour the texture engine rolls: the timing cell gives exact, loopable placement (a clave, a limp, a rushing gruppetto) while every hit's pitch, level and length are re-diced per statement - drum-machine discipline with aleatoric surface. Keep minpich = maxpich for a strict pitched ostinato with humanised levels; open the range for a melody-generator locked to your rhythm. skiptime is the gap between cell statements (period = cell span + skiptime): breakpoint it to accelerate or relax the loop across the piece. Note the cell's own pitches/amps in the notedata are timing carriers in mode 5 - the sounding pitch comes from minpich/maxpich. Simplest of the timed textures: tgrouped hangs event-BURSTS on the same kind of timing cell, tmotifs hangs written motifs. Always seed to pin a take.",
+  "parameters": {
+    "notedata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text file (write_data_file()): line 1 = assumed MIDI pitch of the input sound; then EXACTLY ONE '#N' block of rows 'time infile_no pitch amp dur' whose times form the rhythmic cell. Zero or extra blocks refuse verbatim ('Incorrect number [N] of motifs in notedata file (expected 1).'). Resolved against the session's data/ directory."
+    },
+    "outdur": {
+      "type": "float",
+      "min": 0.01,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Requested (minimum) duration; ran +26% (outdur 5) to +14% (outdur 8) over on the probe - the final cell completes past the grid. Breakpoint refused ('Cannot read parameter 1')."
+    },
+    "skiptime": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 100.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Gap between statements of the timing cell (period = last cell onset + skiptime, content-verified). Breakpoint-capable and VERIFIED: a 0.8->2.0 brk at seed 5 differs from both scalar-endpoint renders. skiptime 0 exited cleanly on this probe but the family hang is content-dependent - keep positive."
+    },
+    "sndfirst": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1,
+      "flag": null,
+      "description": "First sound from the input list (must be 1 here). Breakpoint accepted (exit 0)."
+    },
+    "sndlast": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1,
+      "flag": null,
+      "description": "Last sound from the input list (must be 1 here). Breakpoint accepted (exit 0)."
+    },
+    "mingain": {
+      "type": "int",
+      "min": 1,
+      "max": 127,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 64,
+      "flag": null,
+      "description": "Minimum event level 1-127. Breakpoint accepted (exit 0)."
+    },
+    "maxgain": {
+      "type": "int",
+      "min": 1,
+      "max": 127,
+      "unit": "MIDI velocity",
+      "breakpoint_capable": true,
+      "default": 64,
+      "flag": null,
+      "description": "Maximum event level 1-127. Breakpoint accepted (exit 0)."
+    },
+    "mindur": {
+      "type": "float",
+      "min": 0.016,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Minimum event duration (family floor 0.016). Breakpoint accepted (exit 0, verified with a 0.05->0.2 ramp)."
+    },
+    "maxdur": {
+      "type": "float",
+      "min": 0.016,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum event duration (>= mindur; far-beyond-input values fail obscurely - family finding). Breakpoint accepted (exit 0)."
+    },
+    "minpich": {
+      "type": "float",
+      "min": 1.0,
+      "max": 127.0,
+      "unit": "MIDI pitch",
+      "breakpoint_capable": true,
+      "default": 60.0,
+      "flag": null,
+      "description": "Minimum event pitch (MIDI; transposition relative to the notedata pitch). Breakpoint accepted (exit 0)."
+    },
+    "maxpich": {
+      "type": "float",
+      "min": 1.0,
+      "max": 127.0,
+      "unit": "MIDI pitch",
+      "breakpoint_capable": true,
+      "default": 60.0,
+      "flag": null,
+      "description": "Maximum event pitch (MIDI). Breakpoint accepted (exit 0)."
+    },
+    "atten": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Overall attenuation multiplier (family range). Breakpoint accepted. Flag order enforced: -a -p -s -r -w."
+    },
+    "position": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.5,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Centre of the stereo image - ENFORCED 0-1 in this mode ('Parameter[13] Value (2.000000) out of range (0.000000 to 1.000000)'). Breakpoint accepted (exit 0)."
+    },
+    "spread": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Spatial spread of texture events 0-1. Breakpoint accepted (exit 0)."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Random seed - WORKING (-r5 pair byte-identical; -r9 differs). 0/omission = clock. Breakpoint refused ('Cannot read parameter 30')."
+    },
+    "whole": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-w",
+      "flag_kind": "no_value",
+      "description": "Play the whole input per event, ignoring mindur/maxdur (verified: changes render, +0.08 s tail on the probe). The ONLY switch in this mode (no -d/-i)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Two-hit rhythmic cell (0 and 0.5 s) cycling with a 1 s gap, pitches re-diced per hit.",
+      "params": {"notedata": "nd_tim.txt", "outdur": 8.0, "skiptime": 1.0, "mindur": 0.1, "maxdur": 0.3, "minpich": 55.0, "maxpich": 70.0, "seed": 5},
+      "expected_use": "First write_data_file('nd_tim.txt', '60\\n#2\\n0 1 60 64 0.3\\n0.5 1 62 64 0.3'). Attacks land at 0, 0.5, 1.5, 2.0, 3.0, 3.5 ... (period = cell span + skiptime); rerun with seed 5 for the identical take."
+    },
+    {
+      "description": "Strict-pitch ostinato accelerating: fixed pitch, skiptime ramping 2.0 -> 0.3.",
+      "params": {"notedata": "nd_tim.txt", "outdur": 12.0, "skiptime": [[0.0, 2.0], [1.0, 0.3]], "mindur": 0.1, "maxdur": 0.2, "minpich": 60.0, "maxpich": 60.0, "seed": 9}
+    }
+  ],
+  "known_issues": [
+    "Duration honesty (set_by outdur): +26% at outdur 5, +14% at outdur 8 on the 0.5 s-ping probe (0.5 s cell, skiptime 1); duration row pinned at outdur 8, tol 0.3, seed 5.",
+    "Notedata takes EXACTLY ONE timing block - both 'Incorrect number [0] ... (expected 1).' and 'Incorrect number [2] ... (expected 1).' probed verbatim. The cell's own pitch/amp columns are carriers in mode 5; sounding pitch comes from minpich/maxpich.",
+    "CYCLING RULE (content-verified by onset detection): the cell restarts at last-cell-onset + skiptime - onsets {0,0.5}, skiptime 1.0 gave attacks at 0, 0.5, 1.5, 2.0, 3.0, 3.5, ... The banner's 'time between repetitions' is measured from the cell's last note, not its start.",
+    "Breakpoint surface: only outdur and seed refuse (parameters 1/30 verbatim); all 9 other numeric positionals plus -a/-p/-s accept (full sweep; skiptime verified against both endpoints at seed 5). No gpspace/contour slots exist in this mode.",
+    "position (-p) IS range-enforced 0-1 here (parameter 13 refusal verbatim), despite the family's inconsistency on simple.",
+    "Mono input only ('Application doesn't work with this type of infile.'); output always STEREO; flag order enforced; working -r seed; skiptime 0 exited cleanly on this probe but keep it positive (family hang is content-dependent)."
+  ],
+  "references": ["cdp://docs/html/cgrotext"]
+}

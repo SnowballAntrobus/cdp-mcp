@@ -1,0 +1,90 @@
+{
+  "program": "filter",
+  "mode": "userbank",
+  "submode": 1,
+  "category": "filter",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + tail"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "A resonant filter bank at USER-CHOSEN fixed frequencies - the free-tuning sibling of the curated harmonic 'filter bank' modes. Pinned to submode 1 (filter pitches in Hz; submode 2 takes MIDI values, same argv). The fbank parameter is an auxiliary text file (write_data_file()): one 'pitch amp' pair per line; amps numeric 0.001-10000 or dB ('-6dB' verified); ';' comments legal. Error surface verbatim: 'Not enough values on line 1: file ...' (a frequency-only list - e.g. raw filter bankfrqs output - is REFUSED; amplitudes must be added); pitch checked in-file at 0.1-22050 Hz ('frq (30000.000) on line 1 out of range (0.1 to 22050.0):file ...'). Output duration is exactly indur + tail with the family's UNDOCUMENTED tail default of 1.0 s (2 s -> 3.0000 with no -t; -t2 -> 4.0; -t0.5 -> 2.5, all sample-exact); the entry pins tail explicitly. Q is time-variable (breakpoint verified: differs from both scalar-endpoint renders); gain and tail refuse brk files. Fully deterministic (no scatter path). Mono and stereo accepted. Does NOT run the filter-bank normalization pre-pass (FLTBANKU never sets do_norm, filters0.c) - the P5-1 vintage-binary hang does not apply; version_sensitive false.",
+  "musical_use": "Tune any material to any chord, scale or spectrum: write the frequencies you want (a chord's notes, measured formants, a bankfrqs-generated series with hand-edited amps) and the bank rings exactly those. Per-filter amplitude is the voicing control the harmonic bank lacks - weight the fundamental heavily and let upper resonances whisper, or notch a member to 0.001 without removing the line. Low Q (1-20) colours the source; high Q (hundreds+) turns transients into ringing chords - raise gain substantially as Q climbs. A time-varying Q breakpoint morphs coloured noise into pure ringing. Pairs naturally with filter bankfrqs (generate a frequency list, add amps, feed it here) and is the fixed-frequency little sibling of varibank (whose bands move over time).",
+  "parameters": {
+    "fbank": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text file (write_data_file(); any extension except .brk): one 'pitch amp' pair per line, pitch in Hz 0.1-22050 (enforced in-file), amp 0.001-10000 or dB. ';' comments legal. Frequency-only lists refused ('Not enough values on line 1') - add amplitudes to bankfrqs output before use. Resolved against the session's data/ directory."
+    },
+    "q": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Filter tightness (CDP-enforced 0.001 to 10000, verbatim refusal probed). Time-variable and VERIFIED: a 20->500 breakpoint rendered and differs from both scalar-endpoint renders."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Overall makeup gain (CDP-enforced 0.001 to 10000; 20000 refused verbatim). High Q needs high gain. Breakpoint refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    },
+    "tail": {
+      "type": "float",
+      "min": 0.01,
+      "max": 20.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Ring-out time appended after the input; output = indur + tail exactly. UNDOCUMENTED default 1.0 s (family finding, re-verified here); the entry emits -t explicitly. tail = 0 triggers the family buffer bug (garbage tail whose length depends on the CDP buffer size - 244690 frames observed at BBSIZE 8000, 262144 at default); curated minimum 0.01 keeps it unreachable. Breakpoint refused ('Cannot read parameter 6')."
+    },
+    "double": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-d",
+      "flag_kind": "no_value",
+      "description": "Double filtering - steeper rolloff (verified: changes the render, duration unchanged)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Ring a minor-ninth voicing out of noise, fundamental weighted, long decay.",
+      "params": {"fbank": "fb_chord.txt", "q": 400.0, "gain": 40.0, "tail": 2.0},
+      "expected_use": "First write_data_file('fb_chord.txt', '110 1.0\\n220 0.5\\n261.6 0.4\\n330 0.4\\n466.2 0.25'). Pitched bell-chord resonance; output = indur + 2."
+    },
+    {
+      "description": "Coloured-noise to pure-ring morph via time-varying Q.",
+      "params": {"fbank": "fb_chord.txt", "q": [[0.0, 5.0], [1.0, 800.0]], "gain": 20.0},
+      "expected_use": "Breakpoint Q (relative times); tail stays at the pinned 1.0 default, output = indur + 1."
+    }
+  ],
+  "known_issues": [
+    "UNDOCUMENTED tail default 1.0 s (family finding re-verified in this mode: 2 s in -> 3.0000 out with no -t, sample-exact) - the entry always emits -t so the duration model holds.",
+    "tail = 0 is accepted but buggy: the output balloons with a garbage-silence tail whose length tracks the CDP buffer size (5.55 s from a 2 s input at CDP_MEMORY_BBSIZE=8000; the fixed 262144 frames of the bank precedent at the default buffer). Curated minimum 0.01 avoids it.",
+    "Raw 'filter bankfrqs' output is NOT accepted (frequency column only): 'ERROR: Not enough values on line 1: file ...' - amplitudes must be appended to every line first, exactly as the bankfrqs banner warns.",
+    "The fbank pitch column's real in-file range is 0.1-22050 Hz, not the banner's '0Hz to sr/3'.",
+    "Only Q accepts breakpoint files (verified against both endpoints); gain refuses as parameter 2, tail as parameter 6 (CDP's brk-stage numbering).",
+    "Deterministic (two runs 1.2 s apart byte-identical in decoded samples); no scatter/random path exists in this mode.",
+    "No normalization pre-pass runs here (source: filters0.c do_norm only for FLTBANKN/V/V2) - the vintage-binary bank hang (P5-1) does not apply.",
+    "Submode 2 (MIDI pitches in the file) verified working, same argv - separate triple, not curated."
+  ],
+  "references": ["cdp://docs/html/cgrofilt"]
+}

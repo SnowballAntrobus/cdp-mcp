@@ -1,0 +1,81 @@
+{
+  "program": "filter",
+  "mode": "variable",
+  "submode": 1,
+  "category": "filter",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + tail"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Single filter whose FREQUENCY (and acuity) may follow arbitrary breakpoint contours. Pinned to submode 1 (NOTCH / band-reject - the one shape no other curated filter provides); submodes 2/3/4 are band-pass/low-pass/high-pass (all probed working and mutually distinct; band-pass overlaps curated filter sweeping 2, lo/hi overlap curated filter lohi - dropped for scope, execute()). acuity and frq are both breakpoint-capable and VERIFIED (each brk render differs from both scalar-endpoint renders); gain and tail refuse brks (parameters 2 and 6). Unlike filter sweeping's cyclic oscillator, the contour here is exactly what you draw - one pass, holds, kinks, anything. Output = indur + tail with the family's undocumented 1.0 s tail default (pinned explicitly). Ranges verbatim: acuity 0.0001-1; frq 0.1-22050 (banner says srate/2). Deterministic; mono and stereo accepted; no normalization pre-pass (FSTATVAR) - no vintage-hang exposure.",
+  "musical_use": "The draw-your-own-filter-ride tool. As a notch it removes a MOVING resonance: track a gliding whistle or feedback tone with a frq breakpoint and erase it; or creatively, sweep a deep notch slowly through a rich texture for a phaser-like hole that breathes. Convert to a one-shot gesture (unlike sweeping's LFO): a single rise from 200 Hz to 8 kHz over the whole file, a plateau, a zigzag. Tighten acuity (smaller = tighter) for a narrow surgical notch; open it toward 1 for broad spectral shadowing - and ramp acuity itself over time to make the notch focus or dissolve. Rule of thumb from the banner: acuity (1/3)^n wants gain (2/3)^n. Siblings via execute(): mode 2 band-pass = only-what-the-contour-touches, 3/4 = gliding lo/hi-pass cutoffs.",
+  "parameters": {
+    "acuity": {
+      "type": "float",
+      "min": 0.0001,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Filter acuity - smaller = tighter (CDP-enforced 0.0001 to 1: 'Parameter[1] Value (2.000000) out of range (0.000100 to 1.000000)'). Breakpoint-capable, VERIFIED: a 0.01->0.5 ramp differs from both scalar-endpoint renders."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Overall output gain (family range 0.001-10000; banner rule of thumb: acuity (1/3)^n -> gain (2/3)^n). Breakpoint refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    },
+    "frq": {
+      "type": "float",
+      "min": 0.1,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Filter focus frequency (CDP-enforced 0.1 to 22050 verbatim; banner claims srate/2). Breakpoint-capable, VERIFIED: a 400->4000 glide differs from both scalar-endpoint renders - this is the parameter that makes the mode."
+    },
+    "tail": {
+      "type": "float",
+      "min": 0.01,
+      "max": 20.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Decay tail appended after the input; output = indur + tail sample-exact. Undocumented default 1.0 s - pinned explicitly. Breakpoint refused (parameter 6). Curated min 0.01 (family tail-0 caution)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Deep notch gliding from 400 Hz to 4 kHz across the file.",
+      "params": {"acuity": 0.05, "gain": 1.0, "frq": [[0.0, 400.0], [1.0, 4000.0]]},
+      "expected_use": "A breathing spectral hole travelling upward; relative-time breakpoints span the input; output = indur + 1."
+    },
+    {
+      "description": "Static surgical notch at 1 kHz that dissolves as acuity opens.",
+      "params": {"acuity": [[0.0, 0.01], [1.0, 0.5]], "gain": 1.0, "frq": 1000.0}
+    }
+  ],
+  "known_issues": [
+    "acuity AND frq are the family's only fully-verified positional breakpoint pair (each differs from both scalar endpoints); gain refuses (parameter 2), tail refuses (parameter 6).",
+    "Undocumented tail default 1.0 s re-verified sample-exact (1 s and 2 s inputs); entry pins -t explicitly.",
+    "frq's real ceiling is 22050 regardless of the banner's 'srate/2' wording (refusal verbatim at 30000).",
+    "Submodes 2 (band-pass), 3 (low-pass), 4 (high-pass) probed working, all four shapes mutually distinct on the same args - dropped for scope overlap with curated sweeping (band-pass LFO) and lohi (static lo/hi): reach for execute().",
+    "Deterministic (probe pair byte-identical); stereo accepted; no normalization pre-pass (P5-1 does not apply)."
+  ],
+  "references": ["cdp://docs/html/cgrofilt"]
+}
