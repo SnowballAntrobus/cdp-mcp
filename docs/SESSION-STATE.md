@@ -76,8 +76,16 @@
     distort filter 0-frame trap confirmed. Suite 2251 hermetic /
     2433 real-CDP (a-e/f-m/n-z thirds — the a-m half now exceeds
     the 45 s sandbox call cap).
-  - Waves 4-6 pending: T18 texture/filter + T19 grain/FOF;
-    T20+T21 spectral tail; T22 pitch-data + T23 text utilities.
+  - Wave 4 DONE (2026-07-16): T18 texture/filter depth (17) + T19
+    grain/FOF (15) -> **280 curated / 402 total**. P5-1 vintage-hang
+    scope closed from source (only 'bank' affected); filter iterated
+    >1.48 s buffer landmine; nine texture siblings all distinct
+    (source-pinned placement); FOF 'material requirement' never
+    checked by the binary (garbage-through pinned); grain align
+    channel corruption; tweet exclude-file segfault. Suite 2781
+    hermetic / 2984 real-CDP (thirds).
+  - Waves 5-6 pending: T20+T21 spectral tail; T22 pitch-data + T23
+    text utilities.
 
 ## Phase 5 wave 2 — DONE (commits 5715795 + c45b714, 2026-07-15)
 

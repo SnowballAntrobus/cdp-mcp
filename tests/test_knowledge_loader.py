@@ -56,7 +56,11 @@ def test_list_entries_by_category(real_index):
     # bank appears once per curated submode since Phase 5 wave 3.
     assert [(e.program, e.mode, e.submode) for e in entries] == [
         ("filter", "bank", 1), ("filter", "bank", 5), ("filter", "bank", 6),
-        ("filter", "lohi", 1), ("filter", "sweeping", 2),
+        ("filter", "bankfrqs", 1), ("filter", "fixed", 3),
+        ("filter", "iterated", 1), ("filter", "lohi", 1),
+        ("filter", "phasing", 2), ("filter", "sweeping", 2),
+        ("filter", "userbank", 1), ("filter", "variable", 1),
+        ("filter", "varibank", 1), ("filter", "varibank2", 1),
     ]
 
 
@@ -94,8 +98,8 @@ def test_curated_only_passthrough_includes_all(real_index):
     # All curated entries are curated, so curated_only=False just returns the
     # same set. The flag's behavior is exercised; the data doesn't (yet)
     # contain uncurated entries to filter out.
-    assert len(real_index.list_entries(curated_only=False)) == 374
-    assert len(real_index.list_entries(curated_only=True)) == 248
+    assert len(real_index.list_entries(curated_only=False)) == 402
+    assert len(real_index.list_entries(curated_only=True)) == 280
 
 
 def test_get_returns_none_for_missing(real_index):
