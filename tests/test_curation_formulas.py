@@ -109,6 +109,20 @@ async def _run(env, *, program, mode, input_name, params, submode=None):
 # ---------------------------------------------------------------------------
 
 
+# Aux data files referenced by tranche-11 duration rows, written into the
+# session's data/ dir before the row runs (the engine resolves aux_file
+# params there — write_data_file's target). Contents from the tranche-11a
+# transcript probes: td0.txt is a zero-transposition line held across the
+# 6 s outduration (initial time must be 0, times must advance, values
+# paired — the verbatim tdata rules); ndec1.txt is the agent's actual
+# one-note decorated notedata (line 1 = notional midi pitches, '#1' =
+# instrument block, then time/dur/pitch/velocity/param rows).
+_AUX_FILES = {
+    "td0.txt": "0 0\n6 0\n",
+    "ndec1.txt": "60\n#1\n0 1 60 64 0.2\n",
+}
+
+
 @pytest.mark.timeout(60)
 @pytest.mark.parametrize(
     ("program", "mode", "submode", "indur", "params", "rel_tol"),
@@ -347,6 +361,64 @@ async def _run(env, *, program, mode, input_name, params, submode=None):
         # and indur1 + indur2 - splice/1000 pinned in the tranche10b
         # transcript. phase phase 2 excluded: stereo-only, the shared
         # fixture writes mono; static duration verified in the transcript.)
+        # --- Phase 6 tranche 11 (iteration/sequence + event-timing; rows
+        # from docs/curation/tranche11{a,b}_*_findings.json). Rows whose
+        # params reference _AUX_FILES get that data file written into the
+        # session's data/ dir (contents from the 11a transcript probes) —
+        # extending the fixture beats excluding the rows (testing-
+        # principles §10). Excluded with reasons, pinned in transcripts:
+        # extend sequence2 + iterlinef (multi-input / 25-input), stutter +
+        # retime 1/6/7/9 (aux datafiles with data-dependent durations —
+        # duration_model expressions engage the aux-param preflight skip),
+        # retime 3/8/10 (flat noise refused: 'NO SILENCE-GAPS FOUND IN
+        # FILE.'), retime 12 + peakfind (data outputs, no audio duration),
+        # clicknew (arity-0, duration driven by the clicktimes datafile),
+        # housekeep chans 4 (stereo-only). ---
+        ("extend", "iterate", 1, 2.0,
+         {"outduration": 6.0, "seed": 1},
+         0.05),
+        ("extend", "iterate", 2, 2.0,
+         {"repetitions": 2, "delay": 1.0, "seed": 1},
+         0.05),
+        ("iterline", "iterline", 1, 2.0,
+         {"tdata": "td0.txt", "outduration": 6.0, "delay": 2.0, "seed": 1},
+         0.05),
+        ("iterline", "iterline", 2, 2.0,
+         {"tdata": "td0.txt", "outduration": 6.0, "delay": 2.0, "seed": 1},
+         0.05),
+        ("shrink", "shrink", 1, 2.0,
+         {"shrinkage": 0.7, "gap": 2.0, "contract": 1.0, "dur": 6.0,
+          "spl": 10.0},
+         0.05),
+        ("shrink", "shrink", 4, 2.0,
+         {"time": 0.5, "shrinkage": 0.7, "gap": 2.0, "contract": 1.0,
+          "dur": 6.0, "spl": 10.0},
+         0.05),
+        # texture decorated is stochastic (grouped precedent): tol 0.2.
+        ("texture", "decorated", 5, 2.0,
+         {"notedata": "ndec1.txt", "outdur": 5.0, "skiptime": 0.5,
+          "mindur": 0.1, "maxdur": 0.15, "gpsizlo": 2, "gpsizhi": 4,
+          "gppaklo": 20.0, "gppakhi": 60.0, "gpranglo": 3.0,
+          "gpranghi": 8.0, "seed": 5},
+         0.2),
+        ("retime", "retime", 4, 2.0,
+         {"tempo": 120.0, "minsil": 50.0, "pregain": 1.0},
+         0.05),
+        ("retime", "retime", 5, 2.0,
+         {"factor": 2.0, "minsil": 50.0},
+         0.05),
+        ("sorter", "sorter", 1, 2.0,
+         {"esiz": 0.1},
+         0.05),
+        ("sorter", "sorter", 5, 2.0,
+         {"esiz": 0.1, "seed": 5},
+         0.05),
+        ("housekeep", "chans", 3, 2.0,
+         {"channo": 1},
+         0.05),
+        ("housekeep", "chans", 5, 2.0,
+         {},
+         0.05),
     ],
 )
 async def test_duration_model_matches_cdp(
@@ -359,6 +431,15 @@ async def test_duration_model_matches_cdp(
     env = cdp_env
     if indur is not None:
         _write_noise(env.session.inputs_dir / "in.wav", indur)
+    referenced = [
+        v for v in params.values()
+        if isinstance(v, str) and v in _AUX_FILES
+    ]
+    if referenced:
+        data_dir = env.session.root / "data"
+        data_dir.mkdir(exist_ok=True)
+        for name in referenced:
+            (data_dir / name).write_text(_AUX_FILES[name])
 
     entry = env.knowledge.get(program, mode, submode)
     indurs = [indur] if indur is not None else []

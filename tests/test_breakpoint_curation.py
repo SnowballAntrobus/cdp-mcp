@@ -31,6 +31,117 @@ from cdp_mcp.knowledge.loader import KnowledgeIndex
 # cdpr8/_cdp/_cdprogs). Updating any cell in this table is a curation
 # decision and must pair with an entry in docs/phase-2-breakpoint-review.md.
 _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]] = {
+    # --- Phase 6 tranche 11 (iteration/sequence + event-timing; see
+    # docs/curation/tranche11{a_iteration,b_event_timing}_findings.json) ---
+    ("extend", "sequence2", None): {
+        "seqfile": False, "attenuation": False, "splice": False,
+    },
+    ("extend", "iterate", 1): {
+        "outduration": False, "delay": True, "rand": True, "pshift": True,
+        "ampcut": True, "fade": False, "gain": False, "seed": False,
+    },
+    ("extend", "iterate", 2): {
+        "repetitions": False, "delay": True, "rand": True, "pshift": True,
+        "ampcut": True, "fade": False, "gain": False, "seed": False,
+    },
+    ("iterline", "iterline", 1): {
+        "tdata": False, "outduration": False, "delay": True, "rand": True,
+        "pshift": True, "ampcut": True, "gain": False, "seed": False,
+        "normalise": False,
+    },
+    ("iterline", "iterline", 2): {
+        "tdata": False, "outduration": False, "delay": True, "rand": True,
+        "pshift": True, "ampcut": True, "gain": False, "seed": False,
+        "normalise": False,
+    },
+    ("iterlinef", "iterlinef", 1): {
+        "tdata": False, "outduration": False, "delay": True, "rand": True,
+        "pshift": True, "ampcut": True, "gain": False, "seed": False,
+        "normalise": False,
+    },
+    ("shrink", "shrink", 1): {
+        "shrinkage": False, "gap": False, "contract": False, "dur": False,
+        "spl": False, "small": False, "minsep": False, "rnd": False,
+        "eqlevel": False, "invert": False,
+    },
+    ("shrink", "shrink", 4): {
+        "time": False, "shrinkage": False, "gap": False, "contract": False,
+        "dur": False, "spl": False, "small": False, "minsep": False,
+        "rnd": False, "eqlevel": False, "invert": False,
+    },
+    ("texture", "decorated", 5): {
+        "notedata": False, "outdur": False, "skiptime": True,
+        "sndfirst": True, "sndlast": True, "mingain": True, "maxgain": True,
+        "mindur": True, "maxdur": True, "phgrid": True, "gpspace": False,
+        "gpsprange": True, "amprise": True, "contour": False,
+        "gpsizlo": True, "gpsizhi": True, "gppaklo": True, "gppakhi": True,
+        "gpranglo": True, "gpranghi": True, "centring": False,
+        "atten": True, "position": True, "spread": True, "seed": False,
+        "whole": False, "fixstep": False, "instrvary": False,
+        "dectop": False, "decall": False, "discardline": False,
+    },
+    ("retime", "retime", 1): {
+        "refpoints": False, "tempo": False,
+    },
+    ("retime", "retime", 3): {
+        "minsil": False, "inevwidth": False, "outevwidth": False,
+        "splicelen": False,
+    },
+    ("retime", "retime", 4): {
+        "tempo": False, "minsil": False, "pregain": False,
+    },
+    ("retime", "retime", 5): {
+        "factor": True, "minsil": False, "start": False, "end": False,
+        "sync": False,
+    },
+    ("retime", "retime", 6): {
+        "retempodata": False, "tempo": False, "offset": False,
+        "minsil": False, "pregain": False,
+    },
+    ("retime", "retime", 7): {
+        "retempodata": False, "offset": False, "minsil": False,
+        "pregain": False,
+    },
+    ("retime", "retime", 8): {
+        "tempo": False, "eventtime": False, "cnt": False,
+        "repeats": False, "minsil": False,
+    },
+    ("retime", "retime", 9): {
+        "maskdata": False, "minsil": False,
+    },
+    ("retime", "retime", 10): {
+        "minsil": False, "evening": False, "meter": False,
+    },
+    ("retime", "retime", 12): {
+        # no numeric parameters
+    },
+    ("peakfind", "peakfind", None): {
+        "windowsize": False, "threshold": False,
+    },
+    ("clicknew", "clicks", None): {
+        "clicktimes": False, "srate": False,
+    },
+    ("sorter", "sorter", 1): {
+        "esiz": False, "smooth": False,
+    },
+    ("sorter", "sorter", 5): {
+        "esiz": False, "seed": False, "smooth": False,
+    },
+    ("stutter", "stutter", None): {
+        "slicedata": False, "dur": False, "segjoins": False,
+        "silprop": False, "silmin": False, "silmax": False, "seed": False,
+        "trans": True, "atten": True, "bias": False, "mindur": False,
+        "permute": False,
+    },
+    ("housekeep", "chans", 3): {
+        "channo": False,
+    },
+    ("housekeep", "chans", 4): {
+        "phase": False,
+    },
+    ("housekeep", "chans", 5): {
+        # no numeric parameters
+    },
     # --- Phase 5 wave 4 (tranche 10: ST-covered singles; see
     # docs/curation/tranche10{a,b}_st_singles_findings.json) ---
     ("blur", "chorus", 5): {

@@ -28,6 +28,30 @@
   curation + usage trigger; texture owns clouds, timeline() stays
   deterministic placement). timeline() gains headroom staging from
   P5-3 (native getlevel pre-flight, headroom="auto"/"off"/"fail").
+  Uncurated-program survey appended to the design doc (sequence2 +
+  retime reshaped tranche 11).
+- **Tranche 11 DONE (2026-07-15, commits 0f7b1d9 + 910391a +
+  integration): 107 → 134 curated / 302 total** (8 stubs retired).
+  The Phase 6 primitives are all curated now: extend sequence2
+  (duration rule exact: MAX(time + min(indur/2^((pitch−notional)/12),
+  dur)); resampling transposition; overload warns-but-writes raw
+  floats — NO wrap, unlike submix mix), extend iterate 1/2 + iterline
+  1/2 + iterlinef (shared engine, seed 0 = clock, default seed 1;
+  fade-brk binary bug; iterlinef needs exactly 25 inputs), shrink 1/4
+  (bouncing-ball; -r seedless; -s > indur segfaults), texture
+  decorated 5, retime 1/3/4/5/6/7/8/9/10/12 (event = runs bounded by
+  LITERAL digital zeros — gate real recordings first; no-silence
+  behavior pinned per mode), peakfind↔clicknew round-trip verified,
+  sorter 1/5, stutter, housekeep chans 3/4/5 (the 6b SPLIT half;
+  merge = submix interleave since repair drops — ignores argv
+  outname). Dropped with evidence: refocus (bandcnt floor 2, self-
+  named outputs), repair, retime 2/11, shrink 5/6, chans 1/2.
+  Duration fixture now writes aux data files for rows that need them
+  (_AUX_FILES). Suite: 1621 hermetic / 1735 real-CDP, ruff clean.
+  **timeline() design input settled: sequence2 = pitch-aware sibling
+  (no pan, no wrap), submix mix = pan-aware (wraps, needs headroom
+  staging). Both empirically pinned — the build can decide the routing
+  question from data.**
   **THE CURRENT NEXT STEP: Phase 6 build order item 1 — stdout-refusal
   error mapping**, then timeline(), IOI/density into segments(), the
   Bucephalus pipeline + example recipe, free_string type.
