@@ -1,0 +1,57 @@
+{
+ "name": "syllabic_grain_stutter",
+ "title": "Reverse syllables, narrow formants, stutter the phrase",
+ "material": "articulated phrases with real gaps - speech, vocal phrases, sparse percussion",
+ "description": "For material with genuine silences between events: grain reverse flips the order and content of the detected syllables, specfnu's narrow mode squeezes the formant bands, modify loudness rebalances, and envspeak repeats each detected syllable twice for a stutter.",
+ "source": "Verified end-to-end on a formant-filtered 4-syllable vocal proxy in the Phase 5 generalization matrix (tests/test_generalization.py, vocal chain; docs/generalization-matrix.md).",
+ "definition": {
+  "inputs": {
+   "src": "YOUR_INPUT.wav"
+  },
+  "nodes": [
+   {
+    "id": "flipped",
+    "op": "grain reverse",
+    "in": "src",
+    "params": {}
+   },
+   {
+    "id": "narrowed",
+    "op": "specfnu specfnu",
+    "submode": 1,
+    "in": "flipped",
+    "params": {
+     "narrow": 4.0
+    }
+   },
+   {
+    "id": "balanced",
+    "op": "modify loudness",
+    "submode": 1,
+    "in": "narrowed",
+    "params": {
+     "gain": 0.8
+    }
+   },
+   {
+    "id": "stutter",
+    "op": "envspeak envspeak",
+    "submode": 1,
+    "in": "balanced",
+    "params": {
+     "wsize": 50.0,
+     "splice": 15.0,
+     "offset": 0,
+     "repet": 2,
+     "rand": 0.0
+    }
+   }
+  ],
+  "output": "stutter"
+ },
+ "notes": [
+  "grain reverse REFUSES unarticulated material ('No grains found') and silently DISCARDS below-gate content on weakly-articulated beds (generalization finding) - it wants real silences.",
+  "envspeak at rand=0 is exactly indur * repet; raise rand for humanized timing.",
+  "sustained swells count as ONE syllable to envspeak (whole-file repeat) - articulation, not pitch, is what it detects."
+ ]
+}

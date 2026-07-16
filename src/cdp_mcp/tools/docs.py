@@ -5,7 +5,11 @@ Two tools live here:
 - ``search_docs(query, limit)`` — full-text search (SQLite FTS5, bm25)
   over the manual pages shipped with the CDP install.
 - ``read_doc(uri)`` — fetch the plain-text body of one page by the
-  ``cdp://docs/...`` uri that ``search_docs`` returned.
+  ``cdp://docs/...`` uri that ``search_docs`` returned. It also serves
+  the rest of the ``cdp://`` namespace: ``cdp://examples/...`` uris
+  (from ``list_examples``) dispatch to
+  :func:`cdp_mcp.tools.examples.read_example_uri` — those are package
+  data and never require a CDP manual install.
 
 Both are backed by :mod:`cdp_mcp.docs_index`, with the docs root and the
 index location captured by closure in :func:`register`, mirroring the
@@ -38,6 +42,7 @@ from mcp.server.fastmcp import Context, FastMCP
 
 from .. import docs_index
 from ..config import CDPConfig
+from . import examples as examples_module
 
 # Environment override for the docs root; wins over any derivation.
 _DOCS_ROOT_ENV = "CDP_MCP_DOCS_ROOT"
@@ -155,15 +160,20 @@ def register(
 
     @mcp.tool()
     async def read_doc(ctx: Context, uri: str) -> dict:
-        """Read one page of CDP's official manual as plain text.
+        """Read one ``cdp://`` resource as plain text.
 
-        ``uri`` must be a ``cdp://docs/...`` identifier exactly as
-        returned by :func:`search_docs` — call that first to find pages.
-        Returns ``status``, ``uri``, ``title``, ``body`` (truncated at
-        20,000 characters), ``truncated``, and ``total_chars``. Unknown
+        ``cdp://docs/...`` uris (from :func:`search_docs`) return one
+        page of CDP's official manual: ``status``, ``uri``, ``title``,
+        ``body`` (truncated at 20,000 characters), ``truncated``, and
+        ``total_chars``. ``cdp://examples/...`` uris (from
+        ``list_examples``) return a verified chain example: metadata
+        plus a ready-to-run ``definition`` for ``graph()``. Unknown
         uris and missing documentation come back as structured error
         dicts rather than exceptions.
         """
+        if uri.startswith("cdp://examples/"):
+            # Package data — served even when no CDP manual is installed.
+            return examples_module.read_example_uri(uri)
         error = await _ready_index()
         if error is not None:
             return error

@@ -1,0 +1,48 @@
+{
+ "name": "spectral_smear_granular",
+ "title": "Spectral smear into granular half-speed and a loop",
+ "material": "any mono source; textured or noisy material responds especially well",
+ "description": "The canonical starter chain: time-average the spectrum with blur blur (softening attacks and fusing texture), pull the result through modify brassage at half velocity (granular time-stretch that keeps pitch), then cut a rhythmic cell from it with extend loop. Auto-PVOC handles both domain crossings \u2014 you feed a .wav and get a .wav back.",
+ "source": "Verified end-to-end against real CDP since Phase 1a as the acceptance chain (tests/test_acceptance.py).",
+ "definition": {
+  "inputs": {
+   "src": "YOUR_INPUT.wav"
+  },
+  "nodes": [
+   {
+    "id": "smear",
+    "op": "blur blur",
+    "in": "src",
+    "params": {
+     "blurring": 10
+    }
+   },
+   {
+    "id": "granular",
+    "op": "modify brassage",
+    "submode": 2,
+    "in": "smear",
+    "params": {
+     "velocity": 0.5
+    }
+   },
+   {
+    "id": "cell",
+    "op": "extend loop",
+    "submode": 3,
+    "in": "granular",
+    "params": {
+     "cnt": 4,
+     "start": 0.0,
+     "len": 300.0
+    }
+   }
+  ],
+  "output": "cell"
+ },
+ "notes": [
+  "blurring is the number of analysis windows averaged - 10 is a gentle smear; 40+ dissolves attacks entirely.",
+  "brassage velocity < 1 lengthens (0.5 doubles the duration); grain placement is unseeded-stochastic, so renders differ at byte level run to run.",
+  "extend loop len is in MILLISECONDS (300 = 0.3 s cell); output duration is cnt * len / 1000."
+ ]
+}

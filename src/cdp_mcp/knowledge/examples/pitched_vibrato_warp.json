@@ -1,0 +1,61 @@
+{
+ "name": "pitched_vibrato_warp",
+ "title": "Transpose, waver, and varispeed a pitched sustain",
+ "material": "pitched sustained material - winds, bowed strings, vocal drones",
+ "description": "A pitch-centric chain for material with a coherent harmonic spectrum. repitch transpose shifts the analysis up an octave without changing duration; strange waver imposes a slow spectral vibrato; modify speed then varispeeds an octave DOWN - halving pitch back to the original register while doubling duration - and envel dovetail cleans the edges with fades.",
+ "source": "Verified end-to-end on an odd-harmonic clarinet proxy in the Phase 5 generalization matrix (tests/test_generalization.py, clarinet chain; docs/generalization-matrix.md).",
+ "definition": {
+  "inputs": {
+   "src": "YOUR_INPUT.wav"
+  },
+  "nodes": [
+   {
+    "id": "up",
+    "op": "repitch transpose",
+    "submode": 3,
+    "in": "src",
+    "params": {
+     "transpos": 12.0
+    }
+   },
+   {
+    "id": "wobble",
+    "op": "strange waver",
+    "submode": 1,
+    "in": "up",
+    "params": {
+     "vibfrq": 4.0,
+     "stretch": 2.0,
+     "botfrq": 100.0
+    }
+   },
+   {
+    "id": "down",
+    "op": "modify speed",
+    "submode": 2,
+    "in": "wobble",
+    "params": {
+     "semitones": -12.0
+    }
+   },
+   {
+    "id": "faded",
+    "op": "envel dovetail",
+    "submode": 1,
+    "in": "down",
+    "params": {
+     "infadedur": 0.1,
+     "outfadedur": 0.5,
+     "intype": 1,
+     "outtype": 1
+    }
+   }
+  ],
+  "output": "faded"
+ },
+ "notes": [
+  "transpos is in semitones (+12 = octave up); duration is unchanged at this step.",
+  "waver's vibfrq range is INPUT-DEPENDENT at both ends (curated finding) - 4 Hz is safe on typical material.",
+  "modify speed 2 semitones=-12 doubles duration and halves pitch - the transpose-up/varispeed-down pair is a classic spectral-thickening idiom."
+ ]
+}

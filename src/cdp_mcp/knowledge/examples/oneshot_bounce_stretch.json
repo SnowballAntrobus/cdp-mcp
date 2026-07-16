@@ -1,0 +1,62 @@
+{
+ "name": "oneshot_bounce_stretch",
+ "title": "Bounce a one-shot, spectrally stretch, loop, and trim",
+ "material": "short percussive gestures - drum hits, synth stabs, plucks",
+ "description": "Builds a gesture from a single hit: bounce repeats it with accelerating, decaying echoes (physical ball-drop feel), stretch time expands the result 2.5x spectrally (keeping pitch), extend loop cuts a rhythmic cell, and sfedit cut trims an exact one-second window.",
+ "source": "Verified end-to-end on a percussive sweep-hit proxy in the Phase 5 generalization matrix (tests/test_generalization.py, one-shot chain; docs/generalization-matrix.md).",
+ "definition": {
+  "inputs": {
+   "src": "YOUR_INPUT.wav"
+  },
+  "nodes": [
+   {
+    "id": "bounced",
+    "op": "bounce bounce",
+    "in": "src",
+    "params": {
+     "count": 5,
+     "startgap": 0.35,
+     "shorten": 0.75,
+     "endlevel": 0.15,
+     "ewarp": 1.0
+    }
+   },
+   {
+    "id": "stretched",
+    "op": "stretch time",
+    "submode": 1,
+    "in": "bounced",
+    "params": {
+     "timestretch": 2.5
+    }
+   },
+   {
+    "id": "cell",
+    "op": "extend loop",
+    "submode": 3,
+    "in": "stretched",
+    "params": {
+     "cnt": 4,
+     "start": 0.0,
+     "len": 400.0
+    }
+   },
+   {
+    "id": "trimmed",
+    "op": "sfedit cut",
+    "submode": 1,
+    "in": "cell",
+    "params": {
+     "start": 0.2,
+     "end": 1.2
+    }
+   }
+  ],
+  "output": "trimmed"
+ },
+ "notes": [
+  "bounce duration follows the geometric gap series - count 5 / shorten 0.75 adds roughly one input-length of echoes.",
+  "spectral timestretch padding is proportionally largest on short inputs (observed +2% at ~1.2 s) - trim after, not before.",
+  "sfedit cut start/end are seconds into the file at THAT node - the dry-run duration predictions tell you what is available."
+ ]
+}

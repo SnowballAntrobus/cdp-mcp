@@ -37,6 +37,7 @@ from .tools import cluster as cluster_module
 from .tools import compare as compare_module
 from .tools import data_files as data_files_module
 from .tools import docs as docs_module
+from .tools import examples as examples_module
 from .tools import execute as execute_module
 from .tools import graph_tool as graph_module
 from .tools import introspection, workspace
@@ -211,6 +212,9 @@ cleanup_module.register(
 )
 templates_module.register(mcp, sessions=_session_manager)
 prompts.register(mcp)
+
+# Phase 5: packaged examples library (cdp://examples/*, read via read_doc).
+examples_module.register(mcp)
 
 
 def create_server() -> FastMCP:

@@ -1,0 +1,48 @@
+{
+ "name": "palindrome_chorus",
+ "title": "Back-to-back palindrome into spectral chorus",
+ "material": "any mono source with a distinct tail - swells, reversed hits, phrases",
+ "description": "extend baktobak reverses everything AFTER the join point and prepends it, making a sample-exact palindrome around the join; blur chorus then thickens the result with spectral amplitude and frequency spread (deterministic - no seed exists), and modify loudness brings it back to the time domain.",
+ "source": "Both wave-4 entries verified in tranche 10 (docs/curation/tranche10a_st_singles.md, tranche10b_st_singles.md).",
+ "definition": {
+  "inputs": {
+   "src": "YOUR_INPUT.wav"
+  },
+  "nodes": [
+   {
+    "id": "mirror",
+    "op": "extend baktobak",
+    "in": "src",
+    "params": {
+     "join_time": 1.0,
+     "splice": 15.0
+    }
+   },
+   {
+    "id": "thick",
+    "op": "blur chorus",
+    "submode": 5,
+    "in": "mirror",
+    "params": {
+     "aspread": 30.0,
+     "fspread": 2.0
+    }
+   },
+   {
+    "id": "out",
+    "op": "modify loudness",
+    "submode": 1,
+    "in": "thick",
+    "params": {
+     "gain": 0.9
+    }
+   }
+  ],
+  "output": "out"
+ },
+ "notes": [
+  "baktobak DISCARDS audio before join_time (curated finding - not a whole-file prepend): output duration is exactly 2 * (indur - join_time).",
+  "join_time == input duration exits 0 with a 1-frame file - keep it well inside the file.",
+  "blur chorus is fully deterministic (no RNG seeding in the binary) - same params, same bytes."
+ ]
+}
