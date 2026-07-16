@@ -52,9 +52,19 @@
   (no pan, no wrap), submix mix = pan-aware (wraps, needs headroom
   staging). Both empirically pinned — the build can decide the routing
   question from data.**
-  **THE CURRENT NEXT STEP: Phase 6 build order item 1 — stdout-refusal
-  error mapping**, then timeline(), IOI/density into segments(), the
-  Bucephalus pipeline + example recipe, free_string type.
+  Phase 6 build queue (error mapping, timeline(), IOI/density,
+  Bucephalus example, free_string) is ON HOLD behind the curation
+  completion run below.
+- **CURATION COMPLETION RUN (tranches 12-23, 6 waves; plan + full
+  target lists: docs/curation/roadmap-tranches-12plus.md).** Status:
+  - Wave 1 DONE (2026-07-16): T12 submix depth (15) + T13 envelope
+    family (19) -> **168 curated / 330 total**. getlevel curable as
+    sm3 (timeline() headroom = curated call); gate -> retime chain
+    verified; overload map per submix mode; forensics P6-1
+    (aarch64 signed-char, build script fixed). Suite 1749/1874.
+  - Waves 2-6 pending: T14 sfedit/editing + T15 gesture; T16 waveset
+    + T17 synthesis; T18 texture/filter + T19 grain/FOF; T20+T21
+    spectral tail; T22 pitch-data + T23 text utilities.
 
 ## Phase 5 wave 2 — DONE (commits 5715795 + c45b714, 2026-07-15)
 

@@ -92,8 +92,8 @@ def test_curated_only_passthrough_includes_all(real_index):
     # All curated entries are curated, so curated_only=False just returns the
     # same set. The flag's behavior is exercised; the data doesn't (yet)
     # contain uncurated entries to filter out.
-    assert len(real_index.list_entries(curated_only=False)) == 302
-    assert len(real_index.list_entries(curated_only=True)) == 134
+    assert len(real_index.list_entries(curated_only=False)) == 330
+    assert len(real_index.list_entries(curated_only=True)) == 168
 
 
 def test_get_returns_none_for_missing(real_index):

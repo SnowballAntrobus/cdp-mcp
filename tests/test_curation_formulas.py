@@ -120,6 +120,9 @@ async def _run(env, *, program, mode, input_name, params, submode=None):
 _AUX_FILES = {
     "td0.txt": "0 0\n6 0\n",
     "ndec1.txt": "60\n#1\n0 1 60 64 0.2\n",
+    # envel scaled aux brkfile (tranche 13): a 0-4-axis shape peaking at
+    # 1 — time-SCALED to the input, so the peak lands at ~dur/4.
+    "env4.txt": "0 0\n1 1\n4 0\n",
 }
 
 
@@ -418,6 +421,46 @@ _AUX_FILES = {
          0.05),
         ("housekeep", "chans", 5, 2.0,
          {},
+         0.05),
+        # --- Wave 1 (tranche 13: envelope family; rows from
+        # docs/curation/tranche13_envelope_findings.json. Tranche 12's
+        # submix rows are all null: multi-input/data-output family, rules
+        # pinned in the transcript. envel create/cyclic/envtobrk/brktoenv
+        # excluded: data outputs / arity-0 aux-driven; gate excluded: the
+        # flat-noise fixture has no gateable silence — the gate → retime
+        # chain is spot-checked in the transcript instead.) ---
+        ("envel", "warp", 8, 2.0,
+         {"wsize": 20.0, "gate": 0.05, "smoothing": 0},
+         0.05),
+        ("envel", "warp", 11, 2.0,
+         {"wsize": 20.0, "trofdel": 2, "peak_separation": 6},
+         0.05),
+        ("envel", "swell", None, 2.0,
+         {"peaktime": 1.0, "peaktype": 1},
+         0.05),
+        ("envel", "attack", 3, 2.0,
+         {"time": 1.0, "gain": 1.0, "onset": 20.0, "decay": 100.0},
+         0.05),
+        ("envel", "curtail", 2, 2.0,
+         {"fadestart": 1.0, "fadedur": 0.5, "envtype": 1},
+         0.05),
+        ("envel", "scaled", None, 2.0,
+         {"envelope": "env4.txt"},
+         0.05),
+        ("tremolo", "tremolo", 1, 2.0,
+         {"frq": 8.0, "depth": 1.0, "gain": 1.0, "fineness": 1},
+         0.05),
+        ("tremenv", "tremenv", None, 2.0,
+         {"frq": 8.0, "depth": 1.0, "winsize": 20.0, "fineness": 1},
+         0.05),
+        ("spike", "spike", None, 2.0,
+         {"peak": 1.0, "upslope": 4.0, "downslope": 4.0},
+         0.05),
+        ("topantail2", "topantail", None, 2.0,
+         {"startgate": 0.01, "endgate": 0.01},
+         0.05),
+        ("envnu", "expdecay", None, 2.0,
+         {"starttime": 0.5, "endtime": 1.0},
          0.05),
     ],
 )

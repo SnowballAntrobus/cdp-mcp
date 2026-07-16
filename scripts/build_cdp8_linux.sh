@@ -31,9 +31,21 @@ if [ ! -d "$TARGET/.git" ]; then
     git clone --depth 1 https://github.com/ComposersDesktop/CDP8 "$TARGET"
 fi
 
+# -fsigned-char: mandatory on aarch64 (unsigned-char default), harmless on
+# x86. CDP's text parsers compare (char)fgetc() != EOF (cdparse.c and
+# friends) — with unsigned char the loop never terminates and EVERY
+# textfile input (mixfiles, breakpoints, notedata) refuses "is not a valid
+# CDP file". Forensics P6-1. Per-subdir CMakeLists clobber C_FLAGS, so the
+# flag must be injected into those files, not just the top-level invocation.
+find "$TARGET/dev" "$TARGET" -maxdepth 3 -name CMakeLists.txt \
+    -exec grep -l 'set(CMAKE_C_FLAGS' {} + 2>/dev/null | while read -r f; do
+    grep -q 'fsigned-char' "$f" || \
+        sed -i 's/set(CMAKE_C_FLAGS "/set(CMAKE_C_FLAGS "-fsigned-char /' "$f"
+done
+
 mkdir -p "$TARGET/build"
 cd "$TARGET/build"
-cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-fsigned-char"
 # -k: keep going past the clang-only externals (see header).
 make -k -j"$(nproc)" || true
 

@@ -31,6 +31,187 @@ from cdp_mcp.knowledge.loader import KnowledgeIndex
 # cdpr8/_cdp/_cdprogs). Updating any cell in this table is a curation
 # decision and must pair with an entry in docs/phase-2-breakpoint-review.md.
 _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]] = {
+    # --- Wave 1 (tranches 12-13: submix depth + envelope family; see
+    # docs/curation/tranche12_submix_depth_findings.json +
+    # tranche13_envelope_findings.json) ---
+    ("submix", "attenuate", None): {
+        "inmixfile": False,
+        "gain": False,
+        "startline": False,
+        "endline": False,
+    },
+    ("submix", "balance", None): {
+        "balance": True,
+        "begin": False,
+        "end": False,
+    },
+    ("submix", "crossfade", 1): {
+        "stagger": False,
+        "begin": False,
+        "end": False,
+    },
+    ("submix", "crossfade", 2): {
+        "stagger": False,
+        "begin": False,
+        "end": False,
+        "powfac": False,
+    },
+    ("submix", "faders", None): {
+        "balance_data": False,
+        "envelope_data": False,
+    },
+    ("submix", "getlevel", 3): {
+        "mixfile": False,
+        "start": False,
+        "end": False,
+    },
+    ("submix", "merge", None): {
+        "stagger": False,
+        "skip": False,
+        "skew": False,
+        "begin": False,
+        "end": False,
+    },
+    ("submix", "mergemany", None): {
+        # no numeric parameters
+    },
+    ("submix", "pan", None): {
+        "inmixfile": False,
+        "pan": True,
+    },
+    ("submix", "shuffle", 3): {
+        "inmixfile": False,
+        "startline": False,
+        "endline": False,
+    },
+    ("submix", "spacewarp", 5): {
+        "inmixfile": False,
+        "minpos": False,
+        "maxpos": False,
+        "startline": False,
+        "endline": False,
+    },
+    ("submix", "sync", 1): {
+        "intextfile": False,
+    },
+    ("submix", "sync", 2): {
+        "intextfile": False,
+    },
+    ("submix", "syncattack", None): {
+        "intextfile": False,
+        "attackwin": False,
+        "peakpower": False,
+    },
+    ("submix", "timewarp", 6): {
+        "inmixfile": False,
+        "scatter": False,
+        "startline": False,
+        "endline": False,
+    },
+    ("envel", "attack", 3): {
+        "time": False,
+        "gain": False,
+        "onset": False,
+        "decay": False,
+        "envtype": False,
+    },
+    ("envel", "brktoenv", None): {
+        "inbrkfile": False,
+        "wsize": False,
+    },
+    ("envel", "create", 1): {
+        "createfile": False,
+        "wsize": False,
+    },
+    ("envel", "curtail", 2): {
+        "fadestart": False,
+        "fadedur": False,
+        "envtype": False,
+        "times": False,
+    },
+    ("envel", "cyclic", 3): {
+        "wsize": False,
+        "totaldur": False,
+        "celldur": True,
+        "phase": False,
+        "trough": True,
+        "expo": False,
+    },
+    ("envel", "envtobrk", None): {
+        "inenvfile": False,
+        "datareduce": False,
+    },
+    ("envel", "scaled", None): {
+        "envelope": False,
+    },
+    ("envel", "swell", None): {
+        "peaktime": False,
+        "peaktype": False,
+    },
+    ("envel", "warp", 11): {
+        "wsize": False,
+        "trofdel": True,
+        "peak_separation": True,
+    },
+    ("envel", "warp", 8): {
+        "wsize": False,
+        "gate": True,
+        "smoothing": False,
+    },
+    ("envnu", "expdecay", None): {
+        "starttime": False,
+        "endtime": False,
+    },
+    ("envnu", "peakchop", 1): {
+        "wsize": False,
+        "pkwidth": True,
+        "risetime": True,
+        "tempo": True,
+        "gain": True,
+        "gate": False,
+        "skew": False,
+        "scatter": True,
+        "norm": False,
+        "repeat": True,
+        "miss": True,
+    },
+    ("envnu", "peakchop", 2): {
+        "wsize": False,
+        "pkwidth": False,
+        "risetime": False,
+        "gate": False,
+        "skew": False,
+    },
+    ("gate", "gate", 1): {
+        "gatelevel": False,
+    },
+    ("gate", "gate", 2): {
+        "gatelevel": False,
+    },
+    ("spike", "spike", None): {
+        "peak": False,
+        "upslope": True,
+        "downslope": True,
+        "maxdown": False,
+    },
+    ("topantail2", "topantail", None): {
+        "startgate": False,
+        "endgate": False,
+        "splicelen": False,
+        "backtrack": False,
+    },
+    ("tremenv", "tremenv", None): {
+        "frq": False,
+        "depth": False,
+        "winsize": False,
+        "fineness": False,
+    },
+    ("tremolo", "tremolo", 1): {
+        "frq": True,
+        "depth": True,
+        "gain": True,
+        "fineness": False,
+    },
     # --- Phase 6 tranche 11 (iteration/sequence + event-timing; see
     # docs/curation/tranche11{a_iteration,b_event_timing}_findings.json) ---
     ("extend", "sequence2", None): {
