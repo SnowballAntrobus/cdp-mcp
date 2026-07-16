@@ -1,0 +1,93 @@
+{
+  "program": "grainex",
+  "mode": "extend",
+  "submode": null,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + plus"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Finds GRAINS inside the zone [stt, end] of the source and extends the sound by 'plus' seconds of additional grain material, leaving everything outside the zone in place - iterative extension driven by the sound's own grain grid rather than a fixed segment. Grain detection is windowed (wsiz ms) with troughs accepted below 'trof' relative to adjacent peaks. DURATION: nominally indur + plus - EXACT on speech-like material (a 3.5 s syllable train rendered 5.4998 and 4.4999 at plus 2.0/1.0) but source-dependent on dense grain trains (a 16-grain 2 s train rendered 5.2622 at plus 1.5 - +1.76 s beyond the model; the added material rounds to the found grain grid). The model is honest for sparse/speech grains; budget overshoot elsewhere and measure. CONTENT REFUSAL: material where no grains are found refuses 'INFO: Number of grains found = 0' then 'ERROR: INVALID DATA / ERROR: Insufficient grains to proceed.' (a single sustained event, a reversed zone, trof at either extreme 0/1, or plus 0 all landed there on probes). ALL FIVE parameters refuse breakpoint files verbatim ('Cannot read parameter 1..5 [...]: brkpnt_files not permitted.' - each slot probed): fully scalar. Deterministic (pairs 1.3 s apart byte-identical; no seed, no randomness observed). MONO ONLY ('File ev4st.wav is not of correct type (must be mono)'). Ranges verbatim: wsiz '(0.181406 to 666.666667)' ms (srate-dependent); end 0 to input duration; plus '(0.000002 to 3600.000000)'.",
+  "musical_use": "Stretch the grainy part, keep the rest: where a time-stretch smears attacks and a freeze loops one chunk, grainex prolongs a rolled R, a rattle, a bubbling texture, a tremolo - any grain train - by recycling its own grains, with the material before and after untouched. Point stt/end at the grainy stretch, set wsiz near the grain period (20-50 ms for speech-rate grains; the found-grain count prints to the console), trof ~0.3-0.5, and 'plus' to the extra seconds wanted. Great for speech elongation ('rrrr' held for drama), extending percussion rolls, or making a texture linger before its release. Sources must actually be grainy - steady tones and smooth pads refuse (verbatim error). For pitch-synchronous grain work use psow; for arbitrary-segment freezing use extend freeze.",
+  "parameters": {
+    "wsiz": {
+      "type": "float",
+      "min": 0.181406,
+      "max": 666.666667,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [20.0, 80.0],
+      "description": "Window size in ms - sets the scale of grains to find (CDP-enforced '(0.181406 to 666.666667)', srate-dependent; 0 refused verbatim). Match it to the grain period of the material. Breakpoint refused ('Cannot read parameter 1')."
+    },
+    "trof": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.2, 0.6],
+      "description": "Acceptable trough height relative to adjacent peaks, exclusive range (0,1): both 0 and 1 ran into 'Insufficient grains to proceed.' on probes - keep it strictly inside; 0.3 found grains where 0.9 also did (identical render on that fixture - detector saturates). Breakpoint refused ('Cannot read parameter 2')."
+    },
+    "plus": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 3600.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "How much duration to add (CDP-enforced '(0.000002 to 3600.000000)', -1 refused verbatim; plus 0 lands in the insufficient-grains refusal - always pass a positive value). Added material rounds to the found grain grid: exact on speech-like grains, up to +1.8 s beyond on a dense 16-grain train (see known_issues). Breakpoint refused ('Cannot read parameter 3')."
+    },
+    "stt": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Start of the grain zone within the source. A reversed zone (stt > end) fails with the insufficient-grains refusal, not a range error. Breakpoint refused ('Cannot read parameter 4')."
+    },
+    "end": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "End of the grain zone; CDP-enforced ceiling = input duration ('Parameter[5] Value (2.500000) out of range (0.000000 to 2.000000)', input-dependent). Breakpoint refused ('Cannot read parameter 5')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Hold a rolled consonant two seconds longer.",
+      "params": {"wsiz": 50.0, "trof": 0.3, "plus": 2.0, "stt": 0.1, "end": 1.9},
+      "expected_use": "On a syllable train this rendered exactly indur + 2.0 (5.4998 from 3.5 s). Console prints the found-grain count."
+    },
+    {
+      "description": "Let a rattle linger before its decay.",
+      "params": {"wsiz": 30.0, "trof": 0.4, "plus": 1.0, "stt": 0.2, "end": 0.9},
+      "expected_use": "Grain zone extended by ~1 s (grid-rounded); material outside 0.2-0.9 s untouched."
+    }
+  ],
+  "known_issues": [
+    "Duration honesty: indur + plus was EXACT (4 dp) at two plus values on a 3.5 s syllable train, but a dense 16-grain train rendered +1.71/+1.76 s BEYOND the model at plus 0.5/1.5 - the extension rounds to whole passes of the found grain grid. Treat the model as a floor on unfamiliar material and measure. duration_row null: the flat-noise fixture's grain census is unverified and the overshoot is content-dependent (rule pinned in docs/curation/tranche15_gesture.md).",
+    "CONTENT REFUSAL is the common failure: 'Insufficient grains to proceed.' (verbatim, after 'Number of grains found = 0') on sustained/smooth material, trof at 0 or 1, plus 0, or a reversed zone. Choose grainy zones and interior trof values.",
+    "All five parameters are scalar-only (each brk slot refused verbatim, parameters 1-5).",
+    "MONO ONLY (verbatim). Deterministic - byte-identical pairs, no seed.",
+    "wsiz bounds are srate-dependent (0.18-666.67 ms at 44.1 kHz, verbatim)."
+  ],
+  "references": ["cdp://docs/html/grainex"]
+}

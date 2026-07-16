@@ -1,0 +1,178 @@
+{
+  "program": "extend",
+  "mode": "drunk",
+  "submode": 2,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": "related",
+  "duration_model": {"kind": "set_by", "param": "outdur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Drunken walk with SOBER interludes: as submode 1, but every mindrnk-to-maxdrnk clock ticks the source plays STRAIGHT (soberly) for a while before the walk resumes - drunken rambling interrupted by lucid passages. The sober-play length is set by losober/hisober (seconds); by default (losober >= input duration) every sober play runs to the END of the source. DURATION: set_by outdur but with VARIABLE OVERSHOOT - the last sober play runs past the target (probes from outdur 4 on a 2 s source: 4.109 unseeded, 4.6187 at seed 5, 4.325 at seed 9; bounding the sober length with -l0.2 -h0.5 gave 4.4213). Budget up to one sober-play length (hisober, or the remaining source length at default) beyond outdur - the entry's duration row carries tol 0.2. SEED semantics as submode 1 (verified in this submode: -r5 pairs 1.3 s apart byte-identical, -r9 differs; 0/omission = clock). mindrnk CDP-enforced 1-32767 ('Parameter[6] Value (0.000000) out of range (1.000000 to 32767.000000)'); mindrnk > maxdrnk is silently accepted (ran, 4.0449); losober/hisober CDP-enforced 0.000002 to indur+0.000002 ('Parameter[12] Value (3.000000) out of range (0.000002 to 2.000002)' on a 2 s file - input-dependent). Stereo accepted.",
+  "musical_use": "Narrative wandering: the material keeps 'snapping out of it' - rambling dissolves into a clean phrase, then relapses. mindrnk/maxdrnk set how long the drunk passages run (in clock ticks) before sobriety strikes: small values (2-6) alternate rapidly, large values (10-30, the CDP defaults) make sober moments an occasional event. With the default losober (>= source length) each sober interlude plays the source to its end - strong punctuation; bound it with losober/hisober (e.g. 0.2-0.5 s) for brief lucid flashes instead. All the submode-1 dials keep their roles (locus/ambitus/step/clock + clokrand/overlap, all breakpointable there). Set a nonzero seed for reproducible takes, and leave duration slack downstream - the last sober play overshoots outdur.",
+  "parameters": {
+    "outdur": {
+      "type": "float",
+      "min": 0.0,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Total (minimum) output duration - the process finishes the sober/drunk figure in progress, overshooting by up to one sober-play length (observed +2.7% to +15.5% from outdur 4 on a 2 s source). Breakpoint refused."
+    },
+    "locus": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Walk centre in the source (0 to input duration, runtime-enforced). Breakpoint-capable (submode-1 slot-by-slot verification; shared parser and engine)."
+    },
+    "ambitus": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "(Half-)width of the readable region around locus (0 to input duration). Breakpoint-capable (submode-1 verification)."
+    },
+    "step": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum random walk step; banner's '>0.002' floor not enforced (0 accepted, submode-1 verified). Breakpoint-capable."
+    },
+    "clock": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Segment-read interval = segment length; must exceed 2*splicelen (verbatim runtime refusal). Breakpoint-capable (submode-1 verification; a clock brk also disturbs duration exactness)."
+    },
+    "mindrnk": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "clock ticks",
+      "breakpoint_capable": false,
+      "default": 10,
+      "flag": null,
+      "description": "Minimum number of clock ticks between sober plays (CDP-enforced 1-32767, 0 refused verbatim; CDP default 10). mindrnk > maxdrnk is silently accepted (probe ran) - keep them ordered yourself."
+    },
+    "maxdrnk": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": "clock ticks",
+      "breakpoint_capable": false,
+      "default": 30,
+      "flag": null,
+      "description": "Maximum number of clock ticks between sober plays (CDP default 30)."
+    },
+    "splicelen": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 15.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Splice length in ms (default 15); must be < clock/2. Breakpoint refused."
+    },
+    "clokrand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Clock-tick randomisation 0-1 (CDP-enforced verbatim). Breakpoint-capable (submode-1 verification)."
+    },
+    "overlap": {
+      "type": "float",
+      "min": 0.0,
+      "max": 0.99,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-o",
+      "flag_kind": "attached_value",
+      "description": "Segment overlap 0-0.99 (CDP-enforced verbatim). Breakpoint-capable (submode-1 verification)."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Seed > 0 reproducible (verified in this submode: -r5 pairs byte-identical, -r9 differs); 0/omission = clock path. Entry default 1. Breakpoint refused."
+    },
+    "losober": {
+      "type": "float",
+      "min": 2e-06,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Minimum sober-play duration. CDP-enforced 0.000002 to indur+0.000002 ('Parameter[12] Value (3.000000) out of range (0.000002 to 2.000002)' on a 2 s file - input-dependent ceiling). At the default (>= input duration) sober plays run to the source's END."
+    },
+    "hisober": {
+      "type": "float",
+      "min": 2e-06,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Maximum sober-play duration (same input-dependent range as losober). Bounding both (e.g. -l0.2 -h0.5) turns end-of-file sober runs into brief lucid flashes - and tightens the duration overshoot toward hisober."
+    }
+  },
+  "examples": [
+    {
+      "description": "Rambling with brief lucid flashes every few ticks.",
+      "params": {"outdur": 12.0, "locus": 1.0, "ambitus": 0.5, "step": 0.1, "clock": 0.1, "mindrnk": 2, "maxdrnk": 5, "losober": 0.2, "hisober": 0.5, "seed": 5},
+      "expected_use": "Every 2-5 segments the source plays straight for 0.2-0.5 s. Expect ~12-12.6 s out (last sober play overshoots)."
+    },
+    {
+      "description": "Sparse sobriety, full phrase each time (CDP defaults).",
+      "params": {"outdur": 30.0, "locus": 0.5, "ambitus": 0.4, "step": 0.08, "clock": 0.2, "mindrnk": 10, "maxdrnk": 30, "seed": 3},
+      "expected_use": "Occasional full play-to-end of the source punctuates the wander; budget up to one source length beyond 30 s."
+    }
+  ],
+  "known_issues": [
+    "Duration overshoots outdur by up to one sober-play length: probes from outdur 4 on a 2 s source rendered 4.045-4.619 depending on seed (the sober play in progress at the target runs to completion; at default losober it runs to the source's end). The duration row carries tol 0.2; bound losober/hisober to tighten it.",
+    "Seed 0 / omission = clock path (verified in this submode); entry default 1.",
+    "mindrnk > maxdrnk is accepted silently - not range-checked against each other.",
+    "losober/hisober ceilings are input-dependent (indur + 0.000002, refusal verbatim); values >= indur mean 'play to the end'.",
+    "Walk-dial breakpoint capability inherited from the shared engine and verified slot-by-slot in submode 1; mindrnk/maxdrnk/losober/hisober breakpoints are banner-claimed but UNVERIFIED - treat as scalar.",
+    "Stereo accepted; 'related' stereo-link records the seed/seed+1 convention for decorrelated stereo."
+  ],
+  "references": ["cdp://docs/html/cgroextd"]
+}

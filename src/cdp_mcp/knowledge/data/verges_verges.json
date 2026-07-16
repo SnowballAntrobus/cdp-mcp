@@ -1,0 +1,107 @@
+{
+  "program": "verges",
+  "mode": "verges",
+  "submode": null,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Plays the source with brief GLISSES ('verges') at listed times: at each time in the aux textfile the sound swoops from a transposition of 'transp' semitones back to pitch over 'glissdur' ms with slope 'exp' - ornamental pitch-bends stamped onto an otherwise unchanged file. By default each verge snaps to the PEAK nearest the listed time (-n uses the literal times instead). Duration approximately static with transposition-dependent drift: -2.5% at the default transp 5 (glissed stretches are resampled), +2.8% at transp -8, -5.1% at transp 9 - downward verges lengthen, upward shorten; the static model carries that as tolerance. BREAKPOINTS: transp, exp and glissdur each verified capable (brk distinct from both scalar endpoints - banner's 'can vary through time' confirmed slot by slot). Times file rules verbatim: increasing times required ('ERROR: Times (1.000000 & 0.400000) not in increasing order at line 1 in file vtbad.txt.'); a time too near the file end refuses AFTER a warning ('WARNING: Ignoring data at and after this time.' then 'ERROR: Gap between last verge time and end of src insufficent (gap -77 samps reqd 5150)'; larger glissdur needs a larger gap - '-d400' refused 'gap 17575 samps reqd 20595'). Ranges verbatim: transp '(-24.000000 to 24.000000)' (banner default 5); exp '(1.000000 to 8.000000)'; glissdur '(20.000000 to 1000.000000)' ms (default 100). Flags: -n (use literal times), -b (boost verge level), -s (suppress everything EXCEPT the verges - output shortens to the verge material, 1.668 s from a 1.95 s base render) - each changes the render distinctly. Deterministic (pairs 1.3 s apart byte-identical; no randomness anywhere). Stereo accepted (2 ch, same length).",
+  "musical_use": "Automatic pitch-ornaments: scatter attack-swoops (portamento dips, whoops, 'doppler kisses') across a phrase by listing times - the classic use is animating static material with occasional bent attacks, like a player leaning into notes. transp sets direction and size (positive swoops DOWN onto the pitch from above, negative up from below; +/-3 to 8 st reads as expressive, +/-24 as cartoon); exp sharpens the swoop (1 = even glide, 8 = fast-snap); glissdur 60-150 ms feels like articulation, 300+ like gesture. Machine-generate the times file (write_data_file()) from onsets - by default verges magnetize to the nearest peak so approximate times work; -n for exact placement. -b spotlights the ornaments; -s EXTRACTS them (only the verges sound - an instant derived-gesture generator from any source). Keep listed times clear of the file end by at least the gliss length.",
+  "parameters": {
+    "times": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED textfile of verge-attack times, seconds, strictly increasing (refusal verbatim); free line layout, ';' comments allowed (one-line file rendered byte-identical to line-per-time). Each time needs (transposed) gliss room before the file end ('Gap between last verge time and end of src insufficent...' verbatim, gap requirement scales with glissdur). Write with write_data_file(); any extension except .brk."
+    },
+    "transp": {
+      "type": "float",
+      "min": -24.0,
+      "max": 24.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": 5.0,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "musical_range": [-8.0, 8.0],
+      "description": "Transposition at the START of each verge (glisses back to unison). CDP-enforced -24 to 24 (50 refused verbatim); CDP default 5. Negative = swoop up from below (lengthens output slightly: +2.8% at -8), positive = swoop down (shortens: -5.1% at 9). Breakpoint-capable (verified distinct from both endpoints)."
+    },
+    "exp": {
+      "type": "float",
+      "min": 1.0,
+      "max": 8.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Slope of the glisses; 1 (default) even, higher values gliss faster at the start (CDP-enforced 1-8, 9 refused verbatim). Breakpoint-capable (verified distinct from both endpoints)."
+    },
+    "glissdur": {
+      "type": "float",
+      "min": 20.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": 100.0,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "musical_range": [60.0, 300.0],
+      "description": "Duration of each gliss in ms (CDP-enforced 20-1000, 5000 refused verbatim; default 100). Long values need matching room before the file end (verbatim gap refusal). Breakpoint-capable (verified: 50->250 ramp distinct from both endpoints)."
+    },
+    "usetimes": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "Use the listed times literally; default magnetizes each verge to the peak closest to its time (renders differ, verified). Pass 1 to enable, omit to disable."
+    },
+    "boost": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-b",
+      "flag_kind": "no_value",
+      "description": "Boost the level of the verges (render change verified). Mutually exclusive with suppress (banner '-b|-s'). Pass 1 to enable."
+    },
+    "suppress": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-s",
+      "flag_kind": "no_value",
+      "description": "Suppress all input EXCEPT the verges (and boost them): the output becomes just the ornament material and SHORTENS accordingly (1.668 s from a 1.95 s base render - the static duration model no longer applies). Mutually exclusive with boost. Pass 1 to enable."
+    }
+  },
+  "examples": [
+    {
+      "description": "Three expressive downward attack-swoops on a phrase.",
+      "params": {"times": "verge_times.txt", "transp": 5.0, "glissdur": 100.0},
+      "expected_use": "First write_data_file('verge_times.txt', '0.4\\n1.0\\n1.6\\n'). Each listed moment snaps to its nearest peak and gets a 100 ms swoop from +5 st; output within ~3% of the input length."
+    },
+    {
+      "description": "Extract only the ornaments as a new gesture.",
+      "params": {"times": "verge_times.txt", "transp": -8.0, "glissdur": 250.0, "suppress": 1},
+      "expected_use": "Everything but the upward-swooping verges is silenced/removed - a derived gesture file, shorter than the source."
+    }
+  ],
+  "known_issues": [
+    "Duration 'static' with transposition-dependent drift: -2.5% at default transp 5, +2.8% at -8, -5.1% at +9 (glissed stretches are resampled) - within the row tolerance at defaults, but budget more at extreme transp. With -s (suppress) the output is only the verge material and the model does not apply.",
+    "Times too near the file end refuse (verbatim gap error scaled by glissdur) after a WARNING that trailing data is ignored - keep last time < indur - (transposed glissdur).",
+    "transp/exp/glissdur all breakpoint-capable (verified each against both endpoints); the times slot is an aux datafile, not a breakpoint.",
+    "-b and -s are banner-exclusive alternatives; -s shortens output. Deterministic - no seed, no randomness (byte-identical pairs).",
+    "Stereo accepted (2-channel output, same frame count as the mono render)."
+  ],
+  "references": ["cdp://docs/html/verges"]
+}

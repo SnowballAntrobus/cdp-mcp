@@ -1,0 +1,134 @@
+{
+  "program": "extend",
+  "mode": "freeze",
+  "submode": 1,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "delay * (((outduration - indur + end - start) // delay) + 1) + indur - 0.0116"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Freezes a SEGMENT of the sound in place: the source plays to 'start', the segment [start, end] then repeats every 'delay' seconds until the freeze section fills out to the requested outduration, and the rest of the source (from 'end') follows - the iterate engine (source: ap_extend.c maps 'freeze' to ITERATE_EXTEND) applied to a fixed chunk INSIDE the source instead of the whole file. Content verified on a sweep: pre-section and tail are the untouched source (scaled by a global 2-pass auto-level, measured constant ratio 0.6361, std 0.0), the original segment plays in place, and each iterated copy is an exact copy (cross-correlation score 1.000) landing at start + k*delay - 512/srate. DURATION (exact, 4 dp, on 5 mode-1 probes at 2 input durations + stereo): total = delay * (floor((outduration - (indur - end) - start) / delay) + 1) + indur - 512/srate - iteration onsets step by delay from 'start' until the first onset STRICTLY ABOVE outduration - (indur - end); the constant 512-sample deficit (0.0116 s at 44.1 kHz, srate-dependent) is the engine's fixed iteration splice (ITX_SPLICELEN; the refusal for a reversed segment quotes it: 'FROZEN SEGMENT (-22050 samples) TOO SHORT FOR SPLICING (needs 512 samples)'). SEED SEMANTICS (probe-verified, same as extend iterate): -s > 0 is a working seed (same seed byte-identical 1.3 s apart, 5 vs 9 differ); -s0 or omission is the CLOCK path (pairs 1.3 s apart differ); seed INERT while rand/pshift/ampcut are all 0 (seed 5 == seed 9 == unseeded byte-identical). With rand > 0 the output duration itself drifts (3.31-3.76 observed around a 3.49 deterministic base). Sibling submode 2 counts repetitions instead. Stereo accepted (2-channel out, duration model holds exactly).",
+  "musical_use": "The 'stuck tape' / sustain-a-moment gesture with the rest of the phrase intact: choose a vowel, a chord attack or a texture-moment with start/end, and the phrase plays through it, dwells there - rippling, stuttering or shimmering - then carries on. delay is the freeze's internal pulse: delay = segment length gives seamless tiling, shorter delays overlap into a thickened drone, and rand + pshift (with a SEED set) melt the repetition into a fluid, granular hover - the banner's 'fluid manner'. Keep rand/pshift/ampcut at 0 for a rigid loop-freeze. outduration sets where the freeze section ends in output time, so (outduration - indur) is roughly how much extra dwell you buy. gain (0.25-4) balances the frozen segment against the surrounding source. For freezing from a hit count instead of a target length use submode 2; to iterate a WHOLE sound use extend iterate; for spectral freezing without repetition artefacts use focus-family processes.",
+  "parameters": {
+    "outduration": {
+      "type": "float",
+      "min": 0.0,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Requested output duration. CDP-enforced runtime floor = input duration: 'Parameter[1] Value (1.000000) out of range (2.000000 to 32767.000000)' on a 2 s source. Actual output follows the entry's duration expression (onsets step by delay from 'start' until strictly past outduration - (indur - end)); when the stepped span divides evenly the overshoot is up to delay + segment length. Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "delay": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 100.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Average time between iteration onsets. REQUIRED positional; must not exceed the frozen segment's length ('ERROR: FROZEN SEGMENT (13230 samples) TOO SHORT FOR (MINIMUM) DELAY TIME SPECIFIED (22050 samples)', INVALID DATA, verbatim). delay 0 is accepted and collapses the freeze (output = indur - 512/srate; copies stack, process terminates - unlike iterline where 0 hangs). Breakpoint-capable (verified: a 0.2->0.45 ramp rendered 4.8091 s, distinct from both scalar endpoints 4.5884/4.6884 at seed 5)."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Randomisation of delay times, 0-1 (CDP-enforced: 'Parameter[3] Value (1.500000) out of range (0.000000 to 1.000000)'). Stochastic when > 0 - durations AND samples vary; set a seed. Breakpoint-capable (verified: brk render distinct from both scalar endpoints at seed 5, duration 4.699 vs 4.6884/4.6094)."
+    },
+    "pshift": {
+      "type": "float",
+      "min": 0.0,
+      "max": 12.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Maximum random pitch-shift per iteration in semitones, up or down (CDP-enforced 0-12, refusal verbatim). Stochastic when > 0 - set a seed. WARNING - BINARY BUG: a breakpoint file in this slot is accepted syntactically but SILENTLY IGNORED: brk files 0->8 and 8->0 both rendered byte-identical to pshift 0 (scalar 8 renders differently). Scalar only; contrast extend iterate where the pshift brk works."
+    },
+    "ampcut": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Maximum random amplitude reduction per iteration, 0-1 (CDP-enforced, refusal verbatim). Stochastic when > 0 - set a seed. Same SILENT-IGNORE BUG as pshift: brk files 0->0.9 and 0.9->0 both rendered byte-identical to ampcut 0. Scalar only."
+    },
+    "start": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time in the source where the frozen segment begins. Must leave a segment of at least 512 samples before 'end' ('FROZEN SEGMENT (-22050 samples) TOO SHORT FOR SPLICING (needs 512 samples)' on reversed bounds - NO silent swap here, unlike sfedit cut). Breakpoint refused ('Cannot read parameter 6')."
+    },
+    "end": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time in the source where the frozen segment ends. CDP-enforced ceiling = input duration ('Parameter[7] Value (2.500000) out of range (0.000000 to 2.000000)' on a 2 s file - input-dependent). Breakpoint refused ('Cannot read parameter 7')."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.25,
+      "max": 4.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Gain adjustment on the frozen segment relative to the surrounding source (CDP-enforced 0.25 to 4.0: 'Parameter[8] Value (5.000000) out of range (0.250000 to 4.000000)', 0.2 refused the same). Note a 2-pass auto-level then scales the WHOLE output for headroom (measured global factor 0.6361 on a dense freeze). Breakpoint refused ('Cannot read parameter 8')."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Random seed, CDP-enforced 0-32767 (32768 refused verbatim, Parameter[9]). Seed > 0 works (same seed byte-identical 1.3 s apart; 5 vs 9 differ); 0 or omission = CLOCK path (irreproducible). Inert while rand/pshift/ampcut are all 0. Entry default 1 keeps renders reproducible. Breakpoint refused ('Cannot read parameter 9')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Seamless 2-second dwell on the segment 0.5-1.0 s of a 2 s phrase.",
+      "params": {"outduration": 4.0, "delay": 0.5, "start": 0.5, "end": 1.0},
+      "expected_use": "Phrase plays to 0.5 s, the segment tiles back-to-back until ~4 s of output time, then the tail follows: renders 4.9884 s (model-exact). Fully deterministic at zero random params."
+    },
+    {
+      "description": "Fluid granular hover on the same segment, reproducible.",
+      "params": {"outduration": 5.0, "delay": 0.15, "rand": 0.4, "pshift": 2.0, "start": 0.5, "end": 1.0, "seed": 7},
+      "expected_use": "Overlapped, jittered, detuned copies melt the segment into a shimmering hold. Same seed = identical take; duration drifts a few percent around the model with rand/pshift > 0."
+    }
+  ],
+  "known_issues": [
+    "Duration expression is exact (4 dp) across 5 mode-1 probes at 2 input durations and stereo, with rand/pshift 0. The 0.0116 constant is 512 samples at 44.1 kHz - srate-dependent (512/srate). rand/pshift > 0 add per-run drift (3.31-3.76 observed around 3.49). Float borderline: when (outduration - indur + end - start) is an exact multiple of delay the strictly-greater onset rule adds one more copy - the expression's floor-plus-one reproduces this for binary-exact values, but non-binary-exact decimal combinations can fall either side (shrink precedent).",
+    "pshift and ampcut breakpoint files are accepted syntactically but SILENTLY IGNORED (renders byte-identical to the parameter at 0, verified with brks starting at the max value) - a binary bug specific to the ITERATE_EXTEND path; scalar values work, and delay/rand brks work. In extend iterate the same brks are live.",
+    "Seed 0 (and flag omission) is the CLOCK path - same-second reruns collide, otherwise irreproducible. Entry defaults seed to 1; the seed is inert until rand, pshift or ampcut is nonzero.",
+    "A 2-pass auto-level rescales the ENTIRE output (pre-section, freeze and tail alike; measured constant 0.6361 on a dense freeze) - output level is not the input level even outside the frozen section. gain shifts the segment relative to that.",
+    "delay must be <= the segment length (verbatim INVALID DATA refusal quoting sample counts); delay 0 is accepted and degenerates to a near-copy of the input (indur - 512/srate). Reversed start/end refuses - no silent bound-swap.",
+    "The standalone 'freeze' binary is the same engine but its CLI is BROKEN (source-diagnosed: dz->mode is only read in the Sound Loom parse path, so the mode digit is consumed as the input filename - 'Failed to parse input file 1'; without a digit it dies 'Unknown mode for ITERFREEZE'). Use extend freeze.",
+    "Stereo accepted; the duration model held exactly on a stereo run (4.6884, 2 ch)."
+  ],
+  "references": ["cdp://docs/html/cgroextd"]
+}

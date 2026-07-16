@@ -1,0 +1,136 @@
+{
+  "program": "shifter",
+  "mode": "shifter",
+  "submode": 1,
+  "category": "texture",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Polymeter machine: lays several simultaneous REPETITION CYCLES of the (mono) input - one stream per entry in the 'cycles' textfile, each stream repeating the sound N times per cycdur where N is its listed beat count - and moves a level FOCUS from one cycle-stream to the next (linger cycles fixed, transit cycles crossing, focus boosted by 'boost'), distributing streams across 'ochans' output channels. Duration set_by dur, rounded up to the cycle grid (6.0 exact from dur 6 at cycdur 1 with a short source - verified end-to-end through the engine; 4.05 from dur 4; 6.26 with a 25-beat cycle) - BUT a source LONGER than the beat interval overhangs: the last repeat plays out past dur (a 2 s source at 0.25 s beats rendered 7.6875 from dur 6, ~ last onset + indur). Keep the source shorter than cycdur / max(beats) for the model to hold. Deterministic; THE -r RANDOM-ORDER FLAG IS FIXED-SEQUENCE (pairs 1.3 s apart byte-identical - no seed exists, no clock path; version_sensitive), and -z (zigzag focus order) is a no-op with only two cycles (byte-identical to linear - orders coincide; it needs >= 3 cycles to differ). Cycles-file rule verbatim: 'Found cyclelength value 0 in file cycbad.txt: Cyclelength values must be >= 2'. Ranges/constraints verbatim: subdiv must be > 4 and a multiple of 2 and/or 3 ('ERROR: Neat subdivision is not a multiple of 2 or 3.' at 5); linger + transit >= 1 ('ERROR: Linger and Transit parameters must add to >= 1.'); boost '(0.000000 to 10.000000)' (-1 refused). cycdur and boost refuse breakpoints ('Cannot read parameter 1 / parameter 7' verbatim) - all-scalar control surface. ochans 1/2/3 all verified (>2 assumes a surround array - spatial territory, keep 1-2). MONO input only (refusal verbatim). MODE 2 (one input PER cycle, assigned in order) verified working with matching counts and refusing otherwise ('Number of cyclelengths (1) found in file cyc0.txt does not tally with number of src sounds (2)') - variadic, execute() territory.",
+  "musical_use": "Steve-Reich-in-a-box: give it one hit and a cycles file like '11 12 13' and it builds interlocking pulse streams of 11, 12 and 13 beats per cycle, with the mix's spotlight drifting from one meter to the next - instant polymetric texture from a single sample. cycdur sets the common cycle length (the streams realign every cycdur seconds); linger/transit choreograph the focus (long linger = settled grooves, long transit = perpetual dissolve); boost is how loud the spotlit stream stands out (0 = flat democracy - verified distinct render; 1-3 = clear lead; 10 = solo). ochans 2 spreads the streams for stereo interlock. Keep the source shorter than the fastest beat interval (cycdur / max beats) or the repeats smear into each other. Coprime beat counts (7/11/13) give the longest interference patterns; -z zigzags the focus order once you have 3+ cycles. For per-stream DIFFERENT sounds use mode 2 via execute() (input count must equal cycle count).",
+  "parameters": {
+    "cycles": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED textfile listing the number of beats in each cycle, one integer per stream (values >= 2, verbatim refusal at 0; a single value is legal - one stream, verified). Order = focus order. Write with write_data_file()."
+    },
+    "cycdur": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Duration of one complete cycle - all streams realign at this period; each stream's beat interval is cycdur / its beat count. Even extreme values run (0.01 accepted, exit 0). Breakpoint refused ('Cannot read parameter 1')."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Required output duration; actual rounds up to the cycle grid (6.0 exact at cycdur 1 / dur 6; +1.25% at dur 4; +4.3% with a 25-beat cycle)."
+    },
+    "ochans": {
+      "type": "int",
+      "min": 1,
+      "max": 16,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 2,
+      "flag": null,
+      "description": "Output channel count (1, 2 and 3 verified; > 2 assumes a sound-surround loudspeaker array per banner, -l switches to a linear array - spatial/DAW territory, keep 1-2 in the engine)."
+    },
+    "subdiv": {
+      "type": "int",
+      "min": 4,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 6,
+      "flag": null,
+      "description": "Minimum beat subdivision: must be > 4 AND a multiple of 2 and/or 3 ('Neat subdivision is not a multiple of 2 or 3.' verbatim at 5; 6 verified). Use 6, 8, 12..."
+    },
+    "linger": {
+      "type": "int",
+      "min": 0,
+      "max": null,
+      "unit": "cycles",
+      "breakpoint_capable": false,
+      "default": 2,
+      "flag": null,
+      "description": "Cycles the focus stays fixed on one stream. linger + transit must be >= 1 (verbatim refusal at 0/0)."
+    },
+    "transit": {
+      "type": "int",
+      "min": 0,
+      "max": null,
+      "unit": "cycles",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Cycles the focus takes to cross to the next stream (crossfade). linger + transit >= 1."
+    },
+    "boost": {
+      "type": "float",
+      "min": 0.0,
+      "max": 10.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "musical_range": [0.5, 3.0],
+      "description": "Focus-stream level lift: with standard stream level L, the focused stream gets L + boost*L (CDP-enforced 0-10, -1 refused verbatim; 0 = no spotlight, distinct render verified). Breakpoint refused ('Cannot read parameter 7')."
+    },
+    "zigzag": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-z",
+      "flag_kind": "no_value",
+      "description": "Focus zigzags through the cycle list (1,2,3,2,1,...) instead of cycling (1,2,3,1,...). NO-OP with fewer than 3 cycles (verified byte-identical on a 2-cycle file - the orders coincide). Exclusive with random. Pass 1 to enable."
+    },
+    "random": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-r",
+      "flag_kind": "no_value",
+      "description": "Focus visits the cycles in random orders. FIXED-SEQUENCE: no seed exists and reruns are byte-identical (verified 1.3 s apart) - a reproducible 'random' order, never a fresh one. Exclusive with zigzag. Pass 1 to enable."
+    }
+  },
+  "examples": [
+    {
+      "description": "Classic 11/12/13 interlock from one hit.",
+      "params": {"cycles": "cycles.txt", "cycdur": 2.0, "dur": 24.0, "ochans": 2, "subdiv": 6, "linger": 2, "transit": 1, "boost": 1.5},
+      "expected_use": "write_data_file('cycles.txt', '11 12 13\\n'). Three streams at 11/12/13 beats per 2 s realign every cycle while the spotlight drifts 11->12->13->11..."
+    },
+    {
+      "description": "Two-meter groove, democratic mix.",
+      "params": {"cycles": "cyc2.txt", "cycdur": 1.0, "dur": 8.0, "ochans": 2, "subdiv": 6, "linger": 3, "transit": 2, "boost": 0.0},
+      "expected_use": "cyc2.txt = '3 4\\n' - a 3-against-4 texture; boost 0 removes the focus lift entirely (verified distinct from boosted renders)."
+    }
+  ],
+  "known_issues": [
+    "Duration rounds UP to the cycle grid: exact when dur is a multiple of cycdur (6.0 verified end-to-end), otherwise up to a few percent over (+1.25% at dur 4/cycdur 1; +4.3% with a 25-beat cycle). SOURCE-LENGTH OVERHANG: when the source outlasts the beat interval the final repeat plays out past dur (+28% observed: 7.6875 from dur 6 with a 2 s source at 0.25 s beats) - the set_by model assumes source <= beat interval; the duration row pins a 0.3 s source.",
+    "-r random focus order is FIXED-SEQUENCE (byte-identical reruns; no seed flag exists) - version_sensitive; -z is a no-op below 3 cycles (verified).",
+    "Everything is scalar: cycdur and boost refuse breakpoints verbatim; the rest are structural ints.",
+    "MONO input only. ochans > 2 assumes loudspeaker arrays (banner; -l linear-array switch) - out of engine scope.",
+    "MODE 2 (different sound per cycle) verified: input count must equal cycle count ('does not tally' refusal verbatim) - variadic multi-input, execute() territory; duration behavior matched mode 1 on the 2-input probe (6.0875 from dur 6).",
+    "Long renders are slow (two-pass level pass: 'Second pass: creating output.'); a 6 s stereo render took ~12 s of CPU in probes."
+  ],
+  "references": ["cdp://docs/html/shifter"]
+}

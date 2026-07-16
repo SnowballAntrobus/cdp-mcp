@@ -1,0 +1,132 @@
+{
+  "program": "extend",
+  "mode": "freeze",
+  "submode": 2,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + repetitions * delay - 0.0116"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Freeze-by-count: same segment-freezing engine as submode 1 (source plays to 'start', the segment [start, end] repeats, the tail from 'end' follows) but you specify the number of EXTRA repetitions instead of a target output length. DURATION (exact, 4 dp, on 6 probes at 2 input durations, two segments and delay 0): outdur = indur + repetitions * delay - 512/srate - elegantly INDEPENDENT of where the segment sits (verified: seg 0.5-1.0 and seg 0.2-0.5 with the same reps/delay render the same length; each repeat inserts exactly one delay of extra time). Fractional repetitions are ROUNDED (2.5 -> 3, rendered 2.8884 = the reps-3 value). repetitions range 1-32767 (0 refused verbatim). Seed semantics identical to submode 1 (verified independently in this submode): -s5 pairs byte-identical 1.3 s apart, -s9 differs, -s0 and omission are the clock path, seed inert at rand/pshift/ampcut 0. delay 0 accepted: all copies stack (1.9884 from 2 s = indur - 512/srate). The pshift/ampcut breakpoint slots have the same SILENT-IGNORE bug as submode 1; delay/rand brks work (submode-1 verification, shared engine). Stereo accepted.",
+  "musical_use": "The freeze as a counted rhythmic figure: 'say it, then stutter it exactly N more times, then move on'. Because each repetition adds exactly one delay of length, this is the arithmetic-friendly sibling - N repeats at delay d adds N*d seconds, whatever segment you chose, so it slots into constructed-rhythm math cleanly (extend iterate 2 relates to iterate 1 the same way). Use small counts (1-4) with delay = segment length for a natural echo-stammer on a word or hit; large counts with short delays build drones from within the phrase. rand/pshift/ampcut (with a seed!) loosen it toward the fluid hover of submode 1. Choose this submode when the COUNT matters; choose submode 1 when the target LENGTH matters.",
+  "parameters": {
+    "repetitions": {
+      "type": "int",
+      "min": 1,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Number of EXTRA repetitions of the frozen segment (total plays = repetitions + 1, matching extend iterate's convention). CDP-enforced 1-32767 ('Parameter[1] Value (0.000000) out of range (1.000000 to 32767.000000)', 32768 refused the same). Fractional values rounded (2.5 -> 3, verified byte-level via the duration). Breakpoint refused ('Cannot read parameter 1')."
+    },
+    "delay": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 100.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Time between iteration onsets; each repetition adds exactly one delay to the output length. Must not exceed the segment length ('FROZEN SEGMENT (13230 samples) TOO SHORT FOR (MINIMUM) DELAY TIME SPECIFIED (22050 samples)', verbatim). delay 0 accepted - copies stack in place, output = indur - 512/srate. Breakpoint-capable (shared engine; verified in submode 1 distinct from both scalar endpoints)."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Delay-time randomisation 0-1 (CDP-enforced verbatim). Stochastic when > 0: seeded pairs byte-identical, unseeded pairs differ in samples AND length (3.3066-3.7645 observed around 3.4884) - set a seed. Breakpoint-capable (submode-1 verification, shared engine)."
+    },
+    "pshift": {
+      "type": "float",
+      "min": 0.0,
+      "max": 12.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Maximum random pitch-shift per iteration, semitones (CDP-enforced 0-12 verbatim). Stochastic when > 0 - set a seed. Breakpoint file SILENTLY IGNORED (submode-1 verified binary bug; renders as pshift 0) - scalar only."
+    },
+    "ampcut": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Maximum random level cut per iteration, 0-1 (CDP-enforced verbatim). Stochastic when > 0 - set a seed. Breakpoint file SILENTLY IGNORED (renders as ampcut 0) - scalar only."
+    },
+    "start": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Segment start time in the source. Reversed bounds refuse ('FROZEN SEGMENT (-22050 samples) TOO SHORT FOR SPLICING (needs 512 samples)') - no silent swap. Breakpoint refused ('Cannot read parameter 6')."
+    },
+    "end": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Segment end time in the source; ceiling = input duration (refusal quotes the file length, input-dependent). Breakpoint refused ('Cannot read parameter 7')."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.25,
+      "max": 4.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Frozen-segment gain relative to the surrounding source, CDP-enforced 0.25-4.0 (refusals verbatim, Parameter[8]). Breakpoint refused."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Random seed 0-32767 (refusal verbatim). Verified in THIS submode: -s5 twice 1.3 s apart byte-identical; -s5 vs -s9 differ; -s0 pairs differ (clock); omission pairs differ (clock); seed 5 == seed 9 == unseeded byte-identical when rand/pshift/ampcut are all 0. Entry default 1. Breakpoint refused ('Cannot read parameter 9')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Stutter a word twice more before the phrase continues.",
+      "params": {"repetitions": 2, "delay": 0.5, "start": 0.5, "end": 1.0},
+      "expected_use": "On a 2 s source renders exactly 2.9884 s (indur + 2*0.5 - 512/srate). Deterministic."
+    },
+    {
+      "description": "Dense counted shimmer, reproducible.",
+      "params": {"repetitions": 12, "delay": 0.1, "rand": 0.3, "pshift": 1.0, "start": 0.5, "end": 1.0, "seed": 5},
+      "expected_use": "Twelve overlapped jittered copies (~1.2 s added). Rerun with seed 5 for the identical take."
+    }
+  ],
+  "known_issues": [
+    "Duration expression exact (4 dp) across 6 probes: reps 5/2 at delay 0.5, reps 5 at delay 0.25, a different segment (0.2-0.5), fractional reps 2.5 (rounds to 3), and delay 0 - independent of segment position. 0.0116 = 512/srate at 44.1 kHz (srate-dependent). rand/pshift > 0 add per-run drift - the row pins the deterministic case.",
+    "pshift/ampcut breakpoint slots silently no-op (submode-1 verified bug, shared ITERATE_EXTEND engine); delay/rand brks work. outduration-slot (repetitions), start, end, gain, seed refuse brk files verbatim (parameters 1/6/7/8/9).",
+    "Seed 0 / omission = clock path; seed inert until a random param is nonzero; entry default 1.",
+    "Mode 1 and mode 2 are one engine (ap_extend.c ITERATE_EXTEND); a 2-pass auto-level rescales the whole output (global 0.6361 measured on a dense freeze).",
+    "The standalone 'freeze' binary duplicates this banner but its CLI never parses the mode digit (Sound Loom-only path) - unusable, use extend freeze."
+  ],
+  "references": ["cdp://docs/html/cgroextd"]
+}

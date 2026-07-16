@@ -1,0 +1,72 @@
+{
+  "program": "repeater",
+  "mode": "repeater",
+  "submode": 1,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "datafile"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Plays the source with chosen ELEMENTS repeating in place: a 4-column datafile lists 'start end repeat-cnt delay' per element - the source runs normally, and at each listed element the segment [start, end] repeats cnt times with 'delay' seconds between repeat STARTS, then playback continues. Elements may overlap or backtrack in the source (verified legal). DURATION RULE (exact, 4 dp, on 6 probes incl. a 2-element file): outdur = indur + SUM over elements of added_i, where added_i = cnt*delay when delay <= element length (repeats overlap/butt), and cnt*delay - (element_length + 0.005) when delay exceeds it (0.005 s = REPSPLEN, the engine's 5 ms splice; science.h:439). SEED FLAG IS A BANNER LIE (first-class): the usage prints '[-sseed]' but the binary refuses it - 'Unknown flag -s on command line.' (verbatim, any position); AND the randomisation is FIXED-SEQUENCE anyway (-r1.5 and -p3 pairs 1.3 s apart byte-identical) - repeater is always reproducible and can never vary: version_sensitive. BREAKPOINTS: rand and prand both capable (each verified distinct from both scalar endpoints; brk VALUES are range-checked in-file: 'ERROR: Value (0.000000) out of range (1.000000 to 2.000000) in brkpntfile b_h1.brk.'). Datafile refusals verbatim: element < ~10 ms 'Segment on line 1 in file \"rpbad1.txt\", dur 0.005000, too short for splicing (min dur 0.010068).' (end < start reports a negative dur the same way); 'Too few values (3) on line 1 in file \"rpbad3.txt\": Need 4.'; repeat-cnt < 2 'Repeat value less than 2 on line 1 in file \"rp8.txt\".' LANDMINES: delay 0 (documented as 'delay equal to the segment length') actually dies 'ERROR: INTERNAL ERROR: (Bug?) / ERROR: segment buffer too short to contain repeated overlapping segments (1).'; large prand (-p5/-p6 on a 0.2 s element) hits the same internal error - deep downward shifts overflow the segment buffer. Stereo accepted (2 ch, same duration). Mode 2 (same argv) reads column 4 as OFFSET (gap between repeat END and next start): added_i = cnt*(len+offset+0.005) - (len+0.005), pinned in the transcript - execute() territory.",
+  "musical_use": "Score-driven stutter edits: mark the syllables, hits or moments you want repeated and how (count + spacing), and the phrase plays itself with those elements stammering - THE tool for composed stutter/glitch edits on speech and beats, since everything outside the listed elements is untouched. delay = element length (or anything smaller) gives seamless retriggers; delay slightly larger inserts gasps between repeats; delays under 50 ms turn an element into a buzz ('output like oscillator', banner). rand (1-2, multiplier on each delay) loosens the machine-gun evenness; prand adds per-repeat downward pitch scatter (keep it <= ~3 st on short elements - larger values crash, known_issues). Both are breakpointable but FIXED-SEQUENCE: identical on every run, so treat them as deterministic texture, not variation. Machine-generate the datafile from onset detection (write_data_file()). For accelerating/dimming repeats (bouncing-object) use submode 3.",
+  "parameters": {
+    "datafile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED textfile: one 'start end repeat-cnt delay' line per repeating element (seconds / seconds / integer >= 2 / seconds). Elements may overlap or backtrack in the source; each must be >= ~0.010 s ('min dur 0.010068' verbatim, srate-dependent); repeat-cnt < 2 refused verbatim; wrong column count refused 'Too few values (3) ... Need 4.'. AVOID delay 0 - the documented segment-length default is broken ('segment buffer too short...' internal error); write the element length explicitly instead. Write with write_data_file()."
+    },
+    "rand": {
+      "type": "float",
+      "min": 1.0,
+      "max": 2.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Delay randomisation: each delay is multiplied by a random value in [1, rand] (CDP-enforced 1-2 in this mode, 3 refused verbatim; 1 = none). Lengthens output (2.797 from a 2.545 base at 1.5). FIXED-SEQUENCE - byte-identical every run. Breakpoint-capable (verified distinct from both endpoints; in-file values range-checked verbatim)."
+    },
+    "prand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 12.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "musical_range": [0.0, 3.0],
+      "description": "Random pitch scatter of repeats within the given semitone range (CDP-enforced 0-12, 13 refused verbatim). WARNING: values >= ~5 on short elements hit 'segment buffer too short to contain repeated overlapping segments' (internal error - transposed-down repeats overflow the buffer); stay <= 3 on sub-second elements. Fixed-sequence. Breakpoint-capable (0->3 brk verified distinct from both endpoints)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Stutter one word three extra times, seamlessly.",
+      "params": {"datafile": "reps.txt"},
+      "expected_use": "write_data_file('reps.txt', '0.5 0.7 3 0.2\\n') - the 0.2 s element retriggers back-to-back (delay = element length): output = indur + 0.6 s."
+    },
+    {
+      "description": "Two marked elements, spaced repeats with scatter.",
+      "params": {"datafile": "reps2.txt", "rand": 1.3, "prand": 2.0},
+      "expected_use": "reps2.txt = '0.5 0.7 3 0.25\\n1.2 1.5 2 0.4\\n'. Gapped repeats, humanised timing, light detune - identical on every rerun (fixed sequence)."
+    }
+  ],
+  "known_issues": [
+    "DURATION comes from the datafile: outdur = indur + sum(cnt*delay) for overlapping/butted repeats (delay <= element length), each element switching to cnt*delay - (length + 0.005) once delay exceeds its length (5 ms REPSPLEN splice; rule exact on 6 probes incl. multi-element). The aux-param expression engages the preflight skip; duration_row null, rule pinned in docs/curation/tranche15_gesture.md. rand > 1 lengthens beyond it.",
+    "BANNER LIES about '-sseed': the flag is refused ('Unknown flag -s on command line.') - and randomisation is FIXED-SEQUENCE regardless (unseeded -r/-p pairs byte-identical 1.3 s apart). Takes can never differ; version_sensitive (a build that seeds rand() would change renders).",
+    "delay 0 (documented 'delay equal to the segment length') is BROKEN: internal error verbatim. Write the element length explicitly.",
+    "prand >= ~5 on short elements crashes with the same internal buffer error - curated musical_range 0-3.",
+    "Mode 2 (offset semantics, same argv shape) and its exact duration rule are pinned in the transcript - reach via execute(). Mode 3 (accel/warp/fade bounce) is curated separately.",
+    "Stereo accepted; datafile refusals all verbatim INVALID DATA with line numbers."
+  ],
+  "references": ["cdp://docs/html/repeater"]
+}

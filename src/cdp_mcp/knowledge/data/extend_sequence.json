@@ -1,0 +1,59 @@
+{
+  "program": "extend",
+  "mode": "sequence",
+  "submode": null,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "seqfile"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Single-sound score renderer: plays ONE input sound at the times, transpositions and loudnesses listed in a sequence text file - the one-voice sibling of curated extend sequence2, with a leaner score format. SCORE FORMAT (differs from sequence2 in three pinned ways): (1) rows are 3-value groups 'output-time semitone-transposition loudness' - there is NO sound-number column and NO per-event duration column, so events can never be curtailed (every event plays its full transposed length); (2) transposition is RELATIVE, in semitones (CDP-enforced -48 to +48: 'ERROR: Pitch-ratio (130.000000) out of range (-48.000000 - 48.000000): OR data not grouped as time-transpos-level' - contrast sequence2's absolute MIDI 0-127 against a declared notional pitch); (3) there is no first-line pitch declaration. Shared parser behaviors verified: values read as a FLOAT STREAM (whole score on one line rendered byte-identical to line-per-event), ';' comments skipped, times must be NON-DECREASING (equal times = chords; 'ERROR: Times do not increase at (0.200000): OR data not grouped as time-transpos-level'), loudness >= 0 ('ERROR: Level (-0.500000) is less than zero...' verbatim; values > 1 accepted - a 2-event loudness-3 chord peaked 2.229, raw float sums, no clipping), and a value count not divisible by 3 surfaces as the times-do-not-increase error (stream parsing scrambles the grouping - no dedicated message). DURATION RULE (exact to the sample on 4 probes at 2 input durations, including a chord): outdur = MAX over events of (time_i + indur / 2^(st_i/12)) - transposition is sample-rate resampling, so +12 halves an event's length and -12 doubles it. Deterministic (pairs 1.3 s apart byte-identical); no seed exists. Stereo accepted (2-channel out). attenuation 0 accepted but renders DIGITAL SILENCE (peak 0.0000, verified).",
+  "musical_use": "The one-sound melody/rhythm sequencer: write a score, get the phrase - every event is the same sample at a new time, pitch and level, so it is THE tool for turning a single hit, syllable or ping into a tune or a rhythmic line (machine-generate the score with write_data_file()). Times are absolute output seconds, equal times stack chords, transposition is in fractional semitones around the source's own pitch (use small fractions for detune-thickening, +/-12 for octaves - remember low events lengthen: an event at -12 lasts twice the source), loudness shapes accents (keep summed chords under ~1.0 or attenuate). Because there is no duration column, choose/prepare a source of the right length first (sfedit cut or an envel fade) - the score cannot choke events. For multi-sound scores with per-event durations and choke control use extend sequence2; for stochastic clouds use texture.",
+  "parameters": {
+    "seqfile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED sequence text file (any extension except .brk; write it with write_data_file()). One 3-value group per event: output-time (seconds, non-decreasing; equal times = chord), semitone-transposition (-48 to +48, fractional accepted; rendered by resampling, 2^(st/12) speed change), loudness (>= 0; > 1 accepted, sums written unclipped). ';' comment lines allowed; line structure free (float-stream parsing - a one-line score rendered byte-identical). All refusals are verbatim INVALID DATA errors quoted in the description; a miscounted file fails with the times-do-not-increase message, not a grouping message."
+    },
+    "attenuation": {
+      "type": "float",
+      "min": 2e-06,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Overall attenuation on the source, applied to every event (CDP-enforced 0-1: 'Parameter[2] Value (1.500000) out of range (0.000000 to 1.000000)'). CDP accepts 0 but renders digital silence (verified peak 0.0000) - the curated minimum keeps it positive. Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Three-note figure from one ping: root, octave up, octave down at half level.",
+      "params": {"seqfile": "seq.txt", "attenuation": 1.0},
+      "expected_use": "First write seq.txt, e.g. write_data_file('seq.txt', '0.0 0 1.0\\n0.5 12 1.0\\n1.0 -12 0.5\\n'). On a 0.3 s source renders exactly 1.6 s (the -12 event at t=1.0 lasts 0.6 s - the max-rule)."
+    },
+    {
+      "description": "Detuned chord stab.",
+      "params": {"seqfile": "chord.txt", "attenuation": 0.5},
+      "expected_use": "chord.txt = '0.0 0 0.6\\n0.0 0.3 0.6\\n0.0 -0.4 0.6'. Equal times sum; without the level cuts summed peaks exceed full scale (2.229 measured on a loudness-3 pair) - floats are written unclipped."
+    }
+  ],
+  "known_issues": [
+    "DURATION comes from the sequence file: outdur = max over events of (time + indur/2^(semitones/12)), exact to the sample on four probe scores (two source lengths, transposed and chord cases). The engine cannot predict it (the aux-param expression engages the preflight skip path); duration_row null, rule pinned in docs/curation/tranche15_gesture.md.",
+    "No per-event duration column - events ALWAYS play their full transposed length (contrast sequence2, whose 5-value rows can curtail). Prepare source length upstream.",
+    "Transposition is semitone-RELATIVE (+/-48 enforced verbatim), not sequence2's absolute-MIDI-vs-notional convention; a sequence2 score will NOT parse here (5-value groups break the 3-value stream).",
+    "Loudness > 1 accepted silently; overlapping events sum unclipped above full scale (peak 2.229 verified). attenuation 0 = digital silence (curated min 0.000002).",
+    "A value count not divisible by 3 fails with the 'Times do not increase' message (stream parsing side-effect), not a grouping error - check the file when that refusal seems wrong.",
+    "Deterministic; no seed. Stereo accepted (stereo source -> stereo output). No mode digit in the argv (mode name 'sequence' only)."
+  ],
+  "references": ["cdp://docs/html/cgroextd"]
+}

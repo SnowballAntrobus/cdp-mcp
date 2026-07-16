@@ -1,0 +1,102 @@
+{
+  "program": "repeater",
+  "mode": "repeater",
+  "submode": 3,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "datafile"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Bouncing-object repeats: mode 1's element-repeat engine ('start end repeat-cnt delay' datafile, delay semantics identical) plus three positional shape controls - ACCEL progressively shortens the delays (and segments) so the repeats gather like a dropped ball (accel 2 = final delay half the initial), WARP bends that shortening curve (1 linear; > 1 shortens less at first, more later), FADE sets the per-repeat decay curve (1 linear; > 1 fast-then-slow; < 1 slow-then-fast; source: thisfade = ((repeats-n)/repeats)^fade). DURATION: the mode-1 rule shortened by the acceleration - accel 2 rendered 2.3575 where mode 1's rule gives 2.545 on the same datafile; data- and accel-dependent, so the aux expression engages the preflight skip (duration_row null; measure). Ranges CDP-enforced verbatim: accel '(1.000000 to 10.000000)' (0 refused), warp '(0.100000 to 10.000000)' (0 refused), fade '(0.100000 to 10.000000)' (-1 refused). Deterministic INCLUDING under -r/-p (fixed-sequence randomisation, pairs byte-identical; the banner's '-sseed' flag is refused 'Unknown flag -s on command line.' - mode-1 finding re-verified). rand/prand breakpoint-capable (shared engine, mode-1 verification); same datafile refusals and landmines (delay 0 broken, prand >= ~5 buffer crash). Stereo accepted (shared engine).",
+  "musical_use": "The bouncing-ball edit: any marked element becomes a physical-feeling bounce - repeats accelerating and dimming into the phrase's continuation. accel 1.5-3 with delay ~ element length is the natural ball-drop; warp > 1 makes it 'hold then collapse' (more dramatic); fade > 1 drops the level early (dead ball), fade < 1 keeps repeats loud until a late die-away (ringing ball). Because the source resumes after each element, you can scatter several bounces through a phrase from one datafile - beats that trip over themselves, words that patter out. All timing/decay shaping is deterministic and reproducible (fixed random sequence, no seed exists) - what you render is what you keep. For even, non-accelerating repeats use submode 1; for whole-sound bounces try bounce or extend iterate with a fade.",
+  "parameters": {
+    "datafile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED 'start end repeat-cnt delay' textfile, exactly as submode 1 (element >= ~10 ms, cnt >= 2, 4 columns - refusals verbatim; delay 0 broken, write the element length). The listed delay is the INITIAL delay; accel shrinks it across the repeats. Write with write_data_file()."
+    },
+    "accel": {
+      "type": "float",
+      "min": 1.0,
+      "max": 10.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [1.5, 4.0],
+      "description": "Delay (and segment) shortening reached by the last repeat: accel 2 halves the delay by the end (CDP-enforced 1-10, 0 refused verbatim; 1 = no acceleration = submode 1 timing)."
+    },
+    "warp": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Warps the delay-change curve: 1 = even shortening; > 1 shortens less initially and more later (collapse endings); < 1 front-loads the acceleration (CDP-enforced 0.1-10, 0 refused verbatim)."
+    },
+    "fade": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Per-repeat decay curve: 1 linear, > 1 fast-then-slow (dead-ball dimming), < 1 slow-then-fast (level holds, late die) (CDP-enforced 0.1-10, -1 refused verbatim; render change verified at fade 2)."
+    },
+    "rand": {
+      "type": "float",
+      "min": 1.0,
+      "max": 2.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Delay-multiplier randomisation [1, rand] (CDP-enforced 1-2 in modes 1 & 3). FIXED-SEQUENCE (byte-identical reruns). Breakpoint-capable (mode-1 verification, shared engine)."
+    },
+    "prand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 12.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "musical_range": [0.0, 3.0],
+      "description": "Per-repeat pitch scatter, semitones (CDP-enforced 0-12). Values >= ~5 on short elements crash the segment buffer (mode-1 verified landmine) - stay <= 3. Fixed-sequence; breakpoint-capable (mode-1 verification)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Classic ball-drop on one hit.",
+      "params": {"datafile": "bounce.txt", "accel": 2.5, "warp": 1.0, "fade": 1.5},
+      "expected_use": "write_data_file('bounce.txt', '0.5 0.7 6 0.25\\n') - six repeats compressing to 1/2.5 of the spacing while dimming fast-then-slow."
+    },
+    {
+      "description": "Held-then-collapsing patter with ringing level.",
+      "params": {"datafile": "bounce.txt", "accel": 4.0, "warp": 3.0, "fade": 0.5},
+      "expected_use": "Spacing barely moves at first then caves in; level stays up until a late fade - a suspenseful tumble."
+    }
+  ],
+  "known_issues": [
+    "DURATION is datafile- AND accel-dependent: shorter than submode 1's exact rule by the accelerated spacing (2.3575 vs the rule's 2.545 at accel 2 on the probe datafile) - no closed form pinned; the aux expression engages the preflight skip (duration_row null); measure renders.",
+    "The banner's '-sseed' flag is refused verbatim, and -r/-p randomisation is FIXED-SEQUENCE (byte-identical pairs re-verified in this submode) - fully reproducible, never variable; version_sensitive.",
+    "Mode-1 landmines carry over (shared engine): delay 0 broken (internal error), prand >= ~5 on short elements crashes the segment buffer, element < ~10 ms refused verbatim.",
+    "accel/warp/fade are scalar positionals (accel 0 / warp 0 / fade -1 all refused verbatim quoting parameters 2/3/4); rand/prand breakpoints work (mode-1 slot verification).",
+    "Stereo accepted (shared engine)."
+  ],
+  "references": ["cdp://docs/html/repeater"]
+}

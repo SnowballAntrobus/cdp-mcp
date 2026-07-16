@@ -1,0 +1,62 @@
+{
+  "program": "modify",
+  "mode": "speed",
+  "submode": 6,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "VIBRATO by varispeed: modulates the tape-speed sinusoidally at vibfrq Hz with a pitch depth of vibdepth semitones - true pitch-AND-time wobble, the family's vibrato submode (siblings: 2 = transposition, 5 = accel). Duration effectively static at musical depths: exact at depth 0, -0.02% at 0.5 st, -0.19% at 1.5 st - but DEEP vibrato shortens the output materially (-38% at depth 24: the speed-up half of each cycle wins on average, since mean(2^(d*sin/12)) > 1), so the static model holds for the entry's musical range, documented otherwise. Both parameters breakpoint-capable (verified: vibfrq brk 2->10 distinct from both scalar endpoints; vibdepth brk 0->1.5 likewise, with its own length 2.0011 vs 2.0000/1.9962). Ranges CDP-enforced verbatim: vibfrq '(0.000000 to 120.000000)', vibdepth '(0.000000 to 96.000000)'. Deterministic (pairs 1.3 s apart byte-identical). Stereo handled CORRECTLY (1.9996 s, 2 ch from a 2 s stereo source) - which is why THIS entry hosts the family vibrato rather than strans multi 4: the strans twin renders the same process (+/-1 frame, different rounding) but CORRUPTS stereo input (2.9711 s from the same 2 s stereo file - see known_issues; strans dropped with evidence in tranche 15).",
+  "musical_use": "The tape-wobble vibrato: because it is varispeed, pitch and time breathe together - unlike spectral vibrato it drags the material's texture with it, from crooner warmth to seasick lurch. Depth 0.1-0.5 st at 4-7 Hz is classic vocal/instrumental vibrato; 0.5-2 st at 1-3 Hz is tape-warble/chorus territory; extreme depths (12+) turn any source into a siren. BREAKPOINT BOTH DIALS for the expressive moves: a vibdepth ramp from 0 is the note that 'acquires' vibrato as it sustains (the singer's onset-delay), a vibfrq rise is nervous intensification, both together make convincing organic wobble. vibfrq below ~1 Hz reads as slow pitch drift (lazy tape); above ~20 Hz as FM-like roughening. Feed it steady tones for pure vibrato or whole phrases for warble. For fixed transposition use submode 2, accel/decel submode 5.",
+  "parameters": {
+    "vibfrq": {
+      "type": "float",
+      "min": 0.0,
+      "max": 120.0,
+      "unit": "Hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "musical_range": [1.0, 12.0],
+      "description": "Vibrato rate in Hz (CDP-enforced 0-120, -1 and 500 refused verbatim). 0 = no modulation. Breakpoint-capable (verified: 2->10 ramp distinct from both scalar endpoints). Above ~20 Hz shades into audio-rate FM roughness."
+    },
+    "vibdepth": {
+      "type": "float",
+      "min": 0.0,
+      "max": 96.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.1, 2.0],
+      "description": "Pitch depth of the vibrato in (fractional) semitones (CDP-enforced 0-96, 97 refused verbatim). Depths beyond ~12 shorten the output audibly (-38% at 24 - resampling asymmetry); within the musical range duration is static to <0.2%. Breakpoint-capable (verified distinct from both endpoints) - ramp from 0 for vibrato that blooms on the sustain."
+    }
+  },
+  "examples": [
+    {
+      "description": "Classic vocal-style vibrato.",
+      "params": {"vibfrq": 6.0, "vibdepth": 0.5},
+      "expected_use": "5-7 Hz, sub-semitone depth: warm, even wobble; duration change negligible (-0.02%)."
+    },
+    {
+      "description": "Vibrato that blooms mid-note.",
+      "params": {"vibfrq": 5.5, "vibdepth": "depth_ramp.brk"},
+      "expected_use": "Write depth_ramp.brk '0 0 / 0.8 0 / 2 0.7' via breakpoint(): the note starts straight and acquires vibrato as it sustains."
+    }
+  ],
+  "known_issues": [
+    "Duration static ONLY at musical depths: exact at 0, -0.02% at 0.5 st, -0.19% at 1.5 st, but -38% at depth 24 (the duration row pins depth 0.5). Deep-vibrato chains need measured durations.",
+    "STRANS TWIN WARNING: strans multi 4 runs the same vibrato (same params, +/-1-frame rounding difference) but silently CORRUPTS stereo input - 2.9711 s rendered from a 2.0 s stereo file (interleave mishandling), while this submode renders stereo correctly (verified same fixture). strans multi was dropped from curation on this evidence; never substitute it for stereo material.",
+    "Both parameters breakpoint-capable (verified against both endpoints each); no seed, fully deterministic.",
+    "Sibling map re-pinned: modify speed 1 = speed ratio, 2 = semitones (curated), 3/4 info-only, 5 = accel (curated), 6 = this vibrato."
+  ],
+  "references": ["cdp://docs/html/cgromody"]
+}

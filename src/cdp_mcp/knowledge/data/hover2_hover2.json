@@ -1,0 +1,108 @@
+{
+  "program": "hover2",
+  "mode": "hover2",
+  "submode": null,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Zero-crossing-locked cousin of hover: zigzag-reads the source at frq Hz near location 'loc', but each read starts from a ZERO CROSSING, reads forth and back, then outputs the same data INVERTED - building symmetrical zero-centred waveforms at each read. The result is cleaner and more oscillator-like than hover (which splices raw zigzags; neither subsumes the other - hover keeps the source's grain and has a splice dial, hover2 synthesizes waveforms from it and adds -s/-n switches). Duration set_by dur, overshoot +1.6-2.5% (completes the waveform pair). BREAKPOINTS: frq and loc verified capable (each distinct from both scalar endpoints); frqrand/locrand share the argv slots banner-declared time-variable (verified capable on hover's engine; here scalar probes verified live, brks accepted). -s STEP flag changes loc-breakpoint reading from interpolation to jump-cuts at the brk times - verified: with a 0.2->1.8 loc ramp, -s rendered BYTE-IDENTICAL to scalar loc 0.2 (the step to 1.8 sits at the file's end and never plays), while the default interpolating read differs from both endpoints. -n normalises the loudness of all generated wavecycles (changes render, same length). RANDOMISATION FIXED-SEQUENCE like hover: frqrand/locrand pairs 1.3 s apart byte-identical, no seed slot - version_sensitive. MONO ONLY (refusal verbatim). frq range 0.25 to Nyquist (verbatim, input-dependent). Deterministic base verified.",
+  "musical_use": "Waveform synthesis FROM a sound: where hover scrubs, hover2 refines - each read becomes a symmetric, zero-centred cycle, so the output approaches a real oscillator tone whose timbre is sampled from the source at loc. Use it to turn any recording into a playable drone-synth: frq breakpoints are melodies (the pitch tracks frq directly), loc breakpoints morph the 'wavetable' through the file - a slow loc scan is literally wavetable-position modulation on your own material. -n evens cycle levels for a steadier tone (good before filtering); leave it off to keep the source's amplitude life. -s turns a loc breakpoint into hard wavetable switching instead of smooth morphing. locrand/frqrand roughen toward noise - fixed-sequence, so identical every run. Pick hover for character/scrub, hover2 for tone/synthesis.",
+  "parameters": {
+    "frq": {
+      "type": "float",
+      "min": 0.25,
+      "max": 22050.0,
+      "unit": "Hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "musical_range": [20.0, 500.0],
+      "description": "Read/waveform rate in Hz - heard directly as the output's fundamental. CDP-enforced 0.25 to Nyquist ('(0.250000 to 22050.000000)', input-dependent). Breakpoint-capable through output time (verified distinct from both endpoints) - frq envelopes are melodies."
+    },
+    "loc": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Source time NEAR which samples are read (reads snap to zero crossings). 0 to input duration. Breakpoint-capable (verified distinct from both endpoints); with -s the breakpoint STEPS at its times instead of interpolating (verified: end-of-file step rendered byte-identical to the start value's scalar render)."
+    },
+    "frqrand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Random frq variation 0-1. FIXED-SEQUENCE (unseeded pairs byte-identical; no seed exists). Banner-declared time-variable; brk accepted (capability verified on the sibling hover engine)."
+    },
+    "locrand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": null,
+      "description": "Random location variation 0-1. Fixed-sequence like frqrand. Banner-declared time-variable; brk accepted."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Total output duration; actual overshoots by +1.6-2.5% (completes the symmetric waveform pair). Breakpoint refused."
+    },
+    "step": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-s",
+      "flag_kind": "no_value",
+      "description": "STEP between loc-breakpoint values at their times (jump-cut wavetable switching) instead of interpolating as time progresses. Only meaningful when loc is a breakpoint file. Engine note: pass 1 to enable, omit to disable."
+    },
+    "normalise": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "Normalise the loudness of all generated wavecycles (verified: changes the render, same length) - a steadier, more synthetic tone. Pass 1 to enable, omit to disable."
+    }
+  },
+  "examples": [
+    {
+      "description": "Playable drone from a recording, evened cycles.",
+      "params": {"frq": 110.0, "loc": 0.8, "frqrand": 0.0, "locrand": 0.0, "dur": 8.0, "normalise": 1},
+      "expected_use": "A steady 110 Hz tone whose waveform is the source's shape around t=0.8."
+    },
+    {
+      "description": "Wavetable-position sweep through the file with a rising melody.",
+      "params": {"frq": "frq_line.brk", "loc": "loc_ramp.brk", "frqrand": 0.0, "locrand": 0.0, "dur": 10.0},
+      "expected_use": "frq_line.brk e.g. '0 80 / 10 320' glisses two octaves while loc_ramp.brk '0 0 / 10 <indur>' morphs the timbre through the source."
+    }
+  ],
+  "known_issues": [
+    "Randomisation is FIXED-SEQUENCE (byte-identical unseeded pairs; no seed slot) - variants require parameter nudges, not reruns. version_sensitive on that account.",
+    "Duration overshoots dur by ~1.6-2.5% (worse at short durations, relatively).",
+    "MONO ONLY (verbatim refusal). Breakpoint time axis is OUTPUT time (banner).",
+    "-s only changes anything when loc is a breakpoint file; a step whose time sits at/after the output end never sounds (verified byte-identical to the pre-step value).",
+    "No splice parameter (hover's splice/frq ceiling interaction does not exist here - the zero-crossing lock replaces it)."
+  ],
+  "references": ["cdp://docs/html/hover2"]
+}

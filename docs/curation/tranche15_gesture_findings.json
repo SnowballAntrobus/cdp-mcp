@@ -1,0 +1,269 @@
+{
+  "generated_at": "2026-07-16",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build, -fsigned-char rebuild per forensics P6-1; extend/sorter banner 'CDP Release 7.1 2016'; hover/hover2/shifter/repeater/verges/phasor/grainex/sfecho print no release banner)",
+    "os": "Linux x86_64 sandbox",
+    "note": "Tranche 15 - gesture/time-domain programs. Fixtures in /tmp/probe15b (sweeps, pings, 4-event and 16-grain trains) + /tmp/probe/syl2. To be re-verified on macOS r8 by the CDP-gated suite after integration. Aux files for duration rows: cyc1.txt = '3 4\\n' (shifter), vt3.txt = '0.4\\n1.0\\n1.6\\n' (verges)."
+  },
+  "entries": [
+    {
+      "program": "extend",
+      "mode": "freeze",
+      "submode": 1,
+      "breakpoint_capable": ["delay", "rand"],
+      "duration_row": ["extend", "freeze", 1, 2.0, {"outduration": 6.0, "delay": 0.4, "rand": 0.0, "pshift": 0.0, "ampcut": 0.0, "start": 0.5, "end": 1.0, "gain": 1.0, "seed": 1}, 0.05],
+      "stochastic": true,
+      "notes": [
+        "ITERATE_EXTEND engine (ap_extend.c:1149): source to start + segment iterations + tail from end. Duration exact (4 dp) on 5 probes at 2 indurs + stereo: delay*(floor((outduration-indur+end-start)/delay)+1) + indur - 512/srate; the 512-sample deficit is ITX_SPLICELEN (also quoted in the reversed-segment refusal). Spot-checked through process_impl: predicted 6.7884, measured 6.7884.",
+        "FIRST-CLASS BUG: pshift and ampcut BRK FILES SILENTLY IGNORED - brks 0->8/8->0 (pshift) and 0->0.9/0.9->0 (ampcut) all byte-identical to the zero-scalar render (scalars work; extend iterate's same slots are live). delay/rand brks verified capable (distinct from both endpoints at seed 5); outduration/start/end/gain/seed refuse verbatim (parameters 1/6/7/8/9).",
+        "Seed semantics = extend iterate (re-verified per submode in sm2, shared engine): -s>0 works, -s0/omission clock, inert at zero random params. Ranges verbatim: gain 0.25-4 (Parameter[8]), rand 0-1, pshift 0-12, ampcut 0-1, end 0-indur, outduration indur-32767, seed 0-32767. delay > seglen refused 'FROZEN SEGMENT ... TOO SHORT FOR (MINIMUM) DELAY TIME SPECIFIED' (INVALID DATA); delay 0 accepted (output = indur - 512/srate, terminates).",
+        "Content: 2-pass auto-level scales the WHOLE output (constant ratio 0.6361, std 0.0 on the probe); copies land at start + k*delay - 512/srate for k>=1 (xcorr score 1.000)."
+      ]
+    },
+    {
+      "program": "extend",
+      "mode": "freeze",
+      "submode": 2,
+      "breakpoint_capable": ["delay", "rand"],
+      "duration_row": ["extend", "freeze", 2, 2.0, {"repetitions": 2, "delay": 0.5, "rand": 0.0, "pshift": 0.0, "ampcut": 0.0, "start": 0.5, "end": 1.0, "gain": 1.0, "seed": 1}, 0.05],
+      "stochastic": true,
+      "notes": [
+        "Duration exact on 6 probes: indur + repetitions*delay - 512/srate, INDEPENDENT of segment position (seg 0.5-1.0 and 0.2-0.5 same length at same reps/delay). Fractional reps ROUNDED (2.5 -> 3, 2.8884). repetitions CDP-enforced 1-32767 (0 and 32768 refused verbatim).",
+        "Seed semantics verified IN THIS SUBMODE: -s5 pairs 1.3 s apart byte-identical; -s9 differs; -s0 pairs differ (clock); unseeded pairs differ (clock); seed 5 == 9 == unseeded at zero random params. rand>0 durations drift 3.3066-3.7645 around 3.4884.",
+        "pshift/ampcut brk silent-ignore carried (shared engine, sm1-verified); delay 0 accepted (1.9884 = indur - 512/srate)."
+      ]
+    },
+    {
+      "program": "extend",
+      "mode": "drunk",
+      "submode": 1,
+      "breakpoint_capable": ["locus", "ambitus", "step", "clock", "clokrand", "overlap"],
+      "duration_row": ["extend", "drunk", 1, 2.0, {"outdur": 4.0, "locus": 1.0, "ambitus": 0.5, "step": 0.1, "clock": 0.1, "splicelen": 15.0, "seed": 1}, 0.05],
+      "stochastic": true,
+      "notes": [
+        "Duration = outdur + splicelen/1000 EXACT (identical frame counts across seeds/walks; 3.015/5.015/3.005 verified; two indurs). Spot-checked via process_impl: 4.0150 vs 4.015. Exactness breaks with clokrand>0 (+2.8% at 1.0) or a clock brk (+6%); overlap 0.9 shaves to 3.005.",
+        "SEED (-r): >0 reproducible (pairs byte-identical, 5 vs 9 differ); -r0 IS THE CLOCK PATH - and an -r0 run collided byte-identically with an unseeded run launched in the same second (collision trap demonstrated).",
+        "ALL SIX walk dials brk-capable, verified slot-by-slot vs both endpoints at seed 5 (locus/ambitus/step/clock positionals + clokrand/overlap flags); outdur/splicelen/seed refuse (parameters 1/8/11).",
+        "BANNER DIVERGENCE: step floor '>0.002' NOT enforced (0.001 and 0 accepted, exit 0). clock<=2*splicelen refused verbatim; overlap 0-0.99, clokrand 0-1, locus/ambitus 0-indur (verbatim). Stereo accepted."
+      ]
+    },
+    {
+      "program": "extend",
+      "mode": "drunk",
+      "submode": 2,
+      "breakpoint_capable": ["locus", "ambitus", "step", "clock", "clokrand", "overlap"],
+      "duration_row": ["extend", "drunk", 2, 2.0, {"outdur": 4.0, "locus": 1.0, "ambitus": 0.5, "step": 0.1, "clock": 0.1, "mindrnk": 2, "maxdrnk": 5, "losober": 0.2, "hisober": 0.5, "seed": 5}, 0.2],
+      "stochastic": true,
+      "notes": [
+        "Sober-interlude mode: set_by outdur with VARIABLE OVERSHOOT (last sober play completes): outdur 4 rendered 4.109/4.6187/4.325 across seeds at defaults, 4.4213 with -l0.2 -h0.5 (the row; tol 0.2). Default losober >= indur = sober plays run to source end.",
+        "Seed re-verified in this submode (-r5 pairs byte-identical, -r9 differs). mindrnk 1-32767 (0 refused verbatim); mindrnk>maxdrnk silently accepted; losober/hisober range 0.000002 to indur+0.000002 ('Parameter[12] Value (3.000000) out of range (0.000002 to 2.000002)').",
+        "Walk-dial brk capability inherited from sm1 (shared parser); mindrnk/maxdrnk/losober/hisober brks banner-claimed but unverified - entries mark them scalar."
+      ]
+    },
+    {
+      "program": "extend",
+      "mode": "sequence",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Score-driven duration (aux seqfile): outdur = max over events of (time + indur/2^(st/12)), exact to the sample on 4 probes at 2 indurs incl. a chord - the aux-param expression engages the preflight skip (sequence2 precedent).",
+      "stochastic": false,
+      "notes": [
+        "1-input sibling of curated sequence2 - score format pinned: 3-value rows 'time semitone-transposition loudness'; NO sound-number, NO per-event duration (events never curtailed), NO notional-pitch first line; transposition RELATIVE +/-48 st ('Pitch-ratio (130.000000) out of range (-48.000000 - 48.000000)') vs sequence2's absolute MIDI 0-127.",
+        "Shared parser behaviors verified: float-stream (one-line score byte-identical), ';' comments, non-decreasing times (equal = chords; refusal verbatim), loudness >= 0 (>1 accepted, chord peak 2.229 unclipped), count %3 != 0 fails with the times-do-not-increase message (stream-parse side effect).",
+        "attenuation 0-1 (1.5 refused Parameter[2]); 0 = digital silence (peak 0.0000). Brk refused ('Cannot read parameter 1'). Deterministic; stereo accepted; no mode digit."
+      ]
+    },
+    {
+      "program": "sorter",
+      "mode": "sorter",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": ["sorter", "sorter", 2, 2.0, {"esiz": 0.1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Decrescendo sort - exact mirror of curated sm1, re-verified: third-RMS falls 0.343/0.310/0.062 (sm1 rises 0.107/0.209/0.403 same fixture). Same duration across modes 1-4 (1.8054 from the 2.0 s event fixture); flat noise -2.3% at esiz 0.1 (row).",
+        "Deterministic (pairs byte-identical, re-verified per submode); MONO ONLY (verbatim, per submode); ranges re-verified (esiz 0-2000, smooth 0-50, oversize refusal verbatim); smooth brk refused ('Cannot read parameter 3').",
+        "BUILD DIVERGENCE (first-class): esiz BRK ACCEPTED AND LIVE on this -fsigned-char rebuild - constant-0.1 brk BYTE-IDENTICAL to scalar 0.1 (positive control), 0.05->0.3 ramp rendered 1.6507/distinct sha, reversed ramp 1.912 - while the macOS-r8-pinned sibling outcome is refusal ('brkpnt_files not permitted'). Entries stay scalar-only, version_sensitive true."
+      ]
+    },
+    {
+      "program": "sorter",
+      "mode": "sorter",
+      "submode": 3,
+      "breakpoint_capable": [],
+      "duration_row": ["sorter", "sorter", 3, 2.0, {"esiz": 0.1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Accelerando = longest-elements-first, verified two ways: element-group lengths 0.45/0.086/0.194/0.168 at esiz 0.1 (sm4 exact reverse), and at esiz 0 on a sweep the dominant frequency runs 268 -> 1472 Hz first-to-last quarter (banner's 'may rise in pitch' confirmed). Spot-checked via process_impl: 1.9518 (-2.41%, in tol).",
+        "Deterministic/mono/ranges re-verified per submode; same esiz-brk build divergence as sm2 (probed in this submode)."
+      ]
+    },
+    {
+      "program": "sorter",
+      "mode": "sorter",
+      "submode": 4,
+      "breakpoint_capable": [],
+      "duration_row": ["sorter", "sorter", 4, 2.0, {"esiz": 0.1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Ritardando = shortest-first, exact element-order mirror of sm3 (verified same fixture); at esiz 0 on the sweep dominant frequency falls 1424 -> 270 Hz. esiz 0 waveset path verified in this submode (1.948 s render).",
+        "Deterministic/mono re-verified; same-duration guarantee across 1-4 re-verified (identical frame counts, distinct shas)."
+      ]
+    },
+    {
+      "program": "hover",
+      "mode": "hover",
+      "submode": null,
+      "breakpoint_capable": ["frq", "loc", "frqrand", "locrand"],
+      "duration_row": ["hover", "hover", null, 2.0, {"frq": 20.0, "loc": 0.5, "frqrand": 0.0, "locrand": 0.0, "splice": 5.0, "dur": 4.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Zigzag-read freeze at frq Hz around loc. dur set_by with +0.5-1.2% grid overshoot. frq/loc/frqrand/locrand ALL brk-capable (each verified distinct from both scalar endpoints; output-time axis per banner); splice/dur refuse (parameters 5/6).",
+        "FIXED-SEQUENCE RANDOM: frqrand/locrand 0.5 pairs 1.3 s apart BYTE-IDENTICAL - no seed slot, no clock path (osbind shim from unseeded rand()); version_sensitive.",
+        "MONO ONLY (verbatim). Ranges verbatim: frq 0.25-Nyquist (input-dependent), loc 0-indur, frqrand/locrand 0-1, splice < 1/(2*maxfrq) ('must be less than 2.494331 mS' at frq 200)."
+      ]
+    },
+    {
+      "program": "hover2",
+      "mode": "hover2",
+      "submode": null,
+      "breakpoint_capable": ["frq", "loc", "frqrand", "locrand"],
+      "duration_row": ["hover2", "hover2", null, 2.0, {"frq": 20.0, "loc": 0.5, "frqrand": 0.0, "locrand": 0.0, "dur": 4.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Zero-crossing symmetric-waveform sibling - neither subsumes hover (hover keeps source grain + splice dial; hover2 synthesizes zero-centred cycles + -s/-n switches): BOTH curated. dur set_by, +1.6-2.5% overshoot.",
+        "frq and loc brks verified distinct-from-both-endpoints IN THIS PROGRAM; frqrand/locrand brks accepted here, capability verified on the sibling engine (findings note the provenance).",
+        "-s STEP semantics verified: loc brk 0.2->1.8 with -s rendered BYTE-IDENTICAL to scalar loc 0.2 (the step at the output's end never plays); default interpolating read differs from both endpoints. -n changes render, same length.",
+        "Fixed-sequence random (pairs byte-identical), mono-only, deterministic base - all verified."
+      ]
+    },
+    {
+      "program": "modify",
+      "mode": "speed",
+      "submode": 6,
+      "breakpoint_capable": ["vibfrq", "vibdepth"],
+      "duration_row": ["modify", "speed", 6, 2.0, {"vibfrq": 6.0, "vibdepth": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "VIBRATO by varispeed - curated here rather than in strans (see strans drop). Duration static at musical depths: exact at depth 0, -0.02% at 0.5, -0.19% at 1.5, but -38% at depth 24 (mean(2^(d sin/12)) > 1 - resampling asymmetry).",
+        "vibfrq brk (2->10) and vibdepth brk (0->1.5) each distinct from both scalar endpoints. Ranges verbatim: vibfrq 0-120, vibdepth 0-96. Deterministic; STEREO CORRECT (1.9996 2ch from 2 s stereo) - the decisive difference from strans multi 4.",
+        "strans-vs-modify-speed twin comparison: modes 1/2/3/4 of strans multi render the same processes as modify speed 1/2/5/6 with +/-1-frame count differences and different sample values (NOT byte-identical)."
+      ]
+    },
+    {
+      "program": "sfecho",
+      "mode": "echo",
+      "submode": null,
+      "breakpoint_capable": ["delay", "attenuation", "rand"],
+      "duration_row": ["sfecho", "echo", null, 2.0, {"delay": 2.0, "attenuation": 0.5, "totaldur": 7.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Whole-file non-overlapping echo: delay floor = INPUT DURATION ('(0.300000 to 3600.000000)' on a 0.3 s source; enforced INSIDE brk files too: 'Value (0.100000) out of range ... in brkpntfile b_bad.brk.'). Duration = delay*floor((totaldur-indur)/delay) + indur, exact on 3 probes; spot-checked via process_impl: 6.0000 vs 6.0.",
+        "Engaged cutoff shortens (-c-40 at atten 0.5: 3.5 vs 4.8); cutoff range -96 to -6 (verbatim; default -96). atten/rand 0-1 (verbatim).",
+        "delay/attenuation/rand brks each distinct from both endpoints (delay brk also changes length). rand FIXED-SEQUENCE (pairs byte-identical, duration 4.9613 both) - no seed; version_sensitive. Stereo accepted."
+      ]
+    },
+    {
+      "program": "verges",
+      "mode": "verges",
+      "submode": null,
+      "breakpoint_capable": ["transp", "exp", "glissdur"],
+      "duration_row": ["verges", "verges", null, 2.0, {"times": "vt3.txt"}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Brief glisses at listed times (aux textfile; increasing times required, refusal verbatim; time too near the end refuses with a gap error scaled by glissdur, after 'Ignoring data' warning). Duration static-with-drift: -2.5% at default transp 5, +2.8% at -8, -5.1% at +9 (glissed stretches resampled). Spot-checked via process_impl on flat noise + vt3.txt: 1.9497 (-2.51%, in tol).",
+        "transp/exp/glissdur brks each verified distinct from both endpoints (banner's 'can vary through time' confirmed). Ranges verbatim: transp -24..24 (default 5), exp 1-8, glissdur 20-1000 ms (default 100).",
+        "-n (literal times), -b (boost) change renders; -s (suppress) keeps ONLY verge material (1.668 from 1.95 - model n/a). Deterministic; stereo accepted."
+      ]
+    },
+    {
+      "program": "grainex",
+      "mode": "extend",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Content-dependent: indur + plus was exact on a 3.5 s syllable train (5.4998/4.4999 at plus 2/1) but a dense 16-grain train overshot +1.71/+1.76 s (grain-grid rounding); the flat-noise fixture's grain census is unverified. Rule pinned in the transcript.",
+      "stochastic": false,
+      "notes": [
+        "Grain-zone extension. CONTENT REFUSAL dominates: 'Number of grains found = 0' + 'Insufficient grains to proceed.' on sustained material, trof 0 or 1, plus 0, reversed zone.",
+        "ALL FIVE params refuse brks verbatim (parameters 1-5). MONO ONLY. wsiz range 0.181406-666.666667 ms (srate-dependent); plus 0.000002-3600; end 0-indur. Deterministic (pairs byte-identical)."
+      ]
+    },
+    {
+      "program": "repeater",
+      "mode": "repeater",
+      "submode": 1,
+      "breakpoint_capable": ["rand", "prand"],
+      "duration_row": null,
+      "duration_row_reason": "Datafile-driven duration (aux expression preflight-skip): outdur = indur + sum over elements of cnt*delay (delay <= element length) or cnt*delay - (length + 0.005) (delay > length; 0.005 = REPSPLEN 5 ms, science.h:439) - exact on 6 probes incl. a 2-element file. Mode 2 (offset semantics): added = cnt*(len+offset+0.005) - (len+0.005), exact on 2 probes.",
+      "stochastic": false,
+      "notes": [
+        "FIRST-CLASS BANNER LIE: usage prints '[-sseed]' but the flag is refused 'Unknown flag -s on command line.' - and -r/-p randomisation is FIXED-SEQUENCE anyway (pairs 1.3 s apart byte-identical). Always reproducible, never variable; version_sensitive.",
+        "rand brk (1.0->1.9) and prand brk (0->3) each distinct from both scalar endpoints; in-brk values range-checked ('Value (0.000000) out of range (1.000000 to 2.000000) in brkpntfile'). Ranges: rand 1-2 (mode 2: 1-8), prand 0-12.",
+        "LANDMINES: datafile delay 0 (documented default '= segment length') dies 'segment buffer too short to contain repeated overlapping segments (1).' (INTERNAL ERROR); prand >= ~5 on a 0.2 s element hits the same crash. Datafile refusals verbatim: min element dur 0.010068 (srate-dependent), cnt < 2, 'Too few values (3) ... Need 4.'; overlap/backtrack elements legal; stereo accepted."
+      ]
+    },
+    {
+      "program": "repeater",
+      "mode": "repeater",
+      "submode": 3,
+      "breakpoint_capable": ["rand", "prand"],
+      "duration_row": null,
+      "duration_row_reason": "Datafile- AND accel-dependent (accel 2 rendered 2.3575 where the mode-1 rule gives 2.545); no closed form pinned.",
+      "stochastic": false,
+      "notes": [
+        "Bouncing-object mode: adds accel/warp/fade positionals after the datafile. Ranges verbatim: accel 1-10 (0 refused), warp 0.1-10 (0 refused), fade 0.1-10 (-1 refused). fade formula source-pinned: ((repeats-n)/repeats)^fade.",
+        "Deterministic incl. under -r/-p (re-verified in this submode: pairs byte-identical); -s refused as in mode 1. Mode-1 landmines carry (shared engine)."
+      ]
+    },
+    {
+      "program": "phasor",
+      "mode": "phasor",
+      "submode": null,
+      "breakpoint_capable": ["phasfrq", "shift"],
+      "duration_row": ["phasor", "phasor", null, 2.0, {"streams": 4, "phasfrq": 4.0, "shift": 3.0, "ochans": 2}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Packet phasing, mono input only (verbatim). Duration = indur + offset/1000 (+1 packet window: 2.0005 at offset 0; exactly +0.2 at -o200). phasfrq/shift brks each distinct from both endpoints (phasfrq brk perturbs length +0.35%).",
+        "Ranges verbatim: streams 2-8, shift 0-12, offset 0-500 ms; ochans <= streams ('Number of output channels exceeds number of streams.', INVALID DATA). ochans 1 and 2 verified. Deterministic."
+      ]
+    },
+    {
+      "program": "shifter",
+      "mode": "shifter",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": ["shifter", "shifter", 1, 0.3, {"cycles": "cyc1.txt", "cycdur": 1.0, "dur": 6.0, "ochans": 2, "subdiv": 6, "linger": 2, "transit": 1, "boost": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Polymeter cycles with moving focus. dur set_by, grid-rounded (6.0 exact at cycdur 1; +1.25% at dur 4; +4.3% with a 25-beat cycle) - BUT a source longer than the beat interval OVERHANGS (+28%: 7.6875 from dur 6 with a 2 s source at 0.25 s beats); the row uses a 0.3 s fixture (indur field), spot-checked end-to-end via process_impl: 6.0 exact (this is the aux-datafile spot-check).",
+        "-r random focus order FIXED-SEQUENCE (pairs byte-identical, no seed) - version_sensitive; -z zigzag is a NO-OP below 3 cycles (byte-identical on a 2-cycle file).",
+        "Constraints verbatim: cycle values >= 2; subdiv > 4 and multiple of 2 and/or 3 ('Neat subdivision is not a multiple of 2 or 3.'); linger+transit >= 1; boost 0-10. cycdur/boost refuse brks (parameters 1/7). MONO input; ochans 1/2/3 verified (>2 = surround array, out of scope).",
+        "MODE 2 verified: one input per cycle, count must tally ('Number of cyclelengths (1) ... does not tally with number of src sounds (2)') - variadic, execute() territory (2-input run rendered 6.0875)."
+      ]
+    }
+  ],
+  "dropped": [
+    {
+      "program": "freeze",
+      "reason": "CLI-BROKEN, source-diagnosed: dev/standalone/freeze.c only reads dz->mode in parse_sloom_data (Sound Loom path); on the CLI the mode digit is consumed as the input filename ('ERROR: INTERNAL ERROR: (Bug?) / ERROR: Failed to parse input file 1' - the '1' is the mode digit; mode 2 says 'input file 2') and omitting it dies 'Unknown mode for ITERFREEZE: in setup_freeze_param_ranges_and_defaults()'. No working argv exists. Same engine as extend freeze (curated)."
+    },
+    {
+      "program": "packet",
+      "reason": "Generic-outfile-name multi-output: the output argv is a STEM - even a single-time run renamed pk3.wav to pk30.wav, and a 2-time file wrote pmulti0.wav + pmulti1.wav (self-named, index-appended). No verifiable output path. Bonus landmine: the documented centring value -1 is unreachable from the CLI ('-1' parses as a flag; exit -11 segfault). Mode 1 additionally content-refuses on smooth material ('Insufficient local minima found in inital search.')."
+    },
+    {
+      "program": "stretcha",
+      "reason": "Pure stdout calculator ('Calculate required time-stretches'): 'stretcha -s -t120 -T140' prints 'Stretchfactor = 0.857143', exit 0, no sound output, no outfile argv. Toolkit-info utility per standing scope."
+    },
+    {
+      "program": "strans",
+      "reason": "Near-duplicate suite of curated modify speed: strans multi 1/2/3 render the same processes as modify speed 1/2/5 (same durations to +/-1 frame, different sample rounding - NOT byte-identical: 2.6697/117733 frames vs 117732 etc.); its one novel mode (4, vibrato) CORRUPTS STEREO INPUT (2.9711 s rendered from a 2.0 s stereo file; strans 2 handles stereo fine, and modify speed 6 renders the identical vibrato correctly on the same fixture) - vibrato curated as modify speed 6 instead. Distinct-but-unneeded extras recorded: -o flag (brk times as outfile times) and >2-channel support (spatial scope)."
+    },
+    {
+      "program": "unknot",
+      "reason": "Data-to-data pattern transformer outside the engine's audio model: INPUTS are rhythm-pattern textfiles (time/MIDI/level/pos rows) and the OUTPUT is a textfile ('ERROR: Cannot open a textfile (uo3.wav) with a reserved extension.' when given a .wav name); combos arg is a file-or-literal-0 union; probe with valid patterns still refused 'ALL EVENTS BUT ONE ARE SYNCHRONOUS: CANNOT PROCEED' after 'PATTERNS DO NOT ALL END IN SYNC.' warning; mode 3 has a different argv and no output. Multi-textfile-input wiring is inexpressible in the engine (T23 data-utility territory at best)."
+    }
+  ]
+}

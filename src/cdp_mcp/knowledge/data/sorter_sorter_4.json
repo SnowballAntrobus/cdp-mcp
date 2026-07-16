@@ -1,0 +1,64 @@
+{
+  "program": "sorter",
+  "mode": "sorter",
+  "submode": 4,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Chops a mono source into roughly esiz-second elements (esiz 0 = individual wavesets) and reassembles them sorted SHORTEST-FIRST - a ritardando: event spacing widens across the output, the exact mirror of submode 3 (verified: element-group lengths 0.168 / 0.195 / 0.086 / 0.45 on the 4-event fixture = submode 3's order reversed). At esiz 0 (wavesets) on a 2 s sweep the dominant frequency runs 1424 Hz -> 270 Hz first-quarter to last - short (high) wavesets first, the banner's 'may fall in pitch' confirmed. Duration identical across submodes 1-4 (1.8054 from the 2.0 s event fixture); flat noise -2.3% at esiz 0.1 (the duration row); -0.03% at esiz 0 on the sweep. Deterministic (byte-identical pairs 1.3 s apart, re-verified per submode); MONO ONLY (refusal verbatim, re-verified). esiz 0 waveset path verified directly in this submode (1.948 s render from the event fixture). Same build sensitivity as siblings: the 2026 Linux rebuild accepts a live esiz breakpoint, macOS r8 refuses - scalar-only, version_sensitive.",
+  "musical_use": "Ritardando-as-collage: the material's shortest fragments open in a flurry and its longest close it - a written-in slow-down, ideal for endings and dissolves into stillness. At word scale a phrase 'runs out of breath'; at grain scale a rush settles into long tones; at esiz 0 on pitched material it doubles as a falling-pitch gesture. The natural closer after submode 3's accelerando (accel/rit arch), or after sorter 1 for a crescendo that then broadens. smooth 5-15 ms for sustained sources; leave 0 when the joins are the rhythm.",
+  "parameters": {
+    "esiz": {
+      "type": "float",
+      "min": 0.0,
+      "max": 2000.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.02, 0.5],
+      "description": "Approximate element size in seconds; 0 = individual wavesets (verified in this submode). CDP-enforced 0-2000; oversize refuses 'Elementsize too big for infile. (If meant to be frq, set flag).' Scalar-only for portability (macOS r8 refuses brks; Linux rebuild honors them - known_issues)."
+    },
+    "smooth": {
+      "type": "float",
+      "min": 0.0,
+      "max": 50.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "musical_range": [3.0, 15.0],
+      "description": "Element fade splice, ms (CDP-enforced 0-50). Render-only, never duration. Ignored at esiz 0. Breakpoint refused ('Cannot read parameter 3')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Phrase running out of breath.",
+      "params": {"esiz": 0.3, "smooth": 10.0},
+      "expected_use": "Shortest elements first, longest last - a built-in ritardando ending."
+    },
+    {
+      "description": "Waveset dissolve with falling pitch.",
+      "params": {"esiz": 0.0},
+      "expected_use": "On pitched material the sort reads high-to-low (1424 -> 270 Hz measured on a sweep)."
+    }
+  ],
+  "known_issues": [
+    "Duration static-with-losses: -2.3% flat noise at esiz 0.1 (the row); -9.7% on sparse event material. Plan chains with slack.",
+    "MONO ONLY (verbatim, re-verified). Deterministic - no seed slot (byte-identical pairs re-verified in this submode).",
+    "BUILD DIVERGENCE (version_sensitive): esiz breakpoint accepted and live on the 2026 -fsigned-char Linux rebuild but refused on macOS r8 (pinned sibling outcome) - curated scalar-only.",
+    "Exact element-order mirror of submode 3 (verified on the same fixture); loudness sorts are submodes 1/2; seeded shuffle is submode 5 (separate argv shape).",
+    "-f/opch/pch/metagrp pitch machinery uncurated - execute() territory."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

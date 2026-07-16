@@ -1,0 +1,94 @@
+{
+  "program": "phasor",
+  "mode": "phasor",
+  "submode": null,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + offset * 0.001"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Phasing effect built from pitch-shift packets: splits a MONO source into 'streams' parallel copies whose phase shifts forward then back within packets at 'phasfrq' Hz, up to 'shift' semitones of maximum phase-shift per packet, and mixes them to 'ochans' output channels - the classic swept-comb 'jet' phasing as a time-domain packet process. Duration: indur + offset/1000 - static plus the stream time-offset (2.0005 from a 2 s source at offset 0, +1 packet-grid window; exactly +0.2 s at -o200, verified). BREAKPOINTS: phasfrq and shift both capable (each verified distinct from both scalar endpoints; a phasfrq brk also perturbs length by the packet grid - 2.0071); the banner warns extreme phasfrq changes/reversals 'will produce anomalous output'. Ranges verbatim: streams '(2.000000 to 8.000000)'; shift '(0.000000 to 12.000000)'; offset '(0.000000 to 500.000000)' ms; ochans must not exceed streams ('ERROR: INVALID DATA / ERROR: Number of output channels exceeds number of streams.'). ochans 1 and 2 both verified (mono or stereo phasing; ochans > 2 is loudspeaker-array territory - the -s surround flag only applies there). Deterministic (pairs 1.3 s apart byte-identical; no randomness, no seed). MONO input only ('File st2.wav is not of correct type (must be mono)').",
+  "musical_use": "The swept-jet phaser as an offline gesture: streams 3-6 with shift 2-6 st at phasfrq 0.5-4 Hz gives the breathing, hollow comb-sweep on anything sustained - pads, cymbals, noise beds, vocal drones. phasfrq is the sweep rate (breakpoint it to accelerate the swirl or freeze it mid-sweep); shift is intensity (0 = dry-ish stack, 12 = seasick); more streams = denser, smoother swirl. ochans 2 gives instant stereo motion from a mono source - the streams distribute across the pair (set ochans 1 to keep it mono-compatible). offset (up to 500 ms) staggers the streams for thicker, chorus-like blur at the cost of a longer file. Feed it broadband material - phasing needs spectrum to comb. For resonant sweeps use filter sweeping; for spectral undulation try blur/focus family.",
+  "parameters": {
+    "streams": {
+      "type": "int",
+      "min": 2,
+      "max": 8,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [3, 6],
+      "description": "Number of phase-interacting streams (CDP-enforced 2-8, 9 refused verbatim). More streams = denser swirl."
+    },
+    "phasfrq": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.5, 8.0],
+      "description": "Packet frequency - the phase sweeps forward then back once per packet, so this is the audible sweep rate. Breakpoint-capable (verified: 1->8 ramp distinct from both scalar endpoints); banner warns extreme changes or reversals produce anomalous output. A brk also nudges total length via the packet grid (+0.35% observed)."
+    },
+    "shift": {
+      "type": "float",
+      "min": 0.0,
+      "max": 12.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "musical_range": [1.0, 6.0],
+      "description": "Maximum phase-shift within a packet, 0-12 semitones (CDP-enforced, 13 refused verbatim). Intensity dial: 0 near-dry, 12 extreme warble. Breakpoint-capable (verified distinct from both endpoints)."
+    },
+    "ochans": {
+      "type": "int",
+      "min": 1,
+      "max": 8,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 2,
+      "flag": null,
+      "description": "Output channel count; must not exceed streams ('Number of output channels exceeds number of streams.', INVALID DATA verbatim). 1 = mono mix, 2 = stereo distribution (both verified); > 2 builds loudspeaker arrays - DAW/spatial territory, keep at 1-2 in the engine."
+    },
+    "offset": {
+      "type": "float",
+      "min": 0.0,
+      "max": 500.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-o",
+      "flag_kind": "attached_value",
+      "description": "Time-offset of the most-offset stream (others staggered between 0 and it), 0-500 ms (CDP-enforced, 600 refused verbatim). Adds itself to the output length exactly (+0.2 s at 200 ms, verified)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Slow stereo jet-swirl on a sustained bed.",
+      "params": {"streams": 4, "phasfrq": 1.0, "shift": 4.0, "ochans": 2},
+      "expected_use": "Classic phaser sweep once per second, distributed across the stereo pair; output = indur + one packet window."
+    },
+    {
+      "description": "Accelerating swirl with staggered streams.",
+      "params": {"streams": 6, "phasfrq": "sweep.brk", "shift": 6.0, "ochans": 2, "offset": 150.0},
+      "expected_use": "sweep.brk '0 0.5 / 8 6' speeds the sweep up across 8 s; the 150 ms stagger thickens it (output +0.15 s)."
+    }
+  ],
+  "known_issues": [
+    "Duration = indur + offset/1000 (+ up to one packet window: +0.02% at offset 0); a phasfrq breakpoint perturbs length slightly via the packet grid.",
+    "MONO input only (verbatim refusal); ochans <= streams (INVALID DATA verbatim). ochans > 2 assumes a loudspeaker array (banner; -s surround switch applies only there) - out of the engine's stereo scope, use execute() if ever needed.",
+    "phasfrq/shift breakpoints verified capable; streams/ochans/offset are scalar (structural). Banner warns extreme phasfrq motion 'will produce anomalous output' - keep ramps smooth; -e prints rounding-error warnings for time-shifted streams.",
+    "Deterministic - no seed, byte-identical reruns."
+  ],
+  "references": ["cdp://docs/html/phasor"]
+}

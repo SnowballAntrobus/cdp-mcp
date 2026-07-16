@@ -1,0 +1,94 @@
+{
+  "program": "sfecho",
+  "mode": "echo",
+  "submode": null,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "delay * ((totaldur - indur) // delay) + indur"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Whole-file echo: repeats the ENTIRE input at 'delay'-second intervals, each repeat scaled by 'attenuation', until 'totaldur' is reached or the decaying level falls below 'cutoff' dB. The constraint that defines it: delay CANNOT BE LESS THAN THE INPUT DURATION (CDP-enforced floor: 'Parameter[1] Value (0.200000) out of range (0.300000 to 3600.000000)' on a 0.3 s source - the banner points to 'MODIFY REVECHO' for overlapping delays), so echoes never overlap: this is the discrete-repeat echo for one-shots. DURATION (exact, 4 dp, on 3 probes at 2 settings-regimes): outdur = delay * floor((totaldur - indur)/delay) + indur - echo onsets at multiples of delay while onset + indur <= totaldur (totaldur is a ceiling, 'duration may be less'); an engaged CUTOFF shortens it further (-c-40 with attenuation 0.5 rendered 3.5 s vs the 4.8 s totaldur-bound render). BREAKPOINTS: delay, attenuation and rand each verified capable (brk distinct from both scalar endpoints; a delay brk also changes length); totaldur refuses ('Cannot read parameter 3'); brk VALUES are range-checked inside the file ('ERROR: Value (0.100000) out of range (0.300000 to 3600.000000) in brkpntfile b_bad.brk.' - the delay floor applies within breakpoints too). RANDOMISATION FIXED-SEQUENCE: -r0.5 changes timing and length (4.9613) but pairs 1.3 s apart are byte-identical - no seed slot, version_sensitive. Ranges verbatim: attenuation 0-1, rand 0-1, cutoff '(-96.000000 to -6.000000)' dB (default -96). Deterministic base; stereo accepted (2 ch, same duration).",
+  "musical_use": "The one-shot repeater-echo: give it a hit, a word, a chord stab, and it answers with clean non-overlapping repeats that die away geometrically - instant call-and-fade, rhythmic slapback at long delays, or canyon echo at attenuation 0.8-0.95. Because delay >= source length, think of it as 'repeat the EVENT', not a delay line: for smeared, overlapping, feedback-style echo use modify revecho instead. attenuation is the decay knob (0.5 halves each repeat: ~7 audible repeats to -40 dB; 0.9 rings for dozens - set totaldur or cutoff to taste); a delay BREAKPOINT that shrinks toward the floor accelerates the echoes (bouncing-ball-ish; the floor is indur, so full bounce compression needs a short source); an attenuation breakpoint sculpts the decay curve away from geometric. rand loosens the grid (fixed sequence - identical every run). cutoff trims inaudible tails cheaply (-40 to -60 practical).",
+  "parameters": {
+    "delay": {
+      "type": "float",
+      "min": null,
+      "max": 3600.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Time between echo onsets. CDP-enforced floor = INPUT DURATION (refusal verbatim quotes it; ceiling 3600 s) - echoes cannot overlap; the same floor is enforced on values inside a breakpoint file (verbatim brk refusal). Breakpoint-capable through output time (verified: 0.4->1.0 ramp rendered 4.796 s, distinct from both endpoints 4.7/4.3)."
+    },
+    "attenuation": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.3, 0.9],
+      "description": "Relative level of each successive repeat, 0-1 (CDP-enforced: 'Parameter[2] Value (1.500000) out of range (0.000000 to 1.000000)'). Level after n repeats = attenuation^n; interacts with cutoff. Breakpoint-capable (verified distinct from both endpoints, same length)."
+    },
+    "totaldur": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "MAXIMUM output duration - a ceiling, not a target: the last echo must fit entirely (onset + indur <= totaldur; the duration expression is exact) and the cutoff can end things sooner. Breakpoint refused ('Cannot read parameter 3')."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Randomisation of echo times, 0-1 (CDP-enforced verbatim). Changes timing AND total length, but the sequence is FIXED (unseeded pairs byte-identical; no seed exists - variants require different rand values). Breakpoint-capable (verified: brk distinct from both endpoints)."
+    },
+    "cutoff": {
+      "type": "float",
+      "min": -96.0,
+      "max": -6.0,
+      "unit": "dB",
+      "breakpoint_capable": false,
+      "default": -96.0,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Level at which decaying echoes stop (CDP-enforced -96 to -6, +5 refused verbatim; default -96). Engaged cutoff shortens the output below the duration expression (verified: -40 dB at attenuation 0.5 ended at 3.5 s vs 4.8)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Five clean halving echoes of a 0.3 s hit.",
+      "params": {"delay": 0.5, "attenuation": 0.5, "totaldur": 3.0},
+      "expected_use": "Onsets every 0.5 s while they fit: renders exactly 2.8 s; each repeat -6 dB."
+    },
+    {
+      "description": "Long canyon ring with a tidy tail.",
+      "params": {"delay": 1.2, "attenuation": 0.9, "totaldur": 30.0, "cutoff": -50.0},
+      "expected_use": "Slow repeats losing ~1 dB each; the -50 dB cutoff ends the render before the 30 s ceiling."
+    }
+  ],
+  "known_issues": [
+    "Duration expression exact on totaldur-bound probes (three settings, 4 dp); an engaged CUTOFF or rand > 0 shortens/perturbs it - the model assumes cutoff stays un-triggered (default -96 with moderate attenuation) and rand 0.",
+    "delay floor = input duration, enforced for scalars AND inside breakpoint files (verbatim refusals) - this is a non-overlapping repeater; use modify revecho for overlapping echo.",
+    "rand is FIXED-SEQUENCE (byte-identical unseeded pairs, no seed slot) - version_sensitive; reruns can never differ.",
+    "Stereo accepted (2-channel out, duration model holds).",
+    "Argv mode name is 'echo' (no digit): sfecho echo <in> <out> delay attenuation totaldur [-r] [-c]."
+  ],
+  "references": ["cdp://docs/html/sfecho"]
+}

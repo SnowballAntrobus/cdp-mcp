@@ -1,0 +1,64 @@
+{
+  "program": "sorter",
+  "mode": "sorter",
+  "submode": 3,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Chops a mono source into roughly esiz-second elements (esiz 0 = individual wavesets) and reassembles them sorted LONGEST-FIRST - an accelerando: event spacing contracts across the output. Content verified two ways: at esiz 0.1 on a 4-event fixture the element-group lengths run 0.45 / 0.086 / 0.194 / 0.168 while submode 4 renders the EXACT reverse order (0.168 / 0.195 / 0.086 / 0.45 - mirror pair confirmed); at esiz 0 (wavesets) on a 2 s sweep the dominant frequency of the first vs last quarter runs 268 Hz -> 1472 Hz - long (low) wavesets first, confirming the banner's 'With very small elements, may rise in pitch'. Duration identical across submodes 1-4 (1.8054 from the same fixture; flat noise -2.3% at esiz 0.1 = the duration row; wavesets on the sweep -0.03%). Deterministic (pairs 1.3 s apart byte-identical, re-verified); MONO ONLY (refusal verbatim, re-verified). Ranges re-verified in this submode: esiz 0-2000 (-1/2001 refused verbatim), oversize 'Elementsize too big for infile.', smooth 0-50 ms. Same build sensitivity as its siblings: the 2026 Linux rebuild accepts a live esiz breakpoint (constant-brk == scalar byte-identical; ramps change length), macOS r8 refuses - scalar-only, version_sensitive.",
+  "musical_use": "Accelerando-as-collage: the material's own longest fragments open the passage and its shortest close it, so any phrase reassembles into a written-in speed-up - rhythm from sorting, no time-stretching involved. At word scale (esiz 0.2-0.5) it reads as a phrase gathering momentum; at grain scale it is a textural rush; at esiz 0 on pitched material it doubles as a rising-pitch gesture (short wavesets = high frequencies last... first-to-last low-to-high). Pair with submode 4 for accel/rit arches, or follow with modify speed for compound tempo curves. smooth 5-15 ms tames joins on sustained sources.",
+  "parameters": {
+    "esiz": {
+      "type": "float",
+      "min": 0.0,
+      "max": 2000.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.02, 0.5],
+      "description": "Approximate element size in seconds; 0 = individual wavesets (waveset-duration sort - the pitch-ramp reading). CDP-enforced 0-2000 (refusals verbatim in this submode); oversize refuses 'Elementsize too big for infile. (If meant to be frq, set flag).' Scalar-only for portability (macOS r8 refuses brks; the Linux rebuild honors them - known_issues)."
+    },
+    "smooth": {
+      "type": "float",
+      "min": 0.0,
+      "max": 50.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "musical_range": [3.0, 15.0],
+      "description": "Element fade splice, ms (CDP-enforced 0-50, 60 refused verbatim). Render-only, never duration. Ignored at esiz 0. Breakpoint refused ('Cannot read parameter 3', re-verified in this submode)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Phrase gathering momentum.",
+      "params": {"esiz": 0.3, "smooth": 10.0},
+      "expected_use": "Longest ~0.3 s elements first, shortest last - a built-in accelerando."
+    },
+    {
+      "description": "Waveset rush with rising pitch.",
+      "params": {"esiz": 0.0},
+      "expected_use": "On pitched/swept material the sort doubles as a low-to-high pitch ramp (268 -> 1472 Hz measured on a sweep)."
+    }
+  ],
+  "known_issues": [
+    "Duration static-with-losses: -2.3% flat noise at esiz 0.1 (the row); -9.7% on sparse event material; -0.03% at esiz 0 on dense material. Plan chains with slack.",
+    "MONO ONLY (verbatim, re-verified). Deterministic - no seed slot, no clock path (byte-identical pairs re-verified in this submode).",
+    "BUILD DIVERGENCE (version_sensitive): esiz breakpoint accepted and live on the 2026 -fsigned-char Linux rebuild (constant-brk byte-equals the scalar; a 0.05->0.3 ramp changed duration and render, a reversed ramp differently again) but REFUSED on macOS r8 (pinned sibling outcome) - curated scalar-only.",
+    "Submode 4 is the exact element-order mirror (verified on the same fixture); submodes 1/2 sort by loudness instead; 5 shuffles with a seed (separate argv shape).",
+    "-f/opch/pch/metagrp pitch machinery uncurated - execute() territory."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

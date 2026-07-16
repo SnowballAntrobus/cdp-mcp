@@ -1,0 +1,65 @@
+{
+  "program": "sorter",
+  "mode": "sorter",
+  "submode": 2,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Chops a mono source into roughly esiz-second elements (esiz 0 = individual wavesets) and reassembles them sorted LOUDEST-FIRST - a decrescendo built from the sound's own fragments, the exact mirror of curated submode 1. Content re-verified in this submode: output RMS across thirds falls 0.343 -> 0.310 -> 0.062 on a 4-event fixture (submode 1 on the same fixture rises 0.107 -> 0.209 -> 0.403). All five submodes render IDENTICAL durations with distinct orderings (re-verified: 1.8054 s from the 2.0 s event fixture on modes 1-4). Duration static-with-losses: -2.3% on flat noise at esiz 0.1 (the duration row), -9.7% on the event fixture (element quantization folds/drops boundary material). Fully deterministic - no seed slot, no clock path (pairs 1.3 s apart byte-identical, re-verified per submode). MONO ONLY ('File ev4st.wav is not of correct type (must be mono)', re-verified). BUILD SENSITIVITY (first-class): on the 2026 -fsigned-char Linux rebuild an esiz BREAKPOINT file is accepted and genuinely time-varies (a constant-0.1 brk rendered byte-identical to scalar 0.1; ramps changed both render and length) - but macOS r8 refuses it ('brkpnt_files not permitted', the pinned sibling outcome), so the entry stays scalar-only and version_sensitive.",
+  "musical_use": "Decrescendo-as-collage: any phrase reassembles into a decay that opens on its loudest material - the die-away gesture, attack first. esiz is the identity dial: 0.2-0.5 s keeps words/hits recognisable (a phrase re-told loudest-word-first); 0.02-0.05 s granulates into a fading texture; 0 (wavesets) turns it to self-assembling grit that empties out. smooth (5-15 ms) removes clicks at element joins on sustained material. Chain after its mirror (sorter 1) for arch shapes, or open a section with it - the material introduces itself fortissimo and recedes. For seeded random order use curated submode 5; for tempo-sorts use submodes 3/4.",
+  "parameters": {
+    "esiz": {
+      "type": "float",
+      "min": 0.0,
+      "max": 2000.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.02, 0.5],
+      "description": "Approximate element size in seconds; 0 = individual wavesets. CDP-enforced '(0.000000 to 2000.000000)' (re-verified, -1 and 2001 refused verbatim); too big for the file refuses 'ERROR: Elementsize too big for infile. (If meant to be frq, set flag).' (esiz 3 on a 2 s file). Scalar-only for portability: macOS r8 refuses a brk here (pinned sibling outcome) although the 2026 Linux rebuild accepts and honors one - see known_issues."
+    },
+    "smooth": {
+      "type": "float",
+      "min": 0.0,
+      "max": 50.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "musical_range": [3.0, 15.0],
+      "description": "Fade in/out splice on each element, ms (CDP-enforced '(0.000000 to 50.000000)', 60 refused verbatim quoting 'Parameter[2]'). Changes the render, never the duration (re-verified: same frame count, different sha). Ignored at esiz 0 (banner). Breakpoint refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.', re-verified in this submode)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Word-scale decrescendo from a spoken phrase.",
+      "params": {"esiz": 0.3, "smooth": 10.0},
+      "expected_use": "Elements ~0.3 s sorted loud-to-quiet; output slightly shorter than the input."
+    },
+    {
+      "description": "Waveset-level dissolving grit.",
+      "params": {"esiz": 0.0},
+      "expected_use": "Individual wavesets loudest-first - starts as tone, dissolves to silence-dust. smooth ignored at esiz 0."
+    }
+  ],
+  "known_issues": [
+    "Duration static-with-losses: -2.3% flat noise (the row), -9.7% on 4-event material at esiz 0.1 - boundary elements get folded/dropped. Plan chains with slack, or trim silence first.",
+    "MONO ONLY (stereo refused verbatim, re-verified in this submode). Split/sort/rejoin for stereo - deterministic ordering makes the channels coherent.",
+    "BUILD DIVERGENCE (version_sensitive): the 2026 -fsigned-char Linux rebuild ACCEPTS an esiz breakpoint file and honors it (constant-value brk byte-identical to the scalar - a true positive control; ramps change duration and render), while macOS r8 refuses ('Cannot read parameter 2 [...]: brkpnt_files not permitted.', the r8-pinned sibling outcome). Curated scalar-only so behavior is portable.",
+    "Same-duration guarantee across submodes 1-4 re-verified (identical frame counts, distinct shas); submode 5 adds a seed positional (different argv shape, curated separately).",
+    "-f/opch/pch/metagrp pitch machinery uncurated - execute() territory.",
+    "Deterministic: no seed slot in modes 1-4 (re-verified byte-identical pairs 1.3 s apart)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

@@ -1,0 +1,136 @@
+{
+  "program": "extend",
+  "mode": "drunk",
+  "submode": 1,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": "related",
+  "duration_model": {"kind": "expression", "expr": "outdur + splicelen * 0.001"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Drunken-walk resynthesis: splices segments of the source end-to-end, choosing each segment's read-point by a random walk of at most 'step' seconds around a (movable) 'locus', constrained to +/- 'ambitus'; segments are cut on a regular 'clock' grid (segment duration = clock interval). DURATION (exact on every deterministic probe, two input durations, two outdurs, two splice values): outdur + splicelen/1000 - the walk is random but the clock grid is fixed, so the length is not (4.015 from outdur 4 at the default 15 ms splice; 3.005 at -s5). clokrand > 0 or a clock BREAKPOINT breaks that exactness (clokrand 1 rendered 3.0983 from a 3.015 base; a 0.05->0.3 clock ramp rendered 3.1967); overlap shortens slightly (-o0.9: 3.005). SEED (-r, probe-verified): any value > 0 reproducible (pairs 1.3 s apart byte-identical, 5 vs 9 differ); -r0 IS THE CLOCK PATH (pairs differ; an -r0 run and an unseeded run launched in the same second rendered byte-identical - the same-second collision trap). BREAKPOINTS: locus, ambitus, step, clock, clokrand and overlap are ALL breakpoint-capable (each verified distinct from both scalar endpoints at seed 5 - the banner's 'all params EXCEPT outdur, splicelen and seed' confirmed slot by slot); outdur/splicelen/seed refuse verbatim (parameters 1/8/11). Banner DIVERGENCE: step's quoted floor '>0.002' is not enforced - 0.001 and even 0 are accepted (exit 0). Stereo accepted.",
+  "musical_use": "The classic 'wandering through a soundfile' extender: turns any source into an indefinitely long, non-repeating ramble made of its own moments. locus is WHERE you hover (breakpoint it from 0 to the file end and the walk slowly traverses the whole source - the canonical slow-scan); ambitus is how far afield it may stray (small = obsessive circling, large = free association); step is the walk's nervousness; clock is the utterance rate - long clocks read as phrase-collage, very short ones granulate. clokrand loosens the metronome, overlap crossfades segments into smoother tissue (0.3-0.7 is a good slur zone). ALWAYS set a seed (any nonzero value) - the default is the clock path and takes are unrepeatable, including same-second collisions. Render L/R with seed and seed+1 for a wide decorrelated stereo wander (the entry's related default). For sober interruptions (the source playing straight between drunken passages) use submode 2; for waveset-level scrambling use extend scramble.",
+  "parameters": {
+    "outdur": {
+      "type": "float",
+      "min": 0.0,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Total (minimum) output duration. Actual output = outdur + splicelen/1000, exact whenever clokrand is 0 and clock is scalar. Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "locus": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Time in the SOURCE around which the walk happens; ceiling = input duration ('Parameter[2] Value (2.500000) out of range (0.000000 to 2.000000)' on a 2 s file, input-dependent). Breakpoint-capable through OUTPUT time (verified distinct from both scalar endpoints at seed 5) - ramp it 0 -> indur to traverse the whole file."
+    },
+    "ambitus": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "(Half-)width of the region around locus from which segments may be read; ceiling = input duration (refusal verbatim, input-dependent). Breakpoint-capable (verified distinct from both endpoints at seed 5)."
+    },
+    "step": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum random step between successive segment read-points (always kept inside ambitus - auto-adjusted when too large, per banner). BANNER DIVERGENCE: the quoted '>0.002 secs' floor is NOT enforced - 0.001 and 0 both run (step 0 pins each read to the walk's current point). Breakpoint-capable (verified distinct from both endpoints at seed 5)."
+    },
+    "clock": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Time between segment reads = segment duration. Runtime constraint: must exceed splicelen*2 ('ERROR: (minimum) clock value <= splicelen * 2 [100.0 MS]: cannot proceed.' verbatim at -s50/clock 0.1). Breakpoint-capable (verified distinct from both endpoints; NOTE a clock brk also breaks the duration model's exactness - 3.1967 rendered from a 3.015 deterministic base)."
+    },
+    "splicelen": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 15.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Splice length in MILLIseconds (CDP default 15). Adds itself to the output: actual = outdur + splicelen/1000 (verified at 5 and 15 ms, sample-exact). Must be < clock/2 (see clock). Breakpoint refused ('Cannot read parameter 8')."
+    },
+    "clokrand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Randomisation of the clock ticks, 0-1 (CDP-enforced: 'Parameter[7] Value (1.500000) out of range (0.000000 to 1.000000)'). Values > 0 make the output LENGTH vary too (3.0983 from a 3.015 base at 1.0) - the duration model assumes 0. Breakpoint-capable (verified distinct from both endpoints at seed 5)."
+    },
+    "overlap": {
+      "type": "float",
+      "min": 0.0,
+      "max": 0.99,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-o",
+      "flag_kind": "attached_value",
+      "description": "Mutual overlap of segments, 0-0.99 (CDP-enforced: 'Parameter[8] Value (0.995000) out of range (0.000000 to 0.990000)'). High values crossfade the walk into smoother tissue and shorten the output slightly (3.005 vs 3.015 at 0.9). Breakpoint-capable (verified distinct from both endpoints at seed 5)."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Random seed: 'Any set value gives REPRODUCIBLE output' - true only for values > 0 (pairs byte-identical 1.3 s apart, 5 vs 9 differ). SEED 0 IS THE CLOCK PATH (verified: -r0 pairs differ, and an -r0 run collided byte-identically with an unseeded run in the same second). Entry default 1. Breakpoint refused ('Cannot read parameter 11')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Two-minute ramble hovering around one moment of a phrase.",
+      "params": {"outdur": 120.0, "locus": 1.0, "ambitus": 0.5, "step": 0.1, "clock": 0.25, "seed": 5},
+      "expected_use": "Reads ~0.25 s segments from within 0.5 s of t=1.0, wandering in steps of up to 0.1 s: renders 120.015 s. Same seed = identical take."
+    },
+    {
+      "description": "Slow drunken traversal of the whole file with slurred joins.",
+      "params": {"outdur": 30.0, "locus": "locus_ramp.brk", "ambitus": 0.3, "step": 0.05, "clock": 0.15, "overlap": 0.5, "seed": 9},
+      "expected_use": "Write locus_ramp.brk as '0 0 / 30 <indur>' (times in output seconds) via breakpoint(); the walk scans the source start-to-end over 30 s."
+    }
+  ],
+  "known_issues": [
+    "Duration = outdur + splicelen/1000 exactly (frame counts identical across seeds and walks) - but ONLY while clokrand is 0 and clock is a scalar: clokrand 1 rendered +2.8%, a clock breakpoint +6%. The row pins the deterministic case.",
+    "Seed 0 and flag omission are the CLOCK path; two runs in the SAME second render byte-identical (collision trap). The entry defaults seed to 1.",
+    "The walk is stochastic even at clokrand 0 - segment CONTENT always depends on the seed; only the duration is fixed.",
+    "clock <= 2*splicelen refuses at runtime (verbatim); banner's step floor '>0.002' is not enforced (0 accepted).",
+    "All five positional walk params plus clokrand/overlap take breakpoints through OUTPUT time (verified slot-by-slot at seed 5); outdur, splicelen and seed refuse (parameters 1/8/11).",
+    "Stereo accepted (2-channel output, duration model holds). stereo_link_default 'related' records the per-channel-seed intent (seed and seed+1) for decorrelated stereo walks."
+  ],
+  "references": ["cdp://docs/html/cgroextd"]
+}
