@@ -3,16 +3,29 @@
 The parser is exercised end-to-end via process() and execute() in
 test_process.py / test_execute.py; this file pins down the matching
 logic directly so regex changes are caught at the unit level.
+
+The Phase 6 refusal-corpus patterns are tested with VERBATIM refusal
+strings quoted from the curation transcripts (docs/curation/tranche*.md)
+— each test cites its tranche. Two end-to-end checks against real CDP
+(gated on the ``real_cdp_path`` fixture) prove the structured entries
+reach process() results for genuinely refusing binaries.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pytest
+import soundfile as sf
 
+from cdp_mcp.config import detect_cdp
 from cdp_mcp.error_parsing import parse_cdp_errors
+from cdp_mcp.graph import LatestTracker
+from cdp_mcp.knowledge.loader import KnowledgeIndex
 from cdp_mcp.schema import OutputVerification
+from cdp_mcp.session import SessionManager
+from cdp_mcp.tools.process import process_impl
 
 # ---------------------------------------------------------------------------
 # output_exists
@@ -311,3 +324,373 @@ def test_multiple_patterns_all_appended():
     types = {e.type for e in errors}
     assert "output_exists" in types
     assert "channel_mismatch" in types
+
+
+# ---------------------------------------------------------------------------
+# Phase 6 refusal corpus — one case per pattern, verbatim strings from
+# the curation transcripts (docs/curation/tranche*.md).
+# ---------------------------------------------------------------------------
+
+
+def _types(errors):
+    return {e.type for e in errors}
+
+
+def test_no_grains_found_verbatim():
+    """tranche6/tranche19: grain family refuses continuous material.
+    Live-verified stdout capture (note CDP's progress-junk prefix)."""
+    errors = parse_cdp_errors(
+        stdout=(
+            "0 min  0.00 sec0 min  0.00 secERROR: INVALID DATA\n"
+            "ERROR: No grains found.\n\n"
+        ),
+        stderr="",
+        exit_code=255,
+    )
+    assert "no_grains_found" in _types(errors)
+    e = next(e for e in errors if e.type == "no_grains_found")
+    assert "gate gate 1" in e.fix
+
+
+def test_no_silence_gaps_verbatim():
+    """tranche11b: retime modes 3/6-10 refuse material without exact
+    digital-zero gaps. Live-verified stdout capture."""
+    errors = parse_cdp_errors(
+        stdout=(
+            "INFO: Counting silences between events.\n"
+            "ERROR: INVALID DATA\n"
+            "ERROR: NO SILENCE-GAPS FOUND IN FILE.\n\n"
+        ),
+        stderr="",
+        exit_code=255,
+    )
+    assert "no_silence_gaps" in _types(errors)
+    e = next(e for e in errors if e.type == "no_silence_gaps")
+    assert "gate gate 1" in e.fix
+    assert "dBFS" in e.fix
+
+
+def test_no_change_refused_verbatim():
+    """tranche10b: shift 0 refused — SoundThread defaults the param to 0,
+    the CDP binary refuses the identity transform."""
+    errors = parse_cdp_errors(
+        stdout=(
+            "ERROR: CANNOT ACHIEVE TASK: \n"
+            "ERROR: NO CHANGE to original sound file.\n"
+        ),
+        stderr="",
+        exit_code=255,
+    )
+    assert "no_change_refused" in _types(errors)
+
+
+@pytest.mark.parametrize(
+    "stdout",
+    [
+        # tranches 5/7/8/9/10a/22 — long form.
+        "ERROR: Insufficient parameters on command line.\n",
+        # tranches 10a/11a/19 — short form.
+        "ERROR: Insufficient parameters on cmdline.\n",
+    ],
+)
+def test_insufficient_parameters_both_phrasings(stdout):
+    errors = parse_cdp_errors(stdout=stdout, stderr="", exit_code=255)
+    assert "insufficient_parameters" in _types(errors)
+    e = next(e for e in errors if e.type == "insufficient_parameters")
+    assert "positional" in e.fix.lower()
+
+
+def test_breakpoint_not_permitted_verbatim():
+    """tranche1 (and a dozen others): brk file passed for a scalar-only
+    parameter."""
+    errors = parse_cdp_errors(
+        stdout=(
+            "ERROR: Cannot read parameter 1 [b_rng.brk]: "
+            "brkpnt_files not permitted.\n"
+        ),
+        stderr="",
+        exit_code=255,
+    )
+    assert "breakpoint_not_permitted" in _types(errors)
+    e = next(e for e in errors if e.type == "breakpoint_not_permitted")
+    assert "scalar" in e.fix.lower() or "plain number" in e.fix.lower()
+
+
+def test_out_of_range_extracts_bounds_to_form():
+    """tranche1_timedomain: 'Parameter[1] Value (17.000000) out of range
+    (2.000000 to 16.000000)' — the bounds land in the message so the
+    retry can be exact."""
+    errors = parse_cdp_errors(
+        stdout=(
+            "ERROR: Parameter[1] Value (17.000000) out of range "
+            "(2.000000 to 16.000000)\n"
+        ),
+        stderr="",
+        exit_code=255,
+    )
+    assert "parameter_out_of_range" in _types(errors)
+    e = next(e for e in errors if e.type == "parameter_out_of_range")
+    assert "2.000000" in e.message
+    assert "16.000000" in e.message
+    assert "2.000000" in e.fix
+
+
+def test_out_of_range_extracts_bounds_dash_form_negative():
+    """tranche19: datafile ratios use the DASH form with negative bounds
+    — 'Ratio (50.000000) out of range (-48.000000 - 48.000000)'."""
+    errors = parse_cdp_errors(
+        stdout=(
+            "ERROR: INVALID DATA\n"
+            "ERROR: Ratio (50.000000) out of range (-48.000000 - 48.000000)\n"
+        ),
+        stderr="",
+        exit_code=255,
+    )
+    assert "parameter_out_of_range" in _types(errors)
+    e = next(e for e in errors if e.type == "parameter_out_of_range")
+    assert "-48.000000" in e.message
+    assert "48.000000" in e.message
+
+
+def test_out_of_range_mode_digit_bracket_form():
+    """tranche7/18: 'Program mode value [5] is out of range [1 - 4].' —
+    the message quotes the raw line, so the mode context is visible."""
+    errors = parse_cdp_errors(
+        stdout="ERROR: Program mode value [5] is out of range [1 - 4].\n",
+        stderr="",
+        exit_code=255,
+    )
+    assert "parameter_out_of_range" in _types(errors)
+    e = next(e for e in errors if e.type == "parameter_out_of_range")
+    assert "Program mode value" in e.message
+
+
+def test_out_of_range_brkpntfile_form():
+    """tranche21: in-brk values out of range — 'Value (0.000000) out of
+    range (0.000010 to 0.900000) in brkpntfile b_fi.brk.'"""
+    errors = parse_cdp_errors(
+        stdout=(
+            "ERROR: Value (0.000000) out of range "
+            "(0.000010 to 0.900000) in brkpntfile b_fi.brk.\n"
+        ),
+        stderr="",
+        exit_code=255,
+    )
+    assert "parameter_out_of_range" in _types(errors)
+
+
+def test_out_of_range_without_bounds_stays_generic():
+    """tranche13: 'Start of fade time : out of range.' carries no bounds
+    — matching it would produce a rangeless entry, so per forensics
+    5.1.3 it deliberately falls back to the generic subprocess_error."""
+    errors = parse_cdp_errors(
+        stdout="ERROR: Start of fade time : out of range.\n",
+        stderr="",
+        exit_code=255,
+    )
+    assert "parameter_out_of_range" not in _types(errors)
+
+
+def test_invalid_cdp_file_verbatim():
+    """tranche13: '.evl' data renamed to '.dat' refused on extension
+    alone — 'ERROR: out1.dat is not a valid CDP file'."""
+    errors = parse_cdp_errors(
+        stdout="ERROR: out1.dat is not a valid CDP file\n",
+        stderr="",
+        exit_code=255,
+    )
+    assert "invalid_cdp_file" in _types(errors)
+    e = next(e for e in errors if e.type == "invalid_cdp_file")
+    assert "extension" in e.fix.lower()
+
+
+def test_formant_flag_missing_verbatim():
+    """tranche22: argv-order landmine — '-p8 <brk>' exits 0 where
+    '<brk> -p8' exits 255 with this message."""
+    errors = parse_cdp_errors(
+        stdout="ERROR: Formant flag missing on cmdline.\n",
+        stderr="",
+        exit_code=255,
+    )
+    assert "formant_flag_missing" in _types(errors)
+    e = next(e for e in errors if e.type == "formant_flag_missing")
+    assert "before" in e.fix.lower()
+
+
+def test_program_dead_by_design_verbatim():
+    """tranche23: hfperm delperm's unconditional kill-switch (doubled
+    'ERROR:' prefix is verbatim)."""
+    errors = parse_cdp_errors(
+        stdout="ERROR: ERROR: This program is currently malfunctioning.\n",
+        stderr="",
+        exit_code=255,
+    )
+    assert "program_dead_by_design" in _types(errors)
+    e = next(e for e in errors if e.type == "program_dead_by_design")
+    assert "no parameter" in e.fix.lower()
+
+
+def test_mix_end_overflow_verbatim():
+    """tranche12: submix LP64 bug — stereo paths need an explicit -e."""
+    errors = parse_cdp_errors(
+        stdout=(
+            "ERROR: INVALID DATA\n"
+            "ERROR: Mix cuts off before 2nd file enters\n"
+        ),
+        stderr="",
+        exit_code=255,
+    )
+    assert "mix_end_overflow" in _types(errors)
+    e = next(e for e in errors if e.type == "mix_end_overflow")
+    assert "-e" in e.fix
+
+
+def test_input_wrong_type_bare_form():
+    """tranche20: time-domain program given a .ana — 'File rich2.ana is
+    not of correct type' with no channel suffix."""
+    errors = parse_cdp_errors(
+        stdout=(
+            "ERROR: INVALID DATA\n"
+            "ERROR: File rich2.ana is not of correct type\n"
+        ),
+        stderr="",
+        exit_code=255,
+    )
+    assert "input_wrong_type" in _types(errors)
+    assert "channel_mismatch" not in _types(errors)
+
+
+def test_input_wrong_type_mode_specific_form():
+    """tranche16: 'File st2.wav is not of correct type for Mode 3'."""
+    errors = parse_cdp_errors(
+        stdout="ERROR: File st2.wav is not of correct type for Mode 3\n",
+        stderr="",
+        exit_code=255,
+    )
+    assert "input_wrong_type" in _types(errors)
+
+
+def test_input_wrong_type_suppressed_by_channel_suffix():
+    """tranche6/9/13/...: 'File st2.wav is not of correct type (must be
+    mono)' is a CHANNEL constraint — channel_mismatch explains it more
+    precisely, so input_wrong_type must not double-fire."""
+    errors = parse_cdp_errors(
+        stdout=(
+            "ERROR: INVALID DATA\n"
+            "ERROR: File st2.wav is not of correct type (must be mono)\n"
+        ),
+        stderr="",
+        exit_code=255,
+    )
+    assert "channel_mismatch" in _types(errors)
+    assert "input_wrong_type" not in _types(errors)
+
+
+def test_channel_mismatch_covers_must_be_stereo_suffix_form():
+    """tranche10b verbatim: 'File ... is not of correct type (must be
+    stereo)' — confirms the pre-existing channel regex covers the corpus
+    suffix phrasing for stereo too."""
+    errors = parse_cdp_errors(
+        stdout=(
+            "ERROR: File in.wav is not of correct type (must be stereo)\n"
+        ),
+        stderr="",
+        exit_code=255,
+    )
+    assert "channel_mismatch" in _types(errors)
+    assert "input_wrong_type" not in _types(errors)
+
+
+# ---------------------------------------------------------------------------
+# Real CDP (gated): refusals surface as structured errors via process()
+# ---------------------------------------------------------------------------
+
+
+class _FakeCtx:
+    async def report_progress(self, *a, **kw):
+        return None
+
+
+@pytest.fixture
+def refusal_env(tmp_path, real_cdp_path):
+    """Real-CDP session with refusal-inducing inputs: a pure tone (no
+    grain articulation) and flat noise (no digital-zero gaps)."""
+    if real_cdp_path is None:
+        pytest.skip("Real CDP not configured.")
+    for binary in ("grain", "retime"):
+        if not (real_cdp_path / binary).is_file():
+            pytest.skip(f"{binary} binary not present in CDP_PATH.")
+    cdp_config = detect_cdp()
+    sessions_root = tmp_path / "cdp_sessions"
+    sessions_root.mkdir()
+    cache_root = tmp_path / "cache"
+    cache_root.mkdir()
+    sessions = SessionManager(sessions_root, lambda: cdp_config)
+    session, _ = sessions.set_active("refusal_corpus_v1")
+    sr = 44100
+    t = np.arange(sr) / sr
+    tone = (0.5 * np.sin(2 * np.pi * 440.0 * t)).astype(np.float32)
+    sf.write(str(session.inputs_dir / "tone.wav"), tone, sr, subtype="PCM_16")
+    rng = np.random.default_rng(0)
+    noise = (rng.standard_normal(sr) * 0.2).astype(np.float32)
+    sf.write(str(session.inputs_dir / "flatnoise.wav"), noise, sr, subtype="PCM_16")
+    return {
+        "sessions": sessions,
+        "session": session,
+        "cdp_cfg": cdp_config,
+        "cache_root": cache_root,
+        "tracker": LatestTracker(),
+        "knowledge": KnowledgeIndex.load(),
+    }
+
+
+async def _run_refusal(env, *, program, mode, submode, input, params):
+    return await process_impl(
+        _FakeCtx(),
+        program=program,
+        mode=mode,
+        submode=submode,
+        input=input,
+        params=params,
+        sessions=env["sessions"],
+        knowledge_index=env["knowledge"],
+        cdp_config_provider=lambda: env["cdp_cfg"],
+        latest_tracker=env["tracker"],
+        cache_root=env["cache_root"],
+    )
+
+
+@pytest.mark.timeout(60)
+async def test_grain_reverse_on_tone_real_cdp_structured_no_grains(refusal_env):
+    """grain reverse on a pure tone refuses 'No grains found.' — the
+    process() result must carry the structured entry with the gate-1
+    upstream fix, not just the generic subprocess_error."""
+    r = await _run_refusal(
+        refusal_env,
+        program="grain", mode="reverse", submode=None,
+        input="tone.wav", params={},
+    )
+    assert r["status"] == "failed"
+    types = {e["type"] for e in r["errors"]}
+    assert "no_grains_found" in types, r["errors"]
+    e = next(e for e in r["errors"] if e["type"] == "no_grains_found")
+    assert "gate gate 1" in e["fix"]
+
+
+@pytest.mark.timeout(60)
+async def test_retime_3_on_flat_noise_real_cdp_structured_no_silence_gaps(refusal_env):
+    """retime retime 3 on flat noise refuses 'NO SILENCE-GAPS FOUND IN
+    FILE.' (events are bounded by EXACT zeros; a noise floor is one
+    event) — the structured entry with the absolute-dBFS gate fix must
+    reach the process() result."""
+    r = await _run_refusal(
+        refusal_env,
+        program="retime", mode="retime", submode=3,
+        input="flatnoise.wav",
+        params={"minsil": 50, "inevwidth": 500, "outevwidth": 80, "splicelen": 5},
+    )
+    assert r["status"] == "failed"
+    types = {e["type"] for e in r["errors"]}
+    assert "no_silence_gaps" in types, r["errors"]
+    e = next(e for e in r["errors"] if e["type"] == "no_silence_gaps")
+    assert "gate gate 1" in e["fix"]
