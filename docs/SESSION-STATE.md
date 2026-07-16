@@ -62,6 +62,25 @@ bank vintage hang covers modes 4–6; morph bridge per-mode duration rules
 diverge from sm1. Suite: 1301 hermetic / 1383 real-CDP (chunked halves
 in-sandbox), ruff clean.
 
+## Phase 5 wave 4 — DONE (tranche 10, commits e79e829 + 6d9f22a + integration)
+
+The remaining ST-covered singles, split across two parallel curation
+agents (10a spectral / 10b time-domain): 17 new entries — blur chorus 5,
+blur noise, focus focus, spec cut/gain, spectstr stretch, strange
+waver 1, extend baktobak, housekeep extract 4, modify sausage,
+multiosc 3, phase 1/2, repitch transpose 3, sfedit excise 1 + join,
+synspline — **107 curated / 283 total** (6 program stubs retired).
+Headline finds: blur chorus is DETERMINISTIC (no initrand48, ap_blur.c);
+synspline seed 0 is the clock path (ST's default slider value renders
+irreproducibly); baktobak discards pre-join audio (not ST's whole-file
+prepend); sausage clock-seeded unseedable, min(indurs)/velocity, always
+stereo; spectstr usage banner's 'time' token is a CDP typo the binary
+rejects. **blur shuffle dropped — engine gap**: required positional free
+string (domain-image map, tklib3.c:646) that processing.py's param
+typing can't express; duration rule pinned in the 10a transcript;
+execute()-reachable. Candidate for the Phase 6 reevaluation list.
+Suite: 1415 hermetic / 1511 real-CDP (chunked halves), ruff clean.
+
 ## Phase 5 remainder (THE CURRENT NEXT STEP)
 
 - Generalization test matrix (clarinet-ish / field-recording / synth

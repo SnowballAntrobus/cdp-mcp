@@ -31,6 +31,71 @@ from cdp_mcp.knowledge.loader import KnowledgeIndex
 # cdpr8/_cdp/_cdprogs). Updating any cell in this table is a curation
 # decision and must pair with an entry in docs/phase-2-breakpoint-review.md.
 _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]] = {
+    # --- Phase 5 wave 4 (tranche 10: ST-covered singles; see
+    # docs/curation/tranche10{a,b}_st_singles_findings.json) ---
+    ("blur", "chorus", 5): {
+        "aspread": True, "fspread": True,
+    },
+    ("blur", "noise", None): {
+        "noise": True,
+    },
+    ("focus", "focus", None): {
+        "fchans": False, "pbands": False, "quicksearch": False,
+        "pk": False, "bw": True, "bt": True, "tp": True, "stable": False,
+    },
+    ("spec", "cut", None): {
+        "starttime": False, "endtime": False,
+    },
+    ("spec", "gain", None): {
+        "gain": True,
+    },
+    ("spectstr", "stretch", None): {
+        "timestretch": True, "dratio": False, "dirand": False,
+    },
+    ("strange", "waver", 1): {
+        "vibfrq": True, "stretch": True, "botfrq": False,
+    },
+    ("extend", "baktobak", None): {
+        "join_time": False, "splice": False,
+    },
+    ("housekeep", "extract", 4): {
+        "shift": False,
+    },
+    ("modify", "sausage", None): {
+        "velocity": True, "density": True, "hvelocity": True,
+        "hdensity": True, "grainsize": True, "pitchshift": True,
+        "amp": True, "space": True, "bsplice": True, "esplice": True,
+        "hgrainsize": True, "hpitchshift": True, "hamp": True,
+        "hspace": True, "hbsplice": True, "hesplice": True,
+        "range": True, "jitter": True,
+    },
+    ("multiosc", "multiosc", 3): {
+        "dur": False, "frq1": True, "frq2": True, "amp2": True,
+        "frq3": True, "amp3": True, "frq4": True, "amp4": True,
+        "srate": False, "dovesplice": False,
+    },
+    ("phase", "phase", 1): {
+        # no numeric parameters
+    },
+    ("phase", "phase", 2): {
+        "transfer": False,
+    },
+    ("repitch", "transpose", 3): {
+        "transpos": True, "minfrq": False, "maxfrq": False,
+        "fullspec": False,
+    },
+    ("sfedit", "excise", 1): {
+        "start": False, "end": False, "splice": False,
+    },
+    ("sfedit", "join", None): {
+        "splice": False, "splice_start": False, "splice_end": False,
+    },
+    ("synspline", "synspline", None): {
+        "srate": False, "dur": False, "frq": True, "splinecnt": True,
+        "interpval": True, "seed": False, "maxspline": True,
+        "maxinterp": True, "pdrift": False, "driftrate": False,
+        "normalize": False,
+    },
     # --- Phase 5 wave 3 (tranche 9: sibling submodes of already-curated
     # pairs; see docs/curation/tranche9_submodes_findings.json) ---
     ("scramble", "scramble", 9): {
