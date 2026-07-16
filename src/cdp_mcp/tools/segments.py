@@ -7,6 +7,13 @@ mel spectrogram overlaid with boundary markers. Both halves are cached
 in the global derivative caches — the segment JSON in the ``analysis``
 tier, the marked PNG in the ``visualizations`` tier — since each is a
 pure function of (audio bytes, method, library versions).
+
+Phase 6 adds the grid-free ``rhythm`` block
+(:func:`cdp_mcp.analysis.extract_rhythm`) — IOI statistics with an
+accelerando-detecting slope, plus a 16-point event-density trajectory —
+computed from the same detected events and cached in the same payload
+(cache key bumped ``v1`` → ``v2`` so stale segment-only entries
+regenerate).
 """
 
 from __future__ import annotations
@@ -139,16 +146,19 @@ async def segments_impl(
             )])]
         auto_synthed = True
 
-    # Cache keys — hash off the event loop (M2 discipline).
+    # Cache keys — hash off the event loop (M2 discipline). Feature-set
+    # v2: the payload gained the Phase 6 `rhythm` block; the bump makes
+    # stale v1 (segments-only) entries miss and regenerate.
     audio_sha = await asyncio.to_thread(sha256_file, audio_path)
     seg_cache = cache_lookup(
         cache_root, "analysis",
-        analysis_cache_key(audio_sha, f"segments_{method}_v1", None, None),
+        analysis_cache_key(audio_sha, f"segments_{method}_v2", None, None),
         ".json",
     )
 
     segments: list[dict] | None = None
     markers: list[float] = []
+    rhythm: dict | None = None
     warnings: list[str] = []
     cached = False
     if seg_cache.hit:
@@ -156,6 +166,7 @@ async def segments_impl(
             payload = json.loads(seg_cache.path.read_text())
             segments = payload["segments"]
             markers = payload["markers"]
+            rhythm = payload["rhythm"]
             warnings = payload.get("warnings", [])
             cached = True
         except (OSError, json.JSONDecodeError, KeyError, TypeError):
@@ -163,7 +174,7 @@ async def segments_impl(
 
     if not cached:
         try:
-            segments, markers, warnings = await run_with_progress(
+            segments, markers, rhythm, warnings = await run_with_progress(
                 ctx, f"segmenting ({method})", extract_segments,
                 audio_path, method,
             )
@@ -185,7 +196,8 @@ async def segments_impl(
                 ),
             )])]
         cache_populate_json(seg_cache.path, {
-            "segments": segments, "markers": markers, "warnings": warnings,
+            "segments": segments, "markers": markers, "rhythm": rhythm,
+            "warnings": warnings,
         })
 
     # Marked-up spectrogram — viz tier; markers are derived from
@@ -247,6 +259,7 @@ async def segments_impl(
     envelope_dict["segments"] = segments
     envelope_dict["count"] = len(segments or [])
     envelope_dict["method"] = method
+    envelope_dict["rhythm"] = rhythm
     envelope_dict["visualization"] = str(png_path)
     envelope_dict["auto_synthed"] = auto_synthed
     return [Image(path=str(png_path)), envelope_dict]
@@ -287,6 +300,18 @@ def register(
         ``segments`` field lists ``{start, end, label}`` in seconds —
         ready to feed into ``process()`` time parameters or breakpoint
         envelopes.
+
+        The envelope also carries a grid-free ``rhythm`` block computed
+        from the same detected events (no beat tracking or tempo
+        inference): ``ioi`` holds inter-onset-interval statistics —
+        ``count``, ``mean_s``, ``std_s``, ``min_s``, ``max_s``,
+        ``slope`` (least-squares IOI change per event: negative =
+        speeding up) and ``trend`` (``"accelerando"`` / ``"ritardando"``
+        / ``"steady"``; steady means |slope| ≤ 5% of the mean IOI per
+        event) — and ``density`` is a 16-point event-count trajectory
+        across the file with its window length in ``window_s``. With
+        fewer than 2 events the IOI stats are ``None``; ``slope`` and
+        ``trend`` need at least 3.
         """
         return await segments_impl(
             ctx,

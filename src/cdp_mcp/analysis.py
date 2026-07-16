@@ -169,20 +169,115 @@ def extract_scorecard(
 # compiler's dedup instinct; sub-millisecond segments are render noise).
 _SEGMENT_DEDUP_S = 1e-3
 
+# Grid-free rhythm analysis (Phase 6): event-density trajectory bins the
+# detected events into 16 equal-width windows — the same 16-point
+# compromise as _TRAJECTORY_POINTS, but binning *events* rather than
+# STFT frames, so it never degrades to fewer points.
+_DENSITY_POINTS = 16
+
+# IOI trend threshold: |least-squares slope| relative to the mean IOI.
+# The slope's units are seconds per event index; dividing by the mean
+# IOI reads as "fractional IOI change per event". Onset-frame
+# quantization jitter (hop 512 ≈ 23 ms at 22.05 kHz) averages out in the
+# fit to well under 1% per event on a steady train, while a
+# bouncing-ball geometric shrink of ratio r changes the IOI by
+# |r − 1| ≈ 10-25% per event — 5% splits the two with a wide margin.
+_IOI_TREND_THRESHOLD = 0.05
+
+
+def extract_rhythm(
+    event_times: list[float] | np.ndarray,
+    duration_s: float,
+) -> dict:
+    """Grid-free rhythm block from detected event times; pure numpy.
+
+    NO grid detection — no beat tracking, no meter induction, no tempo
+    curve (the Phase 6 detection-vs-construction ruling). Two views of
+    the raw event timing:
+
+    - ``ioi`` — inter-onset-interval statistics: ``count`` (number of
+      intervals, ``onset_count − 1`` floored at 0), ``mean_s`` /
+      ``std_s`` (population) / ``min_s`` / ``max_s``, ``slope`` (the
+      least-squares slope of IOI vs event index, in seconds per event —
+      the accelerando detector), and ``trend``: ``"accelerando"`` when
+      ``slope < −0.05 × mean_s``, ``"ritardando"`` when
+      ``slope > +0.05 × mean_s``, ``"steady"`` within that band (see
+      ``_IOI_TREND_THRESHOLD``).
+    - ``density`` — event counts in ``_DENSITY_POINTS`` equal-width
+      windows spanning ``[0, duration_s]``; ``window_s`` reports the
+      normalized window length ``duration_s / points``.
+
+    Degenerate cases are explicit, never a crash: with 0 or 1 events
+    every ``ioi`` statistic is ``None`` (``count`` 0); with exactly 2
+    events (one interval) ``mean_s``/``min_s``/``max_s`` equal that
+    interval and ``std_s`` is 0.0, but ``slope``/``trend`` stay ``None``
+    (a line through one point is indeterminate). A non-positive
+    ``duration_s`` yields an empty density block (``points`` 0,
+    ``window_s`` ``None``).
+    """
+    events = np.sort(np.asarray(event_times, dtype=np.float64).ravel())
+    n = int(events.size)
+
+    ioi: dict = {
+        "count": max(n - 1, 0),
+        "mean_s": None,
+        "std_s": None,
+        "min_s": None,
+        "max_s": None,
+        "slope": None,
+        "trend": None,
+    }
+    if n >= 2:
+        iois = np.diff(events)
+        mean = float(iois.mean())
+        ioi["mean_s"] = round(mean, 6)
+        ioi["std_s"] = round(float(iois.std()), 6)
+        ioi["min_s"] = round(float(iois.min()), 6)
+        ioi["max_s"] = round(float(iois.max()), 6)
+        if iois.size >= 2:
+            slope = float(
+                np.polyfit(np.arange(iois.size, dtype=np.float64), iois, 1)[0]
+            )
+            ioi["slope"] = round(slope, 6)
+            if abs(slope) <= _IOI_TREND_THRESHOLD * mean:
+                ioi["trend"] = "steady"
+            elif slope < 0.0:
+                ioi["trend"] = "accelerando"
+            else:
+                ioi["trend"] = "ritardando"
+
+    if duration_s > 0.0:
+        counts, _edges = np.histogram(
+            events, bins=_DENSITY_POINTS, range=(0.0, duration_s)
+        )
+        density = {
+            "points": _DENSITY_POINTS,
+            "window_s": round(duration_s / _DENSITY_POINTS, 6),
+            "counts": [int(c) for c in counts],
+        }
+    else:
+        density = {"points": 0, "window_s": None, "counts": []}
+
+    return {"onset_count": n, "ioi": ioi, "density": density}
+
 
 def extract_segments(
     audio_path: Path,
     method: str,
-) -> tuple[list[dict], list[float], list[str]]:
+) -> tuple[list[dict], list[float], dict, list[str]]:
     """Segment the audio by ``method``; pure function, no caching.
 
-    Returns ``(segments, markers, warnings)``:
+    Returns ``(segments, markers, rhythm, warnings)``:
 
     - ``segments`` — ``[{"start": s, "end": e, "label": "<method>_<i>"},
       …]`` covering the full duration for onset/novelty; only the
       non-silent stretches for silence.
     - ``markers`` — the interior boundary times, for the spectrogram
       overlay.
+    - ``rhythm`` — the grid-free rhythm block
+      (:func:`extract_rhythm`) computed from the method's raw event
+      times: the detected onset/novelty times, or the non-silent
+      interval starts for silence.
     - ``warnings`` — non-fatal notes (e.g. "no onsets detected").
 
     Methods:
@@ -216,7 +311,9 @@ def extract_segments(
             warnings.append("entire file is below the -40 dB silence floor.")
         markers = sorted({p for seg in segments for p in (seg["start"], seg["end"])})
         markers = [m for m in markers if 0.0 < m < duration_s]
-        return segments, markers, warnings
+        # Each non-silent island's start is one event.
+        rhythm = extract_rhythm([seg["start"] for seg in segments], duration_s)
+        return segments, markers, rhythm, warnings
 
     if method == "onset":
         times = librosa.onset.onset_detect(y=y, sr=sr, units="time")
@@ -236,6 +333,11 @@ def extract_segments(
         times = librosa.frames_to_time(frames, sr=sr, hop_length=512)
     else:  # pragma: no cover — the tool layer validates method first
         raise ValueError(f"unknown segmentation method {method!r}")
+
+    # Rhythm works on the RAW detected event times — before the boundary
+    # dedup below, which exists only to keep the segment tiling sane.
+    event_times = sorted(float(t) for t in times)
+    rhythm = extract_rhythm(event_times, duration_s)
 
     boundaries: list[float] = [0.0]
     for t in sorted(float(t) for t in times):
@@ -258,7 +360,7 @@ def extract_segments(
         for i in range(len(boundaries) - 1)
     ]
     markers = [round(b, 6) for b in boundaries[1:-1]]
-    return segments, markers, warnings
+    return segments, markers, rhythm, warnings
 
 
 # ---------------------------------------------------------------------------
