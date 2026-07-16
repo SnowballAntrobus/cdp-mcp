@@ -1,0 +1,60 @@
+{
+  "program": "ptobrk",
+  "mode": "withzeros",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": ".frq",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Converts a binary pitchfile to time/frq breakpoint TEXT, PRESERVING the no-pitch/no-sound markers: 'ptobrk withzeros binary-pitchfile outtextfile min-pitch-dur'. This is the marker-safe converter - its own banner says to use it 'instead of repitch pchtotext for files containing no-pitch and no-sound markers', and the family's third converter (pitchinfo convert) point-blank REFUSES such files ('ERROR: Input file contains unpitched windows: cannot proceed.' verbatim). Output lines are 'time<TAB>value' where value is Hz for pitched stretches and the literal markers -1.000000 (unpitched) / -2.000000 (silence) elsewhere (verified: a -z-extracted 698-window .frq gave 285 lines starting '0.000000 -2.000000 / 0.002902 -1.000000 / ... / 0.011610 218.371368'). min_pitch_dur (ms) CDP-enforced 1-1000 ('Parameter[1] Value (2000.000000) out of range (1.000000 to 1000.000000)' verbatim; banner suggests 20) - pitch stretches shorter than this are not treated as valid data. Wrong input type refuses 'File <name> is not of correct type' (text in). Arity-0: the pitchfile rides the pre-output aux slot. Deterministic.",
+  "musical_use": "The faithful, gap-aware dump of a pitch track - where getpitch 2's text is data-reduced to turning points, ptobrk gives you (near) window-rate detail plus an explicit map of where the source was NOT pitched (-1) or silent (-2). Use it to: audit a track before trusting it downstream (the marker rows show exactly where tracking failed); segment a performance into pitched phrases vs breaths/gaps by scanning for marker runs; or hand-massage the values and rebuild a binary pitchfile via execute() brktopi for the binary-only consumers. min_pitch_dur is the de-glitcher: at 20 ms, one-window pitch blips inside noise are demoted rather than reported as notes. For direct reuse as engine breakpoint data, strip or replace the negative marker rows first (they are markers, not frequencies - a Hz-typed parameter fed -1 will refuse or misbehave). Pairs with repitch analenv (the loudness of the same windows) for a complete text description of a tracked performance.",
+  "parameters": {
+    "pitchfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "BINARY pitch data file (.frq) - typically the curated getpitch 1 side file (with or without -z markers). Pre-output argv slot; resolves data/ then session root. Text input refuses 'File <name> is not of correct type' (verbatim)."
+    },
+    "min_pitch_dur": {
+      "type": "float",
+      "min": 1.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 20.0,
+      "flag": null,
+      "description": "Minimum time any stretch of pitch data must persist to count as valid pitch. CDP-enforced 1-1000 ms ('Parameter[1] Value (2000.000000) out of range (1.000000 to 1000.000000)' verbatim); banner suggests 20. Raise to suppress short spurious pitch islands in noisy tracks."
+    }
+  },
+  "examples": [
+    {
+      "description": "Full-detail text dump of a tracked voice, gaps marked.",
+      "params": {"pitchfile": "pitch_trace.frq", "min_pitch_dur": 20.0},
+      "expected_use": "285-line time/value text from a 2 s track; -1/-2 rows mark unpitched/silent windows - audit, edit, or segment on them."
+    },
+    {
+      "description": "Aggressive de-glitching of a noisy track.",
+      "params": {"pitchfile": "noisy.frq", "min_pitch_dur": 200.0},
+      "expected_use": "Pitch stretches under 200 ms are not honored as valid data - only sustained notes survive into the text."
+    }
+  ],
+  "known_issues": [
+    "Marker rows are LITERAL -1.0/-2.0 values in the text - correct for auditing/segmentation but NOT valid frequencies; strip them before reusing lines as Hz breakpoint data.",
+    "Sibling converters pinned: repitch pchtotext runs but silently DATA-REDUCES (a marker-laden steady track collapsed to 2 clean lines - detail and markers gone, no control flag); pitchinfo convert REFUSES marker files outright ('Input file contains unpitched windows: cannot proceed.'). ptobrk is the safe default; both siblings execute()-reachable.",
+    "The reverse converter (brktopi, text -> binary .frq) is execute()-only on this build (binary output format); NOTE its marker handling is not value-faithful (round-trip probe showed marker windows re-valued, max delta 219 Hz vs the original binary) - prefer keeping the original .frq for binary consumers.",
+    "Data output (.txt): no audio duration; duration_model 'static' is a schema placeholder; pre-flight skips.",
+    "Arity-0 entry - call process() with no input audio; the pitchfile aux is the whole source.",
+    "Deterministic (byte-identical text across runs)."
+  ],
+  "references": ["cdp://docs/html/crepitch"]
+}

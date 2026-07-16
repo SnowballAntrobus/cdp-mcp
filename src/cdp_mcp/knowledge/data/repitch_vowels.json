@@ -1,0 +1,107 @@
+{
+  "program": "repitch",
+  "mode": "vowels",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": ".frq",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Creates the SPECTRUM of a sung VOWEL following the pitch contour in a binary pitchfile: 'repitch vowels infile outfile vowel-data halfwidth curve pk_range fweight foffset'. Like repitch synth but with formant peaks instead of a flat harmonic recipe. vowel_data is either a bare vowel token (15 recognized: ee i ai aii e a ar o or u uu ui x xx n - 'as in heat/hit/hate/.../mean') or a text file of time/vowel pairs for morphing between vowels over the phrase (both verified running: 'ee' scalar and a '0 ee / 1.0 ar / 2.0 o' file). Bad tokens refuse 'Can't open textfile qq to read vowel data.' (verbatim - unknown vowels are assumed to be filenames). Five shape params: halfwidth CDP-enforced 0.01-10 ('Parameter[2] Value (20.000000) out of range (0.010000 to 10.000000)' verbatim), curve 0.1-10, pk_range 0-1, fweight 0-1, foffset 0-1 (banner ranges). Content verified: output resynthesis follows the tracked 261 Hz wobble (241 Hz mid-file fundamental). Output duration = pitchfile duration. Binary pitchfile only. Deterministic.",
+  "musical_use": "A choral vowel synthesizer driven by real phrasing: extract a melody with getpitch 1 (or compose one via execute() repitch generate) and have it SUNG on any vowel - or glide 'ee' -> 'ar' -> 'o' across the phrase with a time/vowel file, which is the closest CDP gets to a synthetic singer articulating. The five shape controls set how vocal it sounds: halfwidth (formant width as a fraction of centre frequency - small = pinched/precise, large = breathy/wide), curve (peak steepness), pk_range (how much the formant peaks dominate the overall spectrum - toward 1 = more vowel, less buzz), fweight (fundamental strength - low values sound falsetto/hollow), foffset (scatters harmonic frequencies off their true positions - a little adds chorus-like realism, a lot detunes into texture). Layer several runs with different vowels/foffsets from the same pitchfile for an instant vocal ensemble on one tracked line. Pairs naturally with repitch synth (same pitch data, harmonic body vs vowel body) and with transposef for harmony copies.",
+  "parameters": {
+    "pitchfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "BINARY pitch data file (.frq) from the curated getpitch 1 side output (or execute() repitch generate). Pre-output argv slot; text pitch data is not accepted (typed infile). Marker values tolerated."
+    },
+    "vowel_data": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Text file of paired time/vowel lines (times from 0, increasing; e.g. '0 ee\\n1.0 ar\\n2.0 o'; write with write_data_file()) - vowels from the 15 recognized tokens: ee i ai aii e a ar o or u uu ui x xx n (heat, hit, hate, scottish 'e', pet, pat, heart, hot, taught, hood, scottish 'you', scottish 'could', herb-neutral, hub, mean). A single line ('0 ee') gives a fixed vowel throughout - CDP's bare-token argv form ('ee' with no file) is equivalent but only reachable via execute() (the engine's param typing requires the file form here; both forms verified running). An unrecognized token refuses 'Can't open textfile <tok> to read vowel data.' (verbatim). Renders directly after the output path; resolves data/ then session root."
+    },
+    "halfwidth": {
+      "type": "float",
+      "min": 0.01,
+      "max": 10.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.5,
+      "flag": null,
+      "description": "Half-width of each formant in Hz as a fraction of the formant centre frequency. CDP-enforced 0.01-10 ('Parameter[2] Value (20.000000) out of range (0.010000 to 10.000000)' verbatim). Small = precise/nasal, large = wide/airy. Probe value 0.5."
+    },
+    "curve": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 2.0,
+      "flag": null,
+      "description": "Steepness of the formant peak (banner range 0.1-10). Higher = sharper, more resonant peaks. Probe value 2.0."
+    },
+    "pk_range": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.7,
+      "flag": null,
+      "description": "Ratio of the formant peaks' (max) amplitude range to the (max) total range (banner 0-1). Toward 1 = vowel character dominates. Probe value 0.7."
+    },
+    "fweight": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.5,
+      "flag": null,
+      "description": "Amplitude weighting of the fundamental (banner 0-1). Low = hollow/falsetto, high = full-voiced."
+    },
+    "foffset": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Amount of scattering of harmonic frequencies away from their true values (banner 0-1). 0 = exact harmonics; small values humanize, large values detune into inharmonic texture."
+    }
+  },
+  "examples": [
+    {
+      "description": "Sing a tracked melody on 'ar'.",
+      "params": {"pitchfile": "pitch_trace.frq", "vowel_data": "vfix.txt", "halfwidth": 0.5, "curve": 2.0, "pk_range": 0.7, "fweight": 0.5, "foffset": 0.0},
+      "expected_use": "vfix.txt = '0 ar' via write_data_file(); output .ana sings the contour on an open 'heart' vowel; resynthesize with pvoc synth (automatic on .wav request)."
+    },
+    {
+      "description": "Vowel morph across the phrase.",
+      "params": {"pitchfile": "pitch_trace.frq", "vowel_data": "vseq.txt", "halfwidth": 0.5, "curve": 2.0, "pk_range": 0.8, "fweight": 0.4, "foffset": 0.1},
+      "expected_use": "vseq.txt = '0 ee\\n1.0 ar\\n2.0 o' via write_data_file(); the vowel glides ee->ar->o while the pitch follows the track."
+    }
+  ],
+  "known_issues": [
+    "Arity-0 entry (pitchfile aux carries contour + duration; no audio inputs). Output duration = pitchfile duration; the pre-flight skips (static model, no inputs).",
+    "vowel_data is curated as the FILE form only (aux_file; a one-line '0 ee' file covers the fixed-vowel case) - CDP's bare-token argv form is execute()-only because the engine rejects caller-supplied plain strings for non-aux params. Unknown vowel tokens inside the file refuse 'Can't open textfile <tok> to read vowel data.' - spell tokens exactly (15-token list in the parameter description).",
+    "All five shape params are positional and REQUIRED by CDP; entry defaults reproduce the verified probe voicing (0.5/2.0/0.7/0.5/0.0).",
+    "Only halfwidth's range was CDP-refusal-pinned (0.01-10 verbatim); curve/pk_range/fweight/foffset ranges are banner values.",
+    "Binary pitchfile only; text pitch refuses. Output loudness does not follow the original source's envelope (see repitch analenv for extracting it).",
+    "Deterministic (family behavior; synth sibling verified byte-identical)."
+  ],
+  "references": ["cdp://docs/html/crepitch"]
+}

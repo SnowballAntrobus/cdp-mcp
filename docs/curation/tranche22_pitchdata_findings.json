@@ -1,0 +1,214 @@
+{
+  "generated_at": "2026-07-16",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build, -fsigned-char; banners 'CDP Release 7.1 2016')",
+    "os": "Linux x86_64 sandbox",
+    "note": "Tranche 22 - pitch/repitch pitch-data family. Fixtures /tmp/probe22a (harmonic 220 Hz 'vow', wobbling 261 Hz 'wob', 220->440 glide, 330 Hz 'mid', white noise; pvoc anal 1 defaults). Binary pitch data (.frq) format pinned: RIFF/WAVE FLOAT mono at the analysis window rate (344), LIST 'is a pitch file' property + DATE, one float32 Hz per window, markers -1 (unpitched, -z only) / -2 (silence); .trn = same container with 'is a transpos file'. SCHEMA GAP DRIVES THE TRANCHE: output_format has no binary pitch-data member, so every binary pitch/transposition PRODUCER is entry-blocked (integrator candidate: add .frq/.trn to DATA_OUTPUT_FORMATS); consumers work today via aux_file. Second engine gap pinned: validate_params rejects caller-supplied plain strings for non-aux params (grain reorder 'code' shares this wall) - getpitch side filenames are therefore curated fixed defaults. Full workflow chains verified END-TO-END through process_impl (transcript section 10): (A) all-curated pitch-contour transfer getpitch 1 + getpitch 2 -> combineb 1 -> transposef 3 with abs-mode breakpoints (mean tracked-pitch delta 5.1 Hz against the target contour); (B) getpitch 1 -> execute() quantise 2 -> transposef 4 (wobble snapped to C-major plateaus). Every curated entry engine-run at least once."
+  },
+  "entries": [
+    {
+      "program": "repitch",
+      "mode": "getpitch",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Side-output entry: CDP writes the binary .frq under the fixed default name 'pitch_trace.frq' and NEVER overwrites ('ERROR: Cannot open output pitch file' verbatim) - the shared fixture's re-runs would collide. Static verified via resynthesis: tone output 2.0230 in place from a 2.0 s source.",
+      "stochastic": false,
+      "notes": [
+        "THE pitch-data producer. Argv 'repitch getpitch 1 in.ana outtone.ana pfil [flags]': entry output = resynthesizable pitch-trace tone (219.5 Hz peak, RMS 0.82 from the 220 Hz fixture); pfil = positional str param pinned to default 'pitch_trace.frq' (engine rejects caller strings for non-aux params - custom names execute()-only).",
+        ".frq format pinned (see environment). -z semantics verified: with -z, 8 negative markers in the probe file; without, unpitched windows interpolated (only -2 silence survives).",
+        "GARBAGE-THROUGH: white noise does NOT refuse - exit 0, spurious 294-1192 Hz track. No 'No valid pitch found.' ever printed on this build.",
+        "Ranges verbatim: -t 0-6 [Param 2], -s 0-1000 dB [4], -n 1-8 [5], -l/-h 10-2756.25 Hz [6/7] (nyquist/8, input-dependent); -g0 accepted; -a live (data chunk differs).",
+        "Deterministic (byte-identical .frq data chunks 1.2 s apart; LIST DATE excluded). Side file absent from lineage/cache (cache hits do not re-create it).",
+        "Engine-verified via process_impl in both chains (transcript section 10)."
+      ]
+    },
+    {
+      "program": "repitch",
+      "mode": "getpitch",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Same fixed-name side-file collision as submode 1 ('pitch_trace.txt'). Static verified via resynthesis (tone 2.0230 in place).",
+      "stochastic": false,
+      "notes": [
+        "TEXT twin: side file = time<TAB>Hz breakpoints, DATA-REDUCED per -d (glide: 2 lines at default 0.25 st, 298 at 0.01; range verbatim '(0.000020 to 12.000000)' [Param 8]). No -z ('ERROR: Unknown variant flag -z' verbatim) - unpitched always interpolated in text.",
+        "The text is directly valid as engine Hz-breakpoint pairs (times from 0, ascending) and drops into combineb's second slot (verified in chain A).",
+        "Same tracker, garbage-through, ranges and determinism as submode 1; distinct side name so binary+text traces coexist.",
+        "Engine-verified via process_impl (chain A step 2)."
+      ]
+    },
+    {
+      "program": "repitch",
+      "mode": "combineb",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (.txt time/ratio brk) - no audio duration; first aux slot requires a BINARY pitchfile, which _AUX_FILES cannot provide.",
+      "stochastic": false,
+      "notes": [
+        "Transposition data from two pitch tracks, TEXT output (the engine-expressible twin of binary 'repitch combine'). Arity-0: two pre_output aux slots + .txt output.",
+        "FIRST SLOT BINARY-ONLY ('Application doesn't work with this type of infile.' with text first, verbatim); second slot binary OR text (both verified). Banner: 'It's IMPOSSIBLE to generate binary outfile from exclusively brkpnt infiles.'",
+        "Content verified: ratio = pitch2/pitch1 (218.37 x 1.127 = 246.1 vs wob 247.2 at the probe time). -d live (16 -> 9 lines at -d2; banner's 'Range > 1.0' wrong - 0.5 accepted).",
+        "Siblings verified + dropped: mode 2 pitch+transposition->pitch text (257.7 Hz first line = 218.4 x ratio), mode 3 ratio product (1.18^2 = 1.39).",
+        "Deterministic (byte-identical). Engine-verified via process_impl (chain A step 3; argv pinned in lineage)."
+      ]
+    },
+    {
+      "program": "repitch",
+      "mode": "transposef",
+      "submode": 3,
+      "breakpoint_capable": ["transpos"],
+      "duration_row": ["repitch", "transposef", 3, 2.0, {"transpos": -12.0, "formant_bands": 8}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Formant-preserving semitone transposition (SoundThread repitch_transposef_3 parity: -p default 8, transpos -24..24 advisory). CONTENT-PROVEN vs curated repitch transpose 3: +12 st moves 220->440.0 in both, but >1.5 kHz energy fraction 0.010 here vs 0.049 there (source 0.019) - envelope held.",
+        "ARGV-ORDER LANDMINE (first-class): the formant flag must PRECEDE transpos - '<brk> -p8' exits 255 'Formant flag missing on cmdline.', '-p8 <brk>' exits 0. Entry declaration order encodes it.",
+        "-f/-p required ('Formant parameter missing on cmdline.' with neither); -p 1-12 ('Too many formant_bands requested: max for this file is 12'); -p0 accepted-but-curated-out; -f0 crashes set_specenv_frqs() (vocode precedents reconfirmed).",
+        "transpos brk-capable (ramp differs from both endpoints; resynth glides 250->417 Hz); enforced as ratio 0.00383-256 with the family's mislabeled 'semitones' refusal. Mode 1 ratio 2.0 == mode 3 12 st byte-identical (units-only siblings, dropped); mode 1 consumes combineb ratio text directly via execute().",
+        "Chain-A integration rules pinned: combineb times are absolute seconds -> 'abs:' breakpoint mode + clamp to source duration (unclamped final point refused 'absolute time 2.020136 outside [0, 2.0]').",
+        "Static (2.0230), deterministic, wav refused (auto-PVOC). Engine-verified via process_impl (chain A step 4, mean tracked delta 5.1 Hz)."
+      ]
+    },
+    {
+      "program": "repitch",
+      "mode": "transposef",
+      "submode": 4,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Requires a BINARY .trn in the pre_output aux slot - not producible by _AUX_FILES. Static verified via synth round-trip (2.0230 in place).",
+      "stochastic": false,
+      "notes": [
+        "Data-driven apply-back: binary transposition file rides the pre-output slot ('transposef 4 infile transpos outfile -fN|-pN ...'). Closing link of chain B: quantise-2 .trn applied to the wobbling source -> stepped plateaus (296.6/257.1/247.2) vs the continuous original.",
+        "Type checks verbatim: pitchfile in the slot -> 'ERROR: vow.frq is not a transposition file.'; TEXT -> 'ERROR: cannot open input file trans_bb.txt to read data.' (binary-only; text contours go through mode 3 brks).",
+        "NO length check (landmine): a 698-window .trn on a 523-window .ana runs fine over the .ana's own length - wrong pairings fail silently into wrong music (contrast spec bare's hard refusal).",
+        "-f/-p required here too ('Insufficient parameters on command line'); entry defaults -p8.",
+        "All .trn producers are execute()-only on this build (quantise/vibrato/randomise/exag/invert/smooth/approx mode 2, combine 1/3 - all verified running).",
+        "Deterministic; engine-verified via process_impl (chain B step 3)."
+      ]
+    },
+    {
+      "program": "repitch",
+      "mode": "synth",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Arity-0 with a BINARY pitchfile aux (not producible by _AUX_FILES); output duration = pitchfile duration (2.0230 verified via resynthesis).",
+      "stochastic": false,
+      "notes": [
+        "Spectrum from pitch data + harmonic recipe ('repitch synth binarypitchfile outanalfile harmonics-data', no mode token). Arity-0: pitchfile pre_output aux, harmonics aux after the output. Output .ana resynth follows the track (fund 241-247 Hz mid-file on wob).",
+        "Harmonic amps enforced 0-1 verbatim ('Partial amplitude[2] = 2.000000 is out of range (0.000000 - 1.000000)'); inline value refused ('Can't open textfile 0.7 to read data.' - file only); 30 harmonics accepted.",
+        "TEXT pitch input refused (typed infile; exit 255). Marker values (-1/-2) tolerated. Loudness does not follow the source (RMS 0.076) - pair with analenv for dynamics restoration.",
+        "Deterministic (byte-identical data chunks). Engine-verified via process_impl (spot-check: fund 247.2 Hz vs orig 240.0 mid-file)."
+      ]
+    },
+    {
+      "program": "repitch",
+      "mode": "vowels",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Arity-0 with a BINARY pitchfile aux - not producible by _AUX_FILES. Output duration = pitchfile duration.",
+      "stochastic": false,
+      "notes": [
+        "Sung-vowel spectrum following a pitch track ('repitch vowels infile outfile vowel-data halfwidth curve pk_range fweight foffset'). Both vowel forms verified (bare token 'ee'; time/vowel file '0 ee / 1.0 ar / 2.0 o'); entry curates the FILE form as aux_file (bare token = execute()-only due to the engine str wall; a one-line file covers it).",
+        "15 vowel tokens pinned (ee i ai aii e a ar o or u uu ui x xx n); unknown token refuses 'Can't open textfile qq to read vowel data.' (treated as filename).",
+        "halfwidth range verbatim '(0.010000 to 10.000000)' [Param 2]; curve 0.1-10, pk_range/fweight/foffset 0-1 (banner). All five positionals required; entry defaults reproduce the verified voicing 0.5/2.0/0.7/0.5/0.0.",
+        "Engine-verified via process_impl (vseq.txt morph run)."
+      ]
+    },
+    {
+      "program": "repitch",
+      "mode": "analenv",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (.evl) - no audio duration.",
+      "stochastic": false,
+      "notes": [
+        "Window-loudness envelope of an .ana as a binary envelope file, NO parameters. FORMAT PROOF: output carries 'is an envelope' - the same ENVFILE species as envel extract's .evl (window size prop = the 2.9 ms anal grain) - so the .evl data-output declaration is honest, not a mislabel.",
+        "Round-trip through a curated consumer verified: envel envtobrk accepts it (exit 0) and emits the correct time/level ramp (0.0 -> 0.0101 -> 0.0577 across the probe attack).",
+        "Point grid window-synchronous with getpitch/formant data from the same .ana (banner) - the dynamics half of the pitch-data workflow (restores phrasing to synth/vowels output).",
+        "Deterministic (byte-identical data chunks). Engine-verified via process_impl (.evl, 4862 bytes)."
+      ]
+    },
+    {
+      "program": "ptobrk",
+      "mode": "withzeros",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (.txt) with a BINARY pitchfile aux - no audio duration and not _AUX_FILES-producible.",
+      "stochastic": false,
+      "notes": [
+        "Marker-preserving binary->text converter ('ptobrk withzeros binary-pitchfile outtextfile min-pitch-dur'); 285 lines from the 698-window probe with literal -1.000000/-2.000000 marker rows. Its banner mandates it over repitch pchtotext for marker files.",
+        "min-pitch-dur verbatim '(1.000000 to 1000.000000)' ms [Param 1] (banner suggests 20); text input refused 'File ptb.txt is not of correct type'.",
+        "Sibling evidence: repitch pchtotext silently data-reduces (2 lines, markers dropped, no control flag); pitchinfo convert REFUSES marker files ('Input file contains unpitched windows: cannot proceed.'); reverse converter brktopi is schema-blocked AND not value-faithful on markers (round-trip max delta 219.4 Hz).",
+        "Deterministic. Engine-verified via process_impl (44-line output from the chain-B trace)."
+      ]
+    },
+    {
+      "program": "pitch",
+      "mode": "transp",
+      "submode": 6,
+      "breakpoint_capable": ["frq_split", "transpos1", "transpos2", "depth"],
+      "duration_row": ["pitch", "transp", 6, 2.0, {"frq_split": 1000.0, "transpos1": 12.0, "transpos2": -12.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Split-spectrum transposition, the general sibling (1-3 octave-hardwired, 4/5 single-direction subsets - negative transpos verified accepted in mode 4). Content-proven: split 1000 / +12 / -12 on the 220 Hz fixture -> 110/330 series below AND 2200/2640 above in one output; reconfirmed through process_impl (energy present at 110 and 2200 Hz).",
+        "Ranges verbatim: frq_split '(5.000000 to 22050.000000)' [Param 1]; depth '(0.000000 to 1.000000)' [3]. Extreme shifts refuse at RUNTIME: 'ERROR: Shift above frq split is too great to work.' (+100 st; content-dependent, no fixed range - musical_range +/-24 advisory).",
+        "Time-variability: transpos1 brk differs from BOTH scalar endpoints; frq_split/transpos2/depth brks each exit 0 and differ from the scalar render (banner: 'depth,frq_split,transpos1 & transpos2 can vary over time'). -d0.5 live.",
+        "No formant preservation (each register moves bodily). Static duration (2.0230); deterministic."
+      ]
+    },
+    {
+      "program": "pitch",
+      "mode": "pick",
+      "submode": 1,
+      "breakpoint_capable": ["clarity"],
+      "duration_row": ["pitch", "pick", 1, 2.0, {"fundamental": 220.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Harmonic sieve: retains only channels that might hold partials of the fundamental's series. Content-proven twice: raw probe peak set = exactly the 220-multiples; process_impl run = harmonic-series energy fraction 0.991.",
+        "fundamental '(10.000000 to 22050.000000)' [Param 1], scalar-only ('Cannot read parameter 1 [cl.brk]: brkpnt_files not permitted.' verbatim); clarity -c 0-1 [2], default 1, brk-CAPABLE (0.2->1 ramp differs from both endpoints; banner-confirmed).",
+        "Siblings dropped, execute()-reachable: 2 octaves / 3 odd partials (same shape); 4 linear-step / 5 displaced series (extra frqstep positional).",
+        "Static (2.0230); deterministic."
+      ]
+    }
+  ],
+  "dropped": [
+    {"program": "repitch", "mode": "approx", "reason": "Binary pitch/transposition output (modes 1/2) - output_format schema gap (.frq/.trn not expressible); pitchfile main infile refuses text ('Application doesn't work with this type of infile.', family-verified). Runs: 'repitch approx 1 wob.frq ap1.frq' exit 0, RIFF out. execute()-reachable; unblocks if DATA_OUTPUT_FORMATS grows .frq/.trn."},
+    {"program": "repitch", "mode": "exag", "reason": "Same schema gap (modes 1-6, pitch or transposition out). Runs: 'exag 1 wob.frq ex1.frq 60 2.0' exit 0. execute()-reachable."},
+    {"program": "repitch", "mode": "invert", "reason": "Same schema gap. Runs: 'invert 1 wob.frq iv1.frq 0' exit 0 (map slot 0 = no mapping). execute()-reachable."},
+    {"program": "repitch", "mode": "quantise", "reason": "Same schema gap - but MUSICALLY VERIFIED through chain B: 'quantise 2 pitch_trace.frq qB.trn data/qset.txt' (C-major MIDI set) -> curated transposef 4 -> wobble snapped to stepped plateaus. Mode 1 (pitchfile out) also runs. The canonical execute() transform of the curated workflow."},
+    {"program": "repitch", "mode": "randomise", "reason": "Same schema gap. Runs ('randomise 1 wob.frq rd1.frq 3 200'); STOCHASTIC AND UNSEEDABLE - no seed argv anywhere in the banner, 1.3 s-apart runs differ (clock path). execute()-reachable."},
+    {"program": "repitch", "mode": "smooth", "reason": "Same schema gap. Runs: 'smooth 1 wob.frq sm1.frq 300' exit 0. Pairs with combineb 1 for ornament-layer extraction (documented in the combineb entry)."},
+    {"program": "repitch", "mode": "vibrato", "reason": "Same schema gap. Runs: 'vibrato 1 wob.frq vibbin.frq 6 1' exit 0; text infile refusal pinned verbatim. Mode 2 (.trn out) is the transposef-4 feeder documented in that entry."},
+    {"program": "repitch", "mode": "cut", "reason": "Same schema gap (modes 1-3 start/end variants). Runs: 'cut 3 wob.frq ct1.frq 0.5 1.5' exit 0."},
+    {"program": "repitch", "mode": "fix", "reason": "Same schema gap. Runs: 'fix wob.frq fx1.frq -i' exit 0 (at least one flag required per banner rules)."},
+    {"program": "repitch", "mode": "interp", "reason": "Same schema gap (modes 1 glide / 2 sustain). Runs: 'interp 1 vow.frq ip1.frq' exit 0 (used to build the marker-free pitchfile for the altharms probes)."},
+    {"program": "repitch", "mode": "pchshift", "reason": "Same schema gap. Runs: 'pchshift wob.frq ps1.frq 7' exit 0. Musical outcome available through curated transposef 3 with a constant transpos."},
+    {"program": "repitch", "mode": "insertzeros", "reason": "Same schema gap (modes 1 times / 2 sample counts). Runs: 'insertzeros 1 wob.frq izo.frq zpairs.txt' exit 0 (time-pair textfile)."},
+    {"program": "repitch", "mode": "insertsil", "reason": "Same schema gap. Runs: 'insertsil 1 wob.frq isl.frq zpairs.txt' exit 0."},
+    {"program": "repitch", "mode": "pitchtosil", "reason": "Same schema gap. Runs: 'pitchtosil wob.frq pts.frq' exit 0."},
+    {"program": "repitch", "mode": "noisetosil", "reason": "Same schema gap. Runs: 'noisetosil vow.frq nts.frq' exit 0."},
+    {"program": "repitch", "mode": "combine", "reason": "Binary .trn/.frq outputs (all 3 modes) - schema gap. Mode 1 verified end-to-end as the binary comparator ('combine 1 vow.frq wob.frq trans_bb.trn' exit 0; its .trn drives curated transposef 4). Banner pins 'IMPOSSIBLE to generate binary outfile from exclusively brkpnt infiles'. combineb 1 is the curated text twin."},
+    {"program": "repitch", "mode": "combineb", "submode": 2, "reason": "Verified running with correct content (pitch x transposition -> pitch text; 218.4 x ratio -> 257.7 Hz first line); sibling attrition - mode 1 curated as the flagship comparator. execute()-reachable."},
+    {"program": "repitch", "mode": "combineb", "submode": 3, "reason": "Verified running with correct content (ratio product 1.18^2 = 1.39); sibling attrition. execute()-reachable."},
+    {"program": "repitch", "mode": "generate", "reason": "Binary pitchfile output - schema gap. Runs: 'generate gen.frq gen.txt 44100' exit 0 from time/MIDI text (RIFF out) - THE from-scratch melody source for curated synth/vowels; recipe pinned in those entries. execute()-reachable."},
+    {"program": "repitch", "mode": "pchtotext", "reason": "Text output and runs (exit 0) but silently DATA-REDUCES with no control flag and drops markers (marker-laden 698-window file -> 2 clean lines). Superseded by curated ptobrk withzeros per ptobrk's own banner. execute()-reachable."},
+    {"program": "pitchinfo", "mode": "info", "reason": "Stdout-only, NO outfile argv (standing multi/no-output rule). Report sample pinned: 'MAX PITCH : 220.31HZ MIDI : 57.02 TIME 0.16 / MIN ... / MEAN ... / TOTAL RANGE: 0.20 SEMITONES'. The pitch-track auditing tool - execute()."},
+    {"program": "pitchinfo", "mode": "zeros", "reason": "Stdout-only, no outfile argv (reports whether uninterpolated zeros remain). execute()."},
+    {"program": "pitchinfo", "mode": "see", "reason": "Writes a pseudo-sndfile for Sound-Loom-style VIEWING (scaled pitch values as samples) - not audio, not engine-consumable data. execute()."},
+    {"program": "pitchinfo", "mode": "hear", "reason": "Pitchfile -> analysis testtone .ana; runs, but redundant twice over: curated getpitch already emits the audition tone as its main output, and curated repitch synth gives the harmonically-controlled version. execute()."},
+    {"program": "pitchinfo", "mode": "convert", "reason": "REFUSES marker files: 'ERROR: Input file contains unpitched windows: cannot proceed.' (verbatim; exit 255 on the -z probe file) - curated ptobrk withzeros supersedes it exactly there. execute() for marker-free files."},
+    {"program": "brktopi", "mode": "brktopi", "reason": "Binary .frq output - schema gap. Runs ('brktopi brktopi ptb.txt btp.frq' exit 0, correct 698-window RIFF) but the marker-file round trip is NOT value-faithful (max |delta| vs original binary 219.4 Hz - marker windows re-valued) and container params are assumed from defaults when rebuilding from reduced text. execute()-reachable; prefer keeping the original .frq."},
+    {"program": "convert_to_midi", "mode": "convert_to_midi", "reason": "Output extension FORCED to .mid/.rmi (banner + verified: wrote c2mout.mid) and the successful probe EXITED 1 - breaks both the engine's output-path contract and its exit contract. Dual text inputs (frq brk + peak levels) with a datalen*4 coupling rule. execute() only."},
+    {"program": "pitch", "mode": "altharms", "reason": "CONTENT VERIFICATION FAILED on this build: modes 1 and 2 exit 0 but show NO odd/even harmonic selectivity on a clean 220 Hz 10-harmonic fixture (per-harmonic energy ratios vs source 0.20-0.31 across ALL of h1-h6, both modes, with both -z and interpolated pitchfiles). The documented 'delete odd harmonics -> octave up' is not observable. Garbage-through risk; execute()-reachable; re-probe candidate on macOS r8."},
+    {"program": "pitch", "mode": "octmove", "reason": "Runs and content is plausible (mode 2 ratio 2: 110-series added octave-down with the 220 series held - formant-preserving). Dropped as attrition: integer-transposition-ratio-only subset of curated repitch transposef 3 (-12/-24 st etc. cover the musical outcomes); pitchfile pre_output aux adds workflow friction for no unique capability except mode 3's bassboost. execute()-reachable."},
+    {"program": "pitch", "mode": "chord", "reason": "CONTENT VERIFICATION FAILED on this build: exit 0 in every variant, but transposed-copy energy at +4/+7 st is <=1.3% of the fundamental on the 10-harmonic fixture and 0.12-0.17% on a PURE 440 Hz SINE (one-per-line and single-line transpose files, with/without -x, lone '4' member included). Source (ap_pitch.c chordget: semitones -> frq ratios) confirms the data parse, so the spectral move itself does not land. Silently unchordal output = garbage-through; dropped."},
+    {"program": "pitch", "mode": "chordf", "reason": "Same content failure as chord in the formant-frame variant (0.12-0.17% member energy on the sine probe with -p1). Dropped; re-probe candidate on r8."},
+    {"program": "pitch", "mode": "transp", "submode": 4, "reason": "Single-direction subset of curated mode 6 (transpose above split only; NEGATIVE transpos verified accepted, exit 0). Modes 1-3 are octave-hardwired variants, mode 5 the below-split mirror. All run; execute()-reachable."},
+    {"program": "pitch", "mode": "pick", "submode": 4, "reason": "Different argv shape (extra frqstep positional; linear-step partial series - inharmonic sieves). Verified shape from banner; submode 1 curated as the flagship. Submodes 2 (octaves), 3 (odd partials), 5 (displaced harmonics) same story. execute()-reachable."}
+  ]
+}

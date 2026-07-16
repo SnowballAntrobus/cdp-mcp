@@ -1,0 +1,69 @@
+{
+  "program": "repitch",
+  "mode": "combineb",
+  "submode": 1,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 0,
+  "channel_constraint": "mono",
+  "input_format": ".frq",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Generates TRANSPOSITION data from two sets of pitch data, as a TEXT time/ratio breakpoint file: at each moment the output ratio = pitch2/pitch1 (verified: 218.4 Hz steady vs a wobbling 261 Hz track gives ratios matching wobHz/218.4 within tracking error). This is the text-output twin of repitch combine (which writes binary but is engine-blocked); the banner pins the constraint 'It's IMPOSSIBLE to generate binary outfile from exclusively brkpnt infiles' - and empirically the FIRST slot must be a BINARY pitchfile even here ('Application doesn't work with this type of infile.' with text first, verbatim), while the second slot accepts binary .frq OR text time/Hz pairs (both verified). Arity-0 data entry: both pitch files ride pre-output aux slots ('repitch combineb 1 pitchfile pitchfile2 out.txt [-dI]'). Output lines are 'time<TAB>ratio' (ratio 1.0 = unison, 2.0 = octave up), data-reduced via -d (16 lines default vs 9 at -d2 on the probe pair). Deterministic (byte-identical re-runs).",
+  "musical_use": "The pitch COMPARATOR - it turns 'how does melody B differ from melody A' into a reusable transposition contour. The flagship use is pitch-contour transfer, verified end-to-end on this build: getpitch 1 on source A (binary .frq) + getpitch 2 on source B (text) -> combineb 1 -> time/ratio brk -> read the pairs and hand them to repitch transposef as its time-varying transpos (ratios go to mode 1 directly via execute(), or convert each ratio r to semitones 12*log2(r) for the curated transposef 3) -> source A now sings B's melody with its own timbre and formants intact (verified: a steady 220 Hz vowel re-contoured to a wobbling voice's exact tracked curve). Other uses: derive the vibrato/ornament LAYER of a performance by comparing the raw track against its smoothed self (repitch smooth via execute()), then re-apply that layer to any other sound; or measure how far a quantised track moved. Sibling modes via execute(): 2 = apply transposition data to a pitch track (new pitch text, verified), 3 = compose two transpositions (ratio product, verified).",
+  "parameters": {
+    "pitchfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "The REFERENCE pitch data - MUST be a binary pitchfile (.frq from repitch getpitch 1's pitchdata side file). Text here refuses 'Application doesn't work with this type of infile.' (verbatim, verified). Rides the first pre-output argv slot. Output ratios are pitch2/pitch1, so this file is the denominator ('what the material currently does')."
+    },
+    "pitchfile2": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "The TARGET pitch data - binary .frq OR a text time/Hz breakpoint file (both verified working; getpitch 2's side file drops straight in, or write one with write_data_file()). Second pre-output slot. This is the numerator ('what you want it to do')."
+    },
+    "data_reduce": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Acceptable pitch error in the output data reduction (banner default 0.25 = eighth tone; banner's 'Range > 1.0' is wrong - 0.5 and 2 both accepted, verified). Larger = fewer output lines (16 -> 9 at -d2 on the probe pair). Omit for the default."
+    }
+  },
+  "examples": [
+    {
+      "description": "Pitch-contour transfer: make transposition data that maps source A's pitch onto source B's.",
+      "params": {"pitchfile": "pitch_trace.frq", "pitchfile2": "pitch_trace.txt"},
+      "expected_use": "pitch_trace.frq = getpitch 1 on A, pitch_trace.txt = getpitch 2 on B (the pinned side names). Output .txt = time/ratio pairs; read it and pass as transposef's time-varying transpos (convert ratios to semitones, 12*log2(r), for the curated mode-3 entry) applied to A's audio - A then sings B's melody."
+    },
+    {
+      "description": "Extract the ornament layer: raw track vs its smoothed self.",
+      "params": {"pitchfile": "raw.frq", "pitchfile2": "smoothed.frq", "data_reduce": 0.1},
+      "expected_use": "Ratios hover near 1.0, deviating exactly where the vibrato/ornaments live - a reusable expressive contour."
+    }
+  ],
+  "known_issues": [
+    "FIRST SLOT IS BINARY-ONLY: text pitch data in slot 1 refuses 'Application doesn't work with this type of infile.' (verbatim). Slot 2 takes either form. Two text files therefore cannot be compared directly - route one through getpitch 1 or brktopi (execute()).",
+    "Output is a DATA file (time/tab/ratio text) - not audio; duration_model 'static' is a schema placeholder and the duration pre-flight is skipped. To APPLY it: curated transposef 3 wants semitones (convert each ratio r via 12*log2(r)); execute() repitch transposef 1 consumes the ratio file as its transpos brk directly (verified).",
+    "Both aux slots resolve session-relative (data/ first, then session root) - getpitch side files in the session root are found by bare name.",
+    "The two pitch tracks should describe the same timebase; times beyond the shorter file simply stop contributing (the probe pair used equal-length analyses).",
+    "Siblings pinned: combineb 2 (pitch + transposition -> new pitch text) and 3 (transposition x transposition) verified running with correct content (218.4 Hz x ratio track -> 257.7 Hz line; 1.18 x 1.18 -> 1.39); repitch combine (binary outputs) runs but is engine-blocked (binary pitch-data output formats are not expressible) - all execute()-reachable.",
+    "Deterministic: byte-identical output text across runs."
+  ],
+  "references": ["cdp://docs/html/crepitch"]
+}

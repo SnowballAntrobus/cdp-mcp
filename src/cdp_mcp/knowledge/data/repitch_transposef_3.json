@@ -1,0 +1,133 @@
+{
+  "program": "repitch",
+  "mode": "transposef",
+  "submode": 3,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "static"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Transposes the spectrum by (time-variable) semitones while RETAINING the original spectral envelope - the formant-preserving complement of the curated repitch transpose 3. Content-proven on a 220 Hz 10-harmonic vowel: +12 st moves the fundamental to exactly 440 Hz in BOTH programs, but the above-1.5 kHz energy fraction stays at 0.010 here (source 0.019) versus 0.049 for transpose - the envelope stayed put, no chipmunk. One of -f/-p is REQUIRED ('Formant parameter missing on cmdline.' verbatim without them); this entry pins -p (formant_bands, default 8 per SoundThread) and leaves -f to execute(). transpos is breakpoint-capable (a 0->12 ramp differs from both endpoint renders; resynthesized pitch glides 250->417 Hz). Modes 1/2/3 are unit variants of one operation (ratio 2.0 == 12 st verified byte-identical in the data chunk); mode 4 (curated separately) drives it from a binary transposition file. Same enforced range as transpose - a frequency RATIO 0.00383-256 refused with the value printed as a ratio under a 'semitones' label. Duration static (2.0230 in place); deterministic; wav input refused ('Application doesn't work with this type of infile.') - the engine auto-PVOCs .wav sources.",
+  "musical_use": "THE pitch-shifter for voices and any source whose identity lives in its formants: melody moves, body stays. Where repitch transpose re-voices (chipmunk/giant), transposef keeps the singer the same size - use it for harmony lines, re-tuning, and melodic re-contouring that must still sound like the same person or instrument. The time-varying transpos is the power feature: pass the semitone contour computed from pitch data - e.g. combineb 1's ratio output converted to semitones (12*log2 r) re-pitches this source onto another's melody (the pitch-transfer chain, verified end-to-end on this build) - or draw scoops, falls and vibrato as breakpoint lists. formant_bands trades envelope fidelity against smoothness (1 = broad/smooth, 12 = detailed; ST default 8); quicksearch (-i) is faster but less accurate; minfrq/maxfrq prune rumble or fizz before shifting; fullspec (-x) thickens a thin result. Stay within +/-24 st for natural results (ST advisory); use transposef 4 when the transposition already exists as a binary .trn from the quantise/vibrato execute() transforms.",
+  "parameters": {
+    "formant_bands": {
+      "type": "int",
+      "min": 1,
+      "max": 12,
+      "unit": "bands/octave",
+      "breakpoint_capable": false,
+      "default": 8,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Extract the formant envelope linear-pitchwise with this many equally-spaced pitch-bands per octave. One of -f/-p is REQUIRED by the binary; this entry always emits -p (default 8, SoundThread's value). CDP-enforced ceiling 12 for this analysis ('Too many formant_bands requested: max for this file is 12' verbatim, input-dependent); 0 is accepted by the binary but curated out (min 1, vocode precedent). The -f (linear-frqwise) alternative is execute()-only; -f0 crashes ('Formant array too small: set_specenv_frqs()')."
+    },
+    "quicksearch": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-i",
+      "flag_kind": "no_value",
+      "description": "Quicksearch for formants (less accurate, banner). Verified accepted."
+    },
+    "transpos": {
+      "type": "float",
+      "min": -96.0,
+      "max": 96.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "musical_range": [
+        -24.0,
+        24.0
+      ],
+      "flag": null,
+      "description": "Transposition in (fractions of) semitones, positive = up; 0 legal. Enforced as a frequency RATIO 0.00383-256 with the mislabeled refusal ('ERROR: Transposition [322.539795] out of range 0.003830 - 256.000000 semitones' for +100, verbatim - the printed number is the ratio). BREAKPOINT-CAPABLE (verified: 0->12 ramp differs from both scalar endpoints and the resynthesis glides 250->417 Hz). SoundThread's -24..+24 (default -12) is the advisory window. Required."
+    },
+    "minfrq": {
+      "type": "float",
+      "min": 5.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Frequency below which analysis data is filtered out (transpose-family 5-22050 range, nyquist ceiling input-dependent). Omit for no low filtering."
+    },
+    "maxfrq": {
+      "type": "float",
+      "min": 5.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Frequency above which analysis data is filtered out (same 5-22050 range). Omit for no high filtering."
+    },
+    "fullspec": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "'Fuller spectrum' switch (verified accepted; use when the shifted result sounds thin)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Harmony line a fourth up that still sounds like the same singer.",
+      "params": {
+        "transpos": 5.0
+      },
+      "expected_use": "Fundamental moves +5 st, spectral envelope (the voice's 'body') stays - layer under the original."
+    },
+    {
+      "description": "Apply a pitch-transfer contour computed from combineb ratios (absolute-time breakpoints).",
+      "params": {
+        "transpos": [
+          [
+            "abs:0.0",
+            0.0
+          ],
+          [
+            "abs:0.5",
+            3.2
+          ],
+          [
+            "abs:1.2",
+            -1.5
+          ],
+          [
+            "abs:1.9",
+            0.0
+          ]
+        ],
+        "formant_bands": 8
+      },
+      "expected_use": "Each value = 12*log2(ratio) from the combineb 1 output lines, times passed in 'abs:' mode (combineb times are absolute seconds) and clamped to the source duration; the source re-sings the target melody, formants intact. Chain verified via process(): mean tracked-pitch delta 5.1 Hz (FFT-bin resolution) against the target contour."
+    }
+  ],
+  "known_issues": [
+    "One of -f/-p is REQUIRED ('Formant parameter missing on cmdline.' verbatim) - this entry hard-defaults -p8 so the argv is always valid; the -f variant is execute()-only.",
+    "RANGE-ERROR MISLABEL (family trait): refusals print the frequency RATIO under a 'semitones' label; real rule is ratio 0.00383-256 (~ -96.3 to +96 st).",
+    "Formant preservation verified quantitatively (hi-band energy fraction 0.010 vs transpose's 0.049 at +12 st on the same source) - large shifts still sound processed, but the body does not migrate.",
+    "Modes 1 (ratio) / 2 (octaves) / 3 (semitones) are the same operation in different units (mode 1 ratio 2.0 == mode 3 12 st, byte-identical data chunks, verified). Mode 1 directly consumes combineb's time/ratio text as its transpos brk (verified via execute()); through THIS entry convert ratios to semitones instead.",
+    "Duration static modulo analysis padding (2.0230 from a 2 s source); deterministic (identical data chunks 1.2 s apart - compare data chunks, not raw bytes).",
+    "ARGV ORDER LANDMINE (empirically pinned): the formant flag must precede the transpos value in the argv - 'transpos-then--p8' fails 'Formant flag missing on cmdline.' (exit 255) while '-p8-then-transpos' succeeds. The entry's parameter declaration order encodes this; do not reorder.",
+    "Feeding combineb output through this entry: combineb times are ABSOLUTE seconds - pass breakpoints in 'abs:' mode and clamp times to the source duration (the pitch-data timeline runs on the analysis grid, ~1% past the wav; an unclamped final point refused 'absolute time 2.020136 outside [0, 2.0]').",
+    "Input must be a mono .ana ('Application doesn't work with this type of infile.' on wav); the engine's auto-PVOC handles .wav sources."
+  ],
+  "references": [
+    "cdp://docs/html/crepitch"
+  ]
+}

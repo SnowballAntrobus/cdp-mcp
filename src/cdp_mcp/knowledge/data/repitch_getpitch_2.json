@@ -1,0 +1,135 @@
+{
+  "program": "repitch",
+  "mode": "getpitch",
+  "submode": 2,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Pitch extraction with a TEXT side file: identical tracker to submode 1, but the 'pitchdata' parameter receives a time/Hz breakpoint TEXTFILE (tab-separated pairs, data-reduced) instead of a binary .frq. The entry's output is the same resynthesizable pitch-trace tone (.ana). The text is DATA-REDUCED to turning points within 'data_reduce' semitones (default 0.25 = eighth tone): a steady 220 Hz source reduces to 2 lines, a 220->440 exponential glide to 2 lines at the default but 298 lines at -d0.01 - tighten data_reduce when downstream needs the actual contour, not just endpoints. Unlike submode 1 there is no -z ('ERROR: Unknown variant flag -z' verbatim); unpitched windows are interpolated through. Duration static (tone = input length); deterministic. Same garbage-through landmine as submode 1: noise does not refuse, it writes a spurious track (verified 1192 Hz lines from white noise).",
+  "musical_use": "Pitch as EDITABLE, REUSABLE text: the side file is a plain time/Hz breakpoint list, which makes the tracked melody portable across the whole engine. Read it and pass the pairs as any Hz-typed breakpoint parameter - synth wave's frq (re-sing the melody as a sine/square), hilite filter's centre frequency (a filter that follows the voice), filter varibank pitch rows - or hand-edit it (transpose, flatten, re-time) and feed it back through repitch combineb (whose second slot accepts text pitch data directly). This is the workflow the CDP manual calls out: 'there is unlimited scope for altering the pitch data in breakpoint (text) form'. The all-curated pitch-transfer chain verified on this build: getpitch 2 on source A + getpitch 1 on source B -> combineb 1 (B's .frq vs A's text) -> a time/ratio transposition brk -> transposef with that contour re-pitches B onto A's melody, formants intact. Use submode 1 when the consumer needs binary (.frq) data; use this one when a human or the model needs to SEE or reshape the pitch.",
+  "parameters": {
+    "pitchdata": {
+      "type": "str",
+      "breakpoint_capable": false,
+      "default": "pitch_trace.txt",
+      "flag": null,
+      "description": "Filename for the TEXT pitch-data side file, written by CDP as 'time<TAB>frq' lines (times ascending from 0, frq in Hz), data-reduced per data_reduce, into the session root. FIXED-NAME CAVEAT: the engine's param typing rejects caller-supplied strings for non-aux params, so this value is pinned to its curated default 'pitch_trace.txt' - OMIT it from params and consume/clear the file between extractions (a leftover refuses; CDP never overwrites). Custom names via execute(). Rides the argv slot after the output. Distinct from submode 1's 'pitch_trace.frq', so one text + one binary trace coexist per session."
+    },
+    "tuning_range": {
+      "type": "float",
+      "min": 0.0,
+      "max": 6.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Semitone window for accepting harmonics as in tune (CDP-enforced 0-6, same refusal as submode 1). Default 1."
+    },
+    "min_group": {
+      "type": "int",
+      "min": 0,
+      "max": null,
+      "unit": "windows",
+      "breakpoint_capable": false,
+      "default": 2,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Minimum adjacent pitched windows for a pitch to register (default 2; 0 accepted)."
+    },
+    "signal_noise_ratio": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1000.0,
+      "unit": "dB",
+      "breakpoint_capable": false,
+      "default": 80.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Windows more than this many dB below the maximum are treated as noise (CDP-enforced 0-1000; default 80). Lower to reject quiet passages."
+    },
+    "min_harmonics": {
+      "type": "int",
+      "min": 1,
+      "max": 8,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 5,
+      "flag": "-n",
+      "flag_kind": "attached_value",
+      "description": "How many of the 8 loudest peaks must be harmonics to confirm pitch (CDP-enforced 1-8; default 5)."
+    },
+    "lopitch": {
+      "type": "float",
+      "min": 10.0,
+      "max": 2756.25,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Lowest acceptable pitch, CDP-enforced 10 to nyquist/8 (2756.25 at 44.1 kHz, input-dependent). Omit for the default floor."
+    },
+    "hipitch": {
+      "type": "float",
+      "min": 10.0,
+      "max": 2756.25,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Highest acceptable pitch, same enforced 10-2756.25 range. Omit for the default ceiling (nyquist/8)."
+    },
+    "data_reduce": {
+      "type": "float",
+      "min": 2e-05,
+      "max": 12.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": 0.25,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Acceptable pitch-ratio error in the text data reduction. CDP-enforced 0.00002-12 ('Parameter[8] Value (0.000000) out of range (0.000020 to 12.000000)' verbatim); default 0.25 (eighth tone). THE contour-fidelity control: a 220->440 glide is 2 lines at 0.25 but 298 lines at 0.01 (verified) - tighten it when the curve itself matters."
+    },
+    "alt_algorithm": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-a",
+      "flag_kind": "no_value",
+      "description": "Alternative pitch-finding algorithm (verified live in submode 1 on the same tracker). Avoid with min_harmonics < 2 (banner)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Readable melody trace, faithful contour.",
+      "params": {"data_reduce": 0.05},
+      "expected_use": "'pitch_trace.txt' (the pinned side name - omit pitchdata) = time/Hz pairs dense enough to preserve glides; read it and reuse the pairs as a frq breakpoint anywhere in the engine (synth wave, hilite filter...)."
+    },
+    {
+      "description": "Feed a second voice's contour into the pitch-transfer chain.",
+      "params": {},
+      "expected_use": "repitch combineb 1 accepts 'pitch_trace.txt' directly in its second slot against a binary .frq in the first; the resulting ratio brk drives repitch transposef (chain verified end-to-end)."
+    }
+  ],
+  "known_issues": [
+    "No -z in this submode ('ERROR: Unknown variant flag -z' verbatim) - unpitched windows are always interpolated through in the text. If you need unpitched markers, use submode 1 (-z) and convert with ptobrk, which preserves -1/-2 marker rows.",
+    "The text is DATA-REDUCED: at the default 0.25 st a smooth glide collapses to its endpoints (2 lines from a 2 s 220->440 glide, verified). This is correct for linear-ish contours but hides vibrato/ornament detail - drop data_reduce to 0.01-0.05 for faithful curves.",
+    "Same garbage-through landmine as submode 1: noise exits 0 and writes spurious pitch text (verified). The side file is unverified by the engine and not re-created on cache hits.",
+    "FIXED SIDE NAME (engine gap): 'pitchdata' cannot be overridden through process() (the engine rejects caller-supplied strings for non-aux params) - it is pinned to 'pitch_trace.txt'. A leftover file refuses (CDP never overwrites); consume or remove it between extractions, or use execute() for custom names.",
+    "The side file must not be named *.brk (the engine would route the VALUE through the breakpoint compiler and refuse since this param is not breakpoint-capable). Name it .txt; to use it as a breakpoint later, read it and pass the pairs inline.",
+    "Times in the text start at 0 and increase; frq in Hz - directly valid as engine breakpoint-pair input for Hz-typed params.",
+    "Deterministic; duration static (pitch-trace tone .ana = input length)."
+  ],
+  "references": ["cdp://docs/html/crepitch"]
+}

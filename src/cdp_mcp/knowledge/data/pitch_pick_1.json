@@ -1,0 +1,63 @@
+{
+  "program": "pitch",
+  "mode": "pick",
+  "submode": 1,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "HARMONIC SIEVE: only retains analysis channels which might hold partials of the specified harmonic series - submode 1 keeps the harmonic series of 'fundamental', suppressing everything else by 'clarity'. Content-verified: a 220 Hz 10-harmonic source sieved at fundamental 220 keeps exactly the 220-multiples (peaks at 219.5/440.9/660.4/879.9/1099.3 Hz, nothing between). fundamental CDP-enforced 10-22050 Hz ('Parameter[1] Value (30000.000000) out of range (10.000000 to 22050.000000)' verbatim) and NOT time-variable ('ERROR: Cannot read parameter 1 [cl.brk]: brkpnt_files not permitted.'); clarity (-c) 0-1 ('Parameter[2] Value (2.000000) out of range (0.000000 to 1.000000)'), default 1, breakpoint-CAPABLE (verified: a 0.2->1 ramp differs from both endpoint renders; banner: 'clarity may vary over time'). Sibling submodes pinned: 2 = octaves only, 3 = odd partials only, 4 = linear frqstep partials from fundamental, 5 = harmonic partials displaced by frqstep (4/5 take an extra frqstep argv - different shape). Duration static (2.0230 in place); deterministic.",
+  "musical_use": "Tune a LISTENING FILTER to a pitch and hear only what belongs to it: pick is spectral sieving, related to pitch tune but subtractive - where tune RETUNES partials onto a template, pick simply discards whatever could not be part of the series. Set fundamental to the (known or getpitch-measured) pitch of the material to strip bow noise, breath and room from a pitched source into a purified harmonic core; set it to a DIFFERENT pitch to ghost an implied harmony out of a rich texture (whatever partials happen to align with the foreign series survive, an eerie resonance-of-what-isn't-there). clarity is the reveal control: 1 = hard sieve, small values only lean toward it, and a time-varying clarity ramp performs the classic emergence - noise crystallizing into pitch across a phrase. On inharmonic/noisy material the result is a pitched shadow of the original motion, excellent fodder for further spectral work (blur, tune, transposef). Submode 4's linear-step series (execute()) sieves bell-like inharmonic sets instead.",
+  "parameters": {
+    "fundamental": {
+      "type": "float",
+      "min": 10.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "musical_range": [50.0, 2000.0],
+      "flag": null,
+      "description": "Fundamental of the harmonic series whose channels are retained. CDP-enforced 10-22050 ('Parameter[1] Value (30000.000000) out of range (10.000000 to 22050.000000)' verbatim; nyquist ceiling input-dependent). NOT time-variable (brk refused 'Cannot read parameter 1 ... brkpnt_files not permitted.'). Set it where the material's energy lives (getpitch or pitchinfo info via execute() can measure it). Required."
+    },
+    "clarity": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Extent to which data in non-series channels is suppressed (CDP-enforced 0-1, refusal verbatim; default 1 = full sieve). BREAKPOINT-CAPABLE (0.2->1 ramp differs from both endpoint renders, verified; banner-confirmed). Ramp it for the noise-into-pitch reveal."
+    }
+  },
+  "examples": [
+    {
+      "description": "Purify a pitched source to its harmonic core.",
+      "params": {"fundamental": 220.0},
+      "expected_use": "Only 220-series channels survive (verified peak set) - breath/noise/room stripped."
+    },
+    {
+      "description": "Crystallize noise onto an implied pitch.",
+      "params": {"fundamental": 110.0, "clarity": [[0.0, 0.1], [2.0, 1.0]]},
+      "expected_use": "The sieve tightens across the file - unpitched material gradually resolves into a 110 Hz harmonic ghost."
+    }
+  ],
+  "known_issues": [
+    "fundamental is scalar-only (brkpnt_files not permitted, verbatim) - for a moving series, chain segments or use pitch tune (whose template focus is time-variable by other means).",
+    "Retention is by CHANNEL: partials falling near series channels survive even if not exact multiples - the sieve is as sharp as the analysis resolution (finer with more analysis points).",
+    "Siblings pinned, all execute()-reachable: submode 2 octaves, 3 odd partials (same argv shape); 4 linear frqstep series, 5 displaced harmonics (extra frqstep positional - different shape).",
+    "Duration static (2.0230 in place); deterministic (identical data chunks across runs).",
+    "Wav input auto-PVOCs through the engine; .ana mono by construction."
+  ],
+  "references": ["cdp://docs/html/cpitch"]
+}

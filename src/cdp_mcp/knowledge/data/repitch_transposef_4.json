@@ -1,0 +1,99 @@
+{
+  "program": "repitch",
+  "mode": "transposef",
+  "submode": 4,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Formant-preserving transposition driven by a BINARY transposition data file (.trn): the apply-back stage of the pitch-data workflow. The transposition file rides CDP's pre-output argv slot ('repitch transposef 4 infile transpos outfile -fN|-pN ...' - the spec bare / formants put engine pattern). Verified end-to-end as the closing link of the quantise chain: getpitch 1 extracts wob.frq from a wobbling 261 Hz voice -> execute() repitch quantise 2 wob.frq q.trn qset.txt (C-major MIDI set) -> THIS entry applies q.trn back to the same .ana -> resynthesis shows the continuous wobble snapped to discrete plateaus on the set pitches while the formant envelope stays put. Type-checked: a pitchfile in the transpos slot refuses 'ERROR: vow.frq is not a transposition file.' (verbatim); a TEXT ratio file refuses 'ERROR: cannot open input file <name> to read data.' - mode 4 is binary-only (use mode 3 with breakpoint transpos for text-borne contours). NO length check: excess transposition data is ignored (a 698-window .trn applied to a 523-window .ana ran to completion over the .ana's own length - contrast spec bare's hard length refusal). One of -f/-p required ('Insufficient parameters on command line' without). Duration static; deterministic.",
+  "musical_use": "This is how the binary pitch-data transforms get back into sound: every repitch transform that CDP offers over pitchfiles (quantise to a scale, vibrato, randomise, exag, invert, smooth, approx - all execute()-reachable, all verified running on this build) has a mode that emits a transposition file, and transposef 4 applies any of them to the original analysis with formants intact. The canonical loop: getpitch 1 (curated) -> execute(['repitch','<transform>','2',...]) on the .frq -> transposef 4 -> pvoc synth. Because the transposition is data, one .trn can be reused across different sources (apply a voice's quantise-correction to its doubling track), and transposition files can be composed (execute() repitch combine 3 multiplies two of them). Use repitch combine 1 (execute()) to build a .trn directly from two pitchfiles when you want binary precision rather than combineb's reduced text. Prefer transposef 3 when the contour lives as text/breakpoints; prefer this mode when it lives as CDP binary data.",
+  "parameters": {
+    "transposition": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Path to a BINARY transposition data file (.trn) - produced by execute() repitch quantise/vibrato/randomise/exag/invert/smooth/approx mode 2, or repitch combine 1/3. RIFF/WAVE FLOAT container at the analysis window rate with the 'is a transpos file' property, one float32 ratio per window. Renders between input and output (position: pre_output). NOT writable with write_data_file() (binary). Wrong type refuses 'is not a transposition file.'; text refuses 'cannot open input file <name> to read data.' (both verbatim). No window-count check against the input (verified) - a mismatched file silently applies as far as needed."
+    },
+    "formant_bands": {
+      "type": "int",
+      "min": 1,
+      "max": 12,
+      "unit": "bands/octave",
+      "breakpoint_capable": false,
+      "default": 8,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Formant-envelope extraction resolution, pitchwise bands per octave (required-choice -f/-p satisfied by this default 8; ceiling 12 input-dependent, same verbatim refusal as mode 3; omitting both refuses 'Insufficient parameters on command line'). -f variant execute()-only."
+    },
+    "quicksearch": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-i",
+      "flag_kind": "no_value",
+      "description": "Quicksearch for formants (less accurate)."
+    },
+    "minfrq": {
+      "type": "float",
+      "min": 5.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Filter out analysis data below this frequency (5-22050, nyquist ceiling input-dependent). Omit for none."
+    },
+    "maxfrq": {
+      "type": "float",
+      "min": 5.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Filter out analysis data above this frequency (same range). Omit for none."
+    },
+    "fullspec": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "'Fuller spectrum' switch."
+    }
+  },
+  "examples": [
+    {
+      "description": "Pitch-quantise a wobbly voice to a scale, formants intact.",
+      "params": {"transposition": "q.trn"},
+      "expected_use": "q.trn from execute(['repitch','quantise','2','pitch_trace.frq','q.trn','data/qset.txt']) where qset.txt lists MIDI scale degrees and pitch_trace.frq came from the curated getpitch 1 on the SAME source. Output resynthesis holds stepped plateaus on the set (verified)."
+    },
+    {
+      "description": "Add extracted vibrato to a plain sustained tone.",
+      "params": {"transposition": "vib.trn", "formant_bands": 8},
+      "expected_use": "vib.trn from execute(['repitch','vibrato','2','flat.frq','vib.trn','6','0.5']) - 6 Hz, half-semitone vibrato as data, applied with the tone's own body preserved."
+    }
+  ],
+  "known_issues": [
+    "BINARY-ONLY transpos slot: text ratio files refuse 'cannot open input file <name> to read data.' (verbatim) - for text contours use transposef 3 with a breakpoint transpos (or execute() transposef 1 for ratio files).",
+    "NO length check between .trn and .ana (verified with a longer .trn on a shorter .ana - ran fine): a mismatched file is NOT an error, so wrong pairings fail silently into musically wrong output. Keep the .trn derived from the same-length pitch track.",
+    "The .trn producers are execute()-only on this build (binary pitch-data outputs are outside the engine's expressible formats): quantise/vibrato/randomise/exag/invert/smooth/approx mode 2 and combine 1/3 all verified running.",
+    "One of -f/-p required ('Insufficient parameters on command line') - entry hard-defaults -p8.",
+    "Duration static (output spans the input .ana; 2.0230 in place); deterministic (identical data chunks).",
+    "Wav input refused; the engine auto-PVOCs .wav sources. Aux path resolves data/ then session root, so a .trn written by execute() into the session root is found by bare name."
+  ],
+  "references": ["cdp://docs/html/crepitch"]
+}

@@ -1,0 +1,36 @@
+{
+  "program": "repitch",
+  "mode": "analenv",
+  "submode": null,
+  "category": "envelope",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".evl",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Extracts the window-by-window LOUDNESS envelope of an analysis file as a binary envelope file: 'repitch analenv inanalfile outenvfile'. FORMAT VERIFIED: the output carries CDP's 'is an envelope' property - the SAME ENVFILE species as envel extract's .evl, differing only in window size (the analysis window time, 2.9 ms for a 44.1k/1024/3 analysis, vs envel extract's user wsize) - so the .evl data-output naming is honest and the file round-trips through the curated envelope tools (verified: envel envtobrk converts it to time/level text, exit 0, values ramping 0 -> 0.0101 -> 0.0577 across the probe attack). Banner: 'Output data synchronous with pitch or formant data from same analfile' - one envelope point per analysis window, exactly aligned with a getpitch .frq from the same file. No parameters. Deterministic (byte-identical data chunks across runs). Data output: no audio duration (the pre-flight skips).",
+  "musical_use": "The dynamics HALF of the pitch-data workflow: getpitch captures what the source sings, analenv captures how loudly - window-for-window on the same grid. Its core job is restoring life to data-driven resynthesis: repitch synth and repitch vowels follow pitch but not the original dynamics, so extract the .ana's envelope here, convert with envel envtobrk (curated) into time/level text, and drive envel reshape/warp or a gain contour on the resynthesis to put the original phrasing back. Because the point grid matches the pitchfile exactly, envelope and pitch stay locked - accent patterns land where the melody says they should. Also useful as a high-time-resolution alternative to envel extract when the material already lives in the spectral domain (2.9 ms windows vs envel extract's 5+ ms floor), and as the loudness reference when comparing two analyses (extract both, envtobrk both, diff the columns).",
+  "parameters": {},
+  "examples": [
+    {
+      "description": "Extract the loudness curve of an analysis for later reuse.",
+      "params": {},
+      "expected_use": "Output .evl = one loudness point per analysis window. Feed it to envel envtobrk (curated) for time/level text usable as any level breakpoint."
+    }
+  ],
+  "known_issues": [
+    "Output is a BINARY DATA file (.evl - RIFF/WAVE FLOAT at the analysis window rate, 'is an envelope' property, DATE in the LIST chunk): no audio duration, cannot be auditioned; duration_model 'static' is a schema placeholder and the pre-flight skips.",
+    "ENVFILE species verified compatible with the envel family: envel envtobrk accepted it (exit 0) and emitted the correct time/level ramp. Window size is the analysis grain (2.9 ms at 1024/3), much finer than typical envel extract windows.",
+    "Point grid is window-synchronous with getpitch/formant data from the SAME .ana (banner) - extract both from one analysis to keep pitch and dynamics aligned.",
+    "No parameters at all - the analysis settings of the input determine everything.",
+    "Wav input is fine through the engine's auto-PVOC (the envelope then describes the auto-analysis).",
+    "Deterministic (byte-identical data chunks; the LIST DATE differs - compare data chunks)."
+  ],
+  "references": ["cdp://docs/html/crepitch"]
+}

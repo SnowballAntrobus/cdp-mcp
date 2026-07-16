@@ -1,0 +1,84 @@
+{
+  "program": "pitch",
+  "mode": "transp",
+  "submode": 6,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "SPLIT-SPECTRUM transposition: everything above frq_split moves by transpos1 semitones, everything below by transpos2 - independently, in place. Content-proven on a 220 Hz 10-harmonic tone with split 1000 / +12 / -12: partials below 1 kHz appear an octave DOWN (110/330 Hz series) while partials above 1 kHz appear an octave UP (2200, 2640 Hz) in one output. Mode 6 is the general form and subsumes the siblings (1-3 are hardwired octave versions, 4/5 single-direction: one transpos above or below the split); transpos values are signed, so 6 with a zero on one side reproduces 4/5. All four parameters verified time-variable: transpos1 brk differs from both scalar endpoints; frq_split, transpos2 and depth brks each run (exit 0) and differ from the scalar render (banner: 'depth,frq_split,transpos1 & transpos2 can vary over time'). frq_split CDP-enforced 5-22050 ('Parameter[1] Value (30000.000000) out of range (5.000000 to 22050.000000)' verbatim, nyquist ceiling); depth 0-1 ('Parameter[3] ... out of range (0.000000 to 1.000000)'). RUNTIME LANDMINE: extreme shifts refuse at run time with 'ERROR: INVALID DATA / ERROR: Shift above frq split is too great to work.' (+100 st probed) - content/parameter-dependent, not a fixed range. Duration static (2.0230 in place); deterministic.",
+  "musical_use": "Surgical register splitting - the spectrum becomes two independently transposable layers. Classic moves: keep the body and shift only the brilliance (split ~2-4 kHz, transpos2 0, transpos1 +7/+12) for artificial brightness or 'exciter' shimmer that stays harmonic with the source; drop the low register an octave under an untouched top for instant weight; or send the halves in OPPOSITE directions (the verified +12/-12 probe) to tear a sound into two registers - with a time-varying frq_split the tear point itself sweeps through the spectrum, a gorgeous slow-reveal gesture. depth is the dry/wet of the transposition effect (0 = untouched, 1 = full; ramp it to morph INTO the split). Unlike transposef there is no formant preservation - each band's content moves bodily, so expect re-voicing within each register; that hard-edged quality is the point of this tool. For whole-spectrum work use repitch transpose/transposef; for chordal stacking the pitch chord/chordf routes are broken on this build (copies at -28 dB, see findings).",
+  "parameters": {
+    "frq_split": {
+      "type": "float",
+      "min": 5.0,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Frequency dividing the two transposition regions. CDP-enforced 5-22050 ('Parameter[1] Value (30000.000000) out of range (5.000000 to 22050.000000)' verbatim; ceiling = nyquist, input-dependent). Time-variable (brk run differs from the scalar render; banner-confirmed) - a sweeping split is the signature gesture. Required."
+    },
+    "transpos1": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "musical_range": [-24.0, 24.0],
+      "flag": null,
+      "description": "Transposition (semitones, signed) applied ABOVE frq_split; 0 = leave the top untouched. BREAKPOINT-CAPABLE (2->12 ramp differs from both scalar endpoints, verified). No fixed CDP range - extreme values refuse at runtime ('Shift above frq split is too great to work.' at +100 on the probe); stay within +/-24 for musical results. Required."
+    },
+    "transpos2": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "musical_range": [-24.0, 24.0],
+      "flag": null,
+      "description": "Transposition (semitones, signed) applied BELOW frq_split; 0 = leave the bottom untouched. Time-variable (brk run differs from the scalar render). Same runtime-refusal caveat as transpos1. Required."
+    },
+    "depth": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Transposition effect depth on the source, 0 (no effect) to 1 (full effect), CDP-enforced ('Parameter[3] Value (2.000000) out of range (0.000000 to 1.000000)' verbatim). Verified live (-d0.5 differs from the default render) and time-variable (brk differs from both). Omit for full effect; ramp 0->1 to morph into the split."
+    }
+  },
+  "examples": [
+    {
+      "description": "Tear a sound into two registers moving apart.",
+      "params": {"frq_split": 1000.0, "transpos1": 12.0, "transpos2": -12.0},
+      "expected_use": "Above 1 kHz up an octave, below 1 kHz down an octave (content-verified octave pairs at 110/330 and 2200/2640 Hz from a 220 Hz source)."
+    },
+    {
+      "description": "Sweeping split point under a fixed opposite-motion pair.",
+      "params": {"frq_split": [[0.0, 500.0], [2.0, 2000.0]], "transpos1": 7.0, "transpos2": -5.0},
+      "expected_use": "The boundary between the raised top and lowered bottom climbs through the spectrum across the file."
+    }
+  ],
+  "known_issues": [
+    "RUNTIME REFUSAL for extreme shifts: 'ERROR: Shift above frq split is too great to work.' (verbatim, +100 st probe) - a content/parameter interaction, not a pinned range; the curated bounds are advisory (musical_range +/-24).",
+    "No formant preservation - each register's content moves bodily (use repitch transposef for formant-held work).",
+    "Modes 1-3 are hardwired octave variants and 4/5 single-direction subsets (signed transpos verified accepted in mode 4); mode 6 with a 0 on one side covers them - all siblings execute()-reachable.",
+    "frq_split/transpos2/depth time-variability verified at the differs-from-scalar level (exit 0 + distinct render + banner confirmation); transpos1 at the full differs-from-both-endpoints level.",
+    "Duration static (2.0230 in place); deterministic (identical data chunks). Wav input auto-PVOCs through the engine; .ana mono by construction."
+  ],
+  "references": ["cdp://docs/html/cpitch"]
+}

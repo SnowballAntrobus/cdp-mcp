@@ -1,0 +1,133 @@
+{
+  "program": "repitch",
+  "mode": "getpitch",
+  "submode": 1,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "THE pitch-data producer: attempts to extract the pitch of an analysis file, writing TWO things - the entry's output is a resynthesizable pitch-trace tone (.ana: a clean full-level tone following the detected pitch; verified 219.5 Hz peak, RMS 0.82 from a 220 Hz source), and the 'pitchdata' parameter names a side file that receives the BINARY pitch data (.frq). FORMAT PIN (this build): the .frq is a RIFF/WAVE container, fmt FLOAT mono at the analysis window rate (344 Hz for a 44.1 kHz/1024-point/overlap-3 analysis), LIST adtl note properties including 'is a pitch file', one float32 Hz value per analysis window in the data chunk (698 values for a 2.023 s analysis), with markers -1.0 = unpitched window (only present with retain_unpitched) and -2.0 = silence. Duration static (tone .ana = input length, 2.0230 from 2.0230). Deterministic (identical .frq data chunks and tone 1.2 s apart - compare data chunks, the LIST carries a DATE). GARBAGE-THROUGH LANDMINE: unpitched material does NOT refuse - white noise exits 0 and writes a spurious wandering pitch track (294-1192 Hz observed); this build never printed 'No valid pitch found.' on any probe. Only cleanly pitched, monophonic sources yield meaningful data; tighten snratio/harmcnt/mingroup to reject marginal windows. The side file must NOT already exist (CDP refuses: 'ERROR: INVALID DATA / ERROR: Cannot open output pitch file <name>' verbatim).",
+  "musical_use": "The gateway to CDP's entire pitch-data layer: every pitchfile-consuming process (spec bare, repitch synth/vowels, the repitch transforms via execute(), pitch altharms/octmove) wants this .frq. Extract it from the SAME analysis you will process - consumers like spec bare length-check window-for-window. The tone output is not a byproduct to discard: it is the audible proof of the track (resynthesize and listen - if the tone warbles or jumps, the data is garbage and everything downstream inherits it). Core workflows: (1) getpitch 1 -> execute() repitch quantise/vibrato/randomise on the .frq -> repitch transposef 4 applies the result back to the original .ana, formants intact (chain verified end-to-end: a wobbling 261 Hz voice snapped to a C-major pitch set). (2) getpitch 1 -> repitch synth or repitch vowels resynthesizes a NEW spectrum that sings the tracked melody. (3) getpitch 1 with retain_unpitched (-z) -> spec bare strips the source to its harmonic skeleton. Use signal_noise_ratio and min_harmonics to gate breathy or noisy material; lopitch/hipitch to fence the search register (ceiling is nyquist/8). For text pitch data use submode 2 instead.",
+  "parameters": {
+    "pitchdata": {
+      "type": "str",
+      "breakpoint_capable": false,
+      "default": "pitch_trace.frq",
+      "flag": null,
+      "description": "Filename for the binary pitch-data side file (.frq), written by CDP alongside the main output into the session root, where downstream aux_file params find it by the same bare name ('pitch_trace.frq'; aux resolution tries data/<name> then <name>). FIXED-NAME CAVEAT: the engine's param typing rejects caller-supplied strings for non-aux params, so this value is effectively pinned to its curated default - OMIT it from params and consume/clear 'pitch_trace.frq' between extractions (one live binary trace per session; a leftover file refuses 'ERROR: Cannot open output pitch file pitch_trace.frq' verbatim). For custom names or multiple simultaneous traces use execute(['repitch','getpitch','1',...]). Rides the argv slot after the output ('repitch getpitch 1 in.ana out.ana pitch_trace.frq [flags]'). The side file is not tracked by output verification or the cache - a cache-hit re-run does not re-create it."
+    },
+    "tuning_range": {
+      "type": "float",
+      "min": 0.0,
+      "max": 6.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Semitone window within which spectral peaks are accepted as in-tune harmonics of a candidate pitch. CDP-enforced 0-6 ('Parameter[2] Value (13.000000) out of range (0.000000 to 6.000000)' verbatim). Default 1."
+    },
+    "min_group": {
+      "type": "int",
+      "min": 0,
+      "max": null,
+      "unit": "windows",
+      "breakpoint_capable": false,
+      "default": 2,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Minimum number of adjacent windows that must agree on a pitch for it to register (banner default 2). 0 accepted (no grouping requirement). Raise on glitchy material to suppress one-window blips."
+    },
+    "signal_noise_ratio": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1000.0,
+      "unit": "dB",
+      "breakpoint_capable": false,
+      "default": 80.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Windows more than this many dB below the file's maximum are treated as noise and their pitch discarded. CDP-enforced 0-1000 ('Parameter[4] Value (-5.000000) out of range (0.000000 to 1000.000000)'). Default 80; LOWER it (e.g. 30-40) to reject quiet breathy passages."
+    },
+    "min_harmonics": {
+      "type": "int",
+      "min": 1,
+      "max": 8,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 5,
+      "flag": "-n",
+      "flag_kind": "attached_value",
+      "description": "How many of the 8 loudest spectral peaks must be harmonics of the candidate to confirm the window as pitched. CDP-enforced 1-8 ('Parameter[5] Value (9.000000) out of range (1.000000 to 8.000000)'). Default 5; raise toward 8 for stricter tracking. Banner: avoid values < 2 with the alternative algorithm."
+    },
+    "lopitch": {
+      "type": "float",
+      "min": 10.0,
+      "max": 2756.25,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Lowest acceptable pitch. CDP-enforced 10 to nyquist/8 ('Parameter[6] Value (5.000000) out of range (10.000000 to 2756.250000)' at 44.1 kHz - max is input-dependent). Omit for the default floor (banner says 9 Hz)."
+    },
+    "hipitch": {
+      "type": "float",
+      "min": 10.0,
+      "max": 2756.25,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Highest acceptable pitch, same enforced 10-2756.25 range (nyquist/8 ceiling - the tracker cannot follow fundamentals above it; 20000 refused verbatim). Omit for the default ceiling."
+    },
+    "alt_algorithm": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-a",
+      "flag_kind": "no_value",
+      "description": "Alternative pitch-finding algorithm - verified live (the .frq data chunk differs from the default run on the same source). Try it when the default mistracks; banner warns against combining with min_harmonics < 2."
+    },
+    "retain_unpitched": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-z",
+      "flag_kind": "no_value",
+      "description": "Keep unpitched windows as -1 markers instead of interpolating pitch through them (verified: with -z the probe .frq holds 8 negative markers, without it only the -2 silence marker survives and the gaps are filled with the neighboring pitch). Use -z when the consumer needs to know where pitch really was (spec bare); leave off for continuous control data."
+    }
+  },
+  "examples": [
+    {
+      "description": "Extract binary pitch data for the spec bare / transposef 4 workflows.",
+      "params": {"retain_unpitched": true},
+      "expected_use": "Output = audible pitch-trace tone; 'pitch_trace.frq' (the pinned side name - omit pitchdata) appears in the session root for aux_file consumers. Feed a .wav and the engine auto-converts it via pvoc anal - but extract from the SAME analysis you later process."
+    },
+    {
+      "description": "Strict tracking on breathy material.",
+      "params": {"signal_noise_ratio": 35.0, "min_harmonics": 6, "lopitch": 80.0, "hipitch": 800.0},
+      "expected_use": "Quiet windows and non-vocal registers are rejected instead of contaminating the track; the .frq lands under the pinned side name."
+    }
+  ],
+  "known_issues": [
+    "GARBAGE-THROUGH: unpitched/noisy material does not refuse - white noise exits 0 with a spurious 294-1192 Hz track (verified). Audit the tone output by ear or via pitchinfo info (execute()) before trusting downstream results.",
+    "The binary .frq side file is NOT the entry's verified output - the engine verifies the pitch-trace tone (.ana). The side file is written by CDP into the session root under the pinned name 'pitch_trace.frq'; it is not hashed into lineage and is NOT re-created on a cache hit.",
+    "FIXED SIDE NAME (engine gap): the engine's param typing rejects caller-supplied strings for non-aux params (same wall as grain reorder's code), so 'pitchdata' cannot be overridden through process() - omit it and use the default. A leftover 'pitch_trace.frq' from an earlier extraction refuses 'ERROR: INVALID DATA / ERROR: Cannot open output pitch file pitch_trace.frq' (verbatim) - consume or remove it between extractions, or use execute() for custom names. Submode 2 uses a distinct name ('pitch_trace.txt'), so one binary + one text trace coexist.",
+    ".frq format pin (this build): RIFF/WAVE, fmt FLOAT mono, 'sample rate' = analysis window rate (344 for 44.1k/1024/3), LIST adtl 'is a pitch file' property + DATE, data chunk = one float32 Hz per window; -1.0 = unpitched (with -z), -2.0 = silence. Compare data chunks only - the DATE makes whole-file byte comparison always differ.",
+    "Consumers length-check: spec bare refuses a pitchfile from a different-length analysis ('Pitchfile (N vals) and analysisfile (M windows) are not same length'). Extract from the same .ana you process.",
+    "Mode 2 (submode 2) writes TEXT pitch data instead (time/Hz breakpoints, data-reduced); it has -d (reduction) but no -z ('ERROR: Unknown variant flag -z' verbatim).",
+    "Range refusals pinned verbatim: -t 0-6 [Param 2], -s 0-1000 dB [4], -n 1-8 [5], -l/-h 10-2756.25 Hz [6/7] (nyquist/8, input-dependent).",
+    "Deterministic (byte-identical .frq data chunks and tone renders 1.2 s apart). Wav input is fine through the engine's auto-PVOC; the .ana is mono by construction."
+  ],
+  "references": ["cdp://docs/html/crepitch"]
+}
