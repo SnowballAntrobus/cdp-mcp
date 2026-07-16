@@ -1,0 +1,185 @@
+{
+  "program": "hfperm",
+  "mode": "hfchords",
+  "submode": 1,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": "none",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "notes"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "GENERATE ALL CHORDS POSSIBLE from the notes of a MIDI list and render them END-TO-END as ONE soundfile: every combination (>= minset notes) of the input's pitch classes, each note voiced somewhere in the bottomnote/bottomoctave..topnote/topoctave window (octave transpositions count as the same note; a 6-note list spanning octaves produced the identical chord set as its 5-note reduction - verified). Chords are separated by gapdur, sorted per sortby, and sorted GROUPS separated by pausedur. Arity 0: the note list rides the pre-output aux slot ('hfperm hfchords 1 ifil ofil sr nd gd pd min bn bo tn to srt [-m -s -a -o]'). Rendered tone is harmonic-rich (verified partials at 1x/2x/3x); peak pinned at 0.800; DETERMINISTIC (byte-identical 1.3 s apart). Output duration is combinatorial (7 chords / 4.8416 s from a 5-note list at nd 0.3 gd 0.1 pd 0.5) - the duration expression names the aux param so the pre-flight skips (clicknew pattern) and the engine watchdog guards runaways. INPUT-TYPING LANDMINE (first-class, source-diagnosed): a note list with an EVEN value count whose odd-position values ascend gets typed by cdparse as a possible breakpoint file and REFUSES 'Application doesn't work with this type of infile.' (only the NUMLIST typing validates HF_PERM - cdp2k/validate.c:603) - {60,64,67,72} and {64,60,72,67} both refuse; ODD counts always pass, as do descending-sorted lists ({76,72,67,64,60,55} passes). Ranges CDP-enforced verbatim: srate 16000-96000 (continuous - 22050 legal here unlike the synth family), notedur 0.04-10, gapdur/pausedur 0.02-10, minset 1-48, bottomnote/topnote 0-11, bottomoctave/topoctave -4 to 4, sortby 0-4. minset is content-capped: 'ERROR: Minimum size of note set (3) (after octave duplication elimination)' when it exceeds the pitch-class count. Out-of-range list values refuse 'ERROR: INVALID DATA / ERROR: Cannot proceed'. ';' comment lines verified byte-identical. Mode gate: 'Program mode value [5] is out of range [1 - 4].' No parameter is breakpoint-capable (parameters 1/5/10 refusals verbatim).",
+  "musical_use": "A harmony factory from a handful of notes: give it a scale fragment or chord and get the ENTIRE combinatorial field - every dyad, triad, tetrad... - played back-to-back as an audition reel or raw material. Classic uses: chop the render (sfedit) into a chord bank for sampling; feed it whole to texture/granular processes so the harmony churns through every voicing of one field; or just LISTEN to choose voicings, then render the keepers with synth chord. The bn/bo-tn/to window is the register lens (bo 0 = the octave up from middle C): one octave gives close voicings, three gives spread ones. sortby orders the reel musically - 0 by root, 1 by top note, 2 by pitch-class set, 3/4 by chord type (4 keeps one of each type: the non-redundant catalogue) - with pausedur audibly separating the sorted groups. -m strips everything but minset-sized chords (minset 3 + -m = triads only, verified); -o removes octave-duplicate chords; keep gapdur short (0.05-0.2) for scanning, long for meditative sequences. Small inputs explode combinatorially in the nicest way: 4 pitch classes within two octaves is already minutes of material.",
+  "parameters": {
+    "notes": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text datafile of MIDI note values, whitespace/newline separated; ';' comment lines allowed (verified byte-identical). Occupies the argv slot before the output. TYPING LANDMINE: even-count lists whose 1st/3rd/5th... values ascend refuse 'Application doesn't work with this type of infile.' - write the list DESCENDING or with an odd value count to be always-safe. Octave duplicates are eliminated (pitch classes are what count); out-of-range values refuse 'Cannot proceed'; fractional values are accepted."
+    },
+    "srate": {
+      "type": "int",
+      "min": 16000,
+      "max": 96000,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 44100,
+      "flag": null,
+      "description": "Output sample rate, CDP-enforced 16000-96000 ('Parameter[1] Value (8000.000000) out of range (16000.000000 to 96000.000000)'); CONTINUOUS range - 22050/48000/96000 all verified rendering (no synth-family discrete-set gate). Breakpoint refused (parameter 1). Positional, always emitted (default 44100)."
+    },
+    "notedur": {
+      "type": "float",
+      "min": 0.04,
+      "max": 10.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.3,
+      "musical_range": [0.15, 1.5],
+      "flag": null,
+      "description": "Duration of each chord, CDP-enforced 0.04-10 ('Parameter[2] Value (0.000000) out of range (0.040000 to 10.000000)'). Breakpoint refused (parameter 2: 'Cannot read parameter 2 [b_nd.brk]: brkpnt_files not permitted.')."
+    },
+    "gapdur": {
+      "type": "float",
+      "min": 0.02,
+      "max": 10.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.1,
+      "flag": null,
+      "description": "Gap between chords, CDP-enforced 0.02-10 ('Parameter[3] Value (-1.000000) out of range (0.020000 to 10.000000)')."
+    },
+    "pausedur": {
+      "type": "float",
+      "min": 0.02,
+      "max": 10.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.5,
+      "flag": null,
+      "description": "Pause between chord GROUPS (as grouped by sortby), CDP-enforced 0.02-10 ('Parameter[4] Value (11.000000) out of range (0.020000 to 10.000000)')."
+    },
+    "minset": {
+      "type": "int",
+      "min": 1,
+      "max": 48,
+      "unit": "notes",
+      "breakpoint_capable": false,
+      "default": 2,
+      "flag": null,
+      "description": "Minimum number of notes to combine, CDP-enforced 1-48 ('Parameter[5] Value (0.000000) out of range (1.000000 to 48.000000)') and content-capped by the input's pitch-class count: 'ERROR: Minimum size of note set (3) (after octave duplication elimination)' verbatim when exceeded. Breakpoint refused (parameter 5)."
+    },
+    "bottomnote": {
+      "type": "int",
+      "min": 0,
+      "max": 11,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Pitch class of the range bottom, 0-11 for C..B ('Parameter[6] Value (12.000000) out of range (0.000000 to 11.000000)')."
+    },
+    "bottomoctave": {
+      "type": "int",
+      "min": -4,
+      "max": 4,
+      "unit": "octaves",
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Octave of the bottom note; banner: '0 = octave upwards from middle C'. CDP-enforced -4 to 4 ('Parameter[7] Value (9.000000) out of range (-4.000000 to 4.000000)')."
+    },
+    "topnote": {
+      "type": "int",
+      "min": 0,
+      "max": 11,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Pitch class of the range top, 0-11 (same range gate as bottomnote, parameter 8)."
+    },
+    "topoctave": {
+      "type": "int",
+      "min": -4,
+      "max": 4,
+      "unit": "octaves",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Octave of the top note (same gate as bottomoctave, parameter 9). Entry defaults give a one-octave window from middle C - chords are voiced inside bn/bo..tn/to."
+    },
+    "sortby": {
+      "type": "int",
+      "min": 0,
+      "max": 4,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Chord ordering: 0 root, 1 topnote, 2 pitchclass set, 3 chordtype, 4 chordtype keeping one of each. CDP-enforced 0-4 ('Parameter[10] Value (5.000000) out of range (0.000000 to 4.000000)'). Breakpoint refused (parameter 10). Groups created by the sort are separated by pausedur."
+    },
+    "minonly": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-m",
+      "flag_kind": "no_value",
+      "description": "Generate ONLY chords of exactly minset notes (verified: minset 3 + -m on a 3-pitch-class list rendered just the two triads)."
+    },
+    "smallfirst": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-s",
+      "flag_kind": "no_value",
+      "description": "In each group, put the smallest-span chord first (otherwise it goes last)."
+    },
+    "altsort": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-a",
+      "flag_kind": "no_value",
+      "description": "Final sort by a method other than chord density (banner: root/topnote sorts then order by interval stacking; pitchclass sort by containing-interval size)."
+    },
+    "elimoctdups": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-o",
+      "flag_kind": "no_value",
+      "description": "Eliminate chords duplicating-as-a-whole any chord one or more octaves distant."
+    }
+  },
+  "examples": [
+    {
+      "description": "Audition reel of every chord in a pentatonic field, close-voiced.",
+      "params": {"notes": "penta.txt", "srate": 44100, "notedur": 0.4, "gapdur": 0.1, "pausedur": 0.6, "minset": 2, "bottomnote": 0, "bottomoctave": 0, "topnote": 0, "topoctave": 1, "sortby": 0},
+      "expected_use": "First write_data_file('penta.txt', '69\\n67\\n64\\n62\\n60') - descending, so the typing landmine never fires. One wav of every dyad-and-up voiced within the middle-C octave."
+    },
+    {
+      "description": "Non-redundant triad catalogue, spread over two octaves.",
+      "params": {"notes": "field.txt", "srate": 44100, "notedur": 0.8, "gapdur": 0.15, "pausedur": 1.0, "minset": 3, "bottomnote": 0, "bottomoctave": 0, "topnote": 0, "topoctave": 2, "sortby": 4, "minonly": true},
+      "expected_use": "sortby 4 keeps one chord per chord-type; -m drops everything but 3-note voicings. Chop the render into a sample bank."
+    }
+  ],
+  "known_issues": [
+    "INPUT-TYPING LANDMINE (source-diagnosed): even-count note lists whose odd-position values ascend are typed as possible breakpoint files and refuse 'Application doesn't work with this type of infile.' (only NUMLIST typing validates hfperm; cdp2k/validate.c:603). Always-safe forms: odd value counts, or descending order. Two even-count orderings verified refusing, descending 6-count verified passing.",
+    "Output duration is combinatorial (chord count from pitch-class math), unpredictable statically: the duration expression names the aux param so the pre-flight skips (clicknew pattern); duration_row excluded in findings. Big inputs make LONG files - 8 pitch classes at minset 2 is 200+ chords.",
+    "Octave duplicates in the input are eliminated before combination ('after octave duplication elimination' refusal verbatim) - a 6-note list spanning octaves yields the same chords as its pitch-class reduction (verified). minset caps at the CLASS count, not the note count.",
+    "Fractional MIDI values are accepted in the list (sibling mode 4 rounds them in its text output; this mode's tuning of fractional inputs is unpinned - prefer integers).",
+    "Output is mono, peak 0.800, harmonic-rich tone (1x/2x/3x partials verified). Deterministic.",
+    "Siblings: mode 2 (grouped chords to SEVERAL soundfiles) is uncuratable - multi-output stem naming (grp0.wav, grp1.wav... verified); mode 3 (note-name text score with '((' group decorations) and program hfchords2 (same combinatorics from the input notes AS VOICED, no range window - 'hfperm hfchords2 4 ifil ofil min srt' verified working) are reachable via execute().",
+    "Generator entry: process() takes no input argument; graph()/batch()/sweep() refuse arity-0 entries (arity_zero_unsupported).",
+    "version_sensitive: CDP8-build pins throughout (typing landmine, param table); banner prints 'CDP Release 7.1 2016'."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

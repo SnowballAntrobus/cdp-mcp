@@ -1,0 +1,63 @@
+{
+  "program": "matrix",
+  "mode": "matrix",
+  "submode": 4,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "INVERT PHASE (+ve to -ve) in every FFT channel of every analysis window, then resynthesize (source: standnew/unitary_matrix.c:1886 negates the imaginary component per channel - i.e. complex conjugation of each window's spectrum, whose time-domain meaning is each analysis window individually reversed before overlap-add). The program runs its own FFT pipeline on a plain soundfile - .wav in, .wav out, no PVOC stage. Render is verifiably distinct from both the input and from sibling mode 3 (decoded shas differ; RMS 0.348 -> 0.255 on a 0.5-peak tone, peak ~0.5, no clipping). Duration static and sample-exact (2.0 -> 2.0000). Deterministic (byte-identical decoded samples across runs 1.3 s apart). MONO ONLY ('ERROR: File st2.wav is not MONO'). Shares every enforcement pin with mode 3: analchans power-of-2, CDP range 2-32768 (banner '4-16384' wrong both ends), winoverlap 1-4, both parameters refuse breakpoints verbatim ('Cannot read parameter 1 [b_ac.brk]: brkpnt_files not permitted.'), mode gate 'Program mode value [5] is out of range [1 - 4].', -c refused ('Unknown flag -c on command line.').",
+  "musical_use": "Micro-reversal without macro-reversal: because conjugating a window's spectrum time-reverses that window, the sound plays FORWARD at phrase scale while every analchans-sized slice is flipped - attacks acquire pre-echo swooshes, decays sharpen, steady tones survive nearly intact. The window size (analchans at the sample rate) is the reversal grain: big windows (8192-32768) give audible backwards-tape smears inside a forward gesture; small windows (256-1024) read as transient blurring and subtle phasey chorus. Most interesting on percussive/consonant-rich material - pitched sustains change least (a reversed sine window is still a sine). Deterministic and level-safe, so it can be A/B'd or layered with the dry signal; pair against mode 3 (real/imag swap) when you want harmony deranged rather than time.",
+  "parameters": {
+    "analchans": {
+      "type": "int",
+      "min": 2,
+      "max": 32768,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1024,
+      "musical_range": [256, 16384],
+      "description": "Number of analysis channels; power of 2 enforced ('ERROR: Number of analysis channels must be a power of 2'), CDP range 2-32768 (refusal verbatim as in mode 3; banner '4-16384' is wrong at both ends). Sets the per-window reversal grain: larger = longer reversed slices. Breakpoint refused (parameter 1).",
+      "flag": null
+    },
+    "winoverlap": {
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 3,
+      "description": "Overlap of analysis windows, CDP-enforced 1-4 ('Parameter[2] Value (5.000000) out of range (1.000000 to 4.000000)'). Breakpoint refused (parameter 2).",
+      "flag": null
+    }
+  },
+  "examples": [
+    {
+      "description": "Backwards-tape smear inside a forward phrase.",
+      "params": {"analchans": 16384, "winoverlap": 4},
+      "expected_use": "~0.37 s windows at 44.1 kHz each play reversed: pre-echoes bloom before every attack while the phrase order stays intact."
+    },
+    {
+      "description": "Transient blur / phasey double.",
+      "params": {"analchans": 512, "winoverlap": 3},
+      "expected_use": "Short reversed slices soften consonants and drum hits; layer with the dry signal for a smeared double."
+    }
+  ],
+  "known_issues": [
+    "MONO ONLY: stereo refuses 'ERROR: File st2.wav is not MONO' (exit 255).",
+    "Least audible on steady pitched sustains (a time-reversed sine window is still a sine) - the process lives on transients; don't expect drama from pads.",
+    "Banner analchans range '4-16384' wrong at both ends (binary: 2-32768, power-of-2 enforced); analchans 2 renders with 'analWindow impulse response is too small' warnings.",
+    "No time-variable parameters (both refuse breakpoint files verbatim, parameters 1-2). -c refused in this mode.",
+    "Deterministic; duration static sample-exact; levels benign (no clip warnings observed) - contrast mode 2's matrix-dependent clipping.",
+    "version_sensitive: standnew program (CDP8 source dev/standnew/unitary_matrix.c, no HTML manual); per-window-reversal semantics pinned from source on this build."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

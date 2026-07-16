@@ -1,0 +1,64 @@
+{
+  "program": "matrix",
+  "mode": "matrix",
+  "submode": 3,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "SWAP REALS AND IMAGINARIES in every FFT channel of every analysis window, then resynthesize (source: standnew/unitary_matrix.c:1880 'Swap reals and imags' - the program runs its own FFT/overlap-add pipeline on a plain soundfile, so input and output are both .wav; no PVOC stage needed). The swap is a 90-degree phase rotation plus spectral mirror per channel: a 440 Hz tone came back as inharmonic energy centred near 421 and 507 Hz (FFT-verified), RMS dropped 0.348 -> 0.255, peak held ~0.5 with NO clipping (unlike sibling modes 1-2). Duration is static and sample-exact (2.0 -> 2.0000, 1.0 -> 1.0000, noise and tone alike). Deterministic (decoded samples identical across runs 1.3 s apart). MONO ONLY: stereo refuses 'ERROR: File st2.wav is not MONO' (exit 255). BANNER RANGE WRONG BOTH ENDS (first-class): the usage says analchans '(Pow-of-2: 4-16384)' but the binary enforces '(2.000000 to 32768.000000)' - 2 and 32768 both render (2 with 'WARNING: analWindow impulse response is too small / Decimation too low: adjusted'), 1 and 65536 refuse with the range quote, and non-powers-of-2 refuse 'ERROR: Number of analysis channels must be a power of 2'. Mode gate verbatim: 'Program mode value [5] is out of range [1 - 4].' Neither parameter accepts breakpoints ('Cannot read parameter 1 [b_ac.brk]: brkpnt_files not permitted.' / parameter 2 for winoverlap). -c is modes 1-2 only ('Unknown flag -c on command line.').",
+  "musical_use": "A one-knob spectral derangement: the sound keeps its overall envelope and duration but its pitch content is rotated into an inharmonic ghost - bells out of tones, metallic shadows out of voices. analchans is the graininess control: high values (4096-16384) smear finely and sound like a detuned halo close to the source; low values (64-256) chop the spectrum coarsely into ring-mod-like sidebands; the extremes are legal and wild (analchans 2 is a barely-analysed buzz). winoverlap 1-4 trades artifact roughness against smoothness (4 = smoothest). Because it is deterministic and level-safe (no clipping observed, RMS drops slightly) it layers well against the dry source for 'haunted double' textures - same gesture, wrong harmony. Sibling mode 4 conjugates phase instead (per-window time-reversal character); mode 2 applies a saved random unitary matrix for a much deeper scramble.",
+  "parameters": {
+    "analchans": {
+      "type": "int",
+      "min": 2,
+      "max": 32768,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1024,
+      "musical_range": [256, 8192],
+      "description": "Number of analysis channels; MUST be a power of 2 ('ERROR: Number of analysis channels must be a power of 2'). CDP-enforced 2-32768 ('Parameter[1] Value (1.000000) out of range (2.000000 to 32768.000000)') - the banner's '4-16384' is wrong at both ends; 2 renders with warnings ('analWindow impulse response is too small'). Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.').",
+      "flag": null
+    },
+    "winoverlap": {
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 3,
+      "description": "Overlap of analysis windows, CDP-enforced 1-4 ('Parameter[2] Value (5.000000) out of range (1.000000 to 4.000000)'). Higher = smoother resynthesis. Breakpoint refused (parameter 2).",
+      "flag": null
+    }
+  },
+  "examples": [
+    {
+      "description": "Inharmonic ghost of a pitched source.",
+      "params": {"analchans": 4096, "winoverlap": 4},
+      "expected_use": "Fine-grained smear: pitch centres shift off the harmonic grid while the envelope survives. Layer under the dry sound for a detuned halo."
+    },
+    {
+      "description": "Coarse spectral chop.",
+      "params": {"analchans": 128, "winoverlap": 2},
+      "expected_use": "Ring-mod-like sidebands and buzz; the source's gesture remains, the timbre does not."
+    }
+  ],
+  "known_issues": [
+    "MONO ONLY: stereo input refuses 'ERROR: File st2.wav is not MONO' (exit 255) - split channels first (housekeep chans) for stereo material.",
+    "Banner's analchans range '4-16384' is wrong at BOTH ends: binary enforces 2-32768 (both extremes verified rendering; refusals verbatim in the parameter description). Power-of-2 is enforced separately.",
+    "No time-variable parameters: analchans and winoverlap both refuse breakpoint files verbatim (parameters 1 and 2).",
+    "-c (cyclic matrix application) belongs to modes 1-2 only: 'Unknown flag -c on command line.' here.",
+    "Level behavior is benign in this mode (RMS 0.348 -> 0.255 on a 0.5-peak tone, no clip warnings) - contrast mode 2, which can clip catastrophically depending on the matrix.",
+    "Deterministic; static duration sample-exact on all probes (tone/noise, 1 s/2 s).",
+    "version_sensitive: standnew program (banner '$Revision'-less, CDP8 source tree dev/standnew/unitary_matrix.c); no HTML manual page exists - behavior pinned from source + probes on this build."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

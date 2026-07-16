@@ -1,0 +1,144 @@
+{
+  "program": "hfperm",
+  "mode": "hfchords",
+  "submode": 4,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": ".txt",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "GENERATE ALL CHORDS POSSIBLE from a MIDI list and write them as TEXT DATA: one chord per line, integer MIDI values separated by double spaces, sorted per sortby (verified via cat -A: clean value lines only - the 'Sorting chords...' prose goes to stdout, not the file). Data-to-data: the note list rides the pre-output aux slot and the output is .txt. BANNER ARGV LIE (first-class): usage prints 'hfchords 3-4 ifil ofil sr min bn bo tn to srt' but there is NO srate slot in these modes - passing one refuses 'Parameter[1] Value (44100.000000) out of range (1.000000 to 48.000000)' (the slots map to the mode-1 param table: minset is still 'parameter 5' in refusals, sortby 'parameter 10'). Real argv: ifil ofil min bn bo tn to srt [-m -s -a -o]. Chord math identical to mode 1 (verified same chord sets): pitch classes of the input (octave duplicates eliminated), voiced within the bn/bo..tn/to window, >= minset notes. FRACTIONAL input values are ROUNDED to integers in the output (60.5 in -> 60 out, verified). DETERMINISTIC (byte-identical text across runs 1.2 s apart). The same input-typing landmine as mode 1 applies (even-count ascending-odd-position lists refuse 'Application doesn't work with this type of infile.'; odd counts or descending order are always safe). ROUND-TRIP PINNED: the output IS synth chord's datafile dialect (whitespace-separated MIDI values) - feeding the whole file to curated synth chord 1 renders the union of all chords = the harmonic field itself as one sonority (FFT-verified C4/E4/G4/C5 from a C-major field); extract single lines for per-chord renders. duration_model 'static' is a schema placeholder - data outputs skip the audio pre-flight.",
+  "musical_use": "The machine-readable half of the chord factory (mode 1 is the audible half): harvest every voicing latent in a scale/chord as DATA, then spend it downstream - one line at a time into synth chord 1 (a chord bank rendered voicing by voicing), or whole into synth chord for the total-field drone that contains all of them. Because the list is sorted (sortby 4 + -m gives the non-redundant catalogue of exactly-minset-note types) it doubles as an analysis tool: how many distinct triad types live in this mode? What tetrads does this row permit? Feed lines to iterline/texture note lists after formatting, or use the counts to plan sectional harmony. The bn/bo..tn/to window controls the voicing register just as in mode 1 - one octave for close positions, wider for spread. Sibling mode 3 writes the same chords as NOTE NAMES with group decorations (human-readable score, not machine data); use 3 to read, 4 to compute.",
+  "parameters": {
+    "notes": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED text datafile of MIDI note values, whitespace/newline separated; ';' comments allowed (verified byte-identical). TYPING LANDMINE: even-count lists whose 1st/3rd/5th... values ascend refuse 'Application doesn't work with this type of infile.' - write DESCENDING or odd-count. Octave duplicates eliminated; out-of-range values refuse 'Cannot proceed'; fractional values accepted but rounded in the output."
+    },
+    "minset": {
+      "type": "int",
+      "min": 1,
+      "max": 48,
+      "unit": "notes",
+      "breakpoint_capable": false,
+      "default": 2,
+      "flag": null,
+      "description": "Minimum number of notes to combine, CDP-enforced 1-48 ('(1.000000 to 48.000000)' - quoted as Parameter[1] if extra args shift slots, as parameter 5 in brk refusals). Content-capped by pitch-class count: 'Minimum size of note set (3) (after octave duplication elimination)'. Breakpoint refused."
+    },
+    "bottomnote": {
+      "type": "int",
+      "min": 0,
+      "max": 11,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Pitch class of the range bottom (0-11 = C..B); same gates as mode 1."
+    },
+    "bottomoctave": {
+      "type": "int",
+      "min": -4,
+      "max": 4,
+      "unit": "octaves",
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Octave of the bottom note (0 = octave up from middle C); CDP-enforced -4 to 4."
+    },
+    "topnote": {
+      "type": "int",
+      "min": 0,
+      "max": 11,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Pitch class of the range top (0-11)."
+    },
+    "topoctave": {
+      "type": "int",
+      "min": -4,
+      "max": 4,
+      "unit": "octaves",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Octave of the top note; entry defaults give a one-octave window from middle C."
+    },
+    "sortby": {
+      "type": "int",
+      "min": 0,
+      "max": 4,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Ordering of the emitted chord lines: 0 root, 1 topnote, 2 pitchclass set, 3 chordtype, 4 chordtype keeping one of each. CDP-enforced 0-4 (refusal quotes 'Parameter[10]'). Breakpoint refused (parameter 10)."
+    },
+    "minonly": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-m",
+      "flag_kind": "no_value",
+      "description": "Emit ONLY chords of exactly minset notes (verified: minset 3 + -m wrote just the two triads of a 3-class field)."
+    },
+    "smallfirst": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-s",
+      "flag_kind": "no_value",
+      "description": "In each group, put the smallest-span chord first."
+    },
+    "altsort": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-a",
+      "flag_kind": "no_value",
+      "description": "Final sort by a method other than chord density (banner semantics per sortby choice)."
+    },
+    "elimoctdups": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-o",
+      "flag_kind": "no_value",
+      "description": "Eliminate chords duplicating-as-a-whole any chord one or more octaves distant."
+    }
+  },
+  "examples": [
+    {
+      "description": "Non-redundant triad catalogue of a pentatonic field, as data.",
+      "params": {"notes": "penta.txt", "minset": 3, "bottomnote": 0, "bottomoctave": 0, "topnote": 0, "topoctave": 1, "sortby": 4, "minonly": true},
+      "expected_use": "penta.txt = '69\\n67\\n64\\n62\\n60' (descending - typing-safe). Output: one triad per line as MIDI ints. Feed single lines to synth chord 1 for a rendered chord bank."
+    },
+    {
+      "description": "Whole harmonic field as one sonority.",
+      "params": {"notes": "cmaj.txt", "minset": 2, "bottomnote": 0, "bottomoctave": 0, "topnote": 0, "topoctave": 1, "sortby": 0},
+      "expected_use": "cmaj.txt = '67\\n64\\n60'. Then pass this entry's OUTPUT path as synth chord 1's datafile: all values sound together - the field as a drone (round-trip verified: C4/E4/G4/C5 partials)."
+    }
+  ],
+  "known_issues": [
+    "DATA OUTPUT (.txt): one chord per line, integer MIDI values, double-space separated, no header, no prose (verified cat -A; stdout carries the 'Sorting chords...' chatter). Consumers: synth chord 1 verbatim (whole file = union chord, round-trip pinned) or line-extracted for per-chord work. Duration pre-flight skipped.",
+    "BANNER ARGV LIE: modes 3-4 have NO srate slot despite the printed usage - an inserted srate refuses with minset's range quote '(1.000000 to 48.000000)'. Real argv: ifil ofil min bn bo tn to srt.",
+    "INPUT-TYPING LANDMINE as mode 1 (source: only NUMLIST typing validates hfperm): even-count ascending-odd-position lists refuse 'Application doesn't work with this type of infile.'; odd counts or descending lists are always safe (both verified).",
+    "Fractional MIDI input values are ROUNDED to integers in the output (60.5 -> 60 verified) - quartertone fields cannot pass through this mode.",
+    "Refusal slot numbers quote the shared mode-1 param table (minset = 'parameter 5', sortby = 'parameter 10') even though the cmdline positions differ - don't be confused when debugging.",
+    "Siblings recorded, reachable via execute(): mode 3 (note-name score, decoration lines '-------((' etc.), hfchords2 modes (combinatorics on the notes AS VOICED, no range window: 'hfperm hfchords2 4 ifil ofil min srt' verified). Mode 2 is uncuratable (multi-file output stem).",
+    "Generator entry: process() takes no input argument; graph()/batch()/sweep() refuse arity-0 entries (arity_zero_unsupported). Deterministic (byte-identical text, 1.2 s apart).",
+    "version_sensitive: CDP8-build pins (argv divergence, typing landmine); banner 'CDP Release 7.1 2016'."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}
