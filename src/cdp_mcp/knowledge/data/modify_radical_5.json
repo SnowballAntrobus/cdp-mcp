@@ -1,0 +1,50 @@
+{
+  "program": "modify",
+  "mode": "radical",
+  "submode": 5,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Classic RING MODULATION: multiplies the source by a sine at modfrq, replacing every input component f with the sideband pair f - modfrq and f + modfrq while the original components vanish. Content-verified textbook behavior: a 440 Hz tone ring-modulated at 100 Hz renders exactly 340 + 540 Hz with zero residual energy at 440. Pinned to submode 5 of 'modify radical' (submode 1 REVERSE and 2 SHRED are curated siblings; 3 scrub, 4 lose-resolution, 6 cross-modulate, 7 quantise reachable via execute()). Output duration is static and sample-exact (88200 frames in -> 88200 out across tone/noise/stereo probes). modfrq may vary over time via a breakpoint file (verified: a 50->500 sweep renders and differs from both scalar-endpoint renders). Deterministic (identical decoded samples 1.2 s apart). Mono and stereo accepted.",
+  "musical_use": "The hollow-metal maker: because sum and difference sidebands are anchored to modfrq rather than the source's harmonic series, harmonic sources turn inharmonic - bells, clangs and robot-voice colours (Roads, Computer Music Tutorial pp. 215-220). Low modfrq (below ~30 Hz) reads as tremolo/roughness rather than new pitches; the 30-200 Hz zone gives the classic Dalek/clangorous smear; higher modfrq splits the source into two recognisable transposed copies drifting apart. SoundThread's musical range is 5-880 Hz (default 60) - the enforced ceiling is Nyquist, but very high values just alias the upper sideband. The breakpoint form is the sleeper feature: sweep modfrq and the sidebands glide in opposite directions, turning a static drone into a slow inharmonic flange; small envelopes (say 50->65 Hz) give queasy detune wobble. For sum-and-difference against another SOUND instead of a sine, use submode 6 (cross modulate) via execute(). Follow with filter bank to re-tune the inharmonic result, or envel dovetail to tame the edges.",
+  "parameters": {
+    "modfrq": {
+      "type": "float",
+      "min": 0.1,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "musical_range": [5.0, 880.0],
+      "description": "The modulating sine's frequency in Hz - every input component f becomes f - modfrq and f + modfrq. CDP-enforced 0.1 to Nyquist: refusals at 0, -50 and 30000 quote '(0.100000 to 22050.000000)' on 44.1 kHz input and '(0.100000 to 11025.000000)' on 22.05 kHz input (upper bound = srate/2, input-dependent). SoundThread's 5-880 Hz (default 60) is an advisory musical subset. May vary over time via a breakpoint file (verified: 50->500 sweep differs from both endpoint renders); times are infile times."
+    }
+  },
+  "examples": [
+    {
+      "description": "Classic clangorous ring mod.",
+      "params": {"modfrq": 100.0},
+      "expected_use": "Harmonic sources turn hollow and metallic; a 440 Hz tone becomes exactly 340 + 540 Hz with the carrier gone."
+    },
+    {
+      "description": "Sideband glide: sweep the modulator across the file.",
+      "params": {"modfrq": [[0.0, 30.0], [1.0, 400.0]]},
+      "expected_use": "Sidebands fan out in opposite directions as the sweep runs - a slow inharmonic flange from any sustained source."
+    }
+  ],
+  "known_issues": [
+    "modfrq's enforced ceiling is Nyquist (srate-dependent: 22050 quoted at 44.1 kHz, 11025 at 22.05 kHz); sidebands that exceed Nyquist (f + modfrq > srate/2) alias silently - keep modfrq below Nyquist minus the source's top frequency for clean results.",
+    "Sub-audio modfrq is allowed down to 0.1 Hz and behaves as amplitude tremolo (sidebands too close to hear separately) - useful, but not the metallic effect.",
+    "Static, sample-exact duration on all probes (mono tone/noise 1-2 s, stereo). Deterministic: identical decoded samples 1.2 s apart. No level normalisation is applied - output peak can differ from input; stage headroom as usual."
+  ],
+  "references": ["cdp://docs/html/cgromody"]
+}

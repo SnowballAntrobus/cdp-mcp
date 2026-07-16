@@ -1,0 +1,77 @@
+{
+  "program": "modify",
+  "mode": "speed",
+  "submode": 5,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "expression",
+    "expr": "(indur if accel == 1 else (starttime + (goaltime - starttime) * 10000 * (((1 + (indur - starttime) * 10000 * (accel ** 0.0001 - 1) / (goaltime - starttime)) if (1 + (indur - starttime) * 10000 * (accel ** 0.0001 - 1) / (goaltime - starttime)) > 0.002 else 0.002) ** 0.0001 - 1) / (10000 * (accel ** 0.0001 - 1))))"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "ACCEL/DECEL: plays the source at a smoothly changing tape speed - the playback increment is multiplied by a constant factor every output sample (strans.c:104 pow(accel, 1/(acceltime*srate)), applied per sample in do_acceleration), so the speed rises (accel > 1) or falls (accel < 1) EXPONENTIALLY through output time, reaching exactly 'accel' x original speed at goaltime and continuing at the same per-sample ratio beyond it until the input is exhausted. Pitch and speed move together (tape law). The curated duration expression is the closed form of that mechanism (using the arithmetic-only approximation ln x ~ 10000*(x**0.0001 - 1)); it fits all 12 probe runs across accel 0.25-4, goaltime 0.3-2, starttime 0/0.5 and 1-2 s inputs to worst-case 0.028%. DECEL TRUNCATES: when accel < 1 the speed can hit CDP's MININC floor (0.002, strans.c:50) before the input is exhausted - the program prints 'INFO: Acceleration reached black hole! - finishing' and STOPS, discarding the rest of the input (a 2 s file at accel 0.5/goaltime 1 consumes only ~1.44 s of source and outputs 8.9658 s); the expression models this cap. accel = 1 runs as a passthrough (1 frame short). Deterministic; mono and stereo accepted; all three parameters refuse breakpoint files (for arbitrary speed contours use curated modify speed 2 with a breakpoint).",
+  "musical_use": "The tape-runaway gesture: a sound that trips over itself and accelerates into a chipmunk blur, or drags itself down into slow-motion darkness - all with the coherent pitch/speed coupling of varispeed. Because the ramp is exponential (constant semitones-per-second glide), it sounds like a natural mechanical spin-up/spin-down rather than a linear fade: accel 2 / goaltime at 25% of the expected output makes a convincing tape-start; accel 0.25 with a late goaltime is the power-down. starttime holds the opening at normal speed before the ramp begins - place it just before a downbeat for an anticipated collapse. Mind the decel black hole: steep slowdowns end the file when the speed floor (0.002 = about -108 semitones) is reached and the REST OF THE SOURCE IS CUT OFF - for gentle decels that must play out the whole source, keep accel closer to 1 or push goaltime later. Outputs shorten drastically under acceleration (accel 4 / goaltime 1 turns 2 s into 0.96 s) and balloon under deceleration - the pre-flight expression predicts this to a fraction of a percent. SoundThread exposes this as 'Accelerate/Decelerate' with ratio 0.01-10; chain into modify radical 5 or filter bank for pitch-smeared endings.",
+  "parameters": {
+    "accel": {
+      "type": "float",
+      "min": 0.0001,
+      "max": 1000.0,
+      "unit": "speed ratio",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "musical_range": [0.1, 10.0],
+      "description": "Speed multiplication reached at goaltime: 2 = double speed (one octave up) by then, 0.5 = half speed (one octave down). CDP-enforced 0.0001 to 1000 (0 and -2 refused quoting '(0.000100 to 1000.000000)'; 1000 accepted). accel = 1 is accepted and passes the sound through (output 1 frame short of input). SoundThread's 0.01-10 (default 0.25) is the advisory musical range. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "goaltime": {
+      "type": "float",
+      "min": 0.01,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time in the OUTPUT file at which the speed reaches accel x original. Runtime-enforced, INPUT-DEPENDENT range 0.01 to indur (0 and 10 on a 2 s file refused quoting '(0.010000 to 2.000000)'). The ramp continues past goaltime at the same per-sample ratio if input remains; if the input runs out first the specified accel is never reached (banner-documented). Must exceed starttime by at least 0.01 s ('ERROR: time for acceleration (0.000000) must be greater than  0.010secs' when equal). Breakpoint file refused (parameter 2)."
+    },
+    "starttime": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Time at which the acceleration begins; the sound plays at normal speed (copied verbatim) up to here. Runtime-enforced 0 to indur - 0.01 (-s3 on a 2 s file refused quoting '(0.000000 to 1.990000)'). Default 0. Verified: -s0.5 output = 0.5 s intact + ramped remainder (1.3113 s total, matching the model to 0.005%). Breakpoint file refused (parameter 3)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Tape spin-up: double speed reached one second in, then keeps accelerating.",
+      "params": {"accel": 2.0, "goaltime": 1.0},
+      "expected_use": "A 2 s source becomes 1.2548 s, rising through an octave and beyond as it goes."
+    },
+    {
+      "description": "Held intro, then power-down into the black hole.",
+      "params": {"accel": 0.5, "goaltime": 1.0, "starttime": 0.5},
+      "expected_use": "First 0.5 s plays straight, then pitch and speed sink exponentially; the render ends when the speed floor is hit - the source's tail is discarded."
+    }
+  ],
+  "known_issues": [
+    "DECEL BLACK HOLE (first-class): with accel < 1, once the per-sample increment falls to MININC = 0.002 (strans.c:50) the program prints 'INFO: Acceleration reached black hole! - finishing' and stops - the unconsumed remainder of the INPUT IS DISCARDED (accel 0.5/goaltime 1 on 2 s: only ~1.44 s of source used, 8.9658 s out). The output duration then depends only on ln(accel)/acceltime, not on the input length. The curated expression models the cap; the truncation itself is the musical gotcha.",
+    "Duration model is the exact closed form of the source mechanism with ln x approximated arithmetically as 10000*(x**0.0001 - 1) (the expression language has no functions); worst probe error 0.028% across 12 runs (accel 0.25-4, goaltime 0.3-2, starttime 0/0.5, indur 1-2 s, including both black-hole cases and accel = 1).",
+    "goaltime/starttime ranges are runtime-enforced against the INPUT duration (even though goaltime is semantically an OUTPUT time) - refusal bounds vary per input; goaltime - starttime must be > 0.01 s (MINTIME_ACCEL, modicon.h:103) with its own INVALID DATA message.",
+    "accel = 1 is legal and renders a passthrough one frame short of the input (88199 of 88200); the expression special-cases it to avoid a divide-by-zero.",
+    "All three parameters refuse breakpoint files ('Cannot read parameter N [...]: brkpnt_files not permitted.', N = 1-3) - the exponential ramp shape is fixed; for arbitrary speed contours use modify speed 2 (curated) with a semitones breakpoint.",
+    "Deterministic (identical decoded samples 1.2 s apart). Stereo accepted (2ch in -> 2ch out, duration matches the mono prediction exactly)."
+  ],
+  "references": ["cdp://docs/html/cgromody"]
+}

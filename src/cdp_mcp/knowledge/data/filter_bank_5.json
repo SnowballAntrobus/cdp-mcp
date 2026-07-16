@@ -1,0 +1,125 @@
+{
+  "program": "filter",
+  "mode": "bank",
+  "submode": 5,
+  "category": "filter",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur + tail"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "A bank of filtcnt resonant filters spread at EQUAL PITCH INTERVALS between lof and hif (mode 5 of the bank family; mode 1 HARMONIC is the curated sibling). DIVERGENCE (source+binary vs SoundThread): ST's help calls this bank 'equally spaced in Hz'/'Linear', but fltprepro.c:124 places filter n at lof * (hif/lof)^(n/filtcnt) - a GEOMETRIC series (equal frequency RATIOS, i.e. equal pitch intervals), verified by bankfrqs mode 5 (200-4000 Hz, 8 filters -> 200, 290.8, 423, 615, 894, 1300, 1892, 2750.6) and by FFT peaks of the rendered audio. Note the exponent divisor is filtcnt (not filtcnt-1), so the TOP filter sits one step BELOW hif (2750.6, not 4000) - hif is a limit that is never itself a filter. Output duration is exactly indur + tail with the same UNDOCUMENTED tail default of 1.0 s as mode 1 (re-verified: 2 s -> 3.0 s with no -t; -t0.5/-t2 sample-exact) and the same tail=0 buffer bug (262144-frame balloon, re-verified in this mode). Q may vary over time (breakpoint verified against both endpoints); every other parameter refuses breakpoint files. scat > 0 is genuinely stochastic with NO seed (two -s0.5 runs 1.2 s apart differ; scat 0 runs identical). Inverted lof/hif silently swapped (byte-identical render; fltpcon.c 'correct inverted frq range'). Mono and stereo accepted.",
+  "musical_use": "The inharmonic sibling of the harmonic bank: instead of a fundamental's overtone series, you get filtcnt resonators evenly spaced in PITCH between two frequency walls - equal divisions of the lof->hif interval. With filtcnt that lands on non-integer semitone steps the bank rings like a gamelan/bell chord that belongs to no key; choose filtcnt so the step is a familiar interval and it turns consonant (e.g. 200-4000 Hz is ~52 semitones, filtcnt 13 gives ~4-semitone steps - a stack of major thirds). Low Q (1-20) colours noise with the chord; high Q (hundreds, ST default 400) with raised gain rings long metallic tails from transients. A time-varying Q breakpoint morphs coloured noise into pure ringing across the file. scat detunes the grid toward full inharmonicity (unseeded - every render differs; keep 0 to pin a take). Because the top filter stops one step short of hif, widen hif slightly if you want energy right up at the ceiling. tail lets high-Q rings decay; -d doubles the filtering for steeper isolation.",
+  "parameters": {
+    "q": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Filter tightness (CDP-enforced 0.001 to 10000; 0.0005 refused quoting that range). Low = broad colouring, high = ringing resonators. Banner-confirmed time-variable and re-verified in this mode: a 5->500 breakpoint ran and differs from both endpoint renders."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Overall makeup gain (CDP-enforced 0.001 to 10000; 0 refused). High Q needs high gain (40-50+ per the manual). Breakpoint refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    },
+    "lof": {
+      "type": "float",
+      "min": 0.1,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Low frequency wall of the bank - the first filter sits exactly here. DIVERGENCE: banner gives '0 to srate/3'; the binary enforces 0.1 to 22050 (0 and -5 refused quoting '(0.100000 to 22050.000000)'). lof > hif is silently swapped (verified byte-identical). Breakpoint refused (parameter 3)."
+    },
+    "hif": {
+      "type": "float",
+      "min": 0.1,
+      "max": 22050.0,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "High frequency wall of the bank. NO filter sits at hif itself - the top filter is one geometric step below it (exponent runs n/filtcnt for n = 0..filtcnt-1). Same real range as lof (0.1 to 22050; 30000 refused). Breakpoint refused (parameter 4)."
+    },
+    "filtcnt": {
+      "type": "int",
+      "min": 1,
+      "max": 2000,
+      "unit": "filters",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Number of filters spread between lof and hif (CDP-enforced 1 to 2000: 0 and 5000 refused quoting '(1.000000 to 2000.000000)'; filtcnt 1 runs - a single resonator at lof). Fractional values are ROUNDED (8.5 renders byte-identical to 9). Breakpoint refused ('Cannot read parameter 5 [...]: brkpnt_files not permitted.')."
+    },
+    "tail": {
+      "type": "float",
+      "min": 0.01,
+      "max": 20.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Decay time appended after the input for the filters to ring out; output duration is exactly indur + tail. CDP's implicit default is 1.0 s (undocumented; re-verified in this mode) - the entry emits -t1.0 explicitly. CDP-enforced range 0 to 20 (25 refused), but tail = 0 triggers the buffer bug (fixed 262144-frame output, re-verified here) - curated minimum 0.01 keeps it unreachable. Breakpoint refused (parameter 6)."
+    },
+    "scat": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Random scatter of the filter frequencies away from the equal-interval grid (CDP-enforced 0 to 1; 2 refused quoting '(0.000000 to 1.000000)' as parameter 7). NON-REPRODUCIBLE: no seed flag; two identical scat 0.5 commands 1.2 s apart differ (re-verified in this mode); scat 0 (or omitting) is fully deterministic. Breakpoint refused."
+    },
+    "double": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-d",
+      "flag_kind": "no_value",
+      "description": "Double filtering - steeper effective rolloff (re-verified: changes the render, duration unchanged)."
+    }
+  },
+  "examples": [
+    {
+      "description": "A 13-resonator equal-interval chord (about 4-semitone steps) rung out of noise.",
+      "params": {"q": 400.0, "gain": 40.0, "lof": 200.0, "hif": 4000.0, "filtcnt": 13, "tail": 2.0},
+      "expected_use": "Metallic stacked-thirds resonance; output = indur + 2 s."
+    },
+    {
+      "description": "Morph from coloured noise to pure ringing via time-varying Q.",
+      "params": {"q": [[0.0, 5.0], [1.0, 800.0]], "gain": 20.0, "lof": 150.0, "hif": 6000.0, "filtcnt": 9},
+      "expected_use": "Breakpoint Q (relative times); tail defaults to 1.0 s, so output = indur + 1."
+    }
+  ],
+  "known_issues": [
+    "BINARY-VINTAGE HANG (carried from sibling mode 1, macOS QA 2026-07-15): filter binaries built before the upstream fix of 2025-06-05 (CDP8 commit 11cdcb4) perform an out-of-bounds heap write on EVERY bank run. Source-verified to cover this mode: ap_filter.c:870 maps 'bank' to FLTBANKN for ALL six modes and filters0.c:92 sets do_norm = 1 unconditionally for FLTBANKN, so the normalization pre-pass containing the OOB write runs in modes 4-6 exactly as in 1-3 (the 'Assessing input level' pre-pass is visible in this mode's runs). Pre-fix binaries hang/crash on all bank modes; rebuild filter from current CDP8 source. This is why version_sensitive is true.",
+    "SPACING DIVERGENCE (first-class finding): SoundThread describes mode 5 as filters 'spaced equally in Hz' ('Filter Bank: Linear', 'more discordant... will not align to uniform harmonic intervals') - the binary actually spaces them GEOMETRICALLY (equal pitch intervals): fltprepro.c:124 frq[n] = lof * (hif/lof)^(n/filtcnt), confirmed by bankfrqs 5 output and FFT peaks (ratio 1.454 per step for 200-4000/8). Modes 5 and 6 are the same equal-interval family - 5 derives the interval from a filter count, 6 takes it in semitones.",
+    "The top filter sits one step BELOW hif (divisor is filtcnt, not filtcnt-1): 200-4000 Hz with 8 filters tops out at 2750.6 Hz. No filter ever lands on hif itself.",
+    "UNDOCUMENTED DEFAULT (re-verified per submode): with no -t flag the binary appends a 1.0 s tail. The entry pins tail=1.0 explicitly so indur + tail is always exact (sample-exact across 1/2 s inputs and tails 0.5-2).",
+    "tail = 0 is accepted by CDP but buggy (re-verified in this mode): output becomes a fixed 262144 frames (~5.94 s at 44.1 kHz) regardless of input length. Curated minimum 0.01 avoids it.",
+    "scat > 0 is genuinely stochastic with NO seed: two identical commands 1.2 s apart differ. Keep scat = 0 for reproducible renders.",
+    "lof > hif is accepted and silently swapped (byte-identical to the ordered pair; source: setup_internal_fltbankn_params 'correct inverted frq range').",
+    "Only Q accepts breakpoint files; gain/lof/hif/filtcnt/tail/scat refuse with 'Cannot read parameter N [...]: brkpnt_files not permitted.' (N = 2-7).",
+    "Deterministic with scat unset (two runs 1.2 s apart identical in decoded samples). Stereo accepted (2ch in -> 2ch out, duration model holds)."
+  ],
+  "references": ["cdp://docs/html/cgrofilt"]
+}

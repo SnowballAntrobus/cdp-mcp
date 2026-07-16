@@ -1,0 +1,190 @@
+{
+  "generated_at": "2026-07-15",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build; Groucho programs banner 'CDP Release 7.1 2016'; scramble/envspeak/specfnu print no release banner)",
+    "os": "Linux x86_64 sandbox",
+    "note": "First tranche after commit 728b986 (triple keying) - all entries are second/third submodes of already-curated (program, mode) pairs. To be re-verified on macOS r8 by the CDP-gated suite after integration."
+  },
+  "entries": [
+    {
+      "program": "scramble",
+      "mode": "scramble",
+      "submode": 9,
+      "breakpoint_capable": ["trns", "atten"],
+      "duration_row": ["scramble", "scramble", 9, 2.0, {"seed": 5}, 0.05],
+      "stochastic": true,
+      "notes": [
+        "Exact mirror of curated sm10, independently re-verified: level sort RISES (first/last 300 ms RMS 0.028 -> 0.537 on deep-AM; sm10 same fixture 0.547 -> 0.029); shas differ from sm10.",
+        "duration static: worst -0.23% (deep-AM), flat-noise fixture 1.9999 (-0.005%); trns 3 adds seed-dependent length drift (+1.7%/-1.1% for seeds 5/9).",
+        "Seed re-verified per submode: inert at trns=atten=0 (seed 5 == seed 9 byte-identical); working and required with trns/atten > 0 (seed 5 twice 1.2 s apart identical, 5 vs 9 differ); seed 0 == seed 1; omission refused 'Insufficient parameters on command line.' - no clock path.",
+        "CDP-enforced ranges (verbatim refusals): seed 0-256, cnt -c 1-256, trns -t 0-12, atten -a 0-1. trns/atten breakpoint-capable through OUTPUT time (brk differs from both scalar endpoints at the same seed); cnt refuses 'Cannot read parameter 3', seed 'Cannot read parameter 2'.",
+        "Bare 'seed 5' byte-equals '5 -c1 -t0 -a0' (rendered-defaults equivalence); flags not order-enforced. Stereo refused 'File st2.wav is not of correct type (must be mono)'."
+      ]
+    },
+    {
+      "program": "filter",
+      "mode": "bank",
+      "submode": 5,
+      "breakpoint_capable": ["q"],
+      "duration_row": ["filter", "bank", 5, 2.0, {"q": 50.0, "gain": 5.0, "lof": 200.0, "hif": 4000.0, "filtcnt": 8, "tail": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "SPACING DIVERGENCE (first-class): SoundThread calls mode 5 'equally spaced in Hz'/'Linear'; source (fltprepro.c:124) and binary give GEOMETRIC spacing frq[n] = lof*(hif/lof)^(n/filtcnt) - equal pitch intervals. bankfrqs 5 (200-4000, 8) prints 200, 290.84 ... 2750.62 (step ratio 20^(1/8)); FFT peaks of rendered audio match.",
+        "Top filter sits one step BELOW hif (divisor filtcnt, not filtcnt-1): 2750.6, never 4000. hif is a ceiling, not a filter.",
+        "filtcnt CDP-enforced 1-2000 (0/5000 refused; 1 accepted = single resonator); fractional values ROUNDED (8.5 byte-equals 9).",
+        "Sibling mode-1 findings re-verified in this submode: undocumented tail default 1.0 s (2 s -> 3.0000 with no -t; -t0.5/-t2 sample-exact -> model indur + tail); tail=0 buffer bug (fixed 262144 frames); Q breakpoint capable (differs from both endpoints); gain/lof/hif/filtcnt/tail/scat refuse brks (parameters 2-7); scat>0 unseeded-stochastic (two -s0.5 runs 1.2 s apart differ), scat 0 deterministic; -d changes render; lof>hif silently swapped (byte-identical; source: 'correct inverted frq range'); stereo accepted.",
+        "VINTAGE HANG CARRIED (task item answered from source): ap_filter.c:870 maps 'bank' to FLTBANKN for ALL six modes and filters0.c:92 sets do_norm=1 unconditionally for FLTBANKN, so the pre-11cdcb4 OOB-write normalization pre-pass covers modes 4-6 as well as 1-3. version_sensitive true."
+      ]
+    },
+    {
+      "program": "filter",
+      "mode": "bank",
+      "submode": 6,
+      "breakpoint_capable": ["q"],
+      "duration_row": ["filter", "bank", 6, 2.0, {"q": 50.0, "gain": 5.0, "lof": 200.0, "hif": 4000.0, "interval": 3.0, "tail": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Semitone-interval bank: frq[0]=lof, frq[n]=frq[n-1]*2^(interval/12) while < hif (fltprepro.c:128-130); bankfrqs 6 (200-4000, 3 st) prints 18 filters 200 ... 3805.46 - filter count is implicit, ceiling never reached.",
+        "interval CDP-enforced 0.25 to 96 semitones (0, 0.05, 130 refused verbatim; 0.5 accepted - microtonal clusters legal).",
+        "All sibling behaviors re-verified in this submode: tail default 1.0 (indur + tail sample-exact), tail=0 bug (262144 frames), Q brk capable, other params refuse brks (parameters 2-7), scat stochastic/unseeded, scat 0 deterministic, -d live, lof>hif silent swap, stereo accepted.",
+        "Same FLTBANKN vintage-hang carry as mode 5 (source-verified unconditional do_norm); version_sensitive true."
+      ]
+    },
+    {
+      "program": "morph",
+      "mode": "bridge",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry; incompatible with the single-input duration fixture (same as sibling sm1's null row). Model '((indur1 - offset) if (indur1 - offset) < indur2 else indur2)' verified via pvoc synth round-trips: (2.0,1.5)/(1.5,2.0) defaults -> 1.5209 both orders; equal pair -a0.5/-a1.0/-a1.5 -> 1.5238/1.0217/0.5224; (1.5,2.0) -a0.5 -d0.8 -> 1.0217.",
+      "stochastic": false,
+      "notes": [
+        "MINIMUM-GAIN bridge: output level = moment-to-moment min of the two infile amplitudes. Content-verified: steady in1 + deep-AM in2 -> output RMS 0.0004 at in2's troughs (sm1: 0.104, sm3: 0.408 on the same pair).",
+        "DURATION RULE DIVERGES FROM SM1 (first-class): min(indur1 - offset, indur2) in all probed regimes - default ef2/ea2 does NOT give indur2 ((1.5,2.0) -> 1.5209 vs sm1's 2.0230, mode-1 sanity on the same fixtures reproduces sm1's model); offset SUBTRACTS instead of extending. ef2/ea2 < 1 changes nothing further. Predictions carry +1-window quantisation; error grows as indur1-offset -> 0.",
+        "Modes 2 and 3 render byte-identical whenever infile1 is everywhere the quieter file (min == amp1) - verified; they separate when infile2 is sometimes quieter.",
+        "All seven flag params refuse breakpoints ('Cannot read parameter N', N=1-7, re-verified). Ranges spot re-verified: -a3 refused '(0.000000 to 2.020136)' (runtime=indur1); -b1.5 refused 0-1; -g3 refused '(0.005805 to 2.025941)'.",
+        "NEW COMPAT AXIS (organic): float-source .ana vs PCM-source .ana refused 'Incompatible original-sample-type in input file ...' - beyond sm1's analysis-sample-rate rule. Wav input refused. Deterministic (identical resyntheses 1.2 s apart)."
+      ]
+    },
+    {
+      "program": "morph",
+      "mode": "bridge",
+      "submode": 3,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "2-input entry; incompatible with the single-input duration fixture. Model 'indur_min' verified via pvoc synth round-trips: min(indur1, indur2) in every regime - (1.5,2.0)/(2.0,1.5) -> 1.5209 both; offset -a0.5/-a1.0 changes content (shas differ) but never length (2.0230); ef2/ea2 < 1 changes nothing.",
+      "stochastic": false,
+      "notes": [
+        "FOLLOW-INFILE1 bridge: output level rides infile1's amplitude throughout. Content-verified: steady in1 + deep-AM in2 -> RMS holds 0.408 through in2's silences (sm2 collapses to 0.0004). Submode 4 mirrors to infile2 (verified byte-equal to sm2 on the pair where amp2 was everywhere the min).",
+        "DURATION RULE DIVERGES FROM SM1: min(indur1, indur2) always; offset affects content only. Curated expr uses the engine's injected indur_min name.",
+        "Modes 2/3 coincide when infile1 is everywhere quieter (verified byte-identical) - documented in both entries.",
+        "All seven flag params refuse breakpoints (N=1-7, re-verified); -e-0.5 refused 0-1. Same original-sample-type + analysis-rate compat rules as sm2. Deterministic."
+      ]
+    },
+    {
+      "program": "modify",
+      "mode": "radical",
+      "submode": 5,
+      "breakpoint_capable": ["modfrq"],
+      "duration_row": ["modify", "radical", 5, 2.0, {"modfrq": 440.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "RING MODULATE, chosen with shred as the two most musically distinct uncurated radical modes (ST covers 5; see transcript section 4 for the full rationale).",
+        "duration static, sample-exact (tone/noise/stereo). Deterministic. Stereo accepted -> any.",
+        "Content verified textbook: 440 Hz tone x 100 Hz -> exactly 340 + 540 Hz, residual carrier energy 0.0000 of peak.",
+        "modfrq breakpoint-capable (50->500 sweep differs from both endpoint renders). CDP-enforced 0.1 to Nyquist - '(0.100000 to 22050.000000)' at 44.1 kHz, '(0.100000 to 11025.000000)' at 22.05 kHz (input-dependent ceiling). SoundThread's 5-880 (default 60) advisory."
+      ]
+    },
+    {
+      "program": "modify",
+      "mode": "radical",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": ["modify", "radical", 2, 2.0, {"repeats": 3, "chunklen": 0.1}, 0.05],
+      "stochastic": true,
+      "notes": [
+        "SHRED, chosen with ring mod (afta8 covers it; SoundThread's help does not - its radical coverage is 1/3/4/5/6). duration static and sample-exact on all probes despite stochastic content.",
+        "CLOCK-SEEDED, UNSEEDABLE (first-class): shred_pconsistency (dev/modify/radical.c:395) calls initrand48() = srand(time(0)) (osbind.c:334); no seed argv slot. Verified: runs 1.2 s apart differ, runs in the SAME second byte-identical (collision trap). scrub (radical.c:1030) shares the construction - recorded for future curation.",
+        "scatter 0 is STILL stochastic (banner's 'reorders without shredding' is a random permutation; 1.2 s-apart -s0 runs differ).",
+        "Ranges: repeats 1-10000 (afta8's 0-1000 advisory); chunklen input-dependent '(0.017415 to 0.999998)' on 2 s, '... to 0.499998' on 1 s (floor 768 samples srate-dependent, max indur/2); scatter HARD CAP 0-8 (banner '0 to K' and afta8 0-10 both wrong; -s9 refused even at K=10) plus runtime 'Scatter value cannot be greater than infileduration/chunklength.' (INVALID DATA).",
+        "repeats/chunklen/scatter all refuse breakpoints (parameters 1-3). -n accepted (A/B impossible - clock seed).",
+        "Stereo accepted; dual-mono input -> output channel correlation 1.0000, 85% samples bit-identical (cuts shared across channels; image survives)."
+      ]
+    },
+    {
+      "program": "modify",
+      "mode": "speed",
+      "submode": 5,
+      "breakpoint_capable": [],
+      "duration_row": ["modify", "speed", 5, 2.0, {"accel": 2.0, "goaltime": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "ACCEL/DECEL: speed is EXPONENTIAL in output time (strans.c:104 per-sample ratio pow(accel, 1/(acceltime*srate))), reaching accel at goaltime and continuing beyond until input exhausted.",
+        "DECEL BLACK HOLE (first-class): for accel < 1 the increment can hit MININC = 0.002 (strans.c:50) before input exhaustion - 'INFO: Acceleration reached black hole! - finishing' and the REST OF THE INPUT IS DISCARDED (accel 0.5/goal 1 on 2 s consumes ~1.44 s, outputs 8.9658 s).",
+        "Curated duration expression is the closed form with ln x approximated as 10000*(x**0.0001 - 1) (functions-free expression language); fits all 12 probes (accel 0.25-4, goaltime 0.3-2, starttime 0/0.5, indur 1-2 s, black-hole and passthrough cases) to worst 0.028%; verified evaluable under the repo's SimpleEval.",
+        "accel = 1 legal (passthrough, 1 frame short; expression special-cases it). Ranges: accel 0.0001-1000; goaltime 0.01 to indur (input-dependent); starttime -s 0 to indur-0.01; goaltime-starttime > 0.01 ('time for acceleration (0.000000) must be greater than  0.010secs', MINTIME_ACCEL modicon.h:103).",
+        "All three params refuse breakpoints (parameters 1-3) - for arbitrary contours use curated modify speed 2. Deterministic; stereo accepted (duration matches mono prediction exactly)."
+      ]
+    },
+    {
+      "program": "envspeak",
+      "mode": "envspeak",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": ["envspeak", "envspeak", 2, 2.0, {"wsize": 50.0, "splice": 15.0, "offset": 0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "REVERSE-REPEAT: each detected syllable plays forward then exactly reversed. Content-verified: output contains a sample-exact time-reversed copy of the event (cross-correlation 1.000 at the match).",
+        "duration = indur * 2, exact at offset 0 on five fixtures incl. stereo (4.0000 from 2.0; 2.4000 from 1.2); -0.18% at wsize 15/splice 5; offset > 0 under-runs the model (offset 1 -> x1.975) - safe direction.",
+        "FULLY DETERMINISTIC unlike sibling sm1's rand path: mode-2 argv has NO repet and NO rand slot; 1.2 s-apart runs byte-identical. No time-variable parameter at all (wsize/splice/offset refuse brks, parameters 1-3).",
+        "OFFSET RUNTIME CONSTRAINT (new vs sm1): 'ERROR: ERROR: Offset (2) too large for number of peaks found (4).' (verbatim, doubled ERROR) at wsize 50 on the 4-peak fixture; offset 1 runs; offset 2 passes at wsize 15 (more peaks detected).",
+        "CONTENT REFUSAL as sm1: steady tone -> 'FAILED TO FIND ANY ENVELOPE TROUGHS IN THE FILE.' Ranges verbatim: wsize 5-1000, splice 2-100, offset 0-100. Stereo accepted."
+      ]
+    },
+    {
+      "program": "synth",
+      "mode": "wave",
+      "submode": 2,
+      "breakpoint_capable": ["frq", "amp"],
+      "duration_row": ["synth", "wave", 2, null, {"dur": 2.0, "frq": 440.0, "amp": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "SQUARE wave, shape verified numerically (+1 half-cycle / -1 half-cycle, one interpolated sample per edge). Arity-0 generator; duration set_by dur, sample-exact.",
+        "frq and amp breakpoint-capable re-verified in this submode (frq 220->880 differs from both endpoints; amp 0.001->1 ramp RMS 0.0585 -> 0.9792). -a1 == flag-less byte-identical (default amp 1.0).",
+        "tabsize MATTERS here: -t4096 changes the render (sharper edge) - contrast submode 4 where it is a no-op.",
+        "Ranges re-verified: srate discrete set (11025 refused quoting '(16000.000000 to 192000.000000)'; 192000 in-range but 'Invalid sample rate.'); chans 1-16 (dual-mono output); dur 0.04-7200; frq 0.1-22000 flat (12 kHz at srate 22050 accepted silently - aliases); tabsize 256-4096; -a0 renders digital silence.",
+        "Full-scale square is 0 dBFS RMS - hottest signal in the family; noted in entry. Deterministic (1.2 s apart byte-identical)."
+      ]
+    },
+    {
+      "program": "synth",
+      "mode": "wave",
+      "submode": 4,
+      "breakpoint_capable": ["frq", "amp"],
+      "duration_row": ["synth", "wave", 4, null, {"dur": 2.0, "frq": 440.0, "amp": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "RAMP wave = DESCENDING SAWTOOTH, shape verified numerically (starts each cycle at +1, falls linearly through 0 at mid-cycle to -1). Banner says 'ramp'; afta8 'Ramp (sawtooth)'. Full odd+even harmonic spectrum. Arity-0 generator; duration set_by dur, sample-exact.",
+        "frq and amp breakpoint-capable re-verified (amp ramp last-100ms RMS 0.566 = 1/sqrt(3) of full scale, as a ramp should be). -a1 == flag-less byte-identical.",
+        "TABSIZE NO-OP (first-class quirk): -t4096 renders byte-identical to the -t256 default - linear interpolation of a linear ramp is exact. The parameter's usefulness is waveform-dependent (live in submode 2).",
+        "Above-Nyquist fundamental accepted silently in this submode too (12 kHz at srate 22050, exit 0). Dual-mono multichannel; deterministic."
+      ]
+    },
+    {
+      "program": "specfnu",
+      "mode": "specfnu",
+      "submode": 2,
+      "breakpoint_capable": ["squeeze"],
+      "duration_row": ["specfnu", "specfnu", 2, 2.0, {"squeeze": 4.0, "centre": 1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "SQUEEZE SPECTRUM: whole spectrum compressed toward a centre point (source: 'Squeeze by 10 shrinks spectrum by 1/10'). Static duration (2.0 -> 2.0230, 3.0 -> 3.0215); deterministic; usual family 'WARNING: failed to write PEAK data' on every run.",
+        "CENTRE NO-OP BUG (first-class binary bug, source-diagnosed): specfnu.c case(F_SQUEEZE) ends with an unconditional 'dz->fundamental = 1;' (line 3468) clobbering the -f gating, and formants_squeeze() then overrides the chosen formant-peak channel with the fundamental's channel on every pitched window. Empirical: centre 1/2/3/4/2.5 byte-identical on a 4-formant vowel whose peaks mode 21 verifiably detects; spectral centroid collapses to the fundamental region regardless. centre WORKS with -t (trough mode: centre 1 vs 3 differ) and on unpitched material (noise: centre 1 vs 4 differ). -f is consequently meaningless in peak mode (bit-identical to base).",
+        "squeeze works and is time-variable: brk 1->8 differs from both scalar endpoints. Banner ranges exact: squeeze 1-10, centre 1-4 (fractional 2.5 accepted - int slot), gain -g 0.01-10; default gain 1.0 pinned (flag-less == -g1 bit-identical).",
+        "-x -k together refused ('...ZERO SIGNAL LEVEL.'); -t/-x/-k/-r each change output (-k leaves -41.8 dBFS residue vs -15.7 base); -s bit-identical on both probe sources (source-dependent).",
+        "Incidental family finding: mode 21 (SEE SPEC PEAKS/TROFS) writes its complete textfile then ABORTS (core dump) at teardown on this build - second broken-exit-contract mode alongside known mode 19 (avoided per task)."
+      ]
+    }
+  ],
+  "dropped": []
+}

@@ -1,0 +1,124 @@
+{
+  "program": "morph",
+  "mode": "bridge",
+  "submode": 2,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {
+    "kind": "expression",
+    "expr": "((indur1 - offset) if (indur1 - offset) < indur2 else indur2)"
+  },
+  "curated": true,
+  "version_sensitive": false,
+  "description": "The MINIMUM-GAIN bridge: interpolates frequency and amplitude between one FROZEN analysis window grabbed from each infile (like curated submode 1), but the output LEVEL follows the moment-to-moment MINIMUM of the two infile amplitudes - the render is only as loud as the quieter source at every instant (content-verified: with a steady infile1 and a deep-AM infile2 the output drops to near silence, RMS 0.0004, at infile2's envelope troughs where submode 1 reads 0.10 and submode 3 holds 0.41). DURATION RULE DIVERGES FROM SUBMODE 1 (verified on equal and unequal pairs, both orders): output is min(indur1 - offset, indur2) - the shorter input wins REGARDLESS of ef2/ea2 (sm1's indur2 rule does not apply: the (1.5 s, 2 s) pair gives 1.5209 here where sm1 gives 2.0230), and offset SUBTRACTS from infile1's contribution instead of extending the output (equal 2 s pair: -a0.5 -> 1.5238, -a1.0 -> 1.0217, -a1.5 -> 0.5224; sm1's -a0.5 -> 2.5223). All seven parameters are optional flags; all refuse breakpoint files. Deterministic (identical resyntheses 1.2 s apart). Both inputs must share analysis parameters.",
+  "musical_use": "A spectral dissolve that ducks itself: because the level tracks the quieter file, the bridge only speaks where BOTH sounds have energy - gaps, breaths and decays in either source punch holes in the morph, turning the smooth sm1 glide into a gated, breathing crossfade. Feed it one steady drone and one gestural/enveloped source and the gesture's envelope is stamped onto the evolving hybrid timbre - a side-chain-like effect with no side-chain. With two sustained sources it behaves like sm1 but conservatively mixed (never louder than the quieter partner - useful when sm1's direct interpolation pumps). sf2/sa2 vs ef2/ea2 still set how much of sound 2's frequencies/amplitudes are present at the start and end of the interpolation; note that unlike sm1, pulling ef2/ea2 below 1 does NOT change the duration here. Beware silence: if either source is silent at some moment, the bridge is silent there too - trim dead air first (sfedit cut) or the morph vanishes. offset delays sound 2's entry AND shortens the output (min(indur1 - offset, indur2)) - the pre-entry portion is dropped, not padded.",
+  "parameters": {
+    "offset": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Time at which infile2 starts relative to the start of infile1 (runtime-enforced 0 to infile1's duration: -a3 on a ~2 s file refused 'out of range (0.000000 to 2.020136)'). DIVERGES FROM SUBMODE 1: here offset SHORTENS the output to min(indur1 - offset, indur2) instead of adding to it (verified -a0.5/-a1.0/-a1.5 on an equal 2 s pair -> 1.5238/1.0217/0.5224). Scalar only ('brkpnt_files not permitted', parameter 1)."
+    },
+    "sf2": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Fraction of the 2nd sound's FREQUENCIES interpolated at the START (CDP-enforced 0-1: -b1.5 refused 'out of range (0.000000 to 1.000000)'; default 0). Scalar only (parameter 2)."
+    },
+    "sa2": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Fraction of the 2nd sound's AMPLITUDES interpolated at the START (CDP-enforced 0-1, default 0). Scalar only (parameter 3)."
+    },
+    "ef2": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Fraction of the 2nd sound's FREQUENCIES interpolated at the END (CDP-enforced 0-1, default 1). Unlike submode 1, setting it below 1 does NOT change the duration rule here (verified: -d0.8 -e0.8 leaves the min rule intact on both orderings). Scalar only (parameter 4)."
+    },
+    "ea2": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Fraction of the 2nd sound's AMPLITUDES interpolated at the END (CDP-enforced 0-1, default 1). Same duration note as ef2. Scalar only (parameter 5)."
+    },
+    "start": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-f",
+      "flag_kind": "attached_value",
+      "description": "Time in infile1 of the START window for the interpolation (runtime-enforced 0 to infile1's duration). Default 0. Scalar only (parameter 6)."
+    },
+    "end": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Time in infile1 of the END window for the interpolation (runtime-enforced roughly one window to just past infile1's duration: -g3 on a ~2 s file refused 'out of range (0.005805 to 2.025941)' - both bounds input/analysis-rate-dependent). Default: end of file. Scalar only (parameter 7)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Gated dissolve: a drone morphs toward a gestural source, speaking only where the gesture speaks.",
+      "params": {},
+      "expected_use": "Defaults bridge infile1's grabbed window to infile2's; the output level rides the quieter file, so infile2's envelope gates the hybrid. Output = the shorter input's duration."
+    },
+    {
+      "description": "Late-entry partial hybrid.",
+      "params": {"offset": 0.5, "ef2": 0.8, "ea2": 0.8},
+      "expected_use": "Sound 2 enters 0.5 s in and the blend never fully completes; output = min(indur1 - 0.5, indur2) - offset shortens, unlike submode 1."
+    }
+  ],
+  "known_issues": [
+    "DURATION DIVERGENCE from curated submode 1 (all verified via pvoc synth round-trips, both argument orders): the output is min(indur1 - offset, indur2) in ALL probed regimes - default ef2/ea2 does NOT hand the duration to infile2 (unequal (1.5, 2.0) pair -> 1.5209, where sm1 -> 2.0230), ef2/ea2 < 1 changes nothing further, and offset SUBTRACTS (equal 2 s pair -a0.5/-a1.0/-a1.5 -> 1.5238/1.0217/0.5224) instead of adding as in sm1. Predictions carry a +1-analysis-window quantisation (~0.006-0.023 s); relative error grows as indur1 - offset approaches 0, so keep offset at least ~0.2 s away from indur1 when relying on the pre-flight.",
+    "MODES 2/3 CAN COINCIDE: when infile1 is everywhere the quieter file, min(amp1, amp2) = amp1 and this mode renders byte-identical to submode 3 (verified: deep-AM infile1 + steady infile2 -> identical shas; the distinction only appears when infile2 is sometimes quieter). Choose by which file should do the gating: this mode lets EITHER file duck the output.",
+    "Silence in either input silences the bridge at that moment (min rule) - near-silent output RMS 0.0004 at the quiet file's troughs on the probe pair. Trim leading/trailing silence from both sources.",
+    "AFTA8 DIVERGENCE (carried from sibling sm1, same argv shape): afta8's flag map matches the old CDP7 layout; the r8 binary uses -a offset -b sf2 -c sa2 -d ef2 -e ea2 -f start -g end. The curated flags follow the binary.",
+    "All seven parameters reject breakpoint files ('Cannot read parameter N [...]: brkpnt_files not permitted.', N = 1-7, re-verified in this submode).",
+    "Both inputs must come from the same analysis setup AND the same original sample format: beyond sm1's 'Incompatible analysis-sample-rate' refusal, a float-source .ana against a PCM-source .ana refuses 'ERROR: INVALID DATA / ERROR: Incompatible original-sample-type in input file ...' (hit organically during probing). The engine's auto-PVOC defaults satisfy both.",
+    "Time-domain input refused ('Application doesn't work with this type of infile.') - inputs must be .ana (auto-PVOC inserts the conversion).",
+    "Deterministic: two runs 1.2 s apart resynthesise identically (compare data chunks or resyntheses, not raw bytes - the RIFF date chunk differs)."
+  ],
+  "references": ["cdp://docs/html/cmorph"]
+}

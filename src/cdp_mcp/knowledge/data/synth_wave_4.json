@@ -1,0 +1,107 @@
+{
+  "program": "synth",
+  "mode": "wave",
+  "submode": 4,
+  "category": "synthesis",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": "none",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "dur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Generates a RAMP (sawtooth) wave - a pure generator with NO audio input (input_arity 0; call process() without an input argument). Submode 4 of the wave family (siblings: 1 sine and 2 square curated; 3 is a triangle despite the banner label). Shape verified numerically: a DESCENDING ramp, starting each cycle at +1 and falling linearly through zero at mid-cycle to -1 (cycle samples at 100 Hz: 1.0, 0.75, 0.50, 0.25, 0.0, -0.25, -0.50, -0.75, -1.0) - the full odd+even harmonic sawtooth spectrum, with falling polarity (afta8 calls the mode 'Ramp (sawtooth)'). Output duration is set exactly by dur (2.0 -> 88200 frames, 0.7 -> 30870). Both frq and amp are breakpoint-capable (re-verified in this submode against endpoint/constant renders). QUIRK: tabsize is a verified NO-OP here - the -t4096 render is byte-identical to the 256 default (a linearly-interpolated table reproduces a linear ramp exactly), unlike submode 2 where it changes the render. Deterministic (identical runs byte-identical, 1.2 s apart). Full scale at amp 1 (RMS -4.8 dBFS).",
+  "musical_use": "The buzzy full-spectrum workhorse: both odd AND even harmonics at 1/n, the brightest of the four waveforms and the classic subtractive-synthesis starting point. This is the source to feed filter bank / filter sweeping / specfnu when you want every harmonic available for carving - the curated formant and filter entries were themselves probed with this oscillator. Descending polarity is inaudible in isolation but matters when layering against other generators or the source it doubles - invert-by-mixing tricks and phase-sensitive stacks should account for the fall (there is no polarity flag; reverse it with modify radical 1 for a rising ramp, which time-reversal makes exact). Time-varying frq gives brassy glissandi and siren sweeps; time-varying amp shapes swells without a second pass. Like its siblings the table is not band-limited - sawtooth harmonics alias audibly from the mid-hundreds of Hz up (grit on demand); above-Nyquist fundamentals are accepted silently. Don't bother raising tabsize here - it is provably inert in this mode.",
+  "parameters": {
+    "srate": {
+      "type": "int",
+      "min": 16000,
+      "max": 96000,
+      "unit": "hz",
+      "breakpoint_capable": false,
+      "default": 44100,
+      "flag": null,
+      "description": "Output sample rate - discrete set 16000, 22050, 24000, 32000, 44100, 48000, 88200, 96000 (family behavior re-verified in submode 2 of this tranche: off-set members refused 'Invalid sample rate.', below-range values quote '(16000.000000 to 192000.000000)'). Entry default 44100 - always emitted (positional)."
+    },
+    "chans": {
+      "type": "int",
+      "min": 1,
+      "max": 16,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Output channel count, CDP-enforced 1 to 16 (banner claims 1, 2 or 4). Multi-channel output is DUAL-MONO (channels bit-identical, re-verified stereo in this submode)."
+    },
+    "dur": {
+      "type": "float",
+      "min": 0.04,
+      "max": 7200.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Output duration in seconds - sets the output length exactly (sample-exact: 2.0 -> 88200, 0.7 -> 30870). The engine's duration cap applies first via the set_by pre-flight. Required."
+    },
+    "frq": {
+      "type": "float",
+      "min": 0.1,
+      "max": 22000.0,
+      "unit": "hz",
+      "breakpoint_capable": true,
+      "default": 440.0,
+      "flag": null,
+      "musical_range": [20.0, 2000.0],
+      "description": "Oscillator frequency in Hz. CDP-enforced 0.1 to 22000 regardless of sample rate; above-Nyquist values accepted silently and alias (12 kHz at srate 22050 verified in this submode, exit 0, no warning). BREAKPOINT-CAPABLE (verified: a 220->880 envelope renders and differs from both endpoint renders); relative envelope times map onto dur. Entry default 440 (positional, always emitted)."
+    },
+    "amp": {
+      "type": "float",
+      "min": 0.000001,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "musical_range": [0.1, 0.8],
+      "description": "Output amplitude, CDP-enforced 0-1 (omitted = 1.0, full scale - verified: flag-less and -a1 byte-identical in this submode). BREAKPOINT-CAPABLE (verified: 0.001->1 ramp; last-100ms RMS 0.566 = the expected 1/sqrt(3) of a full-scale ramp). amp 0 renders digital silence - curated min keeps it nonzero."
+    },
+    "tabsize": {
+      "type": "int",
+      "min": 256,
+      "max": 4096,
+      "unit": "samples",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Size of the wavetable (CDP-enforced 256 to 4096, family-verified). VERIFIED NO-OP IN THIS SUBMODE: -t4096 renders byte-identical to the 256 default - linear interpolation of a linear ramp is exact, so the table resolution never shows. Exposed for argv completeness; changing it does nothing."
+    }
+  },
+  "examples": [
+    {
+      "description": "A bright 2-second 110 Hz saw for filter carving.",
+      "params": {"dur": 2.0, "frq": 110.0, "amp": 0.6},
+      "expected_use": "No input argument. Full-spectrum buzz; feed filter bank or specfnu downstream. Byte-identical on every render."
+    },
+    {
+      "description": "Brass-like rising glissando with a swell.",
+      "params": {"dur": 4.0, "frq": [[0.0, 110.0], [1.0, 440.0]], "amp": [[0.0, 0.05], [0.6, 0.8], [1.0, 0.4]]},
+      "expected_use": "Two-octave saw glide; relative envelope times stretch over the full 4 s."
+    }
+  ],
+  "known_issues": [
+    "Waveform submodes: 1 sine (curated), 2 square (curated), 3 triangle (banner wrongly says 'sawtooth'), 4 THIS - banner says 'ramp wave'; the rendered shape is a DESCENDING sawtooth (+1 falling linearly to -1 per cycle, verified numerically). afta8 labels it 'Ramp (sawtooth)'. For a rising ramp, reverse the render with modify radical 1.",
+    "tabsize is a NO-OP in this submode (first-class quirk): -t4096 byte-identical to the -t256 default (verified), because linear table interpolation reproduces the linear ramp exactly. It DOES change submode 2's render - the parameter's usefulness is waveform-dependent.",
+    "ALIASING: no band-limiting - the saw's dense harmonic series folds at Nyquist audibly from mid-hundreds of Hz fundamentals; above-Nyquist fundamentals accepted SILENTLY (verified 12 kHz at srate 22050). Keep frq low for clean tones or use the grit deliberately.",
+    "amp 0 is accepted by CDP but renders digital silence (fails output verification) - curated nonzero minimum.",
+    "Deterministic: identical params render byte-identically (verified 1.2 s apart). Multi-channel output is dual-mono (channels bit-identical).",
+    "srate accepts only the discrete set 16000/22050/24000/32000/44100/48000/88200/96000 despite the quoted 16000-192000 range.",
+    "Generator entry: process() takes no input argument here; graph()/batch()/sweep() refuse arity-0 entries with a structured arity_zero_unsupported error - render first, then wire the output."
+  ],
+  "references": ["cdp://docs/html/cgrosynth"]
+}

@@ -1,0 +1,85 @@
+{
+  "program": "scramble",
+  "mode": "scramble",
+  "submode": 9,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": "related",
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Cuts the source into wavesets (zero-crossing-bounded 'wavecycles', grouped by cnt) and reassembles them in order of INCREASING LEVEL - the quietest material plays first and the sound builds to its loudest wavesets. The exact mirror of curated submode 10 (independently re-verified: first/last 300 ms RMS 0.028/0.537 here flips to 0.547/0.029 in mode 10 on the same deep-AM source; the two renders differ). Submodes 1-2 are random-order scrambles with an outdur positional, 3-8 and 11-14 sort by waveset size or per-segment (cuts textfile) - reachable via execute(). The seed is a REQUIRED positional (0-256) and it WORKS (science/scramble.c:1123 srand(seed) behind the osbind drand48 shim): with trns/atten at their 0 defaults the level-sort is fully deterministic and the seed is inert (seed 5 and seed 9 byte-identical); with trns or atten > 0 the process is genuinely stochastic and seed-reproducible (same seed byte-identical 1.2 s apart, different seeds differ - all re-verified in this submode). Seed 0 equals seed 1 (glibc srand(0) == srand(1)); there is NO unseeded/clock path. Output duration is static (worst drift -0.23% on deep-AM material; -0.005% on flat noise); trns > 0 re-lengths wavesets (+1.7%/-1.1% observed at trns 3 for seeds 5/9). MONO input only.",
+  "musical_use": "Turns any sound into a crescendo gesture assembled from its own quietest fragments upward - the natural rise/build partner to submode 10's strike-and-decay. Reads as an emergence: the sound assembles itself out of near-silence and peaks at the end, ideal before a drop or as a reversed-feeling swell that never actually plays backwards (each waveset still runs forward). Works best on material with a wide dynamic range - enveloped, gestural or speech sources; an even-level sustained tone just reorders near-identical cycles to little effect. cnt sets the granularity: 1 scrambles individual wavesets (buzzy, granular), larger groups (10-50) keep recognisable chunks. Add trns for random per-waveset transposition (pitch shimmer, up to +/-12 semitones) and atten for random level scatter - both make the result stochastic, so set a seed you like and keep it. Chain into submode 10 (rise then fall) for full arch shapes, or dovetail the tail to sharpen the peak. Time-varying (breakpoint) trns/atten sculpt where in the OUTPUT the shimmer and scatter appear.",
+  "parameters": {
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 256,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "REQUIRED positional random seed (CDP-enforced 0 to 256, refusal 'Parameter[1] Value (257.000000) out of range (0.000000 to 256.000000)'; omitting it is 'Insufficient parameters on command line.'). A WORKING seed: same seed reproduces byte-identically (decoded samples, runs 1.2 s apart), different seeds differ whenever trns/atten > 0. With trns = atten = 0 the level-sort consumes no randomness and the seed is inert (seed 5 == seed 9). Seed 0 is identical to seed 1 (verified byte-identical) - the usable distinct-seed space is 1-256; there is no clock-seeded path, so use different seed VALUES (not reruns) for variants. Breakpoint file refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    },
+    "cnt": {
+      "type": "int",
+      "min": 1,
+      "max": 256,
+      "unit": "wavesets",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Number of wavesets per group to be scrambled as a unit (CDP-enforced 1 to 256; default 1 - bare seed-5 run byte-equals '-c1 -t0 -a0'). Small values give granular buzz, larger values keep recognisable chunks. SoundThread's default is 20. Breakpoint file refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.')."
+    },
+    "trns": {
+      "type": "float",
+      "min": 0.0,
+      "max": 12.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Range of random per-waveset transposition in semitones (CDP-enforced 0 to 12; 13 refused). 0 (default) disables it and keeps the process deterministic. Makes output slightly longer/shorter run-to-run (+1.7%/-1.1% at trns 3, seed-dependent) since wavesets are resampled. May vary through OUTPUT time via a breakpoint file (verified in this submode: a 0->3 ramp differs from both scalar-endpoint renders at the same seed)."
+    },
+    "atten": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Range of random per-waveset attenuation (CDP-enforced 0 to 1; 1.5 refused). 0 (default) disables it. May vary through OUTPUT time via a breakpoint file (verified in this submode: a 0->0.8 ramp differs from both scalar-endpoint renders at the same seed)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Plain crescendo-sort: reassemble the source quietest-first, deterministic.",
+      "params": {"seed": 1, "cnt": 20},
+      "expected_use": "Same-duration output that emerges from the source's quietest wavesets and builds to its loudest; with trns/atten unset the result is identical for any seed."
+    },
+    {
+      "description": "Stochastic granular build with pitch shimmer and level scatter, reproducible.",
+      "params": {"seed": 5, "cnt": 4, "trns": 3.0, "atten": 0.5},
+      "expected_use": "Grainy, shimmering rise gesture; rerun with seed 5 for the identical take, change the seed for variants."
+    }
+  ],
+  "known_issues": [
+    "Mono-only + stochastic + seed-reproducible, like sibling submode 10 (the stereo seed-link trigger combination): stereo input refused 'ERROR: INVALID DATA / ERROR: File st2.wav is not of correct type (must be mono)'. Stereo sources must be split/processed/rejoined manually; stereo_link_default 'related' records the intended per-channel-seed default (seed and seed+1, not identical).",
+    "The seed is REQUIRED and there is no unseeded/clock path: rerunning identical params always reproduces byte-identically. Seed 0 equals seed 1 (verified byte-identical at trns 3/atten 0.5) - the usable distinct-seed space is 1-256.",
+    "With trns = 0 and atten = 0 (the defaults) the level-sort consumes no randomness: seed 5 and seed 9 renders are byte-identical. The seed only matters once trns and/or atten are nonzero.",
+    "Duration is static but waveset-quantised: -0.23% worst observed (deep-AM tone); -0.005% on flat noise. trns > 0 adds a random +/-~1-2% length drift that varies with the seed (wavesets are resampled to new pitches).",
+    "Option flags are NOT order-enforced ('-a0.5 -c2' runs). CDP still refuses to overwrite an existing output file.",
+    "Submode is load-bearing: 9/10 sort by level (no dur/cuts argv slot), 1-2 take an extra outdur positional, 5-8/11-14 take a cuts textfile - argv shapes differ, so other submodes need their own entries or execute()."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

@@ -1,0 +1,71 @@
+{
+  "program": "envspeak",
+  "mode": "envspeak",
+  "submode": 2,
+  "category": "extend",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur * 2"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "REVERSE-REPEAT: finds 'syllables' in the source by locating troughs in its amplitude envelope (search window wsize ms), then plays each syllable forward AND backward - every detected event is immediately followed by its exact time-reversal (content-verified: the output contains a sample-exact reversed copy of each event, cross-correlation 1.000). Pinned to submode 2 of curated sibling submode 1 (REPEAT); this mode's argv is just wsize/splice/offset - there is NO repet and NO rand parameter, which makes it FULLY DETERMINISTIC (byte-identical 1.2 s apart), unlike sibling modes with rand. Output duration is exactly indur * 2 at offset 0 (4.0000 s from every 2.0 s fixture including stereo; 2.4000 from 1.2 s; wsize 15/splice 5 drifts -0.18%); offset > 0 leaves the first peaks unrepeated and shortens the output below the model. Needs material with envelope troughs (steady tones refused). Mono and stereo accepted.",
+  "musical_use": "The palindrome stutter: every syllable, hit or gesture is answered by its own mirror image - dum becomes dum-mud, each drum hit grows a sucking pre-echo-like tail that is actually a post-echo of reversed audio. On speech it produces the classic backwards-language double-talk while keeping the phrase order and rhythm roughly legible; on percussion it turns every transient into an attack-decay/decay-attack diamond; on textures it creates local symmetry that reads as a subtle smearing 'breathing' effect. wsize tunes event detection exactly as in sibling submode 1 (~50 ms for speech syllables, 5-20 ms for fast articulations, longer to merge events into bigger mirrored chunks - the fewer, larger the events, the more obviously palindromic the result). offset preserves a clean intro before the mirroring begins. Deterministic, so it is safe deep inside reproducible graphs - no takes to audition, unlike shred or rand-driven envspeak modes. Pairs beautifully with modify radical 1 (full reversal) for AB/BA games, and with modify speed 2 downstream to pitch the doubled phrase.",
+  "parameters": {
+    "wsize": {
+      "type": "float",
+      "min": 5.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 50.0,
+      "flag": null,
+      "description": "Size of the envelope-search window in milliseconds (CDP-enforced 5 to 1000: 4 and 1001 refused quoting '(5.000000 to 1000.000000)'; banner default 50; SoundThread's 5-100 with default 15 is an advisory subset). Sets the granularity of syllable detection - and therefore how many events get mirrored. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "splice": {
+      "type": "float",
+      "min": 2.0,
+      "max": 100.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 15.0,
+      "flag": null,
+      "description": "Splice length in milliseconds at each cut (CDP-enforced 2 to 100: 1 and 101 refused; banner default 15). Short splices keep transients sharp at the forward/backward joins. Breakpoint file refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    },
+    "offset": {
+      "type": "int",
+      "min": 0,
+      "max": 100,
+      "unit": "peaks",
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Number of initial peaks to output unchanged before the mirroring starts (CDP-enforced 0 to 100: -1 and 101 refused). ALSO runtime-constrained by how many peaks the detector finds: offset 2 on a source with 4 detected peaks refused 'ERROR: ERROR: Offset (2) too large for number of peaks found (4).' (verbatim, doubled ERROR included) while offset 1 ran - shrink wsize to detect more peaks if this trips. offset > 0 makes the output shorter than indur * 2 (verified: offset 1 -> 3.9500 from 2.0 s). Breakpoint file refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Palindrome speech: every syllable answered by its reversal.",
+      "params": {"wsize": 50.0, "splice": 15.0, "offset": 0},
+      "expected_use": "Deterministic; output exactly 2x the input duration. Backwards-language double-talk with the phrase rhythm intact."
+    },
+    {
+      "description": "Mirrored drum hits with a clean first bar.",
+      "params": {"wsize": 20.0, "splice": 5.0, "offset": 4},
+      "expected_use": "First four detected hits play straight, then each hit grows its reversed twin. Output slightly under 2x."
+    }
+  ],
+  "known_issues": [
+    "CONTENT REFUSAL (shared with sibling submode 1): material without amplitude troughs is refused - a steady 440 Hz tone gives 'ERROR: INVALID DATA / ERROR: FAILED TO FIND ANY ENVELOPE TROUGHS IN THE FILE.' (exit 255). Enveloped noise, click trains, AM tones and flat noise all worked.",
+    "OFFSET RUNTIME CONSTRAINT: beyond the static 0-100 range, offset must fit the number of peaks actually detected - 'ERROR: ERROR: Offset (2) too large for number of peaks found (4).' (note CDP's doubled 'ERROR:'). Fewer/larger events (big wsize) lower the ceiling; offset 2 that fails at wsize 50 can pass at wsize 15.",
+    "Duration model indur * 2 is exact at offset 0 with default wsize/splice (4.0000 from 2.0 on syllable, flat-noise, click-train, AM and stereo fixtures; 2.4000 from 1.2) and drifts -0.18% at wsize 15/splice 5; offset > 0 REDUCES the output below the model (offset 1 -> x1.975) - the model over-predicts there, the safe direction for the duration cap.",
+    "FULLY DETERMINISTIC, unlike sibling submode 1's rand path: mode 2 has no rand parameter and no random code path - two runs 1.2 s apart byte-identical. Safe for reproducible render graphs.",
+    "Stereo input accepted (2ch in -> 2ch out, duration model holds). wsize/splice/offset all refuse breakpoint files ('brkpnt_files not permitted', parameters 1-3) - this mode has no time-variable parameter at all."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

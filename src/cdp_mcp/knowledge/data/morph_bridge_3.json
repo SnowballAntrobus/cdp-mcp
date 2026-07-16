@@ -1,0 +1,121 @@
+{
+  "program": "morph",
+  "mode": "bridge",
+  "submode": 3,
+  "category": "morph",
+  "domain": "spectral",
+  "input_arity": 2,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur_min"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "The FOLLOW-INFILE1 bridge: interpolates frequency and amplitude between one FROZEN analysis window grabbed from each infile (like curated submode 1), but the output LEVEL follows the moment-to-moment amplitude of INFILE1 throughout - the first file's envelope is stamped onto the whole morph (content-verified: with a steady infile1 and a deep-AM infile2 the output holds RMS 0.41 through infile2's silences, where submode 2 collapses to 0.0004 and submode 1 dips to 0.10). Submode 4 is the same idea following infile2's amplitude instead. DURATION RULE DIVERGES FROM SUBMODE 1 (verified on equal and unequal pairs, both orders): output = min(indur1, indur2) always - default ef2/ea2 does NOT hand the duration to infile2, ef2/ea2 < 1 changes nothing, and offset does NOT lengthen OR shorten the output (equal 2 s pair with -a0.5/-a1.0 stays 2.0230; offset still changes the CONTENT - shas differ). All seven parameters are optional flags; all refuse breakpoint files. Deterministic. Both inputs must share analysis parameters.",
+  "musical_use": "The envelope-transplant morph: the hybrid timbre glides from sound 1 toward sound 2, but sound 1 keeps its dynamics the whole way - phrasing, accents and decays survive while the colour dissolves into something else. This is the bridge to reach for when morphing a performed line (speech, a drum phrase, a cello gesture) into a synthetic or alien spectrum without losing the performance: put the performance on input 1. The mirror trick also works - put a steady drone on input 1 and a rhythmic source on input 2, and the rhythm is ERASED from the morph (only its colour arrives), yielding an eerily static hybrid that submode 2 would chop up. sf2/sa2 and ef2/ea2 still shape how much of sound 2 is present at the interpolation's ends; partial values give suspended in-between timbres carried by file 1's envelope. offset delays where sound 2's window enters the interpolation without touching the output length - a free phase control for the dissolve.",
+  "parameters": {
+    "offset": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Time at which infile2 starts relative to the start of infile1 (runtime-enforced 0 to infile1's duration). DIVERGES FROM SUBMODES 1 AND 2: does not change the output duration at all (verified -a0.5/-a1.0 on an equal 2 s pair -> 2.0230 both, same as no offset) but does change the render (shas differ). Scalar only ('brkpnt_files not permitted', parameter 1)."
+    },
+    "sf2": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Fraction of the 2nd sound's FREQUENCIES interpolated at the START (CDP-enforced 0-1, default 0). Scalar only (parameter 2)."
+    },
+    "sa2": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-c",
+      "flag_kind": "attached_value",
+      "description": "Fraction of the 2nd sound's AMPLITUDES interpolated at the START (CDP-enforced 0-1, default 0). Scalar only (parameter 3)."
+    },
+    "ef2": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Fraction of the 2nd sound's FREQUENCIES interpolated at the END (CDP-enforced 0-1, default 1). Unlike submode 1, setting it below 1 does NOT change the duration rule (verified both orderings). Scalar only (parameter 4)."
+    },
+    "ea2": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-e",
+      "flag_kind": "attached_value",
+      "description": "Fraction of the 2nd sound's AMPLITUDES interpolated at the END (CDP-enforced 0-1: -e-0.5 refused 'out of range (0.000000 to 1.000000)'; default 1). Same duration note as ef2. Scalar only (parameter 5)."
+    },
+    "start": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-f",
+      "flag_kind": "attached_value",
+      "description": "Time in infile1 of the START window for the interpolation (runtime-enforced 0 to infile1's duration). Default 0. Scalar only (parameter 6)."
+    },
+    "end": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Time in infile1 of the END window for the interpolation (runtime-enforced roughly one window to just past infile1's duration: -g3 on a ~2 s file refused 'out of range (0.005805 to 2.025941)' - bounds input/analysis-rate-dependent). Default: end of file. Scalar only (parameter 7)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Morph a performed phrase into an alien spectrum, keeping the performance.",
+      "params": {},
+      "expected_use": "Put the phrase on input 1: its dynamics carry the whole dissolve while the timbre glides to sound 2. Output = the shorter input's duration."
+    },
+    {
+      "description": "Suspended half-morph with the source's phrasing intact.",
+      "params": {"ef2": 0.6, "ea2": 0.6},
+      "expected_use": "The colour only travels 60% of the way to sound 2; file 1's envelope still shapes everything. Duration unchanged: min(indur1, indur2)."
+    }
+  ],
+  "known_issues": [
+    "DURATION DIVERGENCE from curated submode 1 (all verified via pvoc synth round-trips, both argument orders): output = min(indur1, indur2) in every probed regime - default ef2/ea2 gives 1.5209 on the (1.5, 2.0) pair where sm1 gives 2.0230; ef2/ea2 < 1 changes nothing; offset changes the render but never the length (equal pair -a0.5/-a1.0 -> 2.0230). Predictions carry a +1-analysis-window quantisation (~0.023 s on 2 s inputs, +1.15% - within the 5% pre-flight tolerance).",
+    "MODES 2/3 CAN COINCIDE: when infile1 is everywhere the quieter file, submode 2's min rule equals amp1 and the two render byte-identical (verified). They separate when infile2 is sometimes quieter: this mode holds infile1's level (RMS 0.41 on the probe) where submode 2 ducks to silence (0.0004).",
+    "A silent stretch in INFILE1 silences the morph there regardless of infile2 (the level is file 1's); infile2's silences are inaudible in the level but still pull the interpolated spectrum. Choose input order accordingly (submode 4 mirrors this to infile2).",
+    "AFTA8 DIVERGENCE (carried from sibling sm1, same argv shape): afta8's flag map matches the old CDP7 layout; the r8 binary uses -a offset -b sf2 -c sa2 -d ef2 -e ea2 -f start -g end. The curated flags follow the binary.",
+    "All seven parameters reject breakpoint files ('Cannot read parameter N [...]: brkpnt_files not permitted.', N = 1-7, re-verified in this submode).",
+    "Both inputs must come from the same analysis setup AND the same original sample format ('Incompatible analysis-sample-rate' / 'Incompatible original-sample-type' refusals - the latter hit organically when pairing a float-source .ana with a PCM-source .ana). The engine's auto-PVOC defaults satisfy both.",
+    "Time-domain input refused ('Application doesn't work with this type of infile.') - inputs must be .ana (auto-PVOC inserts the conversion).",
+    "Deterministic: two runs 1.2 s apart resynthesise identically (compare data chunks or resyntheses, not raw bytes)."
+  ],
+  "references": ["cdp://docs/html/cmorph"]
+}

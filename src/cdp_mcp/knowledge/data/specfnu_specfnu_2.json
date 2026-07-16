@@ -1,0 +1,123 @@
+{
+  "program": "specfnu",
+  "mode": "specfnu",
+  "submode": 2,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Mode 2 (SQUEEZE SPECTRUM) of the SPECFNU formant toolkit: compresses the whole spectrum toward a centre point by the squeeze factor - every component's distance from the centre frequency is divided by squeeze ('squeeze by 10 shrinks the spectrum by 1/10', per the source), collapsing the sound into a narrow band around the centre. BINARY BUG (source-diagnosed, empirically confirmed): the 'centre' parameter (which formant peak to squeeze around) is a NO-OP on pitched material in the default peak mode - specfnu.c:3468 sets dz->fundamental = 1 UNCONDITIONALLY (clobbering the -f flag's careful gating directly above it), and formants_squeeze() then always overrides the chosen formant peak with the fundamental's channel whenever the window is pitched. Verified: centre 1/2/3/4 render byte-identical on a 4-formant vowel (mode 21 confirms all four formants are detected), spectral centroid collapses to the fundamental region regardless. centre DOES work (renders differ) with -t (squeeze around the trough ABOVE formant N) and on unpitched material. squeeze itself works and is time-variable (breakpoint verified against both endpoints). Static duration (2.0 s -> 2.0230, 3.0 s -> 3.0215); deterministic (identical 1.2 s apart). Operates on PVOC analysis files (.ana).",
+  "musical_use": "A spectral trash-compactor: the sound's whole spectrum is crushed toward one point, sliding everything down (and up) toward the centre - vocals darken into muffled, telephone-through-a-wall versions of themselves, bright textures collapse into narrow resonant hums. On pitched sources the centre is (bug: always) the fundamental, so squeezing reads as the spectrum sinking down onto the root - squeeze 2-3 thickens and darkens like an intense low-pass that keeps energy, squeeze 6-10 buries the identity in a fundamental-hugging drone. The time-varying squeeze breakpoint is the money move: ramp 1 -> 8 and the sound swallows itself as it plays; reverse for a spectral bloom out of a hum. To actually choose WHERE the collapse happens on pitched material use -t: centre then selects the trough above formant N (verified working) - squeezing into a spectral valley gives eerie hollowed colours instead of the root-ward sink. On unpitched sources (noise, cymbals) centre works as documented even without -t. Compensate the level drop with gain. Pair with sibling submode 1 (NARROW) - narrow tightens onto ALL formants, squeeze collapses onto ONE point.",
+  "parameters": {
+    "squeeze": {
+      "type": "float",
+      "min": 1.0,
+      "max": 10.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Squeeze factor: distances from the centre frequency shrink to 1/squeeze (source: 'Squeeze by 10 shrinks spectrum by 1/10'). CDP enforces 1 to 10 (0.5 and 20 refused 'out of range (1.000000 to 10.000000)' - banner range exact); 1 = no squeeze. May vary over time via a breakpoint file (verified: ramp 1 -> 8 runs and differs from both scalar-endpoint renders after resynthesis). Required."
+    },
+    "centre": {
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "unit": "formant number",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Which formant peak the squeeze collapses toward (CDP-enforced 1 to 4: 0 and 5 refused 'out of range (1.000000 to 4.000000)'; fractional 2.5 accepted). WARNING - NO-OP on pitched material without -t (binary bug, see known_issues): centre 1/2/3/4 render byte-identically there because the code always recentres on the fundamental. Effective with the -t switch (trough mode - verified, renders differ per centre) and on unpitched windows (verified on noise: centre 1 vs 4 differ). Scalar only ('brkpnt_files not permitted', parameter 2)."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.01,
+      "max": 10.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Output gain or attenuation, useful against the level lost as the spectrum collapses. CDP enforces 0.01 to 10 (0 and 100 refused). Default 1.0 verified: flag-less and -g1 resyntheses bit-identical. Scalar only - breakpoint refused ('brkpnt_files not permitted', parameter 3)."
+    },
+    "at_trough": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "no_value",
+      "description": "Squeeze around the TROUGH above the specified peak instead of the peak itself. Verified accepted AND it is the switch that makes 'centre' actually work on pitched material (centre 1 vs 3 renders differ with -t, identical without)."
+    },
+    "force_fundamental": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-f",
+      "flag_kind": "no_value",
+      "description": "Force the lowest formant to use the fundamental frequency as its peak. Effectively ALWAYS ON in peak mode due to the specfnu.c:3468 bug (verified: -f render bit-identical to the flag-less run). With centre > 1 the binary prints 'WARNING: Cannot \"Track Fundamental\" if not squeezing around 1st formant: Ignoring.' - but the unconditional override happens anyway. Exposed for completeness."
+    },
+    "short_window": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "no_value",
+      "description": "Use a short window for extracting the spectral envelope (default is the large window). Accepted (exit 0); on both probe sources the render was bit-identical to the default-window run - its effect is source-dependent (sibling submode 1 saw a difference on its probe)."
+    },
+    "exclude_nonharmonic": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "Exclude non-harmonic partials before squeezing. Verified accepted (output differs from base). Mutually exclusive with kill_harmonic."
+    },
+    "kill_harmonic": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-k",
+      "flag_kind": "no_value",
+      "description": "Kill harmonic partials, leaving the inharmonic residue (much quieter on harmonic sources: -41.8 dBFS vs -15.7 base on the probe). Mutually exclusive with exclude_nonharmonic."
+    },
+    "silence_unpitched": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-r",
+      "flag_kind": "no_value",
+      "description": "Replace unpitched (or extremely quiet) windows by silence. Verified accepted (output differs from base)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Darken a vocal into a fundamental-hugging murmur.",
+      "params": {"squeeze": 4.0, "centre": 1, "gain": 2.0},
+      "expected_use": "The spectrum collapses toward the root; gain compensates the lost energy."
+    },
+    {
+      "description": "Self-swallowing drone - supply squeeze as a breakpoint ramping 1 to 8 (e.g. '0 1 / 1.9 8').",
+      "params": {"squeeze": 8.0, "gain": 3.0},
+      "expected_use": "The source progressively crushes into a narrow band around its fundamental as it plays."
+    }
+  ],
+  "known_issues": [
+    "CENTRE IS A NO-OP IN PEAK MODE ON PITCHED MATERIAL (first-class binary bug): specfnu.c case(F_SQUEEZE) ends with an unconditional 'dz->fundamental = 1;' (line 3468) that overrides the -f gating above it, and formants_squeeze() then replaces the selected formant-peak channel with the fundamental's channel on every pitched window. Empirical: centre 1/2/3/4 (and 2.5) byte-identical on a 4-formant synthetic vowel whose four peaks mode 21 verifiably detects; spectral centroid lands in the fundamental region for all of them. centre DOES work with -t (trough mode: centre 1 vs 3 differ) and on unpitched sources (noise: centre 1 vs 4 differ). Consequence: -f is also meaningless (bit-identical to base) in peak mode.",
+    "Fractional centre values are accepted (2.5 ran; int-typed slot, value evidently rounded/truncated) - stick to integers 1-4.",
+    "SPECFNU is platform-fragile as a family: mode 19 (RANDOMISE PARTIALS) crashes at teardown on this build, and mode 21 (SEE SPEC PEAKS/TROFS) was ALSO seen to abort (core dump) AFTER writing its complete, usable textfile during this tranche's probing. Mode 2 itself probed clean (exit 0, deterministic, non-silent).",
+    "Every specfnu run on this build - successful ones included - prints 'WARNING: failed to write PEAK data' to stderr; the .ana output is complete and resynthesises normally. Do not treat that warning as failure.",
+    "Supplying -x and -k together is refused with 'ERROR: SUPPRESS NON-HARMONICS WITH SUPPRESS-HARMONICS WILL PRODUCE ZERO SIGNAL LEVEL.' (exit 255).",
+    "Time-domain input refused ('ERROR: INVALID DATA / ERROR: File ... is not of correct type') - input must be .ana (auto-PVOC inserts the conversion).",
+    "Bool switch parameters are not currently settable through process() (the engine rejects bool values); they are documented here for execute() use and forward compatibility - -t in particular is required to make centre meaningful on pitched sources.",
+    "Static duration (2.0 -> 2.0230 s, 3.0 -> 3.0215 s; squeeze 1 vs 8 same duration); deterministic (identical resyntheses 1.2 s apart)."
+  ],
+  "references": ["cdp://docs/html/cspecfnu"]
+}

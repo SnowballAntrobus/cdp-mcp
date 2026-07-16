@@ -1,0 +1,81 @@
+{
+  "program": "modify",
+  "mode": "radical",
+  "submode": 2,
+  "category": "modify",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": true,
+  "stereo_link_default": "independent",
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "SHRED: randomly segments the sound into chunks of average length chunklen, permutes them in place, and repeats the whole cut-and-permute process 'repeats' times - the source is progressively reduced to shreds within its existing duration. Output duration is static and sample-exact (88200 frames in -> 88200 out on tone/noise/stereo probes). GENUINELY STOCHASTIC and UNSEEDABLE: shred_pconsistency (dev/modify/radical.c:395) calls initrand48() = srand(time(0)) (osbind.c) and no seed parameter exists - two runs 1.2 s apart differ, two runs within the same second collide byte-identically (both verified; the tranche-2 clock-seed trap applies). scatter 0 ('reorders without shredding') is STILL randomly permuted and still clock-stochastic (verified: 1.2 s-apart scatter-0 runs differ). SoundThread does not expose this mode (its help covers radical 1/3/4/5/6); afta8 does (advisory ranges: repeats 0-1000, scatter 0-10 - the binary enforces 1-10000 and 0-8). Mono and stereo accepted; multichannel spatial variants exist as mchshred via execute().",
+  "musical_use": "The original CDP glitch machine: chop a phrase into chunks and reshuffle until it 'literally reduces to shreds'. chunklen is the character control - near the 0.017 s floor it granulates into buzzing confetti; 0.05-0.15 s gives classic stutter-cut breakbeat mangling; 0.3-0.9 s rearranges whole gestures like a drunk edit. repeats is the destruction depth: 1 is a single reshuffle you can still follow, 3-10 progressively jumbles, hundreds approach noise-with-the-source's-timbre. scatter randomises WHERE the cuts fall (0 = regular grid, higher = raggeder chunks, hard cap 8); -n applies smoother splices for a less clicky, more 'produced' result - leave it off when the clicks ARE the aesthetic. Every render is a new roll of the dice and cannot be pinned - audition several takes and keep the file (never re-render expecting the same output; runs launched in the same second DO collide). Feed drums for instant IDM fills, speech for cut-up poetry, or shred a reversed sound (radical 1) and reverse back for pre-echo confetti. Stereo shreds both channels with the same cuts, keeping the image.",
+  "parameters": {
+    "repeats": {
+      "type": "int",
+      "min": 1,
+      "max": 10000,
+      "unit": "passes",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Number of cut-and-permute passes (CDP-enforced 1 to 10000: 0 and -1 refused quoting '(1.000000 to 10000.000000)'; 5001 accepted - afta8's 0-1000 is advisory). More passes = more jumbled. Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "chunklen": {
+      "type": "float",
+      "min": 0.017415,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Average length of the chunks that are cut and permuted. Runtime-enforced, INPUT-DEPENDENT range: floor ~0.0174 s (768 samples at 44.1 kHz, srate-dependent) to indur/2 (refusals on a 2 s file quote '(0.017415 to 0.999998)', on a 1 s file '(0.017415 to 0.499998)'). Small = granular confetti, large = gesture-level rearrangement. Breakpoint file refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    },
+    "scatter": {
+      "type": "float",
+      "min": 0.0,
+      "max": 8.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Randomisation of the cut positions (default 1). DIVERGENCE: the banner says 'Range 0 to K' where K = duration/chunklen and afta8 says 0-10, but the binary enforces a hard 0 to 8 ('-s9' refused quoting '(0.000000 to 8.000000)' even when K = 10) PLUS the runtime constraint scatter <= duration/chunklen ('ERROR: Scatter value cannot be greater than infileduration/chunklength.' when K = 4 and scatter 7). scatter 0 uses a regular cut grid but the permutation is STILL random. Breakpoint file refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.')."
+    },
+    "smooth": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-n",
+      "flag_kind": "no_value",
+      "description": "Smoother splicing at the chunk boundaries ('a slightly smoother output' per the banner). Accepted and runs (exit 0, duration unchanged); a byte-level A/B against the same cuts is impossible because every run re-rolls the clock seed."
+    }
+  },
+  "examples": [
+    {
+      "description": "Classic breakbeat shred.",
+      "params": {"repeats": 3, "chunklen": 0.1},
+      "expected_use": "Same-length output with the groove cut into ~100 ms chunks and reshuffled three times over. Every render differs - keep the takes you like."
+    },
+    {
+      "description": "Granular confetti with ragged cuts, smoothed splices.",
+      "params": {"repeats": 8, "chunklen": 0.03, "scatter": 4.0, "smooth": true},
+      "expected_use": "Dense buzzing particle cloud that still carries the source's timbre; -n removes the clicks."
+    }
+  ],
+  "known_issues": [
+    "CLOCK-SEEDED STOCHASTIC, NO SEED (first-class constraint): dev/modify/radical.c:395 initrand48() = srand(time(0)); no seed argv slot exists in this mode. Verified: two identical commands 1.2 s apart differ; two commands within the same second are byte-identical (collision trap - never launch batch variants in the same second and expect different takes). Renders cannot be reproduced later; archive the audio.",
+    "scatter 0 does NOT make the process deterministic - the banner's 'reorders without shredding' is still a random permutation (verified: 1.2 s-apart scatter-0 runs differ).",
+    "scatter's real bounds diverge from all documentation: hard CDP range 0-8 (banner claims 0 to K, afta8 claims 0-10) plus the runtime cap scatter <= indur/chunklen ('Scatter value cannot be greater than infileduration/chunklength.', INVALID DATA). Both refusals verbatim-verified.",
+    "chunklen's range is input-dependent (0.0174 s floor to indur/2, quoted per-input in refusals); the entry's static min is the 44.1 kHz floor and the max is left null - expect runtime refusals rather than pre-flight ones near the top.",
+    "Banner NB: 'chunklen * scatter MUST be < program's snd buffer', and sounds longer than the internal buffer are shredded per-buffer independently (long files won't scatter chunks across their whole length).",
+    "Duration static and sample-exact on all probes (2 s and 1 s mono, 2 s stereo). Stereo accepted (2ch in -> 2ch out) and the chunk cuts are shared across channels: a dual-mono input stays essentially mono-compatible (inter-channel correlation 1.0000, 85% of samples bit-identical, differences confined to splice boundaries) - the stereo image survives shredding. stereo_link_default 'independent' records the split/rejoin default only for deliberately decorrelated per-channel shreds."
+  ],
+  "references": ["cdp://docs/html/cgromody"]
+}
