@@ -19,7 +19,14 @@
   `scripts/build_cdp8_linux.sh`). Ruff clean.
 - User verifies on macOS r8 with `CDP_PATH=... pytest` after each pull.
 
-## Agreed next wave (Phase 5 wave 2) — not yet started
+## Phase 5 wave 2 — DONE (commits 5715795 + c45b714, 2026-07-15)
+
+All five items below shipped: 78 curated / 260 total; three schema
+gaps closed (pre_output, data outputs, arity-0); scramble seed
+trigger verified; every known Phase 6 blocker cleared. Suite: 1204
+hermetic / 1276 real-CDP (chunked halves in-sandbox).
+
+### The plan as executed (was: not yet started)
 
 1. **Engine schema gaps first** (both discovered by tranche-5 drops, spec
    in `docs/curation/tranche5_mix_env_findings.json` dropped[] records):
@@ -41,7 +48,7 @@
    quirk, silend.
    Target after wave 2: ~75 entries, all known Phase 6 blockers cleared.
 
-## Phase 5 remainder after wave 2
+## Phase 5 remainder (THE CURRENT NEXT STEP)
 
 - Generalization test matrix (clarinet-ish / field-recording / synth
   one-shot / vocal proxies through the acceptance chains; real material +
