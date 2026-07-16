@@ -1,0 +1,71 @@
+{
+  "program": "envel",
+  "mode": "warp",
+  "submode": 11,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "CORRUGATE (envel warp mode 11 of 15): finds the troughs of the amplitude envelope and sets trofdel WINDOWS to zero at each trough, with peaks kept at least peak_separation windows apart - the envelope is 'corrugated' into ridges separated by punched-out zero gaps (verified: 7692 literal zero samples appeared in a 2 s continuous noise bed at wsize 20 / trofdel 2 / peak_separation 6). Duration static and exact (2.0 -> 2.0, 1.0 -> 1.0). Both trofdel and peak_separation are breakpoint-capable (verified: each ramp render differs from both of its scalar-endpoint renders); wsize refuses breakpoints. Deterministic; stereo accepted.",
+  "musical_use": "Imposes rhythm on continuous material by construction rather than by threshold: where the gate modes need quiet passages to exist, corrugate MAKES gaps at the envelope's own low points - so a pad, drone or noise bed acquires a pulse that follows its internal dynamics. peak_separation sets the pulse rate ceiling (in envelope windows: wsize 20 ms and separation 6 caps ridges at ~8/sec); trofdel sets the gap width (1-2 windows = rhythmic articulation, more = choppy fragmentation). Both riding breakpoints gives accelerating/slowing corrugation. Because the punched gaps are true digital zeros, the output is also retime- and housekeep-gate-compatible - a third path (after gate gate 1 and envel warp 8) for turning continuous material into countable events; the difference is that this one invents the event boundaries where the sound is naturally weakest.",
+  "parameters": {
+    "wsize": {
+      "type": "float",
+      "min": 5.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Envelope window size in ms; trofdel and peak_separation both count in these windows. CDP-enforced 5 to the input duration in ms (input-dependent). Breakpoint refused. Scalar only."
+    },
+    "trofdel": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "windows",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Number of envelope windows set to ZERO at each trough. Banner range '1 to <PEAK_SEPARATION' - but the upper constraint is NOT enforced (trofdel 8 with peak_separation 6 was accepted silently), so keep it below peak_separation yourself or gaps swallow the ridges. BREAKPOINT-CAPABLE (verified against both endpoints)."
+    },
+    "peak_separation": {
+      "type": "int",
+      "min": 2,
+      "max": 32767,
+      "unit": "windows",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Minimum number of windows between retained envelope peaks. CDP-enforced 2-32767 ('Parameter[3] Value (1.000000) out of range (2.000000 to 32767.000000)'). BREAKPOINT-CAPABLE (verified against both endpoints)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Pulse a continuous bed at its own weak points.",
+      "params": {"wsize": 20.0, "trofdel": 2, "peak_separation": 6},
+      "expected_use": "~40 ms zero gaps at envelope troughs, ridges at least 120 ms apart; continuous material becomes rhythmic events with true-silence boundaries."
+    },
+    {
+      "description": "Accelerating fragmentation.",
+      "params": {"wsize": 15.0, "trofdel": [[0.0, 1], [2.0, 4]], "peak_separation": [[0.0, 12], [2.0, 4]]},
+      "expected_use": "Gaps widen while ridges crowd together - the bed disintegrates into an accelerating stutter."
+    }
+  ],
+  "known_issues": [
+    "The banner's 'trofdel < peak_separation' constraint is NOT enforced by the binary (8 vs 6 accepted silently); violating it produces mostly-gap output rather than an error.",
+    "Punched gaps are literal digital zeros (7692 zero samples counted on the 2 s probe) - corrugated output is valid input for retime's zero-run event detection and housekeep gate's zero-point cutting.",
+    "wsize's maximum is the input duration in ms (input-dependent), as across the envel family; wsize refuses breakpoints ('Cannot read parameter 1').",
+    "Only warp modes 8 (gate) and 11 (corrugate) are curated this tranche; the other 13 modes share the argv shape with different trailing params (mode table in docs/curation/tranche13_envelope.md).",
+    "Deterministic; duration static and exact at both probed input durations; stereo accepted."
+  ],
+  "references": ["cdp://docs/html/cgroenvl"]
+}

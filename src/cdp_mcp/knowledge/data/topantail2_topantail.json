@@ -1,0 +1,83 @@
+{
+  "program": "topantail2",
+  "mode": "topantail",
+  "submode": null,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Trims low-level material from the START (everything before the first sample exceeding startgate) and the END (everything after the last sample exceeding endgate) of a file, with splicelen ms fades at the new edges - the gate-driven top-and-tail. Gates are ABSOLUTE linear amplitudes 0-1 compared per sample (source-verified: first/last |sample| > gate x full-scale). Duration is content-dependent (declared 'static' is the conservative placeholder): a syllable train with 50 ms lead silence trimmed 2.0 -> 1.9499 s at gates 0.1; material hot from sample 0 passes through sample-exact. backtrack moves the start cut earlier by up to backtrack ms to catch soft onsets. All four parameters refuse breakpoints. Deterministic; stereo accepted. SEE known_issues FOR THE DOUBLING BUG - the reason to keep startgate low or lead silence real.",
+  "musical_use": "Batch edge cleanup: strip preroll, count-in bleed, and decaying tails to a known level in one deterministic pass - the standard prep before looping, concatenation (sfedit joins), retiming, or any duration arithmetic that assumes material starts and ends where it sounds. backtrack 10-30 ms preserves the breathy front of soft attacks that a hard threshold would clip. Distinct from the gate program (which zeroes/excises INTERIOR passages too) and housekeep topntail: this one only touches the two ends and leaves everything between the first and last loud sample intact. For fade-shaping rather than trimming, dovetail; for trims at exact times, sfedit cut.",
+  "parameters": {
+    "startgate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Absolute level (0-1 linear) the signal must exceed for the file to 'start'; earlier material is removed. CDP-enforced 0-1 ('Parameter[1] Value (1.500000) out of range (0.000000 to 1.000000)'). Keep it at or just above the noise floor - see the doubling bug. Breakpoint refused. Scalar only."
+    },
+    "endgate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Absolute level the signal must exceed for the file to 'end'; later material is removed. CDP-enforced 0-1 (Parameter[2]). Breakpoint refused. Scalar only."
+    },
+    "splicelen": {
+      "type": "float",
+      "min": 2.0,
+      "max": 200.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 15.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Fade length applied at the new edges. CDP-enforced 2-200 ms ('Parameter[3] Value (6000.000000) out of range (2.000000 to 200.000000)'). Breakpoint refused. Scalar only."
+    },
+    "backtrack": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Moves the start cut up to this many ms EARLIER than the gate crossing, preserving soft onsets. CDP-enforced 0-1000 ms (Parameter[4]). Breakpoint refused. Scalar only."
+    }
+  },
+  "examples": [
+    {
+      "description": "Standard edge cleanup before looping.",
+      "params": {"startgate": 0.05, "endgate": 0.05},
+      "expected_use": "Preroll and tail below 0.05 removed, 15 ms default splices at the new edges; interior untouched."
+    },
+    {
+      "description": "Trim hard but keep the breath before the note.",
+      "params": {"startgate": 0.1, "endgate": 0.08, "backtrack": 25.0, "splicelen": 10.0},
+      "expected_use": "Cut point backs off 25 ms from the first loud sample - soft consonants/bow noise survive."
+    }
+  ],
+  "known_issues": [
+    "DOUBLING BUG (first-class, trigger pinned): when the first above-gate sample lies WITHIN ONE SPLICELEN of the file start (0 < startsamp < splicelen samples), the output is the file rendered TWICE - 2.0 s inputs came back 3.99 s of doubled material (verified with a 5 ms lead-silence fixture at gates 0.1; a 50 ms lead trims correctly to 1.9499 s, and startsamp == 0 passes through exactly). Avoid by keeping startgate at/below the level of the very first samples, or ensuring real lead silence longer than splicelen. Source: top_and_tail() in dev/standalone/topantail2.c clamps startsplice to 0 while startsamp stays > 0.",
+    "DURATION IS CONTENT-DEPENDENT: output = last-above-endgate minus first-above-startgate (plus splices); the 'static' model is a placeholder that is exact only for material loud at both ends (the findings duration row uses gates 0.01 on the flat fixture: 2.0000 sample-exact).",
+    "Gates are absolute linear amplitudes (0-1), not dB and not peak-relative.",
+    "Whole-file-quiet refusals exist in source ('At this gate level, entire file will be removed.') - not triggered in probes, quoted from topantail2.c.",
+    "All params scalar-only (breakpoints refused, parameters 1-4). Deterministic; stereo accepted."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

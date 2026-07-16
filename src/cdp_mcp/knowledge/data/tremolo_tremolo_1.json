@@ -1,0 +1,81 @@
+{
+  "program": "tremolo",
+  "mode": "tremolo",
+  "submode": 1,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Amplitude tremolo with width-narrowing: modulates the signal's level at frq Hz to depth, with fineness 'squeezing' the tremolo pulses narrower (fineness 1 = plain sinusoidal tremolo; higher values concentrate the energy into narrower pulses separated by near-silence - verified: 25 ms window RMS minima fall from 0.029 at fineness 1 to exactly 0.0 at fineness 4). SUPERSET PIN: this program at fineness 1 is BYTE-IDENTICAL to 'envel tremolo 1' with the same frq/depth/gain - envel tremolo is this entry with fineness pinned to 1, so it is not curated separately. Mode 1 interpolates frq breakpoints linearly; mode 2 logarithmically - byte-identical at any scalar frq (verified), they differ only when frq rides a breakpoint. frq, depth and gain are all breakpoint-capable (each verified against both scalar endpoints); fineness refuses breakpoints. Duration static and exact; deterministic; stereo accepted.",
+  "musical_use": "From gentle AM shimmer to full chopper: depth 0.2-0.5 at 4-8 Hz is performance tremolo; depth 1 at 8-20 Hz is rhythmic gating; push frq higher (tremolo is specified to 500 Hz) and it becomes audible-rate AM, adding sidebands frq Hz around every partial - metallic ring-mod-adjacent colors without a second input. fineness is the signature: at 3-8 the tremolo turns into a pulse train whose duty cycle shrinks, reading as stutter or helicopter depending on rate. Breakpoint frq makes accelerating/decelerating trills (use mode 2 via execute() when you want the sweep to feel pitch-linear); breakpoint depth fades the effect in or out across the phrase; breakpoint gain doubles as an overall fade ride. For tremolo that narrows only after each envelope peak of the material itself, see tremenv.",
+  "parameters": {
+    "frq": {
+      "type": "float",
+      "min": 0.0,
+      "max": 500.0,
+      "unit": "Hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Tremolo rate. CDP-enforced 0-500 ('Parameter[1] Value (600.000000) out of range (0.000000 to 500.000000)'). BREAKPOINT-CAPABLE (verified: 2->16 Hz ramp differs from both endpoint renders). Breakpoint interpolation is linear in this mode; use mode 2 (log, 'like pitch') via execute() for glissando-feel sweeps - the two modes are byte-identical at scalar frq."
+    },
+    "depth": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": null,
+      "description": "Modulation depth: 0 none, 1 full (level reaches zero each cycle). CDP-enforced 0-1. BREAKPOINT-CAPABLE (verified against both endpoints)."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": null,
+      "description": "Overall output gain (attenuation only, 0-1; CDP-enforced). BREAKPOINT-CAPABLE (verified against both endpoints) - doubles as a fade ride on top of the tremolo."
+    },
+    "fineness": {
+      "type": "int",
+      "min": 1,
+      "max": 100,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Pulse-narrowing exponent: 1 = sinusoidal tremolo (byte-identical to envel tremolo), higher = narrower, more separated pulses (RMS troughs hit true 0 by fineness 4). CDP-enforced 1-100 ('Parameter[4] Value (0.000000) out of range (1.000000 to 100.000000)' - the banner's open-ended 'integer >= 1' is wrong about the ceiling). Breakpoint refused ('Cannot read parameter 4'). Scalar only."
+    }
+  },
+  "examples": [
+    {
+      "description": "Performance tremolo.",
+      "params": {"frq": 6.0, "depth": 0.4, "gain": 1.0, "fineness": 1},
+      "expected_use": "Gentle 6 Hz level undulation; identical to envel tremolo at these settings."
+    },
+    {
+      "description": "Accelerating chopper that dissolves in.",
+      "params": {"frq": [[0.0, 2.0], [2.0, 18.0]], "depth": [[0.0, 0.0], [0.5, 1.0], [2.0, 1.0]], "gain": 1.0, "fineness": 5},
+      "expected_use": "Narrow pulses speed up from 2 to 18 Hz while the effect fades in over the first half second."
+    }
+  ],
+  "known_issues": [
+    "SUPERSET of 'envel tremolo': fineness 1 renders byte-identical to envel tremolo 1 at the same frq/depth/gain (verified sha-equal), so envel tremolo is deliberately not curated. Note their documented depth defaults differ (envel tremolo banner: 0.25; this banner: 1) - irrelevant here since depth is always emitted.",
+    "Mode 2 (log frq interpolation) is byte-identical at scalar frq and only diverges when frq is a breakpoint (verified both ways); reach it via execute() when a sweep should be pitch-like.",
+    "gain only attenuates (0-1); there is no boost path in this program.",
+    "fineness is capped at 100 by the binary despite the banner's unbounded 'integer value >= 1'.",
+    "Deterministic (identical decoded sha > 1.1 s apart, probed at fineness 4); duration static and exact at both probed input durations; stereo accepted."
+  ],
+  "references": ["cdp://docs/html/cgroenvl", "cdp://docs/html/cr8new"]
+}

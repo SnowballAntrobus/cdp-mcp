@@ -1,0 +1,101 @@
+{
+  "program": "envel",
+  "mode": "cyclic",
+  "submode": 3,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": "none",
+  "output_format": ".evl",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "totaldur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Generates a BINARY envelope file (.evl - DATA output) of cyclically repeating cells, submode 3 = TROUGHED (each cell falls from 1 to the trough level and rises back - the tremolo/pulse shape; siblings: 1 rising, 2 falling, 4 user-defined cell from a textfile). Arity-0 generator: no inputs; argv is 'envel cyclic 3 outfile wsize totaldur celldur phase trough expo'. Format pinned as the create/extract family: RIFF/FLOAT, srate 1000/wsize, values spanning trough..1.0 (probed .evl: srate 100 at wsize 10, min 0.1 = the trough argument, max 1.0). THE OUTPUT OVERSHOOTS totaldur TO WHOLE CELLS: 2.0 s requested at celldur 0.25 wrote 2.25 s (9 cells) - duration = ceil-to-cell, so the set_by model is approximate (its real job is giving the engine's breakpoint compiler its time axis). celldur and trough are BREAKPOINT-CAPABLE (each verified against both scalar endpoints); phase refuses breakpoints. Deterministic in the data chunk (LIST date byte differs).",
+  "musical_use": "The pulse-envelope factory: generate tremolo, gating and rhythmic-cell envelopes as data, then stamp them on any sound with envel impose 2 (execute()). Because celldur takes a breakpoint, the pulse can accelerate or slow across the file - a rhythmic ramp no realtime LFO gives you offline; a trough breakpoint makes the gating bite harder or soften over time. expo shapes each cell (< 1 sharp at the top - spiky pulses; > 1 sharp at the bottom - plucked gaps). phase 0-1 starts mid-cell for downbeat control. Cells much longer than wsize keep their shape crisp; celldur must exceed the window (binary-enforced floor just above wsize). For arbitrary single-shot shapes use envel create 1; for envelope capture use envel extract; submode 4 (user cell shape, relative time axis) via execute().",
+  "parameters": {
+    "wsize": {
+      "type": "float",
+      "min": 5.0,
+      "max": 10000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 10.0,
+      "flag": null,
+      "description": "Envelope resolution; the .evl stores one value per wsize (its RIFF srate = 1000/wsize). CDP-enforced 5-10000 ('Parameter[1] Value (2.000000) out of range (5.000000 to 10000.000000)'). Scalar only."
+    },
+    "totaldur": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Requested duration of the envelope file - the actual output rounds UP to a whole number of cells (2.0 -> 2.25 at celldur 0.25, verified). Also serves as the engine's breakpoint-compilation axis (set_by). Scalar only."
+    },
+    "celldur": {
+      "type": "float",
+      "min": 0.0105,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Duration of each repeated cell. Floor is just above wsize (CDP quoted '(0.010500 to 32767.000000)' at wsize 10 - input-dependent on wsize; the schema min pins the wsize-10 case). BREAKPOINT-CAPABLE (verified: a 0.1->0.5 ramp differs from both endpoint renders) - accelerating/decelerating pulse."
+    },
+    "phase": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Start point within the cell envelope: 0 = cell start, 1 = cell end. CDP-enforced 0-1 ('Parameter[4] Value (2.000000) out of range (0.000000 to 1.000000)'). Breakpoint refused ('Cannot read parameter 4'). Scalar only."
+    },
+    "trough": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Lowest point of each cell (0 = full gating to silence, higher = shallower tremolo). Range 0-1. BREAKPOINT-CAPABLE (verified against both endpoints) - the bite can evolve over the file."
+    },
+    "expo": {
+      "type": "float",
+      "min": 0.02,
+      "max": 50.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Cell shape exponent: 1 linear, < 1 steep at the top, > 1 steep at the bottom. CDP-enforced 0.02-50 ('Parameter[6] Value (-1.000000) out of range (0.020000 to 50.000000)'). Scalar only."
+    }
+  },
+  "examples": [
+    {
+      "description": "8 Hz full-gate tremolo envelope, 2 s.",
+      "params": {"wsize": 10.0, "totaldur": 2.0, "celldur": 0.125, "phase": 0.0, "trough": 0.0, "expo": 1.0},
+      "expected_use": "16 troughed cells; apply with execute(['envel', 'impose', '2', 'inputs/pad.wav', 'graphs/<gid>/<node>_envel-cyclic.evl', 'graphs/<gid>/trem.wav'])."
+    },
+    {
+      "description": "Accelerating pulse that bites harder as it goes.",
+      "params": {"wsize": 10.0, "totaldur": 4.0, "celldur": [[0.0, 0.5], [4.0, 0.1]], "phase": 0.0, "trough": [[0.0, 0.6], [4.0, 0.0]], "expo": 2.0},
+      "expected_use": "Cells shrink 0.5 -> 0.1 s while troughs deepen to full gating; expo 2 gives plucked-gap cells."
+    }
+  ],
+  "known_issues": [
+    "DATA OUTPUT (.evl, RIFF/FLOAT dressing, srate 1000/wsize) - not audio; duration pre-flight is skipped; verification is exists + non-empty; findings duration row null. Consumers: envel impose 2 / replace 2 via execute().",
+    "OUTPUT ROUNDS UP TO WHOLE CELLS: actual duration = ceil(totaldur/celldur) x celldur (2.25 from 2.0/0.25, verified) - the set_by model under-predicts by up to one cell; its purpose here is the breakpoint-compilation axis.",
+    "celldur's floor is tied to wsize (must exceed the window; refusal quotes the wsize-dependent bound).",
+    "Siblings not curated: submodes 1 (rising) and 2 (falling) share this exact argv; submode 4 replaces trough/expo with a userenv textfile whose time axis is RELATIVE (stretched per cell) - all verified working via execute().",
+    "Determinism: data chunk byte-identical across runs; one LIST date-chunk byte differs (family behavior)."
+  ],
+  "references": ["cdp://docs/html/cgroenvl"]
+}

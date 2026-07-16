@@ -1,0 +1,60 @@
+{
+  "program": "envel",
+  "mode": "envtobrk",
+  "submode": null,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": ".evl",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Converts a BINARY envelope file (.evl - from envel extract, create or cyclic) into a TEXT breakpoint file: 'time<TAB>level' pairs, one per envelope window (verified: a wsize-20 .evl became lines '0.000000\\t0.000000 / 0.020000\\t0.040000 / ...'; round-trip through dbtogain(envtodb(x)) reproduces the same values). Data-to-data to the engine: arity 0, the .evl arrives through the aux slot (pre_output - CDP's argv is 'envel envtobrk inenvfile outbrkfile [-d]'), and the output is .txt data. datareduce trades point count against fidelity (0-1, CDP-enforced). This is the bridge OUT of the binary envelope world: the emitted text is a well-formed breakpoint list usable directly as a value for any breakpoint-capable 0-1 parameter of other entries, editable as text, or re-binarizable with the curated envel brktoenv. Deterministic: text outputs are byte-identical run to run.",
+  "musical_use": "Unlocks captured dynamics for EVERYTHING, not just envelope imposition: extract a performance's envelope (envel extract -> .evl), convert it here, and the resulting text can drive a filter's Q ride, a tremolo depth, a warp-8 gate threshold - any 0-1 breakpoint parameter - so one sound's dynamics articulate a completely different process on another sound. Use datareduce 0.2-0.5 to thin dense envelope data into a musically-sized point list before editing (envelope files carry one point per window - a 20 ms extraction of a minute of audio is 3000 lines; reduced, it becomes a readable, tweakable score of the dynamics). The manual's own framing agrees: 'gain access to binary envelope data so that it can be edited, printed, or used with another function which uses a breakpoint file as input'.",
+  "parameters": {
+    "inenvfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "The binary envelope file to convert - typically a graphs/<gid>/... .evl from envel extract/create/cyclic (aux paths resolve session-relative, so 'graphs/<gid>/<node>_envel-extract.evl' works directly). MUST carry a recognized envelope extension: the same content renamed .dat refuses 'ERROR: <name> is not a valid CDP file' (CDP types data files by extension + content). Occupies the argv slot before the output (position: pre_output)."
+    },
+    "datareduce": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Quantity-vs-accuracy of the written points: 0 keeps every window, higher values interpolate points away while preserving the shape. CDP-enforced 0-1 ('Parameter[1] Value (1.500000) out of range (0.000000 to 1.000000)'). Scalar only."
+    }
+  },
+  "examples": [
+    {
+      "description": "Turn a captured envelope into a parameter ride for another process.",
+      "params": {"inenvfile": "graphs/<gid>/n2_envel-extract.evl", "datareduce": 0.4},
+      "expected_use": "Output .txt is a time/level (0-1) breakpoint list - pass its content as the breakpoint value for, e.g., tremolo depth or envel warp 8's gate on a different sound."
+    },
+    {
+      "description": "Full-resolution dump for text editing.",
+      "params": {"inenvfile": "graphs/<gid>/n1_envel-create.evl"},
+      "expected_use": "One line per envelope window; edit times/levels programmatically, then rebuild a binary envelope with envel brktoenv."
+    }
+  ],
+  "known_issues": [
+    "DATA-TO-DATA entry: no audio anywhere. Output .txt verification is exists + non-empty; duration pre-flight skipped ('static' is a placeholder; findings duration row null).",
+    "The .evl input must keep its envelope extension - renamed binaries refuse 'is not a valid CDP file' (extension-driven type detection, pinned this tranche).",
+    "SUBSTRATE PIN (recorded for the macOS re-verification): CDP's textfile parser breaks entirely on unsigned-char platforms (Linux aarch64 default) - every text input refuses 'is not a valid CDP file' because '(char)fgetc() != EOF' never terminates cleanly (cdparse.c initial_parse_textfile). The Linux probe substrate needed -fsigned-char; macOS (signed char on both x86_64 and arm64) is unaffected. envtobrk itself takes binary input so it worked either way; its .txt OUTPUT feeds parsers that hit this on exotic builds.",
+    "Sibling conversions not curated (all probed working, reachable via execute()): envtodb (.evl -> dB text, silence floors at -96.000000), dbtogain / gaintodb (text dB <-> gain), dbtoenv (dB text -> .evl) - the dB text kind has no curated consumer; envel replot (text -> text through the 15-mode warp table).",
+    "Deterministic: byte-identical text across runs (no RIFF date chunk in text outputs)."
+  ],
+  "references": ["cdp://docs/html/cgroenvl"]
+}

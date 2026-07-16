@@ -1,0 +1,82 @@
+{
+  "program": "spike",
+  "mode": "spike",
+  "submode": null,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Re-envelopes the whole file into a single SPIKE peaking at the chosen time: level rises from (near) zero to the peak following a power-curve of exponent upslope, then falls away with exponent downslope (window-level profile verified: max-amplitude trajectory climbs smoothly to the peak time and collapses after). Pinned to the SINGLE-PEAK form - the peaks argv also accepts a datafile of trof-peak-trof time triplets for multiple spikes (verified working: a 6-time file produced 2 spikes), but that free-form slot cannot be expressed as a float parameter; use execute() for multi-spike. upslope and downslope are both BREAKPOINT-CAPABLE (each verified against both scalar endpoints). Duration static and exact at both probed input durations. Deterministic; stereo accepted.",
+  "musical_use": "Gesture sculpting at its most extreme: any material becomes one dramatic swell-and-collapse aimed at an exact moment. Low exponents (1-3) give broad, breathing arches; high exponents (10-100) make needle-like stabs where virtually all energy concentrates at the peak - percussive hits carved out of sustained material. Differs from envel swell in curvature control (independent power-law slopes vs swell's linear/exponential pair) and from envel attack in scope (attack boosts a local moment on top of the existing envelope; spike REPLACES the whole envelope). Breakpointed slopes morph the spike's character across the file - e.g. an upslope ramping 2->8 sharpens the approach as it goes. maxdown limits how long the collapse may take, disconnecting the fall time from the file length for tail-heavy sources.",
+  "parameters": {
+    "peak": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time of the spike's peak - must lie inside the file: at/beyond the end refuses 'ERROR: Invalid peak time (2.500000) at or beyond sound end (2.000000), 2.5' (under a misleading 'ERROR: MEMORY ERROR' banner). This slot alternatively accepts a datafile of trof-peak-trof triplets (multi-spike; execute() only). Scalar float here."
+    },
+    "upslope": {
+      "type": "float",
+      "min": 1.0,
+      "max": 100.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Power-curve exponent of the rise into the peak. CDP-enforced 1-100 ('Parameter[2] Value (200.000000) out of range (1.000000 to 100.000000)'). BREAKPOINT-CAPABLE (verified: 2->8 ramp differs from both endpoint renders)."
+    },
+    "downslope": {
+      "type": "float",
+      "min": 1.0,
+      "max": 100.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Power-curve exponent of the fall after the peak. CDP-enforced 1-100. BREAKPOINT-CAPABLE (verified against both endpoints)."
+    },
+    "maxdown": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Maximum duration of the downward slope (0 = no maximum). CDP-enforced 0-1 s ('Parameter[5] Value (1.500000) out of range (0.000000 to 1.000000)'). Scalar only."
+    }
+  },
+  "examples": [
+    {
+      "description": "Broad arch peaking mid-file.",
+      "params": {"peak": 1.0, "upslope": 4.0, "downslope": 4.0},
+      "expected_use": "The whole file becomes one swell to 1.0 s and back; duration unchanged."
+    },
+    {
+      "description": "Needle stab with a fast bounded release.",
+      "params": {"peak": 0.5, "upslope": 40.0, "downslope": 20.0, "maxdown": 0.2},
+      "expected_use": "Near-silence, a violent spike at 0.5 s, dead within 0.2 s regardless of file length."
+    }
+  ],
+  "known_issues": [
+    "BANNER LIES ABOUT -m: the advertised '[-mmaxup]' flag is REFUSED by the binary ('ERROR: Unknown variant flag -m', exit 255) - only -d (maxdown) exists. Not exposed.",
+    "BINARY BUG - '-n' CORE-DUMPS AT TEARDOWN: with -n (raise all peaks to the maximum) the full output file is written and then the process crashes ('dumped core', nonzero exit) - a broken exit contract the engine would read as failure, so -n is not exposed (same failure family as specfnu mode 21, tranche 9).",
+    "Multi-spike form: the peaks slot accepts a datafile of trof-peak-trof time triplets ('Adjacent trofs may be at the same time, but other times must advance'); a plain list of times is consumed in groups of three. Inline extra argv times are NOT accepted. execute() only - this entry pins the scalar single-peak form.",
+    "peak-time refusals arrive under a spurious 'ERROR: MEMORY ERROR' banner (verbatim above); the real message follows it.",
+    "Deterministic; duration static and exact at both probed input durations; stereo accepted."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

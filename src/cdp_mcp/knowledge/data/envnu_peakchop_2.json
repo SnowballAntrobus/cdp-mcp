@@ -1,0 +1,94 @@
+{
+  "program": "envnu",
+  "mode": "peakchop",
+  "submode": 2,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "The analysis half of peakchop: finds the source's envelope peaks and writes the PEAK-ISOLATING ENVELOPE as a text breakpoint file (DATA output, not audio) - 'time<TAB>level' pairs alternating 0 and 1 that trace pkwidth-wide windows around each detected peak (probed output: 18 lines for a 4-burst source; levels 0.000000/1.000000, times in seconds). The file is a valid gain-shaped breakpoint list: feed it directly to any breakpoint-capable 0-1 parameter (e.g. tremolo's gain, envel warp 8's gate), or convert it to a binary envelope with the curated envel brktoenv and impose it on other material via envel impose 2 through execute(). CDP refuses to write it under reserved extensions ('ERROR: Cannot open a textfile (pc2.wav) with a reserved extension.') - the engine names it .txt, which is exactly right. Deterministic; stereo accepted.",
+  "musical_use": "Rhythm transcription without rendering: capture WHERE the events are in one file as a reusable gate envelope, then stamp that rhythm onto anything - impose it on a pad (via brktoenv + envel impose 2) for sidechain-style pumping in the source's exact rhythm, or hand it to a breakpoint parameter so an effect switches on only during the source's attacks. Because the output is plain text, it is also editable data: shift times, widen windows, thin events programmatically before reuse. gate (relative to max) filters which peaks make it into the envelope; skew positions each window around its peak (0 = window starts at the peak - gate opens ON the attack; 1 = window ends there - pre-attack swell). Unlike mode 1 this mode ENFORCES the pkwidth constraint, refusing when windows would collide.",
+  "parameters": {
+    "wsize": {
+      "type": "float",
+      "min": 1.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 50.0,
+      "flag": null,
+      "description": "Envelope-extraction window for peak finding (same slot as mode 1; 1-1000 ms CDP-enforced there). Scalar only - all mode-2 parameters are pinned scalar."
+    },
+    "pkwidth": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 20.0,
+      "flag": null,
+      "description": "Width of the unity-gain window written around each peak. ENFORCED against the data in this mode: too-wide values refuse 'ERROR: New peakwidth too wide for the input data.' (verbatim; mode 1 accepts the same value silently). Scalar only."
+    },
+    "risetime": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 10.0,
+      "flag": null,
+      "description": "Rise from 0 to 1 into each window (the envelope's attack ramp in the text output). Scalar only."
+    },
+    "gate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Peaks below this level relative to the maximum are omitted from the envelope. Scalar only."
+    },
+    "skew": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.25,
+      "flag": "-q",
+      "flag_kind": "attached_value",
+      "description": "Where each window sits relative to its peak: 0 peak at window start, 0.5 centred, 1 peak at window end. Scalar only."
+    }
+  },
+  "examples": [
+    {
+      "description": "Capture a percussion take's rhythm as a gate envelope.",
+      "params": {"wsize": 50.0, "pkwidth": 20.0, "risetime": 10.0},
+      "expected_use": "Output is a .txt of time/level pairs (0/1 alternation around each hit). Reuse: execute(['envel', 'brktoenv', 'graphs/<gid>/<node>_envnu-peakchop.txt', 'graphs/<gid>/rhythm.evl', '20']) then envel impose 2 onto a pad."
+    },
+    {
+      "description": "Accents only, gate opening exactly on each attack.",
+      "params": {"wsize": 30.0, "pkwidth": 40.0, "risetime": 5.0, "gate": 0.5, "skew": 0.0},
+      "expected_use": "Only peaks above half the maximum survive; each window starts at its peak."
+    }
+  ],
+  "known_issues": [
+    "DATA OUTPUT (.txt): not audio - it cannot be auditioned or fed to an entry as an audio input; the duration pre-flight is skipped (the 'static' model is a schema placeholder) and verification checks exists + non-empty only. The findings duration row is null.",
+    "Reserved-extension guard is CDP's own: naming the output .wav refuses 'Cannot open a textfile (pc2.wav) with a reserved extension.' - the engine's .txt naming never hits it.",
+    "The emitted text is a well-formed breakpoint file (times ascending, values 0-1): valid as a value for breakpoint-capable 0-1 params of other entries, or as brktoenv input.",
+    "pkwidth is data-enforced here (refusal verbatim above) unlike in mode 1 - if it refuses, shrink pkwidth or raise gate to thin the peaks.",
+    "All parameters pinned scalar in this mode (time-variation of an analysis pass is not meaningful; not brk-probed).",
+    "Deterministic: repeated runs write byte-identical text (no date chunk in text outputs)."
+  ],
+  "references": ["cdp://docs/html/cgroenvnu"]
+}

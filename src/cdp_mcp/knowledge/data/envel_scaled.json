@@ -1,0 +1,49 @@
+{
+  "program": "envel",
+  "mode": "scaled",
+  "submode": null,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Imposes a hand-written breakpoint envelope on a soundfile, TIME-SCALING the envelope to the sound's duration first - the envelope's time axis is relative, so one shape file fits any input length. Verified: an envelope peaking at time 1 of a 0-4 axis put its gain peak at 0.25 s on a 1 s input and 0.5 s on a 2 s input (both = dur/4); duration static and exact on both. The envelope file is a plain text time/value list (the pre-output aux slot, written with write_data_file()): at least 2 pairs required ('ERROR: Not enough data in brkpnt file <name>' verbatim on a 1-pair file); values above 1 are accepted and AMPLIFY (verified peak gain 1.23 from a value-2.0 envelope). Multiplicative onto the existing envelope, like envel impose. No numeric parameters. Deterministic; stereo accepted.",
+  "musical_use": "The proportional-shape sibling of envel impose mode 3: where impose reads envelope times literally, scaled stretches your shape to WHATEVER the input's length is - write 'quiet-loud-quiet' once between times 0 and 1 (or 0 and 1000, the units are arbitrary) and apply the same dramatic arc to a 0.5 s grain and a 30 s drone. Ideal for batch-shaping heterogeneous material into a family (same relative dynamics = perceived relatedness), for building crescendo/decay archetypes, or for tremolo-like ripples whose count stays fixed while their rate adapts to each file's length. Values >1 amplify, so shapes can both carve and boost; keep the product of source peak and envelope value under 1.0 to avoid hot floats. For absolute-time envelopes use envel impose/replace; for envelope capture from audio use envel extract.",
+  "parameters": {
+    "envelope": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Text breakpoint file: 'time value' pairs, one per line, times ascending, RELATIVE time axis (stretched to the input duration; units arbitrary). Minimum 2 pairs ('Not enough data in brkpnt file' refused verbatim). Values are gain multipliers; 0-1 shapes, >1 amplifies (accepted, verified). Occupies CDP's argv slot BETWEEN the input and output ('envel scaled infile brkfile outfile') - the position: pre_output layout. Write it with write_data_file(); .txt names work (this build's brkfile readers accept any non-reserved extension)."
+    }
+  },
+  "examples": [
+    {
+      "description": "One arch shape for any file length.",
+      "params": {"envelope": "arch.txt"},
+      "expected_use": "First: write_data_file('arch.txt', '0 0\\n1 1\\n4 0\\n'). Peak lands at 1/4 of ANY input's duration (verified at 1 s and 2 s). Output duration = input duration."
+    },
+    {
+      "description": "Fixed-count tremolo ripple that adapts its rate to the file.",
+      "params": {"envelope": "ripple8.txt"},
+      "expected_use": "An 8-hump 0/1 alternation over times 0-8 gives exactly 8 pulses on every input, fast on short files, slow on long ones."
+    }
+  ],
+  "known_issues": [
+    "The envelope's time axis is RELATIVE (scaled to the input duration) - this is the defining difference from envel impose mode 3, whose breakpoint times are absolute seconds. Same shape, different contract.",
+    "Envelope values above 1.0 amplify without clamping (float output can exceed full scale); the engine's post-run verification will flag silence but not clipping - stage headroom yourself.",
+    "Fewer than 2 breakpoint pairs refuses 'ERROR: Not enough data in brkpnt file <name>' (exit 255).",
+    "The transfer is multiplicative onto the source's own dynamics (like envel impose), not a replacement - use envel replace semantics via execute() if the source envelope must be erased first.",
+    "Deterministic; duration static and exact at both probed input durations; stereo accepted."
+  ],
+  "references": ["cdp://docs/html/cgroenvl"]
+}

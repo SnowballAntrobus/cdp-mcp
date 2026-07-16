@@ -1,0 +1,46 @@
+{
+  "program": "gate",
+  "mode": "gate",
+  "submode": 2,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Noise gate that EDITS OUT low-level passages - the kept regions are butt-joined with 1 ms splices, so the output is SHORTER than the input by the total gated time. Identical detection to submode 1 (same binary, same scan): gatelevel is an absolute dBFS threshold, a below-threshold region is a contiguous sample run longer than ~2 ms (interior; > 1 ms at file edges), and loud material is never chopped at its zero-crossings. Verified: a 2.5 s fixture with four bursts over a -54 dB floor collapsed to 1.4062 s at -40 dB; a 2.0 s syllable train with true-silence gaps collapsed to 1.1924 s (almost exactly the sum of the four 0.30 s bursts). Duration is therefore CONTENT-DEPENDENT (declared model 'static' is the conservative schema placeholder - see known_issues; expect output = sum of kept regions). Deterministic; mono only.",
+  "musical_use": "Silence-stripping and event compaction: turn a sparse take (events separated by room tone) into a dense sequence of just the events - the complement of gate submode 1, which keeps the timing grid and silences the gaps. Use it to tighten spoken/played material before granulation or waveset work, to build event chains for sequencing, or to remove long noise-floor stretches so filters and iterators do not waste time on near-silence. If downstream timing matters (retime, rhythm-preserving edits), use submode 1 instead - this mode destroys inter-event timing by design. The 1 ms joins are click-free but audible as timing jumps on tonal material; for musical crossfades between kept regions do the cuts with sfedit instead.",
+  "parameters": {
+    "gatelevel": {
+      "type": "float",
+      "min": -96.0,
+      "max": 0.0,
+      "unit": "dB",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Absolute threshold in dBFS below which contiguous runs (> ~2 ms) are removed from the output. Same CDP-enforced range and refusals as submode 1: '(-96.000000 to 0.000000)' quoted verbatim; breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). Scalar only."
+    }
+  },
+  "examples": [
+    {
+      "description": "Compact a sparse recording to just its events.",
+      "params": {"gatelevel": -40.0},
+      "expected_use": "Output duration ~ sum of above-threshold regions (2.0 s syllable train -> 1.19 s = the four bursts). Inter-event timing is discarded."
+    }
+  ],
+  "known_issues": [
+    "DURATION IS CONTENT-DEPENDENT: output = sum of kept regions (+1 ms splices). The declared 'static' model is a schema placeholder only - the engine's duration pre-flight over-predicts by the total gated time (safe direction for the size watchdog, wrong for planning). Predict it yourself as the above-threshold time. The findings duration row is null: the flat-noise fixture refuses 'No signal is gateable' (nothing below threshold), exactly like submode 1.",
+    "Same content refusals as submode 1 (verbatim): 'ERROR: No signal is gateable' / 'ERROR: Entire signal would be gated.'",
+    "Same detection pins as submode 1: absolute dBFS threshold (not peak-relative), per-sample runs > 1 ms (edges) / 2 ms (interior), 1 ms hardcoded splices at every join.",
+    "MONO ONLY: stereo refuses 'File <name> is not of correct type (must be mono)'.",
+    "Deterministic: two runs > 1.1 s apart produce identical decoded sha256."
+  ],
+  "references": ["cdp://docs/html/cgroenvl"]
+}

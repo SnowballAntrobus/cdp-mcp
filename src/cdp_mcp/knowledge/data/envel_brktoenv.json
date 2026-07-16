@@ -1,0 +1,61 @@
+{
+  "program": "envel",
+  "mode": "brktoenv",
+  "submode": null,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": ".txt",
+  "output_format": ".evl",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Converts a TEXT breakpoint file ('time level' pairs) into a BINARY envelope file (.evl) at wsize resolution - the bridge INTO the binary envelope world that envel impose 2 / replace 2 consume. Round-trip verified: envtobrk output fed back through brktoenv reproduces a valid .evl (RIFF/FLOAT, srate 1000/wsize, 102 frames from a 2 s breakpoint list at wsize 20). Arity-0 data-to-data: the text file arrives through the aux slot (pre_output; CDP argv 'envel brktoenv inbrkfile outenvfile wsize'). Values above 1.0 are accepted (a 1.8-level file converted without complaint - amplifying envelopes are legal); if the first breakpoint time is > 0 the envelope starts at time 0 holding the first value (banner). wsize's ceiling tracks the breakpoint file's duration ('(5.000000 to 2020.000000)' quoted for a 2.0 s list - input-dependent). Deterministic in the data chunk (one LIST date byte differs, family behavior).",
+  "musical_use": "Write dynamics as text, apply them as envelopes: any programmatically generated time/level list - LFO tables, probability-thinned gate patterns, dynamics copied from an analysis - becomes an imposable envelope via this + 'envel impose 2' (execute()). Compared to envel create 1 (which also builds .evl from text) this takes the PLAIN breakpoint dialect: no 'e' exponential markers, no dB suffixes, no 10 ms minimum gap - exactly the format other tools emit (envel extract mode 2, envtobrk, peakchop 2's rhythm envelope, your own scripts). That makes it the default text->binary path in generated pipelines; reach for create 1 when you specifically want exponential segments or dB authoring. Small wsize preserves fast gating detail; large wsize smooths the list into a slow arc.",
+  "parameters": {
+    "inbrkfile": {
+      "type": "aux_file",
+      "position": "pre_output",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Plain-text breakpoint file: 'time level' per line, times ascending (write with write_data_file(); .txt names verified working - the engine reserves .brk for its own compiler, so use .txt). Levels are gains; values > 1 accepted (verified 1.8). Session-relative paths reach graph outputs ('graphs/<gid>/<node>_envnu-peakchop.txt'). Occupies the argv slot before the output (position: pre_output)."
+    },
+    "wsize": {
+      "type": "float",
+      "min": 5.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 20.0,
+      "flag": null,
+      "description": "Resolution of the generated envelope (one stored value per wsize; the .evl's RIFF srate = 1000/wsize). CDP-enforced 5 to just past the breakpoint list's duration in ms (input-dependent: '(5.000000 to 2020.000000)' on a 2.0 s list). Scalar only."
+    }
+  },
+  "examples": [
+    {
+      "description": "Stamp peakchop 2's captured rhythm onto a pad.",
+      "params": {"inbrkfile": "graphs/<gid>/n1_envnu-peakchop.txt", "wsize": 10.0},
+      "expected_use": "Then: execute(['envel', 'impose', '2', 'inputs/pad.wav', 'graphs/<gid>/<node>_envel-brktoenv.evl', 'graphs/<gid>/pumped.wav']) - offline sidechain in the source's exact rhythm."
+    },
+    {
+      "description": "Script-generated gate pattern to binary envelope.",
+      "params": {"inbrkfile": "pattern.txt", "wsize": 5.0},
+      "expected_use": "First write_data_file('pattern.txt', <alternating 0/1 time-level lines>); 5 ms windows keep gate edges tight."
+    }
+  ],
+  "known_issues": [
+    "DATA-TO-DATA entry (.txt aux in, .evl data out): no audio, no audition, duration pre-flight skipped ('static' is a placeholder; findings duration row null). Consumers: envel impose 2 / replace 2 / reshape via execute().",
+    "SUBSTRATE PIN (matters for exotic builds, recorded for macOS re-verification): this program READS text through CDP's parser, which breaks wholesale on unsigned-char platforms (Linux aarch64) - every text file refuses 'ERROR: <name> is not a valid CDP file' until the binaries are built with -fsigned-char (cdparse.c '(char)fgetc() != EOF' loop; diagnosed and fixed on this tranche's substrate). macOS r8 (signed char) is unaffected.",
+    "wsize's maximum tracks the breakpoint list's time span (refusals quote the per-file bound).",
+    "Breakpoint values above 1.0 convert without clamping - downstream imposition can amplify past full scale.",
+    "First-time > 0 lists gain a level-hold from time 0 (banner-documented; no refusal).",
+    "The sibling dbtoenv (dB-notation text -> .evl) is not curated: no curated producer/consumer of dB text; reachable via execute().",
+    "Deterministic in the envelope data chunk; one RIFF LIST date byte differs run to run."
+  ],
+  "references": ["cdp://docs/html/cgroenvl"]
+}

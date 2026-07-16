@@ -1,0 +1,60 @@
+{
+  "program": "envel",
+  "mode": "swell",
+  "submode": null,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Fades the sound in from silence up to a chosen peak moment and back out to silence - a single dynamic arch pinned at peaktime. No mode digit (unlike most envel operations). Duration static and exact at both probed input durations (2.0 -> 2.0, 1.0 -> 1.0). Shape verified: with peaktime 1.0 on a 2 s file, edge RMS fell to ~3% of the source while the region around the peak kept ~92% - the envelope reaches unity only at peaktime. peaktype 0 = linear slopes, 1 = exponential (default per banner); range hard-enforced 0-1 (no undocumented 2/3 shapes here, unlike dovetail/curtail). Both parameters refuse breakpoints. Deterministic; stereo accepted.",
+  "musical_use": "The one-gesture swell: turn any material into a rise-and-fall event - reversed-cymbal style builds, breath-shaped pads, or an emphatic mid-phrase bloom. peaktime early (5-20% in) approximates a soft attack with a long decay; peaktime late makes a long anticipatory crescendo that cuts off quickly. Exponential slopes (peaktype 1) read as natural loudness motion; linear (0) is more mechanical and keeps low-level detail audible longer. Where dovetail fades only the edges and leaves the middle untouched, swell reshapes the ENTIRE file into the arch - use dovetail to clean edges, swell to compose a gesture. For arbitrary multi-segment shapes use envel scaled (hand-drawn envelope) or envel create + impose.",
+  "parameters": {
+    "peaktime": {
+      "type": "float",
+      "min": 0.005,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Time of the loudness peak. CDP-enforced 0.005 to indur-0.005 (input-dependent: '(0.005000 to 1.995000)' quoted on a 2 s file - no static max). Breakpoint refused ('Cannot read parameter 1'). Scalar only."
+    },
+    "peaktype": {
+      "type": "int",
+      "min": 0,
+      "max": 1,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Slope shape: 0 linear, 1 exponential (banner default). Hard-enforced 0-1 ('Parameter[2] Value (5.000000) out of range (0.000000 to 1.000000)') - the dovetail family's undocumented shapes 2/3 do NOT exist here. Breakpoint refused ('Cannot read parameter 3' - CDP's slot numbering). Scalar only."
+    }
+  },
+  "examples": [
+    {
+      "description": "Classic reverse-swell build into a cut-off.",
+      "params": {"peaktime": 1.8, "peaktype": 1},
+      "expected_use": "On a 2 s file: 1.8 s exponential crescendo, then a fast 0.2 s die-away. Duration unchanged."
+    },
+    {
+      "description": "Soft bloom near the front.",
+      "params": {"peaktime": 0.3, "peaktype": 0},
+      "expected_use": "Linear rise to 0.3 s then a long linear decay - percussive material becomes a pillowy event."
+    }
+  ],
+  "known_issues": [
+    "peaktime's bounds are input-dependent (0.005 to indur-0.005); the refusal quotes the per-file range.",
+    "The whole file is re-enveloped - existing dynamics are multiplied under the arch, not replaced. Quiet sources stay proportionally quiet at the peak.",
+    "Both params scalar-only (breakpoints refused, parameters 1 and 3 in CDP's numbering).",
+    "Deterministic; duration static and exact; stereo accepted (2-channel output)."
+  ],
+  "references": ["cdp://docs/html/cgroenvl"]
+}

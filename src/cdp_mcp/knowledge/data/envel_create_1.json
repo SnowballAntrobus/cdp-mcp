@@ -1,0 +1,59 @@
+{
+  "program": "envel",
+  "mode": "create",
+  "submode": 1,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 0,
+  "channel_constraint": "any",
+  "input_format": "none",
+  "output_format": ".evl",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Hand-crafts a BINARY envelope file (.evl - a DATA output, not audio) from a text description: the createfile lists 'time level' pairs (levels 0-1 or dB with an explicit 'dB' suffix - '-6dB' verified; a leading 'e' on a level makes that segment exponential). Arity-0 to the engine: no audio inputs - the createfile is an aux parameter and CDP's argv puts it AFTER the output ('envel create 1 outfile createfile wsize'). Format pinned: the .evl is a RIFF/WAVE container, FLOAT subtype, 1 channel, 'sample rate' = 1000/wsize (50 at wsize 20), one envelope value per window, duration = last createfile time (101 frames for a 2.0 s envelope at wsize 20). Consumer verified on the binary: 'envel impose 2 <sound> <this .evl> <out>' renders the envelope onto audio (exit 0, output = the sound's duration). Deterministic in the data chunk; exactly 1 byte (the RIFF LIST date chunk) differs run to run.",
+  "musical_use": "Compose dynamics as data: build any envelope shape - multi-stage swells, rhythmic gate patterns, slow arcs with sudden drops - then stamp it onto sounds with envel impose 2 (via execute(), since the curated impose is pinned to mode 1's audio donor). The 'e' prefix gives natural exponential rises/falls per segment; near-instant jumps are legal down to the 10 ms minimum time step. Together with the curated envel extract (audio -> .evl), envel brktoenv (text brk -> .evl) and envel envtobrk (.evl -> text), this completes the envelope-data toolchain: create from scratch here, capture from audio with extract, convert either way, apply with impose/replace. If you want the same shape stretched to fit each target's length instead of absolute times, use envel scaled directly with a text file - no .evl needed.",
+  "parameters": {
+    "createfile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Text description: 'time [e]level' pairs, one or more per line (write with write_data_file()). Levels 0-1 or dB between -96dB and 0dB WITH the 'dB' suffix ('-6dB' verified working; a bare 1.5 refuses 'ERROR: Level value 1.500000 out of range'). Times ascend and must be >= 0.010 s apart ('ERROR: timegap 0.005000 - 0.000000 is too small.' verbatim). 'e' prefix = exponential rise/fall to that level (default linear). Renders AFTER the output path in CDP's argv - a plain positional aux param, not pre_output. If the first time is > 0, values from 0 to it hold the first level (banner)."
+    },
+    "wsize": {
+      "type": "float",
+      "min": 5.0,
+      "max": 10000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 20.0,
+      "flag": null,
+      "description": "Window size = time resolution of the generated envelope; the .evl stores one value per wsize. CDP-enforced 5-10000 ('Parameter[2] Value (2.000000) out of range (5.000000 to 10000.000000)'). Scalar only."
+    }
+  },
+  "examples": [
+    {
+      "description": "Swell with an exponential collapse, for imposing later.",
+      "params": {"createfile": "shape.txt", "wsize": 20.0},
+      "expected_use": "First: write_data_file('shape.txt', '0.0 0.0\\n0.5 1.0\\n1.2 e0.3\\n2.0 0.0\\n'). Then apply: execute(['envel', 'impose', '2', 'inputs/pad.wav', 'graphs/<gid>/<node>_envel-create.evl', 'graphs/<gid>/shaped.wav'])."
+    },
+    {
+      "description": "Rhythmic gate pattern in dB.",
+      "params": {"createfile": "gates.txt", "wsize": 10.0},
+      "expected_use": "Alternate '0dB' and '-96dB' points >= 0.01 s apart for a square-ish gate; 10 ms windows keep the edges tight."
+    }
+  ],
+  "known_issues": [
+    "DATA OUTPUT (.evl): a RIFF/WAVE-dressed envelope (FLOAT, srate 1000/wsize) that would PASS audio verification under a .wav name and poison downstream consumers - the .evl data kind exists exactly for this (envel extract precedent). It cannot be auditioned or used as an audio input; duration pre-flight is skipped ('static' model is a placeholder; findings duration row null).",
+    "createfile rules (all verbatim refusals): times < 0.010 s apart -> 'timegap ... is too small.'; plain levels above 1 -> 'Level value ... out of range'; dB values REQUIRE the 'dB' suffix (a bare -6 is an out-of-range plain level).",
+    "The envelope's length = the last createfile time; there is no duration parameter.",
+    "Consumers: envel impose 2 / replace 2 (verified), envel reshape / envtobrk (this tranche's probes), all via execute() except the curated envtobrk.",
+    "Mode 2 (same createfile -> TEXT breakpoint output, expanding 'e' segments into many linear points) is not curated: reach it via execute(); it refuses reserved output extensions like .wav.",
+    "Determinism: envelope data chunk byte-identical across runs; one byte in the RIFF LIST date-comment chunk differs (same as envel extract)."
+  ],
+  "references": ["cdp://docs/html/cgroenvl"]
+}

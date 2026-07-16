@@ -1,0 +1,158 @@
+{
+  "program": "envnu",
+  "mode": "peakchop",
+  "submode": 1,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Isolates the envelope PEAKS of the source (pkwidth ms wide, risetime ms attack) and plays them back as a new event sequence at the given tempo (MM = events/minute) - chop a phrase into its loudest moments and re-time them onto a beat grid. Output duration is CONTENT-DEPENDENT (declared 'static' is a schema placeholder): approx (npeaks-1) x 60/tempo + event length - verified 1.54 s at MM 120 and 3.04 s at MM 60 from the same 4-peak source, and 5.04 s from a 2 s bed whose envelope carried more peaks. Deterministic INCLUDING scatter (two -s0.5 runs > 1.1 s apart byte-identical - the 'randomisation' draws from an unseeded generator with a fixed sequence, the osbind drand48-shim family). Five params and three flags are BREAKPOINT-CAPABLE, each verified against both scalar endpoints - and their breakpoint times are OUTPUT times per the banner. Stereo accepted.",
+  "musical_use": "Rhythm machine from found dynamics: any material with envelope peaks (speech syllables, percussion hits, bubbling textures) becomes a metrically re-timed event stream - quantize a sloppy phrase to MM, halve/double the tempo of its gestures without pitch change, or ramp tempo with a breakpoint for accelerando built from the source's own attacks. repeat > 0 stutters each event; miss skips peaks (every other at 1) thinning density; scatter loosens the grid humanly (deterministically - same render every run); norm pushes event levels toward the loudest for drum-machine evenness. gate ignores peaks below a relative level - raise it to keep only accents. Watch overlap: fast tempo with wide pkwidth stacks events - the banner's own advice is to lower gain. Mode 2 (curated sibling) writes the peak-isolating ENVELOPE as a text file instead of rendering audio.",
+  "parameters": {
+    "wsize": {
+      "type": "float",
+      "min": 1.0,
+      "max": 1000.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": 50.0,
+      "flag": null,
+      "description": "Envelope-extraction window for finding peaks. CDP-enforced 1-1000 ('Parameter[1] Value (3000.000000) out of range (1.000000 to 1000.000000)' - the banner's '1-64' is an advisory subset). Breakpoint refused. Scalar only."
+    },
+    "pkwidth": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": 20.0,
+      "flag": null,
+      "description": "Width of each retained peak event. Banner: must stay below the minimum distance between peaks - mode 1 does NOT enforce this (600 accepted; mode 2 refuses the same value). BREAKPOINT-CAPABLE (verified; times are output times)."
+    },
+    "risetime": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": true,
+      "default": 10.0,
+      "flag": null,
+      "description": "Attack from zero to each peak. BREAKPOINT-CAPABLE (verified against both endpoints)."
+    },
+    "tempo": {
+      "type": "float",
+      "min": 20.0,
+      "max": 3000.0,
+      "unit": "MM",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Output event rate, events per minute. CDP-enforced 20-3000 ('Parameter[4] Value (7000.000000) out of range (20.000000 to 3000.000000)'). BREAKPOINT-CAPABLE (verified) - tempo ramps give accelerando/ritardando; breakpoint times are OUTPUT times."
+    },
+    "gain": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 1.0,
+      "flag": null,
+      "description": "Output gain - lower it when fast tempo overlaps events (banner's advice). CDP-enforced 0-1 (Parameter[5]). BREAKPOINT-CAPABLE (verified)."
+    },
+    "gate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-g",
+      "flag_kind": "attached_value",
+      "description": "Peaks below this level RELATIVE TO THE MAX are ignored. CDP-enforced 0-1 (Parameter[6]). Breakpoint refused (banner: one of the three that 'may not vary'). Scalar only."
+    },
+    "skew": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.25,
+      "flag": "-q",
+      "flag_kind": "attached_value",
+      "description": "Envelope centring on the peak: 0 peak at event start, 0.5 centred, 1 at event end. CDP-enforced 0-1 (Parameter[7]). Breakpoint refused. Scalar only."
+    },
+    "scatter": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.0,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Randomisation of output event times (0-1, Parameter[8]) - DETERMINISTIC on this build: repeated runs render byte-identically, and there is no seed slot; treat it as a fixed humanize pattern per parameter set. BREAKPOINT-CAPABLE (verified)."
+    },
+    "norm": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": "-n",
+      "flag_kind": "attached_value",
+      "description": "Forces event levels toward the loudest (0 off - 1 full). CDP-enforced 0-1 (Parameter[9]). Scalar only (not brk-probed; banner leaves it in the varying set but it is pinned scalar here)."
+    },
+    "repeat": {
+      "type": "int",
+      "min": 0,
+      "max": 256,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Times each peak event is repeated. CDP-enforced 0-256 ('Parameter[10] Value (300.000000) out of range (0.000000 to 256.000000)'). BREAKPOINT-CAPABLE (verified) - stutter density can evolve."
+    },
+    "miss": {
+      "type": "int",
+      "min": 0,
+      "max": 64,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0,
+      "flag": "-m",
+      "flag_kind": "attached_value",
+      "description": "Use one peak event, skip the next 'miss' events. CDP-enforced 0-64 (Parameter[11]). BREAKPOINT-CAPABLE (verified)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Quantize speech syllables onto a 120 MM grid.",
+      "params": {"wsize": 50.0, "pkwidth": 20.0, "risetime": 10.0, "tempo": 120.0, "gain": 1.0},
+      "expected_use": "4 detected peaks -> ~1.54 s of evenly spaced events. Output duration ~ (npeaks-1) x 0.5 s + event."
+    },
+    {
+      "description": "Accelerating stutter that thins out.",
+      "params": {"wsize": 50.0, "pkwidth": 30.0, "risetime": 5.0, "tempo": [[0.0, 60.0], [3.0, 600.0]], "gain": 0.7, "repeat": 2, "miss": [[0.0, 0], [3.0, 2]]},
+      "expected_use": "Events triple-fire and accelerate 60->600 MM while progressively skipping peaks; breakpoint times are OUTPUT times."
+    }
+  ],
+  "known_issues": [
+    "DURATION IS CONTENT-DEPENDENT (number of detected peaks x beat) - the 'static' model is a placeholder; the findings duration row is null. Pins: syl2 (4 peaks) -> 1.54 s @120 MM / 3.04 s @60 MM; a 2 s enveloped bed -> 5.04 s @120. Output can be much longer OR shorter than the input.",
+    "BREAKPOINT TIMES ARE OUTPUT TIMES (banner verbatim: 'Times in breakpoint files are times in the output') - the engine compiles relative-time envelopes against the INPUT duration, so supply absolute-time lists for long outputs and expect the tail to hold the last value.",
+    "scatter is DETERMINISTIC: -s0.5 runs > 1.1 s apart rendered byte-identically and no seed exists (unseeded fixed-sequence generator, same family as the modify revecho drand48 shim, tranche 2). A/B variation via scatter VALUE changes, not reruns.",
+    "pkwidth's 'less than minimum peak distance' rule is enforced only by mode 2 ('New peakwidth too wide for the input data.'); mode 1 accepts oversized widths and overlaps events - use gain.",
+    "wsize 1-1000 ms enforced (banner says 1-64: advisory).",
+    "Stereo accepted, but peak detection runs on the stereo envelope - the same fixture gated differently as stereo (3.54 s vs 1.54 s mono probe): channel layout changes the detected peak count."
+  ],
+  "references": ["cdp://docs/html/cgroenvnu"]
+}

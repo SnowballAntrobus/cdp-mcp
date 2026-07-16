@@ -1,0 +1,72 @@
+{
+  "program": "envel",
+  "mode": "warp",
+  "submode": 8,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Envelope-domain GATE (envel warp mode 8 of 15): extracts the amplitude envelope at wsize resolution, zeroes every WINDOW whose envelope value falls at or below the gate, and multiplies the reshaped envelope back onto the sound - so below-gate windows become literal digital zeros while kept windows pass through untouched (verified bit-exact passthrough on an in-range source; a 2.5 s input stays 2.5 s, static duration). The threshold is an ABSOLUTE amplitude 0-1 (not peak-relative: with gate 0.05 on a file peaking at 0.25, a 0.02-amplitude segment was fully zeroed even though it is 0.08 of the peak). smoothing > 0 additionally excises below-gate segments shorter than that many windows (removes stray gate chatter). gate is breakpoint-capable (verified: a 0.01->0.3 ramp renders differently from both scalar endpoints); wsize and smoothing refuse breakpoints. Deterministic; stereo accepted.",
+  "musical_use": "The window-resolution sibling of the gate program - and the second verified retime-enabler of this tranche: gating a four-burst recording with a noise floor at gate 0.05 produced zero runs that made 'retime retime 4' find all 4 events (vs 1 ungated). Compared to 'gate gate 1' (per-sample runs, mono, dB threshold) this one works on WINDOWS (choose wsize to set the rhythmic granularity of the gating), takes stereo, uses a linear 0-1 threshold, and - because gate can ride a breakpoint - the threshold itself can evolve: raise it through a phrase to progressively strip quiet detail, or duck it where you want the floor kept. wsize 5-20 ms follows syllable detail; 50-200 ms gates whole gestures. smoothing 1-5 windows cleans flutter at the gate boundary without raising the threshold. For per-sample precision or exact dB levels use the curated gate program instead.",
+  "parameters": {
+    "wsize": {
+      "type": "float",
+      "min": 5.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Envelope window size in ms - the resolution at which the envelope is extracted and gated (whole windows are zeroed). CDP-enforced 5 to the input duration in ms (input-dependent: '(5.000000 to 2500.000000)' quoted on a 2.5 s file). Breakpoint refused ('Cannot read parameter 1'). Scalar only."
+    },
+    "gate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Absolute envelope threshold 0-1: windows whose envelope value is below it are set to zero. Range CDP-enforced ('(0.000000 to 1.000000)'). BREAKPOINT-CAPABLE (banner 'Gate may vary over time'; verified: ramp render differs from both scalar-endpoint renders)."
+    },
+    "smoothing": {
+      "type": "int",
+      "min": 0,
+      "max": 32767,
+      "unit": "windows",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Excises below-gate segments SHORTER than this many windows (0 = off): de-chatters the gate boundary. CDP-enforced 0-32767 ('(0.000000 to 32767.000000)'). Breakpoint refused ('Cannot read parameter 4 [...]: brkpnt_files not permitted.' - CDP's slot numbering). Scalar only."
+    }
+  },
+  "examples": [
+    {
+      "description": "Retime prep on stereo material (gate gate 1 is mono-only).",
+      "params": {"wsize": 20.0, "gate": 0.05, "smoothing": 0},
+      "expected_use": "Noise floor between events becomes true zero runs; retime's event modes then count the events correctly (verified: 4 found vs 1 ungated)."
+    },
+    {
+      "description": "Evolving gate: strip more and more low-level detail over the file.",
+      "params": {"wsize": 15.0, "gate": [[0.0, 0.02], [2.0, 0.3]], "smoothing": 2},
+      "expected_use": "Material progressively reduces to only its loudest gestures; smoothing 2 removes one-window gate chatter."
+    }
+  ],
+  "known_issues": [
+    "Threshold is an ABSOLUTE amplitude 0-1, not relative to the file's peak (pinned: gate 0.05 zeroed a 0.02-amplitude segment in a file peaking at 0.25). Kept windows pass through bit-exact when the source peaks at or below 1.0.",
+    "OVER-FULL-SCALE SOURCES ARE RENORMALIZED: on a float source peaking at 1.128, every kept sample came back scaled by 0.887 = 1/1.128 (output peak exactly 1.0). In-range sources are untouched - only relevant for float chains running hotter than 0 dBFS.",
+    "No refusal when nothing falls below the gate - unlike the gate program's 'No signal is gateable', this mode just passes the file through (verified on flat noise, output = 2.0 s, static).",
+    "wsize's maximum is the input duration in ms (input-dependent); the same rule as the rest of the envel family.",
+    "envel warp's other 13 modes (normalise, reverse, exaggerate, ..., ducked) share this argv shape with different 'various_params'; only modes 8 (gate) and 11 (corrugate) are curated this tranche - the full mode table is recorded in docs/curation/tranche13_envelope.md.",
+    "Deterministic: two runs > 1.1 s apart produce identical decoded sha256. Stereo accepted (2-channel output, same duration)."
+  ],
+  "references": ["cdp://docs/html/cgroenvl"]
+}

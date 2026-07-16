@@ -1,0 +1,60 @@
+{
+  "program": "envnu",
+  "mode": "expdecay",
+  "submode": null,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "endtime if endtime < indur else indur"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Imposes an exponential decay to zero on the sound, running from starttime to endtime - and TRUNCATES the output where the decay completes: output duration = min(endtime, input duration), verified exact at both probed input durations (endtime 1.0 on 2 s -> 1.0000; endtime 0.8 on 1 s -> 0.8000; endtime at/beyond the file end -> full duration with the tail decayed to ~0, residual RMS 0.00006). Material before starttime is untouched. To decay to the very end of the file, pass any endtime >= the input duration (the banner's documented idiom; huge values like 90000 are accepted silently). Both parameters refuse breakpoints. Deterministic; stereo accepted.",
+  "musical_use": "The natural-death ending: exponential decay is how physical resonance dies, so this reads as 'the sound was damped' rather than 'someone pulled a fader' (envel curtail's exponential fade is subtly different - curtail shapes within its own fade window; expdecay imposes one continuous exponential from starttime). Use it to kill sustain into a chosen moment, fabricate percussive envelopes from sustained sources (starttime 0, short endtime), or guarantee iteration/loop fragments end at exactly zero - the truncation contract makes output lengths composable. Because the pre-starttime region is untouched, place starttime right after an attack to keep the transient and replace everything else with a clean die-away.",
+  "parameters": {
+    "starttime": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Where the decay begins; earlier material passes through untouched. CDP-enforced 0 to the input duration ('(0.000000 to 2.000000)' quoted on a 2 s file - input-dependent). Breakpoint refused ('Cannot read parameter 1'). Scalar only."
+    },
+    "endtime": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Where the decay reaches zero - the output ends here (clipped to the input duration when longer; values >= indur mean 'decay to the file end'). Must exceed starttime: 'ERROR: Endtime of decay must be greater than starttime. 1.500000  1.000000' (verbatim runtime refusal). Breakpoint refused ('Cannot read parameter 2'). Scalar only."
+    }
+  },
+  "examples": [
+    {
+      "description": "Keep the attack, replace the sustain with a damped die-away.",
+      "params": {"starttime": 0.15, "endtime": 1.0},
+      "expected_use": "First 150 ms untouched, exponential decay to zero at exactly 1.0 s; output is exactly 1.0 s."
+    },
+    {
+      "description": "Whole-file damping to the existing end.",
+      "params": {"starttime": 0.0, "endtime": 9999.0},
+      "expected_use": "endtime beyond the file means the decay lands on the final sample; duration = input duration."
+    }
+  ],
+  "known_issues": [
+    "The output is TRUNCATED at endtime (when < indur) - this is a fade-and-cut, not an in-place fade. Duration expression verified exact at two input durations plus the clip case.",
+    "endtime <= starttime refuses at runtime with the verbatim 'Endtime of decay must be greater than starttime.' message (not a Parameter[N] range).",
+    "endtime has no upper range check (90000 accepted) - by design, per the banner: 'To force decay-end to be at end of file, enter an endtime at OR beyond file duration.'",
+    "Both params scalar-only (breakpoints refused, parameters 1-2). Deterministic; stereo accepted."
+  ],
+  "references": ["cdp://docs/html/cgroenvnu"]
+}

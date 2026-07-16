@@ -1,0 +1,80 @@
+{
+  "program": "tremenv",
+  "mode": "tremenv",
+  "submode": null,
+  "category": "envelope",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Tremolo whose pulse width narrows AFTER each envelope peak of the material itself ('TREMOLO A SOUND, WIDTH NARROWED, AFTER PEAK'): the program extracts the source's amplitude envelope at winsize resolution and drives the tremolo's fineness-squeeze from where the sound sits relative to its own peaks - sustained material gets progressively narrower, more agitated pulsing as it decays. Distinct render from the tremolo program at identical frq/depth/fineness (verified: different sha, similar RMS range). NO TIME-VARIABLE PARAMETERS: all four positional params refuse breakpoint files (parameters 1-4 verbatim) - unlike its sibling tremolo, where frq/depth/gain all ride breakpoints; there is also no gain slot. Duration static and exact at both probed input durations; deterministic; stereo accepted.",
+  "musical_use": "Envelope-aware tremolo: because the narrowing follows the SOURCE's own dynamic contour, decaying notes flutter more as they die - an organic, bowed-tremolo/flatterzunge quality that plain fixed tremolo lacks. Best on material with clear envelope shape (plucked/struck notes, speech, swells); on flat beds it approximates ordinary tremolo. winsize is the sensitivity control: small (1-5 ms) reacts to every micro-transient, large (20-40 ms) follows only the note-level contour. Use tremolo (curated sibling) when you need breakpoint control, a gain ride, or exact reproducibility of envel tremolo; use tremenv when the material should modulate itself. Scalar-only params make this a set-and-render effect - vary it across takes with sweep() rather than within one file.",
+  "parameters": {
+    "frq": {
+      "type": "float",
+      "min": 0.0,
+      "max": 500.0,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Tremolo rate, 0-500 Hz (banner range; same slot convention as tremolo). Breakpoint refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.'). Scalar only."
+    },
+    "depth": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1.0,
+      "flag": null,
+      "description": "Tremolo depth 0-1. Breakpoint refused ('Cannot read parameter 2'). Scalar only."
+    },
+    "winsize": {
+      "type": "float",
+      "min": 1.0,
+      "max": 40.0,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Envelope-extraction window driving the after-peak narrowing. CDP-enforced 1-40 ms ('Parameter[3] Value (50.000000) out of range (1.000000 to 40.000000)'; 0.5 refused the same way). Breakpoint refused ('Cannot read parameter 3'). Scalar only."
+    },
+    "fineness": {
+      "type": "int",
+      "min": 1,
+      "max": 100,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Squeeze width of the tremolo pulses (as in the tremolo program). CDP-enforced 1-100 ('Parameter[4] Value (101.000000) out of range (1.000000 to 100.000000)'). Breakpoint refused ('Cannot read parameter 4'). Scalar only."
+    }
+  },
+  "examples": [
+    {
+      "description": "Decay-flutter on struck or plucked material.",
+      "params": {"frq": 8.0, "depth": 1.0, "winsize": 20.0, "fineness": 3},
+      "expected_use": "Notes pulse harder and narrower as they die away; envelope followed at 20 ms resolution."
+    },
+    {
+      "description": "Micro-reactive agitation.",
+      "params": {"frq": 14.0, "depth": 0.7, "winsize": 2.0, "fineness": 6},
+      "expected_use": "Tight windows make the narrowing chase every transient - nervous, speech-like flutter."
+    }
+  ],
+  "known_issues": [
+    "NO time-variable parameters: every slot refuses breakpoints (parameters 1-4 verbatim) - the envelope-following IS the time variation. For breakpoint-driven tremolo use the curated tremolo entry.",
+    "No gain parameter (unlike tremolo); stage level before or after.",
+    "Renders differently from tremolo at identical settings (sha-verified) - they are not interchangeable, the narrowing schedule differs by construction.",
+    "Deterministic; duration static and exact at both probed input durations; stereo accepted (2-channel output)."
+  ],
+  "references": ["cdp://docs/html/cr8new"]
+}

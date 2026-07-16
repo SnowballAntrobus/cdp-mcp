@@ -1,0 +1,326 @@
+{
+  "generated_at": "2026-07-16",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build; banner 'CDP Release 7.1 2016')",
+    "os": "Linux aarch64 sandbox - REBUILT WITH -fsigned-char (see substrate note)",
+    "note": "SUBSTRATE FINDING: on unsigned-char platforms (Linux aarch64 default) CDP's textfile parser rejects EVERY text input ('<name> is not a valid CDP file') because initial_parse_textfile's '(char)fgetc() != EOF' loop never sees EOF (cdparse.c). All binaries rebuilt with -fsigned-char (every per-directory CMakeLists clobbers CMAKE_C_FLAGS - sed-patched). macOS (signed char) unaffected; gate renders verified byte-identical across the rebuild. To be re-verified on macOS r8 by the CDP-gated suite after integration.",
+    "aux_files": {
+      "env4.txt": "0 0\n1 1\n4 0\n",
+      "note": "envel scaled's duration row needs env4.txt in the session data/ dir (relative-time envelope, peak at 1/4 of any input duration)."
+    }
+  },
+  "entries": [
+    {
+      "program": "gate",
+      "mode": "gate",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Flat-noise duration fixture refuses 'ERROR: No signal is gateable' (no below-threshold run longer than the 1 ms splice window exists in constant-level noise). Static model verified elsewhere: 110250 frames -> 110250 frames (real4), 1.5 -> 1.5000 (levels fixture).",
+      "stochastic": false,
+      "notes": [
+        "HEADLINE CHAIN VERIFIED: gate 1 (-40) on a 4-burst/-54dB-floor fixture turns retime 4's 'WARNING: only 1 event found' into 'INFO: 4 events found' + correct 120 MM retime (1.9506 s). The upstream fix for tranche 11b's literal-zero event detection.",
+        "Threshold ABSOLUTE dBFS (not peak-relative; 0.005 zeroed / 0.02 kept at -40 on a peak-0.25 file); per-sample runs > 1 ms (edges) / 2 ms (interior); splicelen hardcoded 1 ms (gate.c:1107); zero regions are exact zeros, kept regions bit-identical outside splices.",
+        "Refusals verbatim: gatelevel '(-96.000000 to 0.000000)'; 'No signal is gateable' (nothing below); 'Entire signal would be gated.' (all below); brk 'Cannot read parameter 1'; stereo 'File <f> is not of correct type (must be mono)'. Modes 1-2 only.",
+        "Deterministic; byte-identical across the -fsigned-char rebuild."
+      ]
+    },
+    {
+      "program": "gate",
+      "mode": "gate",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Same flat-noise refusal as submode 1; and duration is content-dependent anyway (sum of kept regions: real4 2.5 -> 1.4062; syl2 2.0 -> 1.1924 = the four 0.30 s bursts).",
+      "stochastic": false,
+      "notes": [
+        "EXCISE variant: below-threshold runs removed, kept regions joined with 1 ms splices; identical detection semantics to submode 1. duration_model 'static' is the conservative placeholder (retime-precedent), over-predicting by the gated time.",
+        "Mono only; deterministic; same verbatim refusal family as submode 1."
+      ]
+    },
+    {
+      "program": "envel",
+      "mode": "warp",
+      "submode": 8,
+      "breakpoint_capable": ["gate"],
+      "duration_row": ["envel", "warp", 8, 2.0, {"wsize": 20.0, "gate": 0.05, "smoothing": 0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Envelope-window GATE: whole wsize-windows below gate zeroed -> literal zero runs; SECOND retime-enabler ('4 events found' on the gated real4). Stereo-capable where the gate program is mono.",
+        "gate threshold ABSOLUTE 0-1 (0.02 seg zeroed at gate 0.05 in a peak-0.25 file - not peak-relative); kept windows bit-exact for in-range sources; over-full-scale float sources renormalized to peak 1.0 (x 1/peak, pinned 0.887 on a 1.128-peak file).",
+        "gate brk differs from both endpoints (capable; banner-confirmed); wsize brk refused (parameter 1), smoothing refused (parameter 4). Ranges verbatim: wsize '(5.000000 to 2500.000000)' (indur ms), gate 0-1, smoothing 0-32767.",
+        "Flat noise with nothing below gate passes through (no refusal - contrast gate program). Static exact both indurs; deterministic."
+      ]
+    },
+    {
+      "program": "envel",
+      "mode": "warp",
+      "submode": 11,
+      "breakpoint_capable": ["trofdel", "peak_separation"],
+      "duration_row": ["envel", "warp", 11, 2.0, {"wsize": 20.0, "trofdel": 2, "peak_separation": 6}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "CORRUGATE: trofdel windows zeroed per envelope trough, peaks >= peak_separation windows apart - punches retime-compatible zero gaps into continuous material (7692 zeros in a 2 s bed).",
+        "Both numeric params brk-capable (each differs from both endpoints). peak_separation '(2.000000 to 32767.000000)' verbatim; banner's 'trofdel < peak_separation' NOT enforced (8/6 accepted).",
+        "Static exact both indurs; deterministic; stereo accepted. Other 13 warp modes recorded and deferred (mode table in transcript)."
+      ]
+    },
+    {
+      "program": "envel",
+      "mode": "swell",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["envel", "swell", null, 2.0, {"peaktime": 1.0, "peaktype": 1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Fade in to peaktime, out after (edge RMS ratios 0.037/0.918/0.029 verified). No mode digit. peaktime '(0.005000 to 1.995000)' input-dependent; peaktype HARD 0-1 (no undocumented dovetail shapes). Both brks refused (parameters 1, 3). Static exact; deterministic; stereo accepted."
+      ]
+    },
+    {
+      "program": "envel",
+      "mode": "attack",
+      "submode": 3,
+      "breakpoint_capable": [],
+      "duration_row": ["envel", "attack", 3, 2.0, {"time": 1.0, "gain": 1.0, "onset": 20.0, "decay": 100.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Exact-time attack accent; boost locality verified (only ~time..time+decay lifts). HEADROOM GATE verbatim: 'The attack may distort with this gain level.' (content-dependent: peak x gain vs full scale) - MODE 4 SKIPS IT and renders 1.833-peak floats (inconsistency recorded).",
+        "gain range 1-32767 (boost only); time/decay input-dependent ranges; envtype -t 0-1 hard. All params brk-refused (parameters 1-5). Modes 1/2/4 dropped as siblings (exemplar 3). Static exact; deterministic; stereo accepted."
+      ]
+    },
+    {
+      "program": "envel",
+      "mode": "curtail",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": ["envel", "curtail", 2, 2.0, {"fadestart": 1.0, "fadedur": 0.5, "envtype": 1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Fade-out then TRUNCATE: expr '(fadestart + fadedur) if (fadestart + fadedur) < indur else indur' exact at 2 indurs + overshoot clip (1.5+1.5 on 2 s -> 2.0000).",
+        "BINARY BUG: mode 5 dies every run 'INSUFFICIENT MEMORY to reallocate level array.'; byte-proofs curtail1+envtype3 == curtail4 and curtail3+envtype3 == curtail6, so modes 4/5/6 are reproducible from 1/2/3 + the undocumented envtype 3 (dovetail-family enum; envtype 5 -> 'Unknown case in create_envelope()').",
+        "fadestart runtime refusal 'Start of fade time : out of range.'; brks refused (parameters 1-2). Deterministic; stereo accepted."
+      ]
+    },
+    {
+      "program": "envel",
+      "mode": "scaled",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["envel", "scaled", null, 2.0, {"envelope": "env4.txt"}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Aux brkfile imposed with a RELATIVE time axis (scaled to the input duration: peak-at-1-of-4 lands at dur/4 on both 1 s and 2 s inputs). pre_output aux slot ('envel scaled in brk out').",
+        "Values > 1 amplify unclamped (peak gain 1.23 verified); < 2 pairs refused 'Not enough data in brkpnt file <f>'. Static exact; deterministic; stereo accepted. Row needs aux env4.txt ('0 0/1 1/4 0') in session data/."
+      ]
+    },
+    {
+      "program": "tremolo",
+      "mode": "tremolo",
+      "submode": 1,
+      "breakpoint_capable": ["frq", "depth", "gain"],
+      "duration_row": ["tremolo", "tremolo", 1, 2.0, {"frq": 8.0, "depth": 1.0, "gain": 1.0, "fineness": 1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "SUPERSET PIN: fineness 1 renders BYTE-IDENTICAL to 'envel tremolo 1' at equal frq/depth/gain -> envel tremolo dropped. Mode 2 (log frq interp) byte-identical at scalar frq, differs only under frq brks -> dropped with execute() note.",
+        "frq/depth/gain each brk-capable (differ from both endpoints); fineness brk refused (parameter 4), range 1-100 verbatim (banner's unbounded '>= 1' wrong). frq 0-500, depth/gain 0-1 verbatim.",
+        "Fineness narrows pulses to true silence (RMS troughs 0.029 at f=1 -> 0.000 at f=4). Static exact both indurs; deterministic (probed f=4); stereo accepted."
+      ]
+    },
+    {
+      "program": "tremenv",
+      "mode": "tremenv",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["tremenv", "tremenv", null, 2.0, {"frq": 8.0, "depth": 1.0, "winsize": 20.0, "fineness": 1}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Width narrows AFTER each envelope peak of the SOURCE (envelope-follower driven); render distinct from tremolo at identical settings (sha-verified).",
+        "NO time-variable params: all four brk-refused (parameters 1-4). winsize 1-40 ms verbatim (0.5 and 50 refused); fineness 1-100. No gain slot. Static exact; deterministic; stereo accepted."
+      ]
+    },
+    {
+      "program": "spike",
+      "mode": "spike",
+      "submode": null,
+      "breakpoint_capable": ["upslope", "downslope"],
+      "duration_row": ["spike", "spike", null, 2.0, {"peak": 1.0, "upslope": 4.0, "downslope": 4.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Whole-file envelope replaced by one power-curve spike at 'peak'. upslope/downslope brk-capable (proofs pass); ranges 1-100 verbatim.",
+        "BANNER LIES: '-m' (maxup) refused 'Unknown variant flag -m'; only -d maxdown (0-1 s) exists. '-n' WRITES the full output then CORE-DUMPS at teardown (broken exit contract, specfnu-21 family) - not exposed.",
+        "peaks slot alternatively takes a trof-peak-trof triplet datafile (multi-spike; 6-time file -> 2 spikes verified) - execute() only; entry pins scalar single-peak. Peak >= EOF refusal under a spurious 'MEMORY ERROR' banner (verbatim in transcript). Static exact; deterministic; stereo accepted."
+      ]
+    },
+    {
+      "program": "topantail2",
+      "mode": "topantail",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["topantail2", "topantail", null, 2.0, {"startgate": 0.01, "endgate": 0.01}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Gate-driven top-and-tail trim; gates ABSOLUTE linear 0-1 per sample. Duration content-dependent ('static' placeholder; row pinned at gates 0.01 where the flat fixture passes through 2.0000 sample-exact; syl2 at 0.1 trims to 1.7131).",
+        "DOUBLING BUG PINNED: 0 < startsamp < splicelen -> output is the file TWICE (lead5ms fixture -> 3.99 s; lead50ms -> correct 1.9499; startsamp==0 -> exact passthrough). Source: top_and_tail() clamps startsplice to 0 while startsamp > 0 (topantail2.c). Row params (0.01) sit safely in the startsamp==0 regime on the fixture.",
+        "Ranges verbatim: gates 0-1 (P1/P2), splicelen -s 2-200 ms (P3), backtrack -b 0-1000 ms (P4); all brk-refused (parameters 1-4). Deterministic; stereo accepted."
+      ]
+    },
+    {
+      "program": "envnu",
+      "mode": "expdecay",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["envnu", "expdecay", null, 2.0, {"starttime": 0.5, "endtime": 1.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Exponential decay to zero from starttime, TRUNCATING at endtime: expr 'endtime if endtime < indur else indur' exact at 2 indurs; endtime >= indur = decay-to-EOF (90000 accepted silently, banner-documented idiom; tail RMS 0.00006).",
+        "Runtime refusal verbatim: 'Endtime of decay must be greater than starttime. 1.500000  1.000000'. starttime range input-dependent '(0.000000 to 2.000000)'. Brks refused (parameters 1-2). Deterministic; stereo accepted."
+      ]
+    },
+    {
+      "program": "envnu",
+      "mode": "peakchop",
+      "submode": 1,
+      "breakpoint_capable": ["pkwidth", "risetime", "tempo", "gain", "scatter", "repeat", "miss"],
+      "duration_row": null,
+      "duration_row_reason": "Duration = f(detected peak count, tempo) - content-dependent with no closed form: syl2 (4 peaks) -> 1.54 s @120 MM / 3.04 s @60; the 2 s flat-ish bed -> 5.04 s @120 (more envelope peaks). 'static' model is a placeholder.",
+      "stochastic": false,
+      "notes": [
+        "Peak isolation + tempo resequencing. Brk matrix matches the banner ('all may vary EXCEPT wsize, gate, skew') and all seven accepted params PROVED capable (each differs from both endpoints). Breakpoint times are OUTPUT times (banner verbatim) - recorded in the entry.",
+        "scatter DETERMINISTIC: -s0.5 pairs > 1.1 s apart byte-identical, no seed slot (unseeded fixed-sequence rand, osbind-shim family). stochastic false.",
+        "Ranges verbatim: wsize 1-1000 (banner 1-64 advisory), tempo 20-3000, gain/gate/skew/scatter/norm 0-1 (P5-P9), repeat 0-256 (P10), miss 0-64 (P11). pkwidth's peak-distance constraint unenforced in mode 1 (600 accepted; mode 2 refuses it).",
+        "Stereo accepted but the stereo envelope changes the peak count (3.54 s vs 1.54 s mono on the same content)."
+      ]
+    },
+    {
+      "program": "envnu",
+      "mode": "peakchop",
+      "submode": 2,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data output (.txt peak-isolating envelope) - no audio duration.",
+      "stochastic": false,
+      "notes": [
+        "Writes the peak-isolating envelope as TEXT: time/level 0-1 alternation (18 lines on syl2) - a valid gain brkfile for breakpoint params or brktoenv. Reserved-extension guard verbatim: 'Cannot open a textfile (pc2.wav) with a reserved extension.' -> .txt data output kind.",
+        "pkwidth ENFORCED here: 'New peakwidth too wide for the input data.' (mode 1 accepts the same value). Params pinned scalar. Deterministic byte-identical text."
+      ]
+    },
+    {
+      "program": "envel",
+      "mode": "create",
+      "submode": 1,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Arity-0 data output (.evl) - no audio duration.",
+      "stochastic": false,
+      "notes": [
+        "Text createfile -> binary .evl. FORMAT PIN: RIFF/WAVE FLOAT 1ch, srate = 1000/wsize (50 @ 20 ms), duration = last createfile time (101 frames from 2.0 s). argv: output FIRST, then createfile (plain positional aux AFTER output), then wsize.",
+        "createfile rules verbatim: 'timegap 0.005000 - 0.000000 is too small.' (0.01 s minimum step); 'Level value 1.500000 out of range' (plain > 1); dB with suffix works ('-6dB'); 'e' prefix = exponential segment. wsize 5-10000 verbatim.",
+        "Consumer verified: envel impose 2 renders it onto audio (2.0 s out). Determinism: data chunk identical, exactly 1 byte differs (RIFF LIST date chunk, offset 113) - envel extract precedent."
+      ]
+    },
+    {
+      "program": "envel",
+      "mode": "cyclic",
+      "submode": 3,
+      "breakpoint_capable": ["celldur", "trough"],
+      "duration_row": null,
+      "duration_row_reason": "Arity-0 data output (.evl) - no audio duration. set_by totaldur model exists for the engine's breakpoint axis; actual file length rounds UP to whole cells (2.0 requested / celldur 0.25 -> 2.25 s, 225 frames @ srate 100).",
+      "stochastic": false,
+      "notes": [
+        "Troughed repeating-cell envelope generator (submode 3 of 4). celldur brk and trough brk each differ from both endpoints -> capable; phase brk refused (parameter 4).",
+        "Ranges verbatim: wsize 5-10000 (P1); celldur '(0.010500 to 32767.000000)' (floor tied to wsize); phase 0-1 (P4); expo '(0.020000 to 50.000000)' (P6). Values span trough..1.0 (min 0.1 = the trough arg, verified).",
+        "Siblings dropped: 1 rising / 2 falling (same argv), 4 user-cell (userenv aux with RELATIVE time axis, verified exit 0) - execute()."
+      ]
+    },
+    {
+      "program": "envel",
+      "mode": "envtobrk",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data-to-data (.evl aux in, .txt out) - no audio duration.",
+      "stochastic": false,
+      "notes": [
+        "Binary envelope -> text brk ('time\\tlevel' per window); the bridge out of .evl into breakpoint-parameter space. datareduce -d 0-1 verbatim. pre_output aux slot ('envel envtobrk in.evl out [-d]').",
+        ".evl input typed by extension: renamed .dat refuses 'out1.dat is not a valid CDP file'. Round trip dbtogain(envtodb(x)) == envtobrk(x) values verified. Text outputs byte-identical across runs.",
+        "Carries the family's -fsigned-char substrate pin in known_issues (text-parser EOF bug on unsigned-char platforms)."
+      ]
+    },
+    {
+      "program": "envel",
+      "mode": "brktoenv",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": null,
+      "duration_row_reason": "Data-to-data (.txt aux in, .evl out) - no audio duration.",
+      "stochastic": false,
+      "notes": [
+        "Text brk -> binary .evl at wsize resolution (102 frames from a 2.0 s list @ 20 ms); the bridge INTO impose 2 / replace 2. wsize ceiling tracks the list span: '(5.000000 to 2020.000000)' verbatim on a 2.0 s brk.",
+        "Plain-dialect input (no 'e' markers/dB suffixes needed - what other tools emit); levels > 1 accepted (1.8 verified, no clamp); first-time > 0 lists hold the first value from 0 (banner). .txt input names verified working post -fsigned-char rebuild (engine reserves .brk for its compiler, so .txt is the right aux extension).",
+        "Determinism: data chunk identical, 1 LIST date byte differs (family behavior)."
+      ]
+    }
+  ],
+  "dropped": [
+    {
+      "target": "housekeep gate (modes 1-2)",
+      "reason": "Multi-output with the outfile argv IGNORED: writes numbered segments derived from the INPUT basename (trailing digit stripped) into the input's directory - 'housekeep gate 1 syl2.wav hgout.wav' wrote syl0.wav/syl1.wav and stopped on 'WARNING: Soundfile syl2.wav already exists.' (collision with the input itself). Declared output never created; engine verification can never pass. Source: clean.c HOUSE_CUTGATE setup_naming/create_outfile_name loop. Banner also omits the required mode digit ('Cannot read mode of program.')."
+    },
+    {
+      "target": "envel timegrid",
+      "reason": "Multi-output: 'envel timegrid n2.wav tg.wav 3 0.1 5' exits 0 writing tg_0/tg_1/tg_2.wav (gridcnt files); the declared outfile is never created. Standing multi-output drop precedent."
+    },
+    {
+      "target": "envcut (modes 1-2)",
+      "reason": "Multi-output: mode 1 wrote 199 files eco0..eco198.wav ('INFO: Writing File N' per file), declared outfile never created. Bonus divergence recorded: attack param is SECONDS ('Parameter[1] Value (10.000000) out of range (0.001000 to 2.000000)') despite the banner's 'mS'."
+    },
+    {
+      "target": "envel tremolo (modes 1-2)",
+      "reason": "Strict subset of the curated tremolo program: 'envel tremolo 1 f d g' is BYTE-IDENTICAL (decoded sha) to 'tremolo tremolo 1 f d g 1' (fineness 1). Note their banner depth defaults differ (0.25 vs 1) - irrelevant since depth is always emitted."
+    },
+    {
+      "target": "tremolo tremolo (mode 2)",
+      "reason": "Byte-identical to mode 1 at any scalar frq (verified); diverges only when frq rides a breakpoint (log vs linear interpolation, sha-verified distinct). Recorded in the mode-1 entry with an execute() pointer for pitch-like sweeps."
+    },
+    {
+      "target": "envel pluck",
+      "reason": "Mono only ('Application doesn't work with this type of infile.'); output duration = indur - startsamp/srate + attack (probed 1.07 s from 2.0 s at startsamp 44100/wavelen 100) requires srate-domain sample arithmetic the duration-expression vocabulary cannot express; the 'startsamp must be at a zero crossing' precondition is unverifiable engine-side. execute() escape."
+    },
+    {
+      "target": "envel attack (modes 1, 2, 4)",
+      "reason": "Siblings of curated mode 3 (gate-detected / approx-time / file-max attack points; same remaining argv). Mode 4 quirk recorded: it SKIPS the 'attack may distort' headroom check that modes 1-3 enforce (rendered a 1.833-peak float from a peak-0.917 source at gain 2)."
+    },
+    {
+      "target": "envel curtail (modes 1, 3, 4, 5, 6)",
+      "reason": "Modes 4/6 byte-identical to modes 1/3 with the undocumented envtype 3 (verified); MODE 5 IS BROKEN on this build ('ERROR: INSUFFICIENT MEMORY to reallocate level array.' every run) and its intent is reproducible as curated mode 2 + envtype 3; modes 1/3 are start+end / fade-to-EOF siblings of curated mode 2, reachable via execute()."
+    },
+    {
+      "target": "envel create (mode 2)",
+      "reason": "Text-to-text twin of curated create 1 (same createfile, expands 'e' segments into linear points - verified output). Refuses reserved output extensions. execute() escape; noted in the create 1 entry."
+    },
+    {
+      "target": "envel cyclic (modes 1, 2, 4)",
+      "reason": "Same argv as curated submode 3 with different cell shapes (1 rising, 2 falling); submode 4 replaces trough/expo with a userenv textfile (relative time axis) - verified exit 0. execute() escapes recorded in the cyclic 3 entry."
+    },
+    {
+      "target": "envel envtodb / dbtogain / gaintodb / dbtoenv",
+      "reason": "The dB-notation text kind has no curated producer/consumer: engine breakpoint params and every curated envelope consumer use gain-form. All four verified working post -fsigned-char rebuild (envtodb floors silence at -96.000000; dbtogain(envtodb(x)) reproduces envtobrk(x) values; gaintodb 0.1->-20.000000). Pure numeric text maps - execute() covers them."
+    },
+    {
+      "target": "envel replot (15 modes)",
+      "reason": "brk->brk through the same 15-mode table as warp/reshape; exemplar verified ('replot 3 hand2.txt rp.txt 20 2' exit 0, correct exaggerated values). Text-level envelope math is equally reachable by editing the data directly or via warp on audio; deferred with the table recorded, execute() escape."
+    },
+    {
+      "target": "envel reshape (15 modes)",
+      "reason": "evl->evl twin of warp's table; exemplar verified ('reshape 3 out1.evl rs1.evl 2' exit 0, 2474-byte .evl). The curated .evl workflow (extract/create/cyclic -> impose 2) plus curated warp 8/11 on audio covers the musical surface; deferred, execute() escape."
+    },
+    {
+      "target": "envel warp (modes 1-7, 9, 10, 12-15)",
+      "reason": "Curated the two event/rhythm modes (8 gate, 11 corrugate) this tranche; the other 13 share the argv shape with different trailing params (mode 6 'timestretch' probed: stretches the ENVELOPE, audio duration unchanged; mode 13 takes an extra rampfile argv). Mode table recorded in the transcript for a future tranche."
+    },
+    {
+      "target": "spike -m / -n flags",
+      "reason": "Not separate targets but recorded here for grep-ability: banner-advertised '-m' is refused 'Unknown variant flag -m'; '-n' writes its full output then core-dumps at teardown (broken exit contract). Neither exposed on the curated spike entry."
+    }
+  ]
+}
