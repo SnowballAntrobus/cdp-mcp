@@ -1,0 +1,102 @@
+{
+  "program": "grain",
+  "mode": "repitch",
+  "submode": 1,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Transposes each grain of a grainy sound by the next value from a semitone list in a text data file (transpfile), cycling back to the list's start when exhausted - the pitch sibling of grain rerhythm (submode 1 pinned: no grain repetition; submode 2 instead plays EACH grain at EVERY listed transposition before advancing, multiplying duration by the list length - verified 3.9922 s from 2.0 s with a 2-value list). Grains keep their positions and the total duration stays put (verified static: 1.9925 s from 2.0, 2.9925 from 3.0, -0.4%); the transposition is resampling WITHIN each grain slot (transposed-up grains get shorter inside their slot). Content verified: +12 semitones doubles the spectral centroid (2217 -> 4248 Hz on a burst train), -12 halves it (1511 Hz). Transpositions are CDP-enforced to +-48 semitones ('ERROR: INVALID DATA / ERROR: Ratio (50.000000) out of range (-48.000000 - 48.000000)' - dash-form range, quoted as a ratio). Standard family gate (default 0.3, byte-verified). Deterministic; mono and stereo accepted.",
+  "musical_use": "Melody from rhythm: a spoken phrase, drum loop or click pattern becomes a pitch sequence while its timing stays untouched. A transpfile of '0 12' alternates octaves; '0 4 7' arpeggiates a triad across successive events; all-negative lists darken a texture without slowing it. Because the list cycles, a short pattern against a long grain stream produces strict sequencer-like loops - deliberately mismatch pattern length and grain count for phasing effects (5-value list over 4-grain bars). Pair with grain rerhythm (time multipliers, same cycling convention) or jump to grain remotif to drive pitch AND rhythm from one paired file. As ever in this family the gate decides what a 'grain' is - tune it with grain find first (see grain_find).",
+  "parameters": {
+    "transpfile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Auxiliary text data file of semitone shifts (write with write_data_file(); any extension except .brk). Values separated by spaces or newlines, applied cyclically to successive grains; each CDP-enforced to +-48 semitones (4 octaves): 'ERROR: Ratio (50.000000) out of range (-48.000000 - 48.000000)'. TRAP (family-wide): a time/value breakpoint file here is read as a FLAT VALUE LIST, not an envelope."
+    },
+    "len": {
+      "type": "float",
+      "min": 0.1,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Maximum time between grains in seconds (family-standard: CDP-enforced 0.1 to the input duration). Breakpoint refused (family-standard)."
+    },
+    "gate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.3,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Required signal level for a grain to be seen (CDP-enforced 0-1). Real default 0.3 (verified: unflagged render byte-identical to -l0.3 on an alternating loud/soft train, differs from -l0.1). Breakpoint-CAPABLE (verified: a 0.05->0.5 gate ramp render differs from both scalar-endpoint renders)."
+    },
+    "minhole": {
+      "type": "float",
+      "min": 0.032,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Minimum duration of inter-grain holes (CDP-enforced 0.032 - the default - to the input duration, family-standard). Breakpoint refused (family-standard)."
+    },
+    "winsize": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Envelope-tracking window in ms for a signal-tracking gate; 0 = off (family-standard range 0 to input duration in ms). Breakpoint refused (family-standard)."
+    },
+    "ignore_last": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "Ignore the last grain in the source. Must follow the value flags (family-wide flag-order enforcement)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Octave alternation over a drum loop.",
+      "params": {"transpfile": "oct.txt"},
+      "expected_use": "Grains alternate original/`+12` while the rhythm stays put (first write_data_file('oct.txt', '0 12')); duration unchanged."
+    },
+    {
+      "description": "Minor-triad arpeggio from speech syllables.",
+      "params": {"transpfile": "triad.txt"},
+      "expected_use": "Successive syllables at 0/+3/+7 semitones, cycling (write_data_file('triad.txt', '0 3 7'))."
+    }
+  ],
+  "known_issues": [
+    "Submode pinned to 1 (each grain once, list cycles). Submode 2 plays each grain at EVERY listed transposition before moving on - duration multiplies by the list length (verified 3.9922 s from 2.0 s with a 2-value transpfile); curate separately if needed.",
+    "Duration honesty (static): -0.4% observed on 2 s and 3 s burst trains (1.9925/2.9925) - transposed grains are resampled inside fixed slots, and the final grain's tail can shave a little.",
+    "Transposition range errors are INVALID DATA refusals quoting the ratio in the dash form '(-48.000000 - 48.000000)'.",
+    "Acceptance-with-truncation landmine (family-wide): weakly-articulated material gets segmented at the 0.3 gate and processed anyway - verify segmentation with grain find first.",
+    "DIVERGENCE: banner gate 'default 1' vs real default 0.3; manual len minimum '1' vs enforced 0.1 (family-wide).",
+    "Deterministic (runs 1.2 s apart byte-identical). Stereo accepted (verified 2-channel).",
+    "-x must follow the value flags."
+  ],
+  "references": ["cdp://docs/html/cgrogrns"]
+}

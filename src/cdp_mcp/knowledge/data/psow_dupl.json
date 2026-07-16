@@ -1,0 +1,69 @@
+{
+  "program": "psow",
+  "mode": "dupl",
+  "submode": null,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur * repeats"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Pitch-synchronous time-stretch by DUPLICATION: each chunk of segcnt FOF grains (cut at the period boundaries given by the pitch data file) is played 'repeats' times back-to-back, so the sound lengthens by exactly that factor with NO gaps - the dense, continuous counterpart to psow stretch's spaced repositioning. Pitch and vowel formants preserved. Duration model indur * repeats verified to -0.11% (x2 -> 3.9956 from 2.0, x3 -> 5.9935, x2 on 3 s -> 5.9956; segcnt does not change duration - x2 at segcnt 4 also 3.9956). repeats is breakpoint-capable as a positional brk file (verified: a 2->4 ramp renders 5.9834 s, differing from the x2 and x4 scalar renders); segcnt refuses breakpoints (family-standard). CDP-enforced: repeats 2-256 (a repeat count of 1 - identity - is REFUSED: 'Parameter[2] Value (1.000000) out of range (2.000000 to 256.000000)'), segcnt 1-256. MONO only; deterministic. Same garbage-through landmine as the whole psow family: flat noise with a fake trace runs cleanly (3.9971 s from 2 s).",
+  "musical_use": "Lengthening a voice while keeping it CONTINUOUS - where psow stretch opens rhythmic gaps at big ratios, dupl fills time with repeated FOFs, at the cost of a static, sample-hold quality when repeats is high (each pitch period frozen and restated). segcnt is the graininess dial: 1 repeats individual periods (smoothest, closest to classic PSOLA stretching); 10-15 repeats whole packets and the repetition becomes audible as flutter/stutter - a deliberate effect. Small pitch steps in the source become terraced glissandi since each chunk holds its pitch while repeating. Combine with psow stretch in series (dupl x2 then stretch x1.5) to trade smoothness against pulse. Time-varying repeats (breakpoint) makes the voice progressively 'stick': 2 rising to 6 across a phrase is a freeze-in-motion. Same pitch-trace workflow as psow stretch (write_data_file() for steady pitches; repitch getpitch via execute() for real voices).",
+  "parameters": {
+    "pitchdata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Auxiliary text breakpoint file of time/frequency pairs for the source's pitch (write_data_file(); any extension except .brk). Frequency zeros = no-signal moments allowed; must contain some real frequency information; bad content refuses 'No data in brkpnt file'. The FOF cutting trusts this file absolutely (family landmine)."
+    },
+    "repeats": {
+      "type": "int",
+      "min": 2,
+      "max": 256,
+      "unit": "times",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Repetitions of each chunk (CDP-enforced 'Parameter[2] Value (1.000000) out of range (2.000000 to 256.000000)' - identity x1 is refused, use a plain copy instead; afta8's 0-220 is wrong). Breakpoint-CAPABLE as a positional brk file (verified: 2->4 ramp renders 5.9834 s ~ mean x3, differing from both the x2 (3.9956) and x4 (7.9913) scalar renders)."
+    },
+    "segcnt": {
+      "type": "int",
+      "min": 1,
+      "max": 256,
+      "unit": "grains",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "FOF grains per repeated chunk (CDP-enforced 1-256). No effect on duration (verified); 1 = smoothest, larger = audible packet-stutter. afta8 craft note: on very short grabbed sources the chunk count must fit the file - 'too few grains' errors mean lower segcnt. Breakpoint refused (family-standard 'brkpnt_files not permitted')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Double a vowel's length continuously (no gaps).",
+      "params": {"pitchdata": "trace.txt", "repeats": 2, "segcnt": 1},
+      "expected_use": "Output = indur x 2, seamless; write trace.txt with write_data_file() ('0.0 220\\n2.0 220' for a steady 220 Hz source)."
+    },
+    {
+      "description": "Freeze-in-motion: repetition count climbs 2 to 6 across the phrase.",
+      "params": {"pitchdata": "trace.txt", "repeats": "rep.brk", "segcnt": 3},
+      "expected_use": "The voice progressively sticks on its own packets (write rep.brk with breakpoint())."
+    }
+  ],
+  "known_issues": [
+    "repeats = 1 (identity) is REFUSED - the range floor is 2. There is no no-op setting.",
+    "GARBAGE-THROUGH LANDMINE (psow-wide): no check that the sound is pitched or matches the trace - flat noise with a fake 220 Hz file ran cleanly (2.0 -> 3.9971 s). Suitability is the caller's job.",
+    "Duration honesty: indur * repeats exact to -0.11% on all probes (repeats 2-4, indur 2-3 s, segcnt 1-4).",
+    "Overlap-free by construction (chunks butt end-to-end), so no clipping risk from the stretch itself - unlike psow stretch at ratios < 1.",
+    "MONO only ('must be mono', psow-wide). Deterministic (runs 1.2 s apart byte-identical).",
+    "Pitch-trace workflow: repitch getpitch -> ptobrk not yet curated; use execute() for real voices or write_data_file() for known pitches (verified)."
+  ],
+  "references": ["cdp://docs/html/cgropsow"]
+}

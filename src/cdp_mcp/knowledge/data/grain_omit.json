@@ -1,0 +1,115 @@
+{
+  "program": "grain",
+  "mode": "omit",
+  "submode": null,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur * keep / out_of"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Keeps only 'keep' grains from the start of each consecutive set of 'out_of' grains and CLOSES THE GAPS - the omitted grains are removed, not silenced, so the sound gets shorter (verified: keep 1 of 2 on a 10-grain 2.0 s train -> 0.9927 s; keep 3 of 4 -> 1.6 s; keep 2 of 2 -> 2.0 s exact pass-through). A thinning sieve for grainy material: the kept grains are always the FIRST keep of each set. Duration model indur*keep/out_of is the smooth baseline; the real output is (kept grain count) x (grain spacing), which quantises per set - exact when out_of divides the grain count, up to ~+19% longer than predicted otherwise (keep 1 of 4 on 10 grains keeps ceil coverage: 0.5928 s vs 0.5 predicted). Grain detection is the standard family gate (default 0.3, byte-verified; banner's 'default 1' wrong). keep is breakpoint-capable through time (banner-confirmed 'Keep may vary over time'); out_of is not. Deterministic; mono and stereo accepted.",
+  "musical_use": "Rhythmic decimation that keeps the groove's front edge: because the survivors are the first grains of each set, a keep/out_of of 1/2 halves a pulse stream into onbeats, 1/4 quarters it, 3/4 drops every fourth event - and since gaps close up, the result is a FASTER, denser phrase rather than a gapped one (contrast grain grev mode 4, which replaces units with silence and keeps the timing). Breakpointing keep against a fixed out_of thins the texture progressively - a 1->3 ramp over a 4-set turns sparse into nearly-full across the file (verified: brk render 1.0 s, between the 0.59 s and 1.6 s scalar extremes). On a single-grain sound (e.g. a sustained tone above the gate) it passes the file through unchanged - keep 1 of 2 on a pure tone returned 2.0 s intact.",
+  "parameters": {
+    "keep": {
+      "type": "int",
+      "min": 1,
+      "max": 63,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Number of grains kept from the start of each set (CDP-enforced 'Parameter[1] Value (0.000000) out of range (1.000000 to 63.000000)'). Breakpoint-CAPABLE (banner: 'Keep may vary over time, but must not exceed out_of'; verified: a 1->3 brk at out_of 4 renders 1.0000 s, differing from both the keep=1 (0.5928 s) and keep=3 (1.6000 s) scalar renders). keep > out_of is an INVALID DATA refusal: 'A value of 3 grains-to-keep out of each 2 is impossible.'"
+    },
+    "out_of": {
+      "type": "int",
+      "min": 2,
+      "max": 64,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Size of each grain set (CDP-enforced 'Parameter[2] Value (0.000000) out of range (2.000000 to 64.000000)'). Breakpoint refused: 'ERROR: Cannot read parameter 2 [oo.brk]: brkpnt_files not permitted.'"
+    },
+    "len": {
+      "type": "float",
+      "min": 0.1,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Maximum time between grains in seconds (family-standard: CDP-enforced 0.1 to the input duration; manual's minimum '1' is wrong). Breakpoint refused (family-standard)."
+    },
+    "gate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.3,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Required signal level for a grain to be seen (CDP-enforced 0-1). Real default 0.3 (verified: unflagged render byte-identical to -l0.3 on an alternating loud/soft train). Breakpoint-CAPABLE (verified: a 0.05->0.5 gate ramp render differs from both the gate-0.05 and gate-0.5 scalar renders)."
+    },
+    "minhole": {
+      "type": "float",
+      "min": 0.032,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Minimum duration of inter-grain holes (CDP-enforced 0.032 - the default - to the input duration, family-standard). Breakpoint refused (family-standard)."
+    },
+    "winsize": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Envelope-tracking window in ms for a signal-tracking gate; 0 = off (CDP-enforced 0 to the input duration in ms, family-standard). Breakpoint refused (family-standard)."
+    },
+    "ignore_last": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "Ignore the last grain in the source. Must follow the value flags (CDP flag-order enforcement, family-wide)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Halve a pulse stream: keep the first of every pair of grains.",
+      "params": {"keep": 1, "out_of": 2},
+      "expected_use": "Every other grain survives, gaps close - output about half the input duration, tempo feels doubled."
+    },
+    {
+      "description": "Progressive thinning: keep rises 1 to 3 out of every 4 across the file.",
+      "params": {"keep": "keep_ramp.brk", "out_of": 4},
+      "expected_use": "Sparse opening filling toward nearly-complete (write keep_ramp.brk with breakpoint(): 0.0 1 / end 3)."
+    }
+  ],
+  "known_issues": [
+    "Duration honesty: the model indur*keep/out_of is a smooth baseline for a per-set quantised process. Exact at keep 1 of 2 on an even 10-grain train (-0.7%); +19% at keep 1 of 4 on the same train (0.5928 s actual vs 0.5 predicted: partial final sets still contribute their kept grains). Error shrinks as grain count grows; plan with slack on short/sparse material.",
+    "Omitted grains are REMOVED (time closes up), not silenced - for silence-preserving omission use grain grev mode 4.",
+    "Acceptance-with-truncation landmine (generalization matrix): material that dips below the gate mid-texture is segmented into pseudo-grains and thinned - flat noise with edge ramps returned 1.9101 s from 2.0 s at keep 1 of 2 instead of refusing. Sounds with a single detected grain pass through unchanged (pure tone verified, 2.0000 s intact; no refusal).",
+    "keep > out_of refused at runtime: 'ERROR: INVALID DATA / ERROR: A value of 3 grains-to-keep out of each 2 is impossible.' A keep BREAKPOINT that exceeds out_of anywhere is the same refusal - keep the envelope's ceiling below out_of.",
+    "DIVERGENCE: banner gate 'default 1' vs real default 0.3 (byte-verified); manual len minimum '1' vs enforced 0.1 (family-wide).",
+    "Deterministic (runs 1.2 s apart byte-identical). Stereo accepted (verified 2-channel out, same thinning).",
+    "-x must follow the value flags (family-wide flag-order enforcement)."
+  ],
+  "references": ["cdp://docs/html/cgrogrns"]
+}

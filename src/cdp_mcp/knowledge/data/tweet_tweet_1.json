@@ -1,0 +1,96 @@
+{
+  "program": "tweet",
+  "mode": "tweet",
+  "submode": 1,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Replaces the FOFs of a vocal sound with synthetic multi-peak impulses - the voice re-spoken by a bird: each pitch period becomes a 'tweet' whose peak count (pkcnt) scales with the FOF size, following the original pitch trace and amplitude contour. Submode 1 pinned = pkcnt mode (impulse frequency rides the FOF size; sibling 2 fixes the impulse frequency with a frq param instead; sibling 3 replaces FOFs with NOISE bursts - both verified running). Requires a pitchdata breakpoint file (time/frequency text, as the psow family; 'Use repitch getpitch 2' per the banner). Duration is static (verified 1.9939 s from 2.0, 2.9939 from 3.0, -0.3%). CDP-enforced: minlevel -60..0 dB ('Parameter[2] Value (200.000000) out of range (-60.000000 to 0.000000)' - give it NEGATIVE dB, 0 = reject nothing; the banner's 'level in dBs below loudest' wording suggests positive values but the binary wants <= 0), pkcnt 1-200, chirp 0-30 (banner: 'Care, output may clip'). pkcnt and chirp both verified live (each changes the render); -w windows the tweets (verified distinct). CRASH LANDMINE: any real EXCLUDE file SEGFAULTS - the entry pins exclude to the literal 0 (see known_issues). Deterministic; MONO only.",
+  "musical_use": "A vocoder for birdsong: speech in, sparrow out - the rhythm, pitch contour and loudness shape of the voice survive while every period becomes a chirp. Low pkcnt (1-10) is dry and clicky, higher counts ring metallic; chirp > 0 glisses each impulse for the characteristic upward flick of real birdsong (watch levels, the banner warns of clipping). Mode 1's pitch-tracking impulse frequency keeps the tweets fused to the voice's registers; switch to sibling 2 (fixed frq) for a robotic monotone carrier or 3 for whispered noise-speech. minlevel is the de-esser: -20 or so drops the weakest FOFs (breaths, tails) and leaves rhythmic silhouettes. Same pitch-trace workflow as psow (write_data_file() for steady/known pitches - verified; repitch getpitch via execute() for real voices). Feed it anything with a truthful trace: like all this family it never checks the material (noise ran cleanly), so the 'voice' can be any pitched source.",
+  "parameters": {
+    "exclude": {
+      "type": "int",
+      "min": 0,
+      "max": 0,
+      "breakpoint_capable": false,
+      "default": 0,
+      "flag": null,
+      "description": "Areas from which FOFs will NOT be extracted - the literal 0 means none. PINNED TO 0: a real exclude textfile of time pairs SEGFAULTS the binary (verified twice: '0.5 1.0' and a two-pair file both dumped core, exit -11, empty output); sample-count pairs are refused as times ('Time (44100.000000)... is beyond end of infile (2.000000)'), proving the slot wants seconds - which then crash. No working file form exists on this build, so the entry only admits 0 (min=max=0); run exclusions via execute() at your own risk."
+    },
+    "pitchdata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Auxiliary text breakpoint file of time/frequency pairs for the source's pitch (write_data_file(); any extension except .brk; frequency zeros = no-signal moments allowed, must contain some real frequency info). The FOF replacement follows this trace absolutely (family landmine)."
+    },
+    "minlevel": {
+      "type": "float",
+      "min": -60.0,
+      "max": 0.0,
+      "unit": "dB",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Rejection threshold in NEGATIVE dB relative to the loudest FOF found; 0 = no FOFs rejected (CDP-enforced 'Parameter[2] Value (200.000000) out of range (-60.000000 to 0.000000)'; -10 verified accepted). The banner's 'level in dBs below level of loudest' phrasing implies a positive number - the binary wants it signed negative."
+    },
+    "pkcnt": {
+      "type": "int",
+      "min": 1,
+      "max": 200,
+      "unit": "peaks",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Number of peaks in each synthetic impulse - frequency changes with FOF size in this mode (CDP-enforced 'Parameter[3] Value (300.000000) out of range (1.000000 to 200.000000)'). Verified live: pkcnt 10 vs 40 render differently."
+    },
+    "chirp": {
+      "type": "float",
+      "min": 0.0,
+      "max": 30.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Glissing of each impulse - the birdsong flick (CDP-enforced 'Parameter[4] Value (40.000000) out of range (0.000000 to 30.000000)'; banner: 'Care, output may clip'). Verified live: chirp 0 vs 5 render differently."
+    },
+    "windowed": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-w",
+      "flag_kind": "no_value",
+      "description": "Cosine-smooth the edges of each replacement FOF (verified: changes the render). Softer, less buzzy tweets."
+    }
+  },
+  "examples": [
+    {
+      "description": "Turn a vowel phrase into pitched birdsong.",
+      "params": {"exclude": 0, "pitchdata": "trace.txt", "minlevel": 0, "pkcnt": 10, "chirp": 0},
+      "expected_use": "Same length, same pitch contour, every period a chirp (trace.txt via write_data_file())."
+    },
+    {
+      "description": "Glissing sparrow with quiet-FOF rejection.",
+      "params": {"exclude": 0, "pitchdata": "trace.txt", "minlevel": -20, "pkcnt": 30, "chirp": 5, "windowed": true},
+      "expected_use": "Brighter, flicking tweets; breaths and tails below -20 dB drop out. Watch levels at high chirp."
+    }
+  ],
+  "known_issues": [
+    "EXCLUDE FILE SEGFAULTS (first-class crash): any well-formed exclude textfile of second-pairs dumps core (exit -11, zero-length output) - verified with one and two pairs; sample-count pairs are refused as out-of-range times, so seconds are the intended (and crashing) format. The entry pins exclude to the literal 0 (min=max=0, type int - the engine's str values are reserved for .brk paths); there is no working exclusion path on this build.",
+    "minlevel is signed NEGATIVE dB (-60..0) despite the banner's 'dBs below loudest' phrasing.",
+    "Duration honesty (static): -0.3% observed (one splice's worth) on 2 s and 3 s sources.",
+    "GARBAGE-THROUGH LANDMINE (psow-family): no check that the source matches the trace - flat noise with a fake 220 Hz file ran cleanly (1.9800 s from 2.0). Suitability is the caller's job.",
+    "Siblings verified running, curate separately if needed: submode 2 replaces pkcnt with a fixed impulse frequency 'frq' (same remaining argv); submode 3 drops pkcnt/chirp entirely (noise bursts).",
+    "MONO only ('must be mono'). Deterministic (runs 1.2 s apart byte-identical)."
+  ],
+  "references": ["cdp://docs/html/cgropsow"]
+}

@@ -1,0 +1,69 @@
+{
+  "program": "psow",
+  "mode": "delete",
+  "submode": null,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur / propkeep"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Pitch-synchronous time-SHRINK by deletion: keeps 1 chunk in every 'propkeep' chunks of segcnt FOF grains and discards the rest, compressing the sound to 1/propkeep of its length with pitch and vowels untouched - the inverse of psow dupl. Duration model indur / propkeep verified to +0.8% worst (propkeep 2 -> 1.0024 from 2.0; 4 -> 0.5040; 6 -> 0.3403 vs 0.3333 +2.1%; 2 on 3 s -> 1.5069). MODE-KEYWORD BANNER BUG (first-class): the usage line reads 'psow del ...' but the binary only accepts 'delete' - invoking 'psow del' fails with exit 255 and an EMPTY error message. propkeep is breakpoint-capable as a positional brk file (verified: a 2->6 ramp renders 0.5676 s, differing from both the /2 (1.0024) and /6 (0.3403) scalar renders); segcnt refuses breakpoints. CDP-enforced: propkeep 2-20 (afta8's 0-1000 is wrong), segcnt 1-256. MONO only; deterministic; same trust-the-pitch-file landmine as the rest of the psow family.",
+  "musical_use": "Time-compression that never chipmunks: straining the voice through a mesh (manual's image) whose spacing is propkeep and whose hole size is segcnt. Small segcnt (1-3) with low propkeep (2-3) halves or thirds a phrase almost transparently; large segcnt keeps big intact lumps and the deletion becomes an audible telegraphic chopping - five distinct 'meshes' are worth auditioning per the manual (high/low proportion x big/small chunks). Since consecutive periods are near-identical in sustained vowels, deletion there is nearly lossless; in consonant regions it eats articulation first - keep propkeep low on consonant-dense text. Breakpoint propkeep to compress the boring middle of a phrase harder than its ends. Same pitch-trace workflow as psow stretch/dupl.",
+  "parameters": {
+    "pitchdata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Auxiliary text breakpoint file of time/frequency pairs for the source's pitch (write_data_file(); any extension except .brk). Frequency zeros allowed (no-signal); needs some real frequency content; bad content refuses 'No data in brkpnt file'. The FOF cutting trusts this file (family landmine)."
+    },
+    "propkeep": {
+      "type": "int",
+      "min": 2,
+      "max": 20,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Keep 1 chunk in every propkeep (CDP-enforced 'Parameter[2] Value (1.000000) out of range (2.000000 to 20.000000)' - identity 1 refused, 1000 refused; afta8's 0-1000 advisory is wrong). Breakpoint-CAPABLE as a positional brk file (verified: 2->6 ramp renders 0.5676 s, differing from both scalar-endpoint renders)."
+    },
+    "segcnt": {
+      "type": "int",
+      "min": 1,
+      "max": 256,
+      "unit": "grains",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "FOF grains per chunk - the deletion granularity (CDP-enforced 'Parameter[3] Value (300.000000) out of range (1.000000 to 256.000000)'). Small = transparent thinning, large = audible chopping. Breakpoint refused (family-standard)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Halve a vowel's length transparently.",
+      "params": {"pitchdata": "trace.txt", "propkeep": 2, "segcnt": 2},
+      "expected_use": "Output ~indur / 2, pitch and vowel intact (trace.txt via write_data_file())."
+    },
+    {
+      "description": "Telegraphic chop: keep 1 big chunk in 6.",
+      "params": {"pitchdata": "trace.txt", "propkeep": 6, "segcnt": 10},
+      "expected_use": "Output ~indur / 6 in audible lumps - the coarse-mesh effect."
+    }
+  ],
+  "known_issues": [
+    "BANNER BUG (first-class): the binary's own usage line says 'psow del' but only the mode word 'delete' is accepted; 'psow del' exits 255 with an empty error. The entry pins the working keyword.",
+    "propkeep = 1 (keep everything) is refused - range floor 2; there is no no-op setting.",
+    "Duration honesty: indur / propkeep held to +0.8% at propkeep 2-4; +2.1% at propkeep 6 on a 2 s file (chunk quantisation: the kept-chunk count rounds up). Plan with slack at high propkeep on short files.",
+    "GARBAGE-THROUGH LANDMINE (psow-wide): no pitched-material check - suitability and trace truthfulness are the caller's job.",
+    "Deletion eats consonants before vowels (consecutive vowel periods are redundant; consonant regions are not) - keep propkeep low on speech, or breakpoint it around the articulation.",
+    "MONO only ('must be mono', psow-wide). Deterministic (runs 1.2 s apart byte-identical)."
+  ],
+  "references": ["cdp://docs/html/cgropsow"]
+}

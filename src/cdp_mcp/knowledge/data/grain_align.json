@@ -1,0 +1,117 @@
+{
+  "program": "grain",
+  "mode": "align",
+  "submode": null,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 2,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur_min + offset"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Synchronises the grain onsets of the SECOND sound to the grain-onset TIMES of the FIRST: infile1 contributes only its rhythm (onsets found with gate), infile2 contributes the actual grains (found with gate2), and grain k of file 2 is placed at onset k of file 1 (+ offset). Verified: a 0.2 s-grid burst train re-timed by a 0.3 s-grid file lands its grains at 0.015/0.301/0.601/...(the first grain nudged 'to allow for startsplice', warning emitted). Placement stops when either list runs out: min(#grains2, #onsets1) events are written, so the output ends near the last PLACED grain - expression indur_min + offset fits all four probed combinations (2s+2s -> 2.0006; 3s-times + 2s-grains -> 2.0003; 2s-times + 3s-grains -> 2.0006; offset 0.5 -> 2.5006). Both gates are independently breakpoint-capable ('Gate and Gate2 may vary over time', verified differs-from-both for each); offset refuses breakpoints ('Cannot read parameter 1 ... brkpnt_files not permitted'). Deterministic. CHANNEL LANDMINE: both inputs must have the SAME channel count - matched mono/mono and stereo/stereo work, but mixed counts silently corrupt the output geometry (see known_issues).",
+  "musical_use": "Rhythm transplantation - the manual's grain find workflow made one call: instead of harvesting times with grain find and repositioning by hand, align does find+reposition across two sounds directly. Drive drum grains with a speech phrase's syllable rhythm (speech as file 1, drums as file 2) or quantise a sloppy take to a tight guide track. Use offset to push the transplanted pattern later - run twice with offsets 0 and 0.25 and mix for flam/echo doublings (the reposition recipe). gate shapes which events in the GUIDE count (breakpoint it over a decaying guide); gate2 shapes which grains of the MATERIAL get used - raising gate2 keeps only the loud attacks of file 2, thinning the transplant. Because surplus grains/onsets are dropped, file 2 doubles as an event-count limiter: two grains against ten onsets yields exactly two placed events.",
+  "parameters": {
+    "offset": {
+      "type": "float",
+      "min": 0.0,
+      "max": 32767.0,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Added to ALL grain timings (CDP-enforced 'Parameter[1] Value (-1.000000) out of range (0.000000 to 32767.000000)'). Verified: offset 0.5 prepends exactly 0.5 s (2.0006 -> 2.5006). Breakpoint refused: 'ERROR: Cannot read parameter 1 [oo.brk]: brkpnt_files not permitted.'"
+    },
+    "gate2": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "input2",
+      "default": null,
+      "flag": null,
+      "description": "Minimum signal level to register a grain in INFILE2 - the grains that get re-timed (CDP-enforced 'Parameter[2] Value (1.500000) out of range (0.000000 to 1.000000)'). Positional, REQUIRED (no default; the banner's 'default 1' text is boilerplate - the argv slot must be filled). Breakpoint-CAPABLE (verified: a 0.05->0.5 ramp render differs from both the 0.05 and 0.5 scalar renders on an alternating loud/soft file 2)."
+    },
+    "len": {
+      "type": "float",
+      "min": 0.1,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Maximum time between grains in seconds (family-standard: CDP-enforced 0.1 to the input duration). Breakpoint refused (family-standard)."
+    },
+    "gate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "breakpoint_duration_source": "input1",
+      "default": 0.3,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Minimum signal level to register a grain in INFILE1 - the timing guide (CDP-enforced 0-1; real default 0.3, family-wide). Breakpoint-CAPABLE (verified: a 0.05->0.5 ramp on an alternating loud/soft guide differs from both scalar-endpoint renders)."
+    },
+    "minhole": {
+      "type": "float",
+      "min": 0.032,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Minimum duration of inter-grain holes (CDP-enforced 0.032 - the default - to the input duration, family-standard). Breakpoint refused (family-standard)."
+    },
+    "winsize": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Envelope-tracking window in ms for a signal-tracking gate on infile1; 0 = off (family-standard). Breakpoint refused (family-standard)."
+    },
+    "ignore_last": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "Ignore the last grain in the source. Must follow the value flags (family-wide flag-order enforcement)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Transplant a spoken phrase's rhythm onto a drum-hit collection.",
+      "params": {"offset": 0.0, "gate2": 0.3},
+      "expected_use": "Input 1 = speech (timing guide), input 2 = drum grains; drums pulse with the speech's syllable timing."
+    },
+    {
+      "description": "Flam layer: the same alignment delayed a quarter second for mixing.",
+      "params": {"offset": 0.25, "gate2": 0.3},
+      "expected_use": "Identical grain placement 0.25 s later - mix over the offset-0 render."
+    }
+  ],
+  "known_issues": [
+    "CHANNEL-COUNT LANDMINE (first-class): mixed channel counts are ACCEPTED and silently corrupt the output geometry - mono guide + stereo grains rendered a MONO file at 4.0008 s (double length) from 2 s inputs; stereo guide + mono grains rendered 1.0004 s (half length). Matched mono/mono and stereo/stereo are both correct (2.0006 s, right channel count). Always match channel counts.",
+    "Duration honesty: expression indur_min + offset fits all four probed length combinations to within +0.03%, but the true rule is offset + (last used onset of file 1) + (file 2's tail after its last used grain) - on sparse material where one list is much shorter, output ends at the last placed grain and the model over-predicts.",
+    "A first onset at time 0 is nudged with 'WARNING: 1st grain moved by 0.014717 secs (649 samps) to allow for startsplice' (exit still 0).",
+    "Non-grainy file 2 does not refuse: a pure tone is one whole-file 'grain' placed at the first onset (exit 0). Same acceptance-with-truncation caution as the rest of the family - check both files with grain find first.",
+    "gate2 is a required positional; only gate (-l) has the 0.3 default. Both gates verified independently breakpoint-capable; envelope time axes follow each gate's own file (gate -> input1, gate2 -> input2).",
+    "DIVERGENCE: banner gate 'default 1' vs real default 0.3; manual len minimum '1' vs enforced 0.1 (family-wide).",
+    "Deterministic (runs 1.2 s apart byte-identical). -x must follow the value flags."
+  ],
+  "references": ["cdp://docs/html/cgrogrns"]
+}

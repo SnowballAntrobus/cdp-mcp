@@ -1,0 +1,73 @@
+{
+  "program": "grain",
+  "mode": "grev",
+  "submode": 1,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "REVERSE mode of the trough-based grain engine: instead of the family's amplitude gate, grev finds TROUGHS in the envelope (window wsiz ms, trough depth trof relative to adjacent peaks) and cuts at the zero-crossing in each trough - built for material WITHOUT real silences, like connected speech syllables. Units of gpcnt grains are then played in reverse order, each unit still playing forwards. MAJOR TRUNCATION (source-diagnosed, grain1.c GREV_REVERSE loop 'for(n = envcnt - 2*gp; n > 0; n -= gp)'): the output contains only the material BETWEEN the first and last troughs, and additionally DROPS THE FIRST UNIT - a 2.0 s 4-syllable file (troughs spanning 1.5 s) returns 1.0000 s containing 2 syllables (head before the first trough, tail after the last trough, and unit 1 all discarded). The static duration model is therefore an upper bound only: expect indur minus (head + tail + one unit). Worse, gpcnt >= trough_count/2 writes a ZERO-LENGTH file with exit 0 ('WARNING: Can't close output sf-soundfile : can't truncate SFfile') - check output non-empty. gpcnt is breakpoint-capable (banner-confirmed; verified differs from both endpoints); wsiz/trof refuse breakpoints. Deterministic; MONO only ('Application doesn't work with this type of infile.').",
+  "musical_use": "The syllable retrograde for material grain reverse can't segment: connected speech, legato phrases, anything whose events touch. The manual's craft rule - set wsiz about 3x SMALLER than the features you want (the binary enforces wsiz <= indur/3: refusal ceiling 666.67 ms on a 2 s file); 50 ms suits speech syllables. trof around 0.4-0.5 to start; lower is stricter (deeper troughs only). gpcnt groups syllables into multi-syllable units before reversing - with a gpcnt breakpoint the unit size can grow through the file. Because of the first-unit drop and head/tail truncation, treat the output as the reversed CORE of the phrase: if you need the whole file reversed unit-by-unit, pad the source with silence at both ends first (extra troughs) or use grain reverse on material with real gaps. Siblings on the same engine (probed, curate later if needed): 2 REPEAT (repets brk-capable, verified), 3 DELETE / 4 OMIT (keep/outof; omit fills with silence), 6 GET / 7 PUT (times as SAMPLE counts, not seconds).",
+  "parameters": {
+    "wsiz": {
+      "type": "float",
+      "min": 0.181406,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Envelope window in ms - sets the size of features found; use ~1/3 of the target feature length. CDP-enforced, input-dependent ceiling of indur/3: 'Parameter[1] Value (100000.000000) out of range (0.181406 to 666.666667)' on a 2 s file (floor = 8 samples at 44.1 kHz). Breakpoint refused: 'Cannot read parameter 1 [ws.brk]: brkpnt_files not permitted.'"
+    },
+    "trof": {
+      "type": "float",
+      "min": 0.000002,
+      "max": 0.999998,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Acceptable trough height relative to adjacent peaks (deeper = stricter). CDP refusal quotes '(0.000002 to 0.999998)' for 1.5, yet exact 0 and 1.0 are ACCEPTED (probed, exit 0) - the boundary check is inclusive of the documented-illegal endpoints. Breakpoint refused: 'Cannot read parameter 2 [tf.brk]: brkpnt_files not permitted.'"
+    },
+    "gpcnt": {
+      "type": "int",
+      "min": 1,
+      "max": 100,
+      "unit": "grains",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Number of grains treated as one unit (CDP-enforced 'Parameter[3] Value (0.000000) out of range (1.000000 to 100.000000)'). Breakpoint-CAPABLE (banner 'GPCNT ... can vary over time'; verified: a 1->2 brk renders 0.5000 s, differing from gpcnt=1 (1.0000 s) and gpcnt=2 (empty file) on the 4-trough fixture). DANGER: values >= trough_count/2 yield a zero-length output with exit 0."
+    }
+  },
+  "examples": [
+    {
+      "description": "Reverse the syllable order of connected speech.",
+      "params": {"wsiz": 50, "trof": 0.4, "gpcnt": 1},
+      "expected_use": "Syllables play in reverse order, each still forwards; expect the first unit and the head/tail outside the trough span to be dropped."
+    },
+    {
+      "description": "Reverse two-syllable units (word-ish chunks).",
+      "params": {"wsiz": 50, "trof": 0.4, "gpcnt": 2},
+      "expected_use": "Pairs of syllables swap order as blocks - only safe when the file has at least ~2*gpcnt+1 troughs, else the output is empty."
+    }
+  ],
+  "known_issues": [
+    "TRUNCATION (first-class, source-diagnosed): output = trough-span minus the first unit. The reverse loop starts at envcnt-2*gpcnt and stops at n>0, so unit 0 is never written and nothing outside the first/last troughs survives: 2.0 s 4-syllable fixture -> 1.0000 s (2 of 4 syllables). Static duration model is an UPPER BOUND - observed -50% on sparse syllabic material; the shortfall shrinks as trough count grows.",
+    "EMPTY-OUTPUT TRAP: gpcnt >= trough_count/2 writes a 0-length wav with EXIT 0 and 'WARNING: Can't close output sf-soundfile : can't truncate SFfile' (verified gpcnt 2 on a 4-trough file). Downstream output verification catches the empty file; halve gpcnt or reduce wsiz to find more troughs.",
+    "trof range check is self-contradictory: 1.5 refused quoting '(0.000002 to 0.999998)' but exact 0 and 1.0 run (exit 0). Values at the extremes make every / no local minimum a trough - stay inside (0,1).",
+    "Refusals on unsegmentable material are verbatim: pure tone 'ERROR: NO PEAKS IN THE FILE'; flat noise 'ERROR: INSUFFICIENT VALID TROUGHS IN THE FILE.' (both exit 255).",
+    "MONO only: stereo refused 'Application doesn't work with this type of infile.' - unusual for the grain family, whose gate-based modes accept stereo.",
+    "version_sensitive: the truncation geometry and the empty-output warning are properties of this build's GREV_REVERSE loop (dev/grain/grain1.c); a fixed build would change output durations wholesale.",
+    "wsiz ceiling is input-dependent (indur/3, in ms). Deterministic (runs 1.2 s apart byte-identical)."
+  ],
+  "references": ["cdp://docs/html/cgrogrns"]
+}

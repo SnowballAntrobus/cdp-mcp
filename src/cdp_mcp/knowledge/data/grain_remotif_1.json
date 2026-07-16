@@ -1,0 +1,103 @@
+{
+  "program": "grain",
+  "mode": "remotif",
+  "submode": 1,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Transforms pitch AND rhythm of the grains in one pass: a text data file of transposition/time-multiplier PAIRS (transpmultfile) is applied cyclically - grain k gets pair k's semitone shift while the k-th onset-to-onset time is multiplied by pair k's multiplier (submode 1 pinned: each grain once, list cycles; submode 2 plays each grain in EVERY listed way first - verified 4.9921 s from 2.0 s with a 2-pair file). This is grain repitch + grain rerhythm fused, sharing their conventions exactly. Verified: '12 0.5 / -12 2.0' on a 0.2 s-grid 2.0 s train -> 2.4923 s (gaps alternate x0.5/x2.0, matching rerhythm's arithmetic: 9 gaps -> 5x0.1 + 4x0.4 + un-retimed head/tail). Pair ranges CDP-enforced with dash-form INVALID DATA refusals: transpositions +-48 semitones ('Pitch-ratio (50.000000) out of range (-48.000000 - 48.000000)'), multipliers 0.001-1000 ('Time-ratio (2000.000000) out of range (0.001000 - 1000.000000)'); unpaired values refuse 'Pitch and time ratios not paired correctly.' The static duration model is the mean-multiplier==1 baseline (see known_issues). Standard family gate (default 0.3, byte-verified). Deterministic; mono and stereo accepted.",
+  "musical_use": "Full motif transformation of found events - each grain becomes a note with its own pitch and its own duration slot. '12 0.5 / -12 2.0' makes a high-short/low-long lilt out of an even pulse; '0 1 / 4 0.5 / 7 0.25' writes an accelerating arpeggio into the grain stream; keeping all multipliers at 1 reduces it to grain repitch, all transpositions at 0 to grain rerhythm - so prototype the two dimensions separately, then fuse. Because the pair list cycles, pattern-length vs grain-count mismatches produce evolving (phasing) variations instead of loops. Duration scales by roughly the mean multiplier; grains keep their internal speed, so shrunken gaps make events overlap-tight while every attack stays crisp. Gate craft as ever: run grain find first (see grain_find).",
+  "parameters": {
+    "transpmultfile": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Auxiliary text data file of PAIRS 'semitones multiplier' (one pair per line or space-separated; write with write_data_file(), any extension except .brk). Applied cyclically. CDP-enforced per value: transposition +-48 st, multiplier 0.001-1000 (dash-form refusals quoted in description); odd value counts refuse 'ERROR: INVALID DATA / ERROR: Pitch and time ratios not paired correctly.' Intergrain times shrunk below MINGRAINTIME (0.032 s) are clamped to 0.032."
+    },
+    "len": {
+      "type": "float",
+      "min": 0.1,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Maximum time between grains in seconds (family-standard: CDP-enforced 0.1 to the input duration). Breakpoint refused (family-standard)."
+    },
+    "gate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.3,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Required signal level for a grain to be seen (CDP-enforced 0-1; real default 0.3, family-wide). Breakpoint-CAPABLE (verified: a 0.05->0.5 gate ramp render differs from both scalar-endpoint renders on an alternating loud/soft train)."
+    },
+    "minhole": {
+      "type": "float",
+      "min": 0.032,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Minimum duration of inter-grain holes (CDP-enforced 0.032 - the default - to the input duration, family-standard). Breakpoint refused (family-standard)."
+    },
+    "winsize": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Envelope-tracking window in ms for a signal-tracking gate; 0 = off (family-standard). Breakpoint refused (family-standard)."
+    },
+    "ignore_last": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "Ignore the last grain in the source. Must follow the value flags (family-wide flag-order enforcement)."
+    }
+  },
+  "examples": [
+    {
+      "description": "High-short / low-long lilt from an even pulse.",
+      "params": {"transpmultfile": "lilt.txt"},
+      "expected_use": "Alternating +12st-at-half-time and -12st-at-double-time events (first write_data_file('lilt.txt', '12 0.5\\n-12 2.0')); duration ~x1.25 on an even grid."
+    },
+    {
+      "description": "Accelerating arpeggio cell written into a grain stream.",
+      "params": {"transpmultfile": "arp.txt"},
+      "expected_use": "Cycling 0/+4/+7 semitones at multipliers 1/0.5/0.25 - motif compresses each cycle (write_data_file('arp.txt', '0 1\\n4 0.5\\n7 0.25'))."
+    }
+  ],
+  "known_issues": [
+    "Duration honesty (static model): actual duration = sum(cycled multiplier_i x intergrain_i) + un-retimed head/tail (rerhythm's verified arithmetic; '12 0.5 / -12 2.0' -> 2.4923 s from 2.0 s, +25% vs the static baseline). The static model is only the mean-multiplier==1 baseline - scale expectations by the mean multiplier; sub-0.032 s gaps clamp to 0.032.",
+    "Submode pinned to 1. Submode 2 plays each grain at EVERY pair before advancing - duration multiplies by the pair count on top of the multiplier effect (verified 4.9921 s from 2.0 s, 2 pairs).",
+    "Range errors are INVALID DATA refusals in the dash form, labelled 'Pitch-ratio' / 'Time-ratio'; unpaired data refuses 'Pitch and time ratios not paired correctly.'",
+    "TRAP (family-wide): a time/value breakpoint file in the transpmultfile slot is read as a flat value list - its times become 'transpositions' and its values 'multipliers'.",
+    "Acceptance-with-truncation landmine (family-wide): verify segmentation with grain find before trusting the pairing - a missed grain boundary shifts every subsequent pair assignment.",
+    "DIVERGENCE: banner gate 'default 1' vs real default 0.3; manual len minimum '1' vs enforced 0.1 (family-wide).",
+    "Deterministic (runs 1.2 s apart byte-identical). Stereo accepted (verified 2-channel).",
+    "-x must follow the value flags."
+  ],
+  "references": ["cdp://docs/html/cgrogrns"]
+}

@@ -1,0 +1,70 @@
+{
+  "program": "psow",
+  "mode": "stretch",
+  "submode": null,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur * timestretch"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Pitch-synchronous (FOF) time-stretch for vocal/vowel material: the sound is cut into FOF grains at the period boundaries given by a PITCH DATA FILE, the grains are kept intact and REPOSITIONED - stretched apart (timestretch > 1, gaps appear) or compressed (< 1, grains overlap) - so pitch and vowel formants are untouched. The pitchdata slot is an auxiliary text breakpoint file of time/frequency pairs (canonically from repitch getpitch + ptobrk; a hand-written trace like '0.0 220 / 2.0 220' works for steady material, verified). Duration model indur * timestretch verified to -0.5% worst across timestretch 0.5-2.0, indur 2-3 s, segcnt 1-4, and on a gliding 220->277 Hz vowel with a matching 2-line trace (3.9932 from 2.0 x2). timestretch is breakpoint-capable as a positional brk file (verified: a 1->3 ramp differs from both scalar-endpoint renders); segcnt refuses breakpoints ('Cannot read parameter 3 ... brkpnt_files not permitted'). CDP-enforced: timestretch 0.1-10, segcnt 1-256. MONO only ('File ... is not of correct type (must be mono)'). Deterministic. LANDMINE: the binary trusts the pitch file, not the sound - flat NOISE with a fake 220 Hz trace runs cleanly (3.9927 s from 2 s), producing pitch-synchronous garbage; material suitability is your job, not the binary's.",
+  "musical_use": "THE vocal time-stretch of the time domain: vowels stay vowels and the fundamental stays put, where modify speed shifts both and spectral stretch smears attacks. At segcnt 1 the result is as smooth as this granular method gets; larger segcnt keeps longer runs of consecutive FOFs intact and coarsens the granulation (manual/afta8 craft). Big stretches (> ~3) openly pulse - audible FOF trains with gaps, an effect in its own right (the psow aesthetic); timestretch < 0.9 overlaps grains and can push levels up - watch for clipping. Time-varying stretch via a breakpoint file makes phrase-shaped rubato (1.0 at the consonants, 3.0 through the vowel core). Workflow: write the pitch trace with write_data_file() - steady synthetic vowels need only two lines; real voices need a genuine trace (repitch getpitch via execute() until curated). Siblings: psow dupl stretches by REPEATING grains (denser, no gaps), psow strtrans adds transposition.",
+  "parameters": {
+    "pitchdata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Auxiliary text breakpoint file of time/frequency pairs describing the source's pitch (write with write_data_file(); any extension except .brk). May contain frequency ZEROS for genuinely silent moments, but NOT pitch-zeros (-1 no-pitch codes from binary traces); it 'must contain SOME significant frequency information'. Non-numeric content refuses 'ERROR: No data in brkpnt file ...'. The FOF cutting follows THIS file - a wrong trace mis-cuts the sound without any error."
+    },
+    "timestretch": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10.0,
+      "unit": "ratio",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Stretch (>1) or compression (<1) ratio (CDP-enforced 'Parameter[2] Value (20.000000) out of range (0.100000 to 10.000000)'). Breakpoint-CAPABLE as a positional brk file (verified: a 1.0->3.0 ramp renders 5.9710 s, differing from both the x1 (1.9978 s) and x3 (5.9844 s) scalar renders)."
+    },
+    "segcnt": {
+      "type": "int",
+      "min": 1,
+      "max": 256,
+      "unit": "grains",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "FOF grains per chunk kept intact while the gaps between chunks are stretched (CDP-enforced 'Parameter[3] Value (0.000000) out of range (1.000000 to 256.000000)' - afta8's 0-1000 is wrong). 1 = smoothest; larger = coarser granulation. Breakpoint refused: 'ERROR: Cannot read parameter 3 [sc.brk]: brkpnt_files not permitted.'"
+    }
+  },
+  "examples": [
+    {
+      "description": "Double a sung vowel's length without touching pitch or formants.",
+      "params": {"pitchdata": "trace.txt", "timestretch": 2.0, "segcnt": 1},
+      "expected_use": "Output ~indur x 2; for a steady 220 Hz source first write_data_file('trace.txt', '0.0 220\\n2.0 220')."
+    },
+    {
+      "description": "Phrase-shaped rubato: stretch rises 1x to 3x through the file.",
+      "params": {"pitchdata": "trace.txt", "timestretch": "str.brk", "segcnt": 1},
+      "expected_use": "Start at natural pace, pull apart toward the end (write str.brk with breakpoint())."
+    }
+  ],
+  "known_issues": [
+    "GARBAGE-THROUGH LANDMINE (family-wide, first-class): psow never checks that the sound matches the pitch file - flat noise with a fabricated 220 Hz trace ran cleanly (2.0 -> 3.9927 s). No refusal exists for unpitched material; feed it real vocal/vowel sources and truthful traces.",
+    "Pitch data workflow: the canonical trace comes from pvoc anal -> repitch getpitch mode 1 -> ptobrk (manual's 3-step); none of those are curated yet - use execute() for real voices, or write_data_file() for known/steady pitches (verified working).",
+    "Duration honesty: indur * timestretch held to -0.5% worst across all probes, including a gliding-pitch vowel; large segcnt shaves slightly more (-0.52% at segcnt 4).",
+    "timestretch < ~0.9 overlaps grains: amplitude can sum toward clipping (afta8/manual warning; overlap grows with segcnt).",
+    "MONO only: 'ERROR: INVALID DATA / ERROR: File st2.wav is not of correct type (must be mono)' (manual: 'Input sounds must be MONO', psow-wide).",
+    "Deterministic (runs 1.2 s apart byte-identical).",
+    "A frequency-zero row in the pitch file is legal ('moments of no-signal') and ran verified; pitch-zero codes (-1) from raw binary traces are not."
+  ],
+  "references": ["cdp://docs/html/cgropsow"]
+}

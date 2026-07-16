@@ -1,0 +1,95 @@
+{
+  "program": "grain",
+  "mode": "find",
+  "submode": null,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".txt",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Writes the ONSET TIMES of the grains detected in a grainy sound to a text file - one ascending time in seconds per line ('0.000295 / 0.200295 / ...' verified against a 0.2 s click grid). This is the grain family's measuring instrument: the output is exactly the timefile format grain reposition consumes, and its line count is the grain count at the given gate (grain count itself only prints to stdout and takes no output file - use find instead). Data output (.txt): no audio is produced; the duration model is a placeholder (the engine skips audio verification for data formats). Detection is the standard grain amplitude gate: default gate 0.3 (verified: unflagged output byte-identical to -l0.3, differs from -l0.1 which finds 10 grains where 0.3 finds 5 on an alternating loud/soft train) - the banner's 'default 1' is wrong, family-wide. Sounds with fewer than two detectable grains refuse: 'ERROR: CANNOT ACHIEVE TASK: / ERROR: No grains found.' (pure 440 Hz tone verified; flat noise instead passes, hearing its edge ramps as 2 pseudo-grains - the acceptance-with-truncation landmine measured, not suffered). Deterministic; mono and stereo accepted (stereo returns one combined onset list).",
+  "musical_use": "Run this before ANY grain-family operation: the timings tell you exactly what the gate will treat as events, so you tune gate/minhole here (cheaply, on a text file) instead of discovering mis-segmentation in rendered audio. The classic Wishart workflow: find on sound A harvests its rhythmic DNA, then grain reposition places sound B's grains on those times so B pulses with A's timing. A time-varying gate breakpoint tracks sources whose level drifts (verified: a 0.05->0.5 gate ramp yields an onset list differing from both fixed gates). Compare line counts across gate values to find the plateau where the count matches what you hear - or use grain assess via execute() for a windowed automatic estimate (caution: on a clean 10-grain train assess suggested gate 0.86 finding 9 grains where 0.3 finds all 10).",
+  "parameters": {
+    "len": {
+      "type": "float",
+      "min": 0.1,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Maximum time between grains in seconds. CDP-enforced 0.1 to the input duration ('Parameter[1] Value (0.001000) out of range (0.100000 to 2.000000)' on a 2 s file) - the manual's 'Range: 1 to duration' minimum is wrong, family-wide. Breakpoint refused (family-standard 'brkpnt_files not permitted', cf. grain reverse)."
+    },
+    "gate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.3,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Required signal level for a grain to be seen (CDP-enforced 'Parameter[2] Value (1.500000) out of range (0.000000 to 1.000000)'). Real default 0.3 (unflagged output byte-identical to -l0.3, differs from -l0.1); the banner's 'default 1' is wrong. Breakpoint-CAPABLE (verified: a 0.05->0.5 gate ramp on an alternating loud/soft train yields a 4-onset list differing from both the 5-line gate-0.3 and 10-line gate-0.1 lists)."
+    },
+    "minhole": {
+      "type": "float",
+      "min": 0.032,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Minimum duration of the below-gate holes that separate grains. CDP-enforced 0.032 (the default) to the input duration ('Parameter[3] Value (0.010000) out of range (0.032000 to 2.000000)' on a 2 s file). Breakpoint refused (family-standard)."
+    },
+    "winsize": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "When set, the gate level tracks the signal's own envelope, measured with a window of winsize milliseconds; 0 turns tracking off. CDP-enforced 0 to the input duration in ms ('Parameter[4] Value (2500.000000) out of range (0.000000 to 2000.000000)' on a 2 s file). Breakpoint refused (family-standard)."
+    },
+    "ignore_last": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "Ignore the last grain in the source (verified: 10-onset list drops to 9 lines). Must follow the value flags (CDP flag-order enforcement, family-wide)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Harvest the onset times of a percussive phrase at the standard gate.",
+      "params": {},
+      "expected_use": "Text file of ascending onset seconds - feed it straight to grain reposition as the timefile, or count its lines as the grain count."
+    },
+    {
+      "description": "Track a decaying source with a falling gate before harvesting.",
+      "params": {"gate": "gate_ramp.brk"},
+      "expected_use": "Late soft grains still register (write gate_ramp.brk with breakpoint(), e.g. 0.4 falling to 0.1)."
+    }
+  ],
+  "known_issues": [
+    "Data output (.txt): output-duration verification and audio preflight do not apply; the static duration model is a placeholder required by the schema.",
+    "Needs >= 2 detectable grains: pure tone refuses 'ERROR: CANNOT ACHIEVE TASK: / ERROR: No grains found.' (exit 255). Flat noise does NOT refuse - its edge ramps read as 2 pseudo-grains (onsets 0.0458/1.9176 observed on a 2 s flat-noise file). On weakly-articulated material the list is a diagnosis of what a grain process WOULD do: if the times don't match audible events, downstream grain ops will silently truncate (generalization-matrix landmine).",
+    "DIVERGENCE: banner gate 'default 1' vs real default 0.3 (byte-verified); manual len minimum '1' vs enforced 0.1 (family-wide).",
+    "grain count and grain assess are stdout-only siblings with no output-file argv ('Unknown parameter'/'Too many parameters on command line.' when one is supplied) - dropped from curation; find subsumes count (line count == grain count at that gate).",
+    "grain assess's automatic estimate maximises a windowed count and can be misleading: on a clean 10-grain 0.2 s click train it reported 'Maximum grains found = 9 at gate value 0.859600 and windowlen 50ms' while gate 0.3 finds all 10.",
+    "Onset times carry a small constant detection offset (+0.0003 s on a synthetic click grid) - sample-accurate enough for reposition/align work.",
+    "Stereo accepted (single combined onset list); -x must follow the value flags."
+  ],
+  "references": ["cdp://docs/html/cgrogrns"]
+}

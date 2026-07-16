@@ -1,0 +1,77 @@
+{
+  "program": "fofex",
+  "mode": "extract",
+  "submode": 2,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "pitchdata"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Extracts a SINGLE FOF (group) - one pitch-period's worth of waveform - from a vocal/vowel sound at a chosen time, cut at FOF boundaries. The output is a tiny wav (one period: 0.00454 s from a steady 220 Hz vowel, verified = 1/220; boundary-dependent on real material - 0.0219 s and 0.0037 s at two times in a gliding vowel) whose duration is data-dependent: the model expression names the aux param so the engine's duration preflight skips prediction. ARGV DIVERGES FROM THE BANNER (first-class): usage prints 'fofex extract 2 infile outfile pitch-brkpnt-data time' but the binary DEMANDS a fifth positional fofcnt ('Insufficient parameters on cmdline.' without it) - and then appears to ignore it (fofcnt 1 vs 2 vs 3 render byte-identical durations on steady and gliding vowels). time is CDP-enforced 0 to the input duration ('Parameter[2] Value (5.000000) out of range (0.000000 to 2.000000)'). -w applies a cosine window to the FOF edges (verified: changes the render). Deterministic; MONO only ('must be mono'). Siblings dropped as entries: extract mode 1 writes TWO outputs (a fofbank wav + a '<name>.txt' fofinfo file, verified) and mode 3 writes N separate soundfiles - both outside the one-output contract (use execute()); fofex construct consumes mode 1's dual output, so it is execute()-territory too.",
+  "musical_use": "The FOF harvester: grab one glottal-pulse-shaped packet from a voice and you hold the timbre DNA of that vowel at that moment - the natural seed for iterfof, which clones a packet along a pitchline into whole phrases (extract at the vowel's core, then iterate; verified chain in this tranche). Extract at different times to collect a vowel palette from one word (verified: different times yield different packets on real, moving material); window with -w when the packet will be retriggered densely, raw when you want the buzzy edge. Also the precision scalpel of the psow world: the cut lands on FOF boundaries at zero-crossings, so packets loop and splice cleanly by construction. For a whole bank of FOFs in one file (plus its pitch-step index), run fofex extract 1 via execute().",
+  "parameters": {
+    "pitchdata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Auxiliary text breakpoint file of time/frequency pairs describing the source's pitch (write_data_file(); any extension except .brk; frequency zeros = no-signal allowed, no pitch-zero codes). The FOF boundary at 'time' comes from THIS trace - a wrong trace extracts a mis-cut packet without error (psow-family landmine). Also the name the duration model points at: output length ~ one period of the trace's frequency at 'time' (grouping per fofcnt nominal)."
+    },
+    "time": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Where in the file to extract the FOF (group) - CDP-enforced 0 to the input duration ('Parameter[2] Value (5.000000) out of range (0.000000 to 2.000000)' on a 2 s file). The nearest FOF boundary is used. There must be pitch at this time (manual: no pitch at grab-time = no result)."
+    },
+    "fofcnt": {
+      "type": "int",
+      "min": 1,
+      "max": null,
+      "unit": "FOFs",
+      "breakpoint_capable": false,
+      "default": 1,
+      "flag": null,
+      "description": "Size of the FOF group - REQUIRED by the argv despite being absent from the banner's mode-2 usage line ('Insufficient parameters on cmdline.' without it), and apparently INERT in this mode: 1 vs 2 vs 3 rendered identical durations on steady AND gliding vowels. Set 1 and treat larger values as untested."
+    },
+    "windowed": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-w",
+      "flag_kind": "no_value",
+      "description": "Cosine-smooth the FOF edges (verified: -w render differs from the unwindowed one). Use for packets destined for dense retriggering; omit to keep the raw glottal edge."
+    }
+  },
+  "examples": [
+    {
+      "description": "Harvest one FOF from a vowel's core as an iterfof seed.",
+      "params": {"pitchdata": "trace.txt", "time": 0.5, "fofcnt": 1},
+      "expected_use": "A single-period wav (~1/f0 seconds); feed it to iterfof mode 3 with a MIDI pitchline."
+    },
+    {
+      "description": "Smoothed packet for dense granular retriggering.",
+      "params": {"pitchdata": "trace.txt", "time": 0.5, "fofcnt": 1, "windowed": true},
+      "expected_use": "Same packet with cosine edges - no clicks when overlapped."
+    }
+  ],
+  "known_issues": [
+    "Output duration is DATA-DEPENDENT (about one pitch period at 'time'; 0.0037-0.0219 s observed): the duration model references the aux param so the preflight skips prediction. Downstream nodes should measure, not assume.",
+    "BANNER BUG (first-class): mode 2's usage line omits the required fofcnt positional - without it the binary refuses 'Insufficient parameters on cmdline.'; with it, values 1-3 are accepted but render identically (inert on all probed material).",
+    "GARBAGE-THROUGH LANDMINE (psow-family): the extraction trusts the pitch file; unpitched sources with a fabricated trace do not refuse cleanly at extract time on all paths (noise refused only via the same 'Insufficient parameters' pre-check in one probe - do not rely on refusal).",
+    "MONO only ('ERROR: File st2.wav is not of correct type (must be mono)'). Deterministic (runs 1.2 s apart byte-identical).",
+    "fofex extract mode 1 (fofbank + fofinfo textfile, dual output, verified '<out>.wav' + '<out>.wav.txt') and mode 3 (one file per FOF) are multi-output - dropped from curation per standing rule; run via execute(). fofex construct consumes mode 1's pair - same route.",
+    "The output is a few HUNDRED samples long: many CDP programs refuse inputs this short - iterfof is the intended consumer."
+  ],
+  "references": ["cdp://docs/html/cgropsow"]
+}

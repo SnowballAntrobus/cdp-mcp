@@ -1,0 +1,181 @@
+{
+  "program": "iterfof",
+  "mode": "iterfof",
+  "submode": 3,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "set_by", "param": "outduration"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Iterates an input FOF or sound-packet along a MIDI PITCHLINE: the packet is retriggered pitch-synchronously so the output SINGS the melody in the linedata file, with the packet's spectral colour as the voice. Submode 3 pinned = linedata is MIDI pitch, INTERPOLATED between timed values (sibling 4 STEPS between values instead - verified different render on the same gliss file; siblings 1/2 read linedata as semitone transposition and assume the input is exactly one wavelength). Verified with a single FOF harvested by fofex extract 2: MIDI 60 held 4 s -> 4.0015 s of stable pitch; a 48->72 gliss line renders a two-octave rise. Duration is set_by outduration (+0.04% with packet-sized input) BUT the last iteration plays out: overrun approaches +indur with long inputs (a 2 s input at outduration 4 rendered 5.9970 s - see known_issues). SEED SEMANTICS INVERTED (first-class): with rand/prand > 0, -s<seed> does NOT reproduce across runs - same seed 1.2 s apart differs (even in duration), same seed within the SAME SECOND is identical; the banner's promise is only 'similar output'. With all random params at 0 (default) the process is fully deterministic (verified byte-identical 1.2 s apart). MONO only ('must be MONO'). MIDI values in linedata are NOT range-checked (200 accepted silently).",
+  "musical_use": "A FOF synthesizer driven by data files - the gesture tool of the FOF family: write a melody as time/MIDI breakpoints, point it at a single harvested FOF (fofex extract 2 is the intended supplier - the two-step chain verified this tranche), and the vowel timbre sings the line. Interpolated mode 3 gives portamento phrases; switch to sibling 4 for note-steps. The line-element flags sculpt each iteration (ampcut random level drops, trimto/trimby shortening/fading of packets); the line flags add life: vibmin/vibmax + depmin/depmax randomised vibrato, rand/prand controlled sloppiness of timing and pitch (the note-shaping gain/fade/portamento flags belong to the stepped siblings 2/4 - this submode refuses them). Because randomised runs cannot be reproduced across seconds (see seed landmine), render your keeper takes in one pass and treat each stochastic render as a unique performance. Longer inputs turn it into a phrase-repeater along a pitchline (each iteration = the whole sound, transposed).",
+  "parameters": {
+    "linedata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Auxiliary text breakpoint file: time/MIDI-pitch pairs (submode 3; write with write_data_file(), any extension except .brk). Values are INTERPOLATED between times. TRAP: MIDI values are not range-checked - 200 was accepted silently (a ~318 kHz 'pitch'); keep values in the sane 0-127 band yourself. Times beyond outduration are simply never reached; a first time of 0 is expected."
+    },
+    "outduration": {
+      "type": "float",
+      "min": 0.01,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Target output duration in seconds - the set_by duration parameter (verified 4 -> 4.0015 s, 2 -> 2.0011 s, 0.01 -> 0.0122 s with a packet-sized input). The final iteration always completes, so actual length lands between outduration and outduration + indur (worst observed: +50% with a 2 s input at outduration 4)."
+    },
+    "prand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 2.0,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Randomises the pitch of individual segments; binary default 0 = none (CDP-enforced 'Parameter[3] Value (13.000000) out of range (0.000000 to 2.000000)'; -p0 verified accepted). Non-zero engages the non-reproducible clock+seed randomness (see known_issues)."
+    },
+    "ampcut": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-a",
+      "flag_kind": "attached_value",
+      "description": "Maximum random amp-reduction per iteration; binary default 0 = none (CDP-enforced 'Parameter[4] Value (2.000000) out of range (0.000000 to 1.000000)'; -a0 verified accepted). Non-zero engages the non-reproducible randomness."
+    },
+    "trimto": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Shorten line-elements to this duration (banner; range unprobed)."
+    },
+    "trimby": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-T",
+      "flag_kind": "attached_value",
+      "description": "Fade line-elements over this duration (banner; range unprobed)."
+    },
+    "trimslope": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-E",
+      "flag_kind": "attached_value",
+      "description": "Slope of any element fades (banner; range unprobed)."
+    },
+    "rand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-r",
+      "flag_kind": "attached_value",
+      "description": "Randomises the delay between segments; binary default 0 = none (CDP-enforced 'Parameter[8] Value (2.000000) out of range (0.000000 to 1.000000)'; -r0 verified accepted). Non-zero engages the non-reproducible clock+seed randomness AND makes even the output duration wander slightly (4.0025-4.0042 s observed for the same call)."
+    },
+    "vibmin": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-v",
+      "flag_kind": "attached_value",
+      "description": "Minimum vibrato frequency - actual frequency randomised between vibmin and vibmax (verified: -v4 -V6 -d0.3 -D0.8 changes the render and its duration; range unprobed)."
+    },
+    "vibmax": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-V",
+      "flag_kind": "attached_value",
+      "description": "Maximum vibrato frequency (see vibmin)."
+    },
+    "depmin": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-d",
+      "flag_kind": "attached_value",
+      "description": "Minimum vibrato depth in semitones - depth randomised between depmin and depmax (banner; range unprobed)."
+    },
+    "depmax": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "semitones",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-D",
+      "flag_kind": "attached_value",
+      "description": "Maximum vibrato depth in semitones (see depmin)."
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Random seed - DOES NOT give reproducibility across runs: with rand 0.5, seed 5 twice 1.2 s apart rendered DIFFERENT files (different durations, 4.0027 vs 4.0041 s); the same call twice within one second was identical, and seed 5 vs 9 differ. The seed is mixed with the clock; the banner honestly promises only 'similar output on rerun'. 300 accepted (no tight range check observed)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Sing a held note from one harvested FOF.",
+      "params": {"linedata": "mid60.txt", "outduration": 4.0},
+      "expected_use": "4 s of stable MIDI-60 vowel tone (first fofex extract 2 a packet, and write_data_file('mid60.txt', '0 60\\n4 60'))."
+    },
+    {
+      "description": "Two-octave portamento phrase with randomised vibrato.",
+      "params": {"linedata": "gliss.txt", "outduration": 4.0, "vibmin": 4, "vibmax": 6, "depmin": 0.3, "depmax": 0.8},
+      "expected_use": "48->72 MIDI rise (write_data_file('gliss.txt', '0 48\\n4 72')); vibrato parameters are randomised per note - each render unique."
+    }
+  ],
+  "known_issues": [
+    "SEED LANDMINE (first-class, inverse of the family's usual clock trap): -s gives reproducibility only WITHIN the same second - the seed is mixed with the clock, so identical seeded calls 1.2 s apart differ (content AND duration). A/B comparisons of random settings are impossible across runs; deterministic work requires all of prand/ampcut/rand/vib/gain randomisation left at 0 (verified byte-identical then). version_sensitive: a build that drops the clock mixing would change every seeded render.",
+    "Duration honesty (set_by outduration): the last iteration completes, so actual = outduration + up to indur. Packet-sized inputs (the intended use) land within +0.1%; a 2 s input at outduration 4 rendered 5.9970 s (+50%). Keep inputs short or budget the overrun. Vibrato/rand flags also nudge duration (3.6379 s observed at outduration 4 with vibrato).",
+    "linedata MIDI values are not range-checked (200 accepted silently - ultrasonic garbage); keep 0-127.",
+    "Submode pinned to 3 (MIDI, interpolated). Sibling 4 = MIDI stepped (verified distinct render); siblings 1/2 read linedata as SEMITONE TRANSPOSITION and assume the input is one wavelength - different linedata semantics, curate separately if needed.",
+    "MONO only ('ERROR: File ... is not of correct type: must be MONO').",
+    "STEPPED-MODE FLAGS REFUSED HERE (first-class banner divergence): the usage banner lists -g/-G (gain), -F/-f (fades), -S (separation), -P (portamento) and -i (interval) for all modes, but submode 3 refuses each with 'ERROR: Unknown variant flag -g' (etc., all seven individually verified) - they belong to the note-holding stepped modes (the banner's 'stable-pitched portions'). They are omitted from this entry; use sibling submode 4 (or 2) for them.",
+    "trimto/trimby/trimslope accept values (0.003/0.002/1 verified exit 0) but their CDP ranges are unprobed; probed ranges are prand 0-2, ampcut 0-1, rand 0-1.",
+    "Emits a flood of progress lines on stdout (harmless)."
+  ],
+  "references": ["cdp://docs/html/cgropsow"]
+}

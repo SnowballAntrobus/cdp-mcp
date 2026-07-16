@@ -1,0 +1,79 @@
+{
+  "program": "psow",
+  "mode": "strtrans",
+  "submode": null,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur * timestretch"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Pitch-synchronous time-stretch WITH INDEPENDENT TRANSPOSITION: FOF grains are repositioned (as psow stretch) and additionally overlapped/spaced to shift the fundamental by 'trans' semitones - pitch changes, duration does NOT follow it, and vowel formants stay put (true PSOLA-style pitch shifting). Content-verified on a 220 Hz vowel: trans +12 -> fundamental 441 Hz, trans -12 -> 110 Hz (autocorrelation), duration within +-0.1% of indur x timestretch in both cases. Duration model indur * timestretch verified across timestretch 1-3, indur 2-3 s, trans -12..+12 (worst -0.22%); trans has no duration effect. BOTH timestretch and trans are breakpoint-capable as positional brk files (each verified to differ from both scalar-endpoint renders - a 0->12 trans ramp is a formant-preserving glissando in one pass). CDP-enforced: timestretch 0.1-10, segcnt 1-256, trans -24 to +24 semitones ('Parameter[4] Value (60.000000) out of range (-24.000000 to 24.000000)' - afta8/SoundThread's +-48 is wrong). MONO only; deterministic; the banner itself warns trans and timestretch 'interact in unpredictable ways' at extreme combinations. Family garbage-through landmine applies (the pitch file is trusted).",
+  "musical_use": "The vocal transposer that keeps the singer the same size: shift a voice an octave without the chipmunk/giant effect because the formant envelope never moves - only the rate at which FOFs are overlapped changes. trans up overlaps grains (denser, hotter - the manual notes possible level build-up); trans down spaces them (breathier). Combined with timestretch you get free two-axis control: slow AND lower for giants that still sound human-mouthed, faster AND higher for urgency without cartoon. A trans breakpoint is the standout tool: 0 rising to +12 across a held vowel makes a seamless formant-locked glissando; wobbling +-1 st makes synthetic vibrato with natural vowel colour. High trans with big stretch tends toward stepped, sample-hold artefacts (manual: like FOCUS FREEZE) and subharmonic colorations - musically useful, not clean. Same pitch-trace workflow as the rest of psow.",
+  "parameters": {
+    "pitchdata": {
+      "type": "aux_file",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Auxiliary text breakpoint file of time/frequency pairs for the source's pitch (write_data_file(); any extension except .brk). Frequency zeros = no-signal allowed; needs real frequency content; bad content refuses 'No data in brkpnt file'. Trusted absolutely (family landmine)."
+    },
+    "timestretch": {
+      "type": "float",
+      "min": 0.1,
+      "max": 10.0,
+      "unit": "ratio",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Stretch/compression ratio (CDP-enforced 0.1-10, family-identical refusal). Breakpoint-CAPABLE as a positional brk file (verified: 1->3 ramp renders 5.9892 s, differing from the x1 (1.9978) and x3 (5.9935) scalar renders at trans 0)."
+    },
+    "segcnt": {
+      "type": "int",
+      "min": 1,
+      "max": 256,
+      "unit": "grains",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "FOF grains per chunk retained as-is (CDP-enforced 1-256). 1 = smoothest. Breakpoint refused (family-standard)."
+    },
+    "trans": {
+      "type": "float",
+      "min": -24.0,
+      "max": 24.0,
+      "unit": "semitones",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Transposition in semitones via FOF overlap - changes pitch WITHOUT changing duration or formants (CDP-enforced 'Parameter[4] Value (60.000000) out of range (-24.000000 to 24.000000)'; afta8/ST's +-48 advisory is wrong). Content-verified: +12 doubles the fundamental (220 -> 441 Hz), -12 halves it (110 Hz). Breakpoint-CAPABLE (verified: a 0->12 ramp differs from both the 0 and 12 scalar renders) - formant-locked glissandi in one pass."
+    }
+  },
+  "examples": [
+    {
+      "description": "Octave-up voice, same length, same vowel size.",
+      "params": {"pitchdata": "trace.txt", "timestretch": 1.0, "segcnt": 1, "trans": 12},
+      "expected_use": "Fundamental doubles, formants and duration unchanged (trace.txt via write_data_file())."
+    },
+    {
+      "description": "Formant-locked glissando: pitch climbs an octave across the file.",
+      "params": {"pitchdata": "trace.txt", "timestretch": 1.0, "segcnt": 1, "trans": "gliss.brk"},
+      "expected_use": "Seamless rise from 0 to +12 st (write gliss.brk with breakpoint(): 0.0 0 / end 12)."
+    }
+  ],
+  "known_issues": [
+    "trans is duration-neutral (verified +-0.1% at +-12 st) - transposition happens by grain overlap, so upward shifts increase overlap density and can raise levels; the manual warns of amplitude build-up and 'unpredictable' interaction with big timestretch values (stepped/subharmonic artefacts).",
+    "Duration honesty: indur * timestretch worst error -0.22% across all probes.",
+    "trans hard range is +-24 semitones - both afta8 and SoundThread advertise +-48; the binary refuses beyond 24.",
+    "GARBAGE-THROUGH LANDMINE (psow-wide): flat noise with a fake trace runs cleanly (3.9971 s from 2 s at x2/trans 0). No pitched-material check exists.",
+    "MONO only ('must be mono', psow-wide). Deterministic (runs 1.2 s apart byte-identical).",
+    "Pitch-trace workflow: repitch getpitch -> ptobrk not yet curated; execute() for real voices, write_data_file() for known pitches (verified)."
+  ],
+  "references": ["cdp://docs/html/cgropsow"]
+}

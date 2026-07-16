@@ -1,0 +1,82 @@
+{
+  "program": "grain",
+  "mode": "grev",
+  "submode": 5,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur * tstretch"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "TIMESTRETCH mode of the trough-based grain engine: 'the time expansion is happening in the troughs' - each grain plays untouched at natural speed and SILENCE is inserted (or overlap applied, tstretch < 1) between grains so the whole stretches by tstretch. No pitch or formant change whatsoever, because no sample is resampled. Trough segmentation as grev mode 1 (wsiz-ms envelope window, trof trough depth). Verified on a 4-syllable 2.0 s file: tstretch 2.0 -> 3.0000 s with doubled gaps, 0.5 -> 0.7500 s, 3.0 -> 4.5001 s - the output is exactly troughspan x tstretch, so the model indur * tstretch OVER-predicts by the (head + tail) fraction outside the first/last troughs (-25% observed on that fixture: 3.0 actual vs 4.0 predicted; error shrinks as the grain span approaches the file length). tstretch is breakpoint-capable (verified: a 1->3 ramp renders 2.3251 s, differing from both scalar endpoints); wsiz/trof refuse breakpoints; gpcnt is accepted but INERT in this mode (gpcnt 1 and 3 byte-identical - the stretch loop advances one trough at a time regardless, source-consistent). Deterministic; MONO only.",
+  "musical_use": "Time-stretching for attack-critical material: because grains are never resampled, transients stay razor-sharp while the phrase slows - speech becomes spaced-out dictation, a run of notes becomes a sequence of intact events with air between them (the manual: syllables 'more spaced out in time', not repeated). Compare psow stretch (gaps stretched pitch-synchronously, vocal-smooth) and modify speed (everything resampled, pitch shifts). tstretch < 1 compresses by overlapping the grains - a legato-izer for detached playing. Breakpoint tstretch for phrasing: 1.0 rising to 3.0 makes an accelerando-in-reverse (progressive spacing) within one pass. Rule of thumb for segmentation: wsiz ~ feature-length/3 (enforced ceiling indur/3), trof ~0.4-0.5.",
+  "parameters": {
+    "wsiz": {
+      "type": "float",
+      "min": 0.181406,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Envelope window in ms (feature size / 3 rule). CDP-enforced, input-dependent ceiling indur/3: '(0.181406 to 666.666667)' on a 2 s file. Breakpoint refused ('Cannot read parameter 1 ... brkpnt_files not permitted')."
+    },
+    "trof": {
+      "type": "float",
+      "min": 0.000002,
+      "max": 0.999998,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Acceptable trough height relative to adjacent peaks. Refusal quotes '(0.000002 to 0.999998)' yet exact 0 and 1.0 are accepted (probed) - stay inside (0,1). Breakpoint refused ('Cannot read parameter 2 ... brkpnt_files not permitted')."
+    },
+    "gpcnt": {
+      "type": "int",
+      "min": 1,
+      "max": 100,
+      "unit": "grains",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Grains per unit - required by the argv but INERT in this mode: gpcnt 1 and 3 render byte-identical (the TSTRETCH loop advances trough-by-trough regardless; the banner's 'GPCNT ... can vary over time' does not apply here). Set it to 1."
+    },
+    "tstretch": {
+      "type": "float",
+      "min": 0.01,
+      "max": 100.0,
+      "unit": "ratio",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Stretch ratio for the whole output; grains themselves are NOT stretched (CDP-enforced 'Parameter[4] Value (200.000000) out of range (0.010000 to 100.000000)' / same for 0.005). Breakpoint-CAPABLE (banner-confirmed; verified: a 1.0->3.0 ramp renders 2.3251 s, differing from the x1 (1.5000 s) and x3 (4.5001 s) scalar renders)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Double-space a spoken phrase without touching its pitch.",
+      "params": {"wsiz": 50, "trof": 0.4, "gpcnt": 1, "tstretch": 2.0},
+      "expected_use": "Syllables intact, gaps doubled; expect ~trough-span x 2, a little under indur x 2."
+    },
+    {
+      "description": "Progressive spacing: stretch grows 1x to 3x across the file.",
+      "params": {"wsiz": 50, "trof": 0.4, "gpcnt": 1, "tstretch": "str_ramp.brk"},
+      "expected_use": "Phrase starts at natural pace and pulls apart (write str_ramp.brk with breakpoint(): 0.0 1.0 / end 3.0)."
+    }
+  ],
+  "known_issues": [
+    "Duration honesty: actual = (trough span) x tstretch - the head before the first trough and tail after the last are DISCARDED, so indur * tstretch over-predicts by that fraction (observed -25% on a 4-syllable fixture whose troughs span 1.5 s of 2.0 s; -20% at x0.5). The model is the upper bound; the shortfall is material-dependent, small on densely-evented sources.",
+    "gpcnt is required but inert in this mode (byte-identical outputs for 1 vs 3) - a divergence from the banner's 'GPCNT ... can vary over time' claim, which holds for modes 1-4 but not 5.",
+    "Refusals: pure tone 'ERROR: NO PEAKS IN THE FILE'; flat noise 'ERROR: INSUFFICIENT VALID TROUGHS IN THE FILE.'; stereo 'Application doesn't work with this type of infile.' (MONO only).",
+    "trof accepts the out-of-range endpoints 0 and 1.0 despite refusing 1.5 with '(0.000002 to 0.999998)'.",
+    "tstretch < 1 overlaps grains rather than cutting them - levels can sum; watch for clipping on dense material.",
+    "Deterministic (runs 1.2 s apart byte-identical)."
+  ],
+  "references": ["cdp://docs/html/cgrogrns"]
+}

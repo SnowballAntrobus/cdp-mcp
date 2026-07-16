@@ -1,0 +1,101 @@
+{
+  "program": "grain",
+  "mode": "reorder",
+  "submode": null,
+  "category": "granular",
+  "domain": "time",
+  "input_arity": 1,
+  "channel_constraint": "any",
+  "input_format": ".wav",
+  "output_format": ".wav",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Re-sequences the grains of a grainy sound according to a letter code like 'adb:c': play grains 1 (a), 4 (d), 2 (b), then restart the same jumping pattern from grain 3 (c), advancing until the grains run out. The ':' is obligatory ('ERROR: INVALID DATA / ERROR: Reorder sequence does not contain a separator' for a missing colon); only letters are legal ('Reorder sequence contains non-alphabetic characters' for digits) and case is ignored. The binary enforces that the pattern ADVANCES: the post-colon restart letter must be strictly later in the alphabet than the pattern's first letter - 'ba:a', 'a:a', 'ab:a' and 'ca:b' all refuse with 'ERROR: Reorder sequence does not advance (last entry [A] <= first [B])' (verbatim for ba:a). Duration is static as a baseline (ab:c and abcd:e both 2.0072 s from 2.0) but PATTERN-DEPENDENT: codes that revisit grains lengthen the file (ac:b -> 2.8000 s, +40%) and codes that skip grains shorten it (adb:c -> 1.8000 s, -10%). Standard family gate (default 0.3). Deterministic; mono and stereo accepted.",
+  "musical_use": "The grain family's cell-permutation tool - where grain reverse retrogrades wholesale, reorder composes: 'ab:c' is near-identity with a lag, 'ba:c' swaps pairs, 'adb:c' scrambles a motif into a new one that still advances through the source. Because the pattern restarts one grain later each cycle, short codes generate rolling canonic permutations rather than static loops. Overlapping codes (restart letter earlier than the pattern's span, e.g. 'ac:b') REUSE grains and grow the file into a stuttering elaboration; wide jumps with late restarts thin it. Think of the code as (pattern letters):(stride letter) - stride 'b' = advance 1 grain per cycle, 'c' = 2, etc. Craft: sketch on a click train first (grains = beats), then apply to speech; a wrong gate re-letters every grain, so check with grain find (grain_find) before composing codes.",
+  "parameters": {
+    "code": {
+      "type": "str",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Reorder pattern string, letters + one obligatory ':' (e.g. 'adb:c'): pre-colon letters pick grains (a=1, b=2, ...) played in the given order; the post-colon letter sets where the next cycle starts. Constraints (all verbatim-refused): must contain ':'; letters only; must advance (restart letter alphabetically after the first pattern letter - 'ba:a' refused 'Reorder sequence does not advance (last entry [A] <= first [B])'). Case-insensitive ('aA:a' treated as 'aa:a' and refused for non-advance)."
+    },
+    "len": {
+      "type": "float",
+      "min": 0.1,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Maximum time between grains in seconds (family-standard: CDP-enforced 0.1 to the input duration). Breakpoint refused (family-standard)."
+    },
+    "gate": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": 0.3,
+      "flag": "-l",
+      "flag_kind": "attached_value",
+      "description": "Required signal level for a grain to be seen (CDP-enforced 0-1; real default 0.3, family-wide - banner's 'default 1' wrong). Breakpoint-CAPABLE (verified: a 0.05->0.5 gate ramp render differs from both the gate-0.05 and gate-0.5 scalar renders on an alternating loud/soft train)."
+    },
+    "minhole": {
+      "type": "float",
+      "min": 0.032,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-h",
+      "flag_kind": "attached_value",
+      "description": "Minimum duration of inter-grain holes (CDP-enforced 0.032 - the default - to the input duration, family-standard). Breakpoint refused (family-standard)."
+    },
+    "winsize": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "ms",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Envelope-tracking window in ms for a signal-tracking gate; 0 = off (family-standard). Breakpoint refused (family-standard)."
+    },
+    "ignore_last": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-x",
+      "flag_kind": "no_value",
+      "description": "Ignore the last grain in the source. Must follow the value flags (family-wide flag-order enforcement)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Pair-swap a beat: play grain 2 before grain 1, advancing two grains per cycle.",
+      "params": {"code": "ba:c"},
+      "expected_use": "Every pair of events swaps order; total duration ~unchanged."
+    },
+    {
+      "description": "Stuttering elaboration: overlapping pattern reuses grains.",
+      "params": {"code": "ac:b"},
+      "expected_use": "Grains revisited as the pattern strides by one - output grows (+40% observed on a 10-grain train)."
+    }
+  ],
+  "known_issues": [
+    "Duration honesty (static model): pattern-dependent. Baseline codes ('ab:c', 'abcd:e', 'a:b') land within +0.4% of the input; grain-reusing codes grow it (ac:b +40% observed) and skipping codes shrink it (adb:c -10%). The static model is only the non-overlapping baseline - budget by the code's grain-reuse ratio.",
+    "The advance rule is stricter than the manual suggests: the post-colon restart letter must be alphabetically LATER than the first pattern letter, so pure loops ('a:a') and backward strides are impossible - every code must walk forward through the source.",
+    "Acceptance-with-truncation landmine (family-wide): a wrong gate re-letters the grains and the code addresses different events; single-grain material passes through ~unchanged (pure tone exit 0). Verify segmentation with grain find first.",
+    "DIVERGENCE: banner gate 'default 1' vs real default 0.3; manual len minimum '1' vs enforced 0.1 (family-wide).",
+    "Deterministic (runs 1.2 s apart byte-identical). Stereo accepted (verified 2-channel).",
+    "-x must follow the value flags."
+  ],
+  "references": ["cdp://docs/html/cgrogrns"]
+}
