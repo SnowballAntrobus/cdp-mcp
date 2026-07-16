@@ -1,0 +1,49 @@
+{
+  "program": "blur",
+  "mode": "noise",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Moves the sound toward noise by flattening every analysis window's channel amplitudes toward that window's mean: amp' = amp + (meanamp - amp) * noise (source: dev/blur/blur.c:976-991 specnoise). Despite the banner's 'PUT NOISE IN THE SPECTRUM', nothing random is added - the process simply makes all channels (most of which hold low-level analysis noise) equally loud, which is why the result follows the source's dynamic envelope. Fully deterministic (no rand in the source; runs 1.3 s apart byte-identical) and static in duration (2.0230 s from a 2.023 s analysis, 1.5209 from 1.5209). Content verified: at noise 1 the channel-amp coefficient of variation collapses from 2.90 to 0.10 and the amp-weighted mean frequency sits at ~11 kHz (the flat-spectrum centre); noise 0 is a byte-identical passthrough. Operates on PVOC analysis files (.ana).",
+  "musical_use": "A one-knob clarity-to-noise fader. Setting noise to 1 reduces any source to a near-identical noise band that still breathes with the original's amplitude envelope - a way to turn speech or melody into 'shaped air'. Partial values blend the original spectrum with its noise-floor ghost. The compositionally strong form is the breakpoint ramp: 0 to 1 dissolves a sound into noise over its own duration; 1 to 0 makes material emerge from obscurity into clarity (the manual's own suggestion). Pairs well with blur blur (time-smearing plus noise saturation gives fog) and as a de-pitching stage before spectral-frequency treatments.",
+  "parameters": {
+    "noise": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Amount of flattening toward the per-window mean channel amplitude: 0 = no change (verified byte-identical passthrough), 1 = spectrum saturated (all channels equal). CDP-enforced 0 to 1 (refusals verbatim: 'Parameter[1] Value (-0.100000) out of range (0.000000 to 1.000000)', same for 1.5). May vary over time via a breakpoint file (verified: a 0-to-1 ramp differs from both scalar-endpoint renders)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Half-saturate the spectrum (SoundThread default).",
+      "params": {"noise": 0.5},
+      "expected_use": "The source's identity thins while a noise bed rises underneath it, dynamics intact."
+    },
+    {
+      "description": "Emerge from noise into clarity with a falling breakpoint ramp.",
+      "params": {"noise": [[0.0, 1.0], [1.0, 0.0]]},
+      "expected_use": "Starts as envelope-following noise and resolves into the untouched source by the end."
+    }
+  ],
+  "known_issues": [
+    "NAME/BANNER MISLEAD (source-settled): 'PUT NOISE IN THE SPECTRUM' adds nothing - specnoise interpolates each channel amp toward the window mean (amp' = amp + (meanamp - amp) * noise). The process is deterministic; SoundThread's description ('making the data in every channel equally loud') is the accurate one.",
+    "noise 0 is an exact no-op (output data chunk byte-identical to the input) - useful as a bypass point in breakpoint ramps.",
+    "wav input refused: 'Application doesn't work with this type of infile.' - convert with pvoc anal first (the engine does this automatically)."
+  ],
+  "references": ["cdp://docs/html/cblur", "http://www.ensemble-software.net/CDPDocs/html/cblur.htm#NOISE"]
+}

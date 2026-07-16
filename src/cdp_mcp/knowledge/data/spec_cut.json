@@ -1,0 +1,61 @@
+{
+  "program": "spec",
+  "mode": "cut",
+  "submode": null,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "endtime - starttime"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Cuts the section between starttime and endtime (seconds) out of an analysis file - the spectral-domain trim. Output duration is endtime - starttime, window-quantised slightly short (verified: 0.5-1.5 -> 0.9956 s, 0.25-1.75 -> 1.4948, 0.2-0.9 on a shorter file -> 0.6995; worst -0.44%). Deterministic (runs 1.3 s apart byte-identical). UNLIKE its time-domain sibling sfedit cut, reversed bounds are NOT silently swapped: starttime >= endtime is refused with 'ERROR: Incompatible start and end times for cut.' Operates on PVOC analysis files (.ana).",
+  "musical_use": "The practical scissors of a spectral chain: trim a long stretch time or focus accu intermediate down to the region you actually want BEFORE the next (expensive) spectral stage, instead of resynthesising and re-analysing - SoundThread pitches it exactly this way, for pulling chunks out of long mid-thread time-stretches. Also the staging tool the stretch time entry recommends: stretch by 5-10x, spec cut the interesting window, restretch that. Cutting at spectrally active moments is safe - windows are cut whole, so there are no click artefacts to splice away, though energy that was mid-decay simply stops at the boundary.",
+  "parameters": {
+    "starttime": {
+      "type": "float",
+      "min": 0.0,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Cut start in seconds. CDP-enforced 0 to just under the analysed duration, input-dependent (refusal on a 2.029 s analysis quoted '(0.000000 to 2.023039)'; -0.5 refused). Must be strictly less than endtime - equal or reversed values are refused ('ERROR: Incompatible start and end times for cut.'). Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "endtime": {
+      "type": "float",
+      "min": 0.0029,
+      "max": null,
+      "unit": "seconds",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Cut end in seconds. CDP-enforced from one window (~0.0029 s at the default analysis) to one window PAST the last window start, input-dependent - on a 2.029 s analysis (sfprops -d) the quoted bound is '(0.002902 to 2.025941)', so passing the sfprops duration itself is refused; use the engine's known input duration minus one window, or any endtime comfortably inside the file. Breakpoint file refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Keep the middle second of a two-second analysis.",
+      "params": {"starttime": 0.5, "endtime": 1.5},
+      "expected_use": "A 1.0 s spectral excerpt (window-quantised, ~0.996 s) ready for further spectral processing without a resynthesis round-trip."
+    },
+    {
+      "description": "Trim the first 10 seconds out of a long timestretch intermediate.",
+      "params": {"starttime": 0.0, "endtime": 10.0},
+      "expected_use": "Cheap mid-chain length control before the next spectral stage."
+    }
+  ],
+  "known_issues": [
+    "NO silent swap, diverging from sfedit cut's time-domain behavior: start >= end is refused with 'ERROR: Incompatible start and end times for cut.' (verified for both 1.5/0.5 and 1.0/1.0).",
+    "endtime's ceiling is window-quantised BELOW the sfprops -d duration: on a file sfprops reports as 2.029070 s, endtime 2.029070 is refused ('out of range (0.002902 to 2.025941)') - a full-file 'cut' must stop one window short (0 to 2.025941 verified, 697 of 698 windows).",
+    "Cuts are window-quantised: measured durations run up to ~0.5% short of endtime - starttime on default analyses.",
+    "SoundThread's UI expresses start/end as PERCENTAGES of the file and converts; CDP itself takes SECONDS - do not pass percentages.",
+    "wav input refused: 'Application doesn't work with this type of infile.' - convert with pvoc anal first (the engine does this automatically)."
+  ],
+  "references": ["cdp://docs/html/cspecedi"]
+}

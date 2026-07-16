@@ -1,0 +1,70 @@
+{
+  "program": "strange",
+  "mode": "waver",
+  "submode": 1,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Oscillates the spectrum between its harmonic state and a spectrally-stretched inharmonic state at vibfrq cycles per second: window by window the stretch factor ramps linearly up to 'stretch' and back down each cycle, with frequencies above botfrq stretched proportionally to their position in the spectrum (source: strange.c specwaver/do_waver - a triangle-wave oscillation, no randomness). Pinned to submode 1 (linear stretch curve; SoundThread's choice); submode 2 adds an expon parameter shaping the curve, and mode 2 with expon = 1 renders byte-identical to mode 1 (verified) - mode 1 is the expon = 1 special case. Static duration (2.0230 s from a 2.023 s analysis, 1.5209 from 1.5209), fully deterministic (runs 1.3 s apart byte-identical). Operates on PVOC analysis files (.ana).",
+  "musical_use": "A timbral vibrato: instead of wobbling pitch, it wobbles HARMONICITY - the sound breathes between its natural spectrum and a bell-like/clangorous stretched version at the vibrato rate. Slow rates (0.5-2 Hz) read as a queasy tidal detuning; moderate rates (4-10 Hz) as a metallic tremolo; high rates blur into rough sidebandy texture (the ceiling is the analysis window rate / 2, ~172 Hz at default settings). stretch sets how far into inharmonic territory each cycle reaches - values barely above 1 shimmer, 2-4 (SoundThread's slider span) turn gong-like, and the CDP maximum of 2205 is pure spectral mangling. Raise botfrq to keep the fundamental register anchored while only the upper partials waver. Breakpoint ramps on vibfrq (accelerating wobble) or stretch (deepening inharmonicity) are both verified and are the expressive core of the process.",
+  "parameters": {
+    "vibfrq": {
+      "type": "float",
+      "min": null,
+      "max": null,
+      "unit": "Hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Frequency of the harmonic/inharmonic oscillation. CDP range is INPUT-DEPENDENT at both ends: minimum ~1/(input duration) (refusals verbatim: '(0.493598 to 172.265628)' on a 2.03 s analysis, '(0.656250 to 172.265628)' on 1.53 s), maximum = half the analysis window rate (172.27 Hz at the default 44.1 kHz analysis). SoundThread's 0.01-150 slider is wrong at the low end - sub-1/duration rates are refused. May vary over time via a breakpoint file (verified: a 1-to-12 ramp differs from both scalar-endpoint renders)."
+    },
+    "stretch": {
+      "type": "float",
+      "min": 1.0,
+      "max": 2205.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum spectral stretch reached in the inharmonic state (1 = never leaves harmonic; the top partial's frequency is multiplied by up to this factor). CDP-enforced 1 to 2205 (0.5 refused verbatim: 'Parameter[2] Value (0.500000) out of range (1.000000 to 2205.000000)') - SoundThread/afta8's 1-4 is a (musically sensible) advisory subset. NOTE: stretch 1 is NOT a passthrough (windows are rewritten by the channel-reassignment pass; render differs from the input - verified). May vary over time via a breakpoint file (verified: a 1-to-3 ramp differs from both scalar-endpoint renders)."
+    },
+    "botfrq": {
+      "type": "float",
+      "min": 5.0,
+      "max": 22050.0,
+      "unit": "Hz",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Frequency above which spectral stretching happens; content below is left unstretched. CDP-enforced 5 to Nyquist (-5 and 30000 refused verbatim: 'Parameter[3] Value (30000.000000) out of range (5.000000 to 22050.000000)'; ceiling srate-dependent). SoundThread's default is 5 (stretch everything). Breakpoint file refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Slow gong-breathing on the whole spectrum.",
+      "params": {"vibfrq": 1.0, "stretch": 2.0, "botfrq": 5.0},
+      "expected_use": "The sound swells once per second between its natural timbre and a bell-like stretched version."
+    },
+    {
+      "description": "Fast metallic tremolo above the fundamental only.",
+      "params": {"vibfrq": 8.0, "stretch": 3.0, "botfrq": 300.0},
+      "expected_use": "Pitch centre stays anchored while the upper partials shudder in and out of inharmonicity."
+    }
+  ],
+  "known_issues": [
+    "vibfrq's CDP range is input-dependent at BOTH ends (min ~1/duration, max = half the window rate): the same value can be legal on one file and refused on another - '(0.493598 to 172.265628)' vs '(0.656250 to 172.265628)' quoted on 2.03 s / 1.53 s fixtures. SoundThread's 0.01 floor is below every real file's minimum.",
+    "stretch 1 (and the harmonic phase of every cycle) still rewrites the analysis data - the render differs from the input even though nothing is 'stretched'. Expect a subtle spectral fingerprint on top of the oscillation.",
+    "Submode is load-bearing: mode 2 appends an expon positional (CDP-enforced 0.02 to 50; 0 refused verbatim) shaping where in the spectrum the stretch concentrates; mode 2 at expon 1 is byte-identical to mode 1 (verified). Mode 2 is uncurated - use execute() for expon != 1.",
+    "wav input refused: 'Application doesn't work with this type of infile.' - convert with pvoc anal first (the engine does this automatically)."
+  ],
+  "references": ["cdp://docs/html/cstrange"]
+}

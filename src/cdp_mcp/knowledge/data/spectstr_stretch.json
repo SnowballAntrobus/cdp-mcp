@@ -1,0 +1,72 @@
+{
+  "program": "spectstr",
+  "mode": "stretch",
+  "submode": null,
+  "category": "spectral-time",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "expression", "expr": "indur * timestretch"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Spectral timestretch with artefact suppression - the manual's 'newer version' of stretch time, adding two discohere parameters that randomise the frequencies of the quietest channels to break phase coherence and reduce the metallic ringing of long stretches. Output is a .ana file of duration indur * timestretch (verified: x2 -> 4.0490 from 2.023, x0.5 -> 1.0101, x2 on 1.5209 -> 3.0447; worst +1.2% window padding). The working argv is 'spectstr stretch infile outfile timestretch d-ratio di-rand' - the banner's usage line contains a spurious literal 'time' token that the binary itself rejects (see known_issues). Deterministic even with discohere active (runs 1.3 s apart byte-identical; the drand48 behind the randomisation is never seeded). Operates on PVOC analysis files (.ana).",
+  "musical_use": "Reach for this instead of stretch time when long stretches turn glassy: a small amount of discohere (d-ratio 0.2-0.5 with di-rand around 0.5-1) blurs the frozen partials of the quietest channels so extreme stretches feel less static, while the loudest channels - the sound's identity - stay coherent. Large amounts make the texture granular (SoundThread's reading, consistent with the mechanism: the quietest channels' frequencies are re-randomised every window). The time-varying breakpoint form of timestretch is the compositionally strong one, exactly as with stretch time: hold 1.0 through the attack, ramp up through the body. Note d-ratio does nothing unless di-rand > 0 (verified byte-identical) - always set both. Stage very long stretches with spec cut between passes rather than paying for one enormous file.",
+  "parameters": {
+    "timestretch": {
+      "type": "float",
+      "min": 0.0001,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Stretch multiple applied to the time-base: > 1 lengthens, < 1 compresses, 1.0 legal but NOT a passthrough (windows are re-interpolated; render differs from the input - verified). CDP-enforced 0.0001 to 10000 (0, -1 and 10001 refused verbatim: 'Parameter[1] Value (0.000000) out of range (0.000100 to 10000.000000)') - the same range as stretch time; SoundThread's 0.1-100 slider is a UI subset. May vary over time via a breakpoint file (verified: a 1-to-4 ramp renders between the endpoint file sizes and differs from both)."
+    },
+    "dratio": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Proportion of channels to discohere, chosen from the QUIETEST upward (source: channels are sorted by ascending loudness and the first dratio * clength get their frequency replaced by channel-centre + random offset; dev/science/spectstr.c:1650-1683). CDP-enforced 0 to 1 (2 and -0.5 refused verbatim). INERT when dirand = 0: 'dratio 0.5, dirand 0' renders byte-identical to 'dratio 0' (verified). Required positional; the curated default 0 = no discoherence. Breakpoint file refused ('Cannot read parameter 2 [...]: brkpnt_files not permitted.')."
+    },
+    "dirand": {
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "unit": null,
+      "breakpoint_capable": false,
+      "default": 0.0,
+      "flag": null,
+      "description": "Frequency randomisation depth of the discohered channels (the random offset spans +/- dirand/2 around the channel centre). CDP-enforced 0 to 1 (2 and -1 refused verbatim). Only meaningful with dratio > 0. Required positional; the curated default 0 = off. Breakpoint file refused ('Cannot read parameter 3 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "Plain double-length spectral stretch (discohere off).",
+      "params": {"timestretch": 2.0},
+      "expected_use": "Equivalent territory to stretch time x2; duration doubles, pitch stays put."
+    },
+    {
+      "description": "Long stretch with mild discoherence to keep it alive.",
+      "params": {"timestretch": 8.0, "dratio": 0.4, "dirand": 0.8},
+      "expected_use": "An 8x stretch whose quiet channels shimmer instead of freezing - less metallic than the plain stretch."
+    }
+  ],
+  "known_issues": [
+    "BANNER BUG (first-class): the usage line reads 'spectstr stretch time infile outfile timestretch d-ratio di-rand', but the literal 'time' token is WRONG - the binary parses it as the input file and dies with 'ERROR: INTERNAL ERROR: (Bug?) / ERROR: Failed tp parse input file time' (CDP's own 'tp' typo, verbatim). The working argv has no 'time': 'spectstr stretch infile outfile timestretch d-ratio di-rand' (exit 0, verified) - exactly the engine's [program, mode, ...] shape.",
+    "d-ratio without di-rand is a NO-OP: 'stretch 2 0.5 0' renders byte-identical to 'stretch 2 0 0' (verified). The randomisation depth gates the whole discohere path.",
+    "Discohere 'randomness' is deterministic on this build: spectstr.c uses drand48() (line 1675) with no initrand48/srand anywhere, so the osbind.c shim runs glibc rand() from its fixed default seed - identical output every run (verified 1.3 s apart), no seed parameter, no way to get a different take. version_sensitive for the same reason as blur chorus.",
+    "timestretch 1.0 is not a passthrough (window re-interpolation changes the data; verified). Use spec gain 1.0 if you need a true spectral no-op.",
+    "All three parameters are required positionals (omissions refused 'ERROR: Insufficient parameters on cmdline.'); the curated defaults 0/0 reproduce the plain-stretch behavior.",
+    "wav input refused: 'ERROR: INVALID DATA / ERROR: File ... is not of correct type' - convert with pvoc anal first (the engine does this automatically)."
+  ],
+  "references": ["cdp://docs/html/cstretch", "cdp://docs/html/cr8new"]
+}

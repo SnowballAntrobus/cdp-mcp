@@ -1,0 +1,124 @@
+{
+  "program": "focus",
+  "mode": "focus",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Finds up to pk spectral peaks in each window (searching the formant envelope extracted per -f/-p) and refocuses the window's energy through peak-centred filters of bandwidth bw octaves - imposing the spectral content of the peaks onto the whole sound. Exactly one of the two formant-extraction flags (-f linear-frequency or -p pitchwise bands) is required, and it must precede the pk/bw positionals (the engine's declaration order handles this). Static duration (2.0230 s from a 2.023 s analysis, 1.5209 from 1.5209), fully deterministic (runs 1.3 s apart byte-identical). -f and -p renders verified distinct; -i (quicksearch), -b/-t (search limits) and -s (stability averaging) each change the render. Operates on PVOC analysis files (.ana).",
+  "musical_use": "A self-filtering resonator: the sound is filtered through its own most prominent frequencies, hardening its resonances and thinning everything else - vowels become more vowel-like, bells more bell-like, noise acquires pitch centres. pk sets how many resonances survive (1-3 = drone/chord-like reduction, 16 = subtle reinforcement); bw sets how surgical the filters are (near the 1/12-octave minimum they ring like a filter bank, wide values just tilt the spectrum - SoundThread's default 0.3 sits usefully between). Restrict the peak search with -b/-t to force the focus into a register (e.g. -b500 -t3000 keeps it in the formant band); ramp bw with a breakpoint file to travel from diffuse to ringing over the file. Follow with focus accu or stretch time for slowly evolving resonant washes.",
+  "parameters": {
+    "fchans": {
+      "type": "int",
+      "min": null,
+      "max": null,
+      "unit": "channels",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-f",
+      "flag_kind": "attached_value",
+      "description": "Extract the formant envelope linear frequency-wise, 1 point per N equally-spaced channels. Mutually exclusive with pbands - supply exactly one of the two. File-dependent ceiling ('-f1000' refused verbatim: 'ERROR: Too many formant_bands requested: max for this file is 256' on a default 44.1 kHz analysis); -f0 crashes with 'ERROR: INTERNAL ERROR: (Bug?) / ERROR: Formant array too small: set_specenv_frqs()' - keep it >= 1. Scalar only (a breakpoint file fails with 'Cannot read count of formant_bands.')."
+    },
+    "pbands": {
+      "type": "int",
+      "min": null,
+      "max": null,
+      "unit": "bands/octave",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-p",
+      "flag_kind": "attached_value",
+      "description": "Extract the formant envelope pitchwise, N equally-spaced pitch-bands per octave (SoundThread's choice, default 7, slider 1-12). File-dependent ceiling ('-p13' refused verbatim: 'ERROR: Too many formant_bands requested: max for this file is 12'); -p0 is accepted (exit 0, distinct render) but its meaning is undocumented - stay at 1-12. Mutually exclusive with fchans. Scalar only (a breakpoint file fails with 'Cannot read count of formant_bands.')."
+    },
+    "quicksearch": {
+      "type": "bool",
+      "breakpoint_capable": false,
+      "default": false,
+      "flag": "-i",
+      "flag_kind": "no_value",
+      "description": "Quicksearch for formants (faster, less accurate). Verified live: changes the render."
+    },
+    "pk": {
+      "type": "int",
+      "min": 1,
+      "max": 16,
+      "unit": "peaks",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": null,
+      "description": "Maximum number of spectral peaks to find and refocus onto. CDP-enforced 1 to 16 (0 and 17 refused verbatim: 'Parameter[1] Value (17.000000) out of range (1.000000 to 16.000000)'). Breakpoint file refused ('Cannot read parameter 1 [...]: brkpnt_files not permitted.')."
+    },
+    "bw": {
+      "type": "float",
+      "min": 0.083333,
+      "max": 10.0,
+      "unit": "octaves",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Bandwidth of the peak-centred filters in octaves. CDP-enforced 0.083333 (= 1/12 octave, a semitone) to 10 (0 and 12 refused verbatim: 'Parameter[2] Value (0.000000) out of range (0.083333 to 10.000000)') - SoundThread's 0.1 floor is an advisory subset. May vary over time via a breakpoint file (verified: a 0.1-to-6 ramp differs from both scalar-endpoint renders)."
+    },
+    "bt": {
+      "type": "float",
+      "min": 5.0,
+      "max": 22050.0,
+      "unit": "Hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-b",
+      "flag_kind": "attached_value",
+      "description": "Bottom frequency of the peak search (default: whole spectrum). CDP-enforced 5 to Nyquist ('-b-5' refused verbatim: 'Parameter[3] Value (-5.000000) out of range (5.000000 to 22050.000000)'; ceiling is srate-dependent). May vary over time via a breakpoint file (verified: a 100-to-2000 ramp differs from both scalar-endpoint renders)."
+    },
+    "tp": {
+      "type": "float",
+      "min": 5.0,
+      "max": 22050.0,
+      "unit": "Hz",
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": "-t",
+      "flag_kind": "attached_value",
+      "description": "Top frequency of the peak search (default: whole spectrum). CDP-enforced 5 to Nyquist ('-t30000' refused verbatim, srate-dependent ceiling). Supplying bt > tp is silently swapped ('-b3000 -t500' renders byte-identical to '-b500 -t3000' - verified). May vary over time via a breakpoint file (verified: a 1000-to-8000 ramp differs from both scalar-endpoint renders)."
+    },
+    "stable": {
+      "type": "int",
+      "min": 2,
+      "max": 4097,
+      "unit": "windows",
+      "breakpoint_capable": false,
+      "default": null,
+      "flag": "-s",
+      "flag_kind": "attached_value",
+      "description": "Number of windows over which peaks are averaged to retain only time-STABLE peaks. CDP-enforced 2 to 4097 ('-s1' and '-s4098' refused verbatim: 'Parameter[5] Value (1.000000) out of range (2.000000 to 4097.000000)'). Default 9 - pinned by rendered equivalence: the flag-less run is byte-identical to '-s9', so stability averaging is ALWAYS on; -s only changes the window count ('-s100' renders differently). Breakpoint file refused ('Cannot read parameter 5 [...]: brkpnt_files not permitted.')."
+    }
+  },
+  "examples": [
+    {
+      "description": "SoundThread's defaults: 7 pitch-bands, all 16 peaks, moderately narrow filters.",
+      "params": {"pbands": 7, "pk": 16, "bw": 0.3},
+      "expected_use": "The source filtered through its own prominent frequencies - resonances harden, inter-peak material thins."
+    },
+    {
+      "description": "Drone reduction: three stable peaks, semitone-wide filters, search confined to 200-3000 Hz.",
+      "params": {"pbands": 7, "pk": 3, "bw": 0.083333, "bt": 200.0, "tp": 3000.0, "stable": 100},
+      "expected_use": "A ringing three-note spectral skeleton of the source, steady enough to use as a chordal drone."
+    }
+  ],
+  "known_issues": [
+    "Exactly one of fchans (-f) or pbands (-p) must be supplied AND it must come before the pk/bw positionals: with neither (or with the flag placed after the positionals) CDP refuses with 'Formant parameter missing on cmdline.' (exit 255, no ERROR prefix); with both, 'ERROR: Cannot read parameter 1 [-f4]' - the second flag is mis-parsed as pk. Same mechanism as strange glis.",
+    "The -f/-p ceilings are data-checked per file, not range-checked: 'Too many formant_bands requested: max for this file is 12' (-p) / 'max for this file is 256' (-f) on a default 1024-point 44.1 kHz analysis. -f0 is an INTERNAL ERROR crash; -p0 runs but is undocumented.",
+    "Stability averaging is always active with a default of 9 windows (flag-less byte-identical to -s9, verified); -s does not toggle the feature, it resizes it.",
+    "bt/tp reversed bounds are silently swapped (byte-identical renders, verified) - no warning is printed.",
+    "wav input refused: 'Application doesn't work with this type of infile.' - convert with pvoc anal first (the engine does this automatically)."
+  ],
+  "references": ["cdp://docs/html/cfocus"]
+}

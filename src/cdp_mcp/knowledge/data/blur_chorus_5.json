@@ -1,0 +1,61 @@
+{
+  "program": "blur",
+  "mode": "chorus",
+  "submode": 5,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": true,
+  "description": "Chorusing by randomising the amplitudes AND frequencies of the analysis-channel partials (mode 5 of seven: 1 = amps only, 2/3/4 = frqs only / up only / down only, 6/7 = amps + frqs up/down only - all seven verified to run and produce pairwise-distinct output; SoundThread exposes exactly this mode). Each channel's amp is scaled by aspread^r and its frq by fspread^r with r drawn from a pre-built random table (ap_blur.c setup_randtables_for_rapid_rand_processing). UNSEEDABLE AND DETERMINISTIC on this build: there is no seed parameter and chor_preprocess never calls initrand48(), so the osbind.c drand48 shim (rand()/RAND_MAX) runs from rand()'s fixed default seed - identical output on every run (verified byte-identical data chunks 1.3 s apart, modes 5 and 2). Duration is static (2.0230 s from a 2.023 s analysis, 1.5209 from 1.5209 - window-exact). Frequency-direction content verified on a 440 Hz-family tone: mode 3 raises the amp-weighted mean frq (874 to 956 Hz), mode 4 lowers it (551), mode 2 straddles (755). Operates on PVOC analysis files (.ana).",
+  "musical_use": "The classic CDP route from 'enlivened' to granular to noisy: values just above 1 give gentle chorusing (an ensemble-like shimmer), 2-3 turn granular, and 10/100/1000 on aspread progressively bury the sound in noise (afta8, confirmed by the amp-scatter measurements: channel-amp coefficient of variation rises 2.9 to 4.9 at aspread 30). fspread detunes - by 4 (its maximum) pitched material smears into a band of detuned partials. A burbly but comprehensible vocal transformation occurs around aspread 30 / fspread 2-4 (afta8's worked example, ST defaults 30/2). Time-varying breakpoint files on either parameter let a sound decay from clean into chorused noise or congeal back out of it. Because the 'randomness' is frozen (see description), re-running the same parameters gives the identical take - use slightly different spread values, not reruns, for variants.",
+  "parameters": {
+    "aspread": {
+      "type": "float",
+      "min": 1.0,
+      "max": 1028.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum random scatter of partial amplitudes: each channel amp is multiplied by aspread^r, r random in -1..1. 1 = no amplitude scatter (verified: mode-1 render at aspread 1 is byte-identical to the input). CDP-enforced 1 to 1028 (refusals verbatim: 'Parameter[1] Value (0.500000) out of range (1.000000 to 1028.000000)', same for 0, -1 and 2000) - afta8's claim that 'there is in fact no mathematical limit' is wrong on this build. May vary over time via a breakpoint file (verified: a 1-to-1000 ramp differs from both scalar-endpoint renders)."
+    },
+    "fspread": {
+      "type": "float",
+      "min": 1.0,
+      "max": 4.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Maximum random scatter of partial frequencies: each channel frq is multiplied by fspread^r, r random in -1..1 (this mode; modes 3/6 use 0..1 = up only, 4/7 use -1..0 = down only). CDP-enforced 1 to 4 (refusals verbatim for 0.5, 0 and 5). NOTE: fspread 1 is NOT a passthrough - frequencies are re-binned to channels even at x1 (aspread 1/fspread 1 render differs from the input, unlike mode 1's aspread 1). May vary over time via a breakpoint file (verified: a 1-to-4 ramp differs from both scalar-endpoint renders)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Gentle ensemble chorusing (SoundThread defaults).",
+      "params": {"aspread": 30.0, "fspread": 2.0},
+      "expected_use": "Burbly, thickened version of the source; on voice, comprehensible but visibly 'doubled'."
+    },
+    {
+      "description": "Ramp from near-clean into granular noise over the file.",
+      "params": {"aspread": [[0.0, 1.0], [1.0, 500.0]], "fspread": 2.0},
+      "expected_use": "The sound progressively disintegrates into amplitude-scattered noise while its pitch centre stays put."
+    }
+  ],
+  "known_issues": [
+    "UNSEEDABLE, DETERMINISTIC 'randomness' (source-diagnosed): no seed argv slot exists, and chor_preprocess (dev/blur/ap_blur.c:466-472) never calls initrand48() - the drand48() used to fill the random tables is the osbind.c shim over glibc rand() running from its fixed default seed. Two runs 1.3 s apart are byte-identical (data chunks; modes 5 and 2 verified). Identical parameters always reproduce the identical render; there is no way to get a different random take on this build. version_sensitive: a build whose drand48 is the real libc one (or that seeds) would differ.",
+    "The seven modes are argv-shape-bearing submodes: mode 1 takes aspread only, modes 2-4 take fspread only, modes 5-7 take both. Only mode 5 is curated (SoundThread's choice); the others run verified and are reachable via execute().",
+    "aspread/fspread ranges are hard CDP ranges (1-1028 / 1-4), contradicting afta8's 'no mathematical limit' note.",
+    "Emits 'WARNING: Zero-amp spectral window(s) encountered: orig window(s) substituted.' on sources with silent analysis windows (exit still 0).",
+    "wav input refused: 'Application doesn't work with this type of infile.' - convert with pvoc anal first (the engine does this automatically)."
+  ],
+  "references": ["cdp://docs/html/cblur", "http://www.ensemble-software.net/CDPDocs/html/cblur.htm#CHORUS"]
+}

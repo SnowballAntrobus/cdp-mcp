@@ -1,0 +1,49 @@
+{
+  "program": "spec",
+  "mode": "gain",
+  "submode": null,
+  "category": "spectral-frequency",
+  "domain": "spectral",
+  "input_arity": 1,
+  "channel_constraint": "mono",
+  "input_format": ".ana",
+  "output_format": ".ana",
+  "stability": "stable",
+  "phase_sensitive": false,
+  "stereo_link_default": null,
+  "duration_model": {"kind": "static"},
+  "curated": true,
+  "version_sensitive": false,
+  "description": "Amplifies or attenuates the spectrum by scaling every channel amplitude by gain, leaving frequencies untouched (content-verified: median amp ratio exactly 2.0 at gain 2 and 0.5 at gain 0.5 against the input's channel amps; gain 1.0 is a byte-identical passthrough). Static duration (2.0230 s from a 2.023 s analysis, 1.5209 from 1.5209), deterministic (runs 1.3 s apart byte-identical). Operates on PVOC analysis files (.ana).",
+  "musical_use": "The level trim of the spectral domain - SoundThread frames it as the frequency-domain twin of its Gain node, and its main job is exactly that: pull a hot spectral chain down (gain < 1) so the eventual pvoc synth doesn't clip, or push a quiet intermediate up before a level-sensitive stage (focus, trace, suppress-style ops whose thresholds see channel amplitude). With a breakpoint file it becomes a spectral fade/envelope drawn directly on the analysis data - fade a sound in or out without touching the time domain, or duck the middle of a chain for a swell. gain 0 legally renders spectral silence (useful as the floor of a breakpoint fade).",
+  "parameters": {
+    "gain": {
+      "type": "float",
+      "min": 0.0,
+      "max": 10000.0,
+      "unit": null,
+      "breakpoint_capable": true,
+      "default": null,
+      "flag": null,
+      "description": "Amplitude multiplier applied to every analysis channel: < 1 attenuates, > 1 amplifies, 1.0 is a verified byte-identical no-op, 0 is legal (spectral silence). CDP-enforced 0 to 10000 ('-1' refused verbatim: 'Parameter[1] Value (-1.000000) out of range (0.000000 to 10000.000000)'; 10000 accepted) - SoundThread's 0.001-2 slider is an advisory subset. May vary over time via a breakpoint file (verified: a 0.1-to-4 ramp differs from both scalar-endpoint renders)."
+    }
+  },
+  "examples": [
+    {
+      "description": "Pull a hot spectral chain down before resynthesis (SoundThread default 0.8).",
+      "params": {"gain": 0.8},
+      "expected_use": "Same sound, 20% lower channel amplitudes - headroom for pvoc synth."
+    },
+    {
+      "description": "Spectral fade-out drawn on the analysis data.",
+      "params": {"gain": [[0.0, 1.0], [1.0, 0.0]]},
+      "expected_use": "The sound fades to spectral silence across its duration without a time-domain envelope stage."
+    }
+  ],
+  "known_issues": [
+    "gain 0 is accepted (renders all-zero channel amps) - deliberate silence, not an error; anything negative is refused.",
+    "Scaling is exact and frequency-transparent (amp ratio 2.0/0.5 verified channel-wise; gain 1.0 byte-identical) - there is no hidden normalisation or limiter, so large gains can push channel amps far above 1.0 and clip only at resynthesis.",
+    "wav input refused: 'Application doesn't work with this type of infile.' - convert with pvoc anal first (the engine does this automatically)."
+  ],
+  "references": ["cdp://docs/html/cspecedi"]
+}

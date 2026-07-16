@@ -1,0 +1,166 @@
+{
+  "generated_at": "2026-07-15",
+  "environment": {
+    "binaries": "/tmp/CDP8/NewRelease (ComposersDesktop/CDP8 source build; Groucho programs banner 'CDP Release 7.1 2016'; spectstr prints no release banner)",
+    "os": "Linux x86_64 sandbox",
+    "note": "Spectral-lean half of the remaining SoundThread-covered singles. All eight targets take .ana input and emit .ana output (verified per target); durations measured by pvoc synth round-trip; .ana comparisons by RIFF data chunk. To be re-verified on macOS r8 by the CDP-gated suite after integration."
+  },
+  "entries": [
+    {
+      "program": "blur",
+      "mode": "chorus",
+      "submode": 5,
+      "breakpoint_capable": ["aspread", "fspread"],
+      "duration_row": ["blur", "chorus", 5, 2.0, {"aspread": 30.0, "fspread": 2.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "SEED HUNT OUTCOME (headline): NO seed exists and the process is DETERMINISTIC - no seed argv slot, and chor_preprocess (dev/blur/ap_blur.c:466-472) never calls initrand48(), so the drand48() filling the random tables (ap_blur.c:520-548) and picking per-window indices (blur.c:510,521) is the osbind.c shim over glibc rand() at its fixed default seed. Runs 1.3 s apart byte-identical (modes 5 and 2 verified). Same construction as distort reform 6; version_sensitive true. The initrand48() at ap_blur.c:565 belongs to blur drunk.",
+        "All SEVEN modes run and are pairwise-distinct (mode 1 aspread-only, 2-4 fspread-only, 5-7 both). Submode 5 (amps AND frqs) pinned - the one SoundThread exposes (blur_chorus_5, defaults 30/2); rest dropped with reasons.",
+        "AFTA8 DIVERGENCE: 'no mathematical limit to the values which can be entered' is false - CDP hard-enforces aspread 1-1028 and fspread 1-4 (verbatim refusals for 0.5/0/-1/2000 and 0.5/0/5). ST's slider ranges match CDP exactly.",
+        "Direction verified on a tone (fspread 2): amp-weighted mean frq 873.8 Hz -> mode 3 955.7 (up), mode 4 551.2 (down), mode 2 754.8 (both). Amp scatter verified mode 1 (channel-amp CV 2.90 -> 4.89 at aspread 30).",
+        "Neutral asymmetry: mode 1 at aspread 1 is byte-identical to the input, but fspread 1 is NOT a passthrough (frq re-binning at x1) - mode 5 '1 1' differs from the input.",
+        "aspread and fspread both breakpoint-capable (each brk differs from both scalar endpoints; banner-confirmed). duration static, window-exact at 2.023/1.5209; flat-noise fixture 2.0230. wav input refused 'Application doesn't work with this type of infile.'"
+      ]
+    },
+    {
+      "program": "blur",
+      "mode": "noise",
+      "submode": null,
+      "breakpoint_capable": ["noise"],
+      "duration_row": ["blur", "noise", null, 2.0, {"noise": 0.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "BANNER MISLEAD (source-settled): 'PUT NOISE IN THE SPECTRUM' adds nothing random - specnoise (dev/blur/blur.c:976-991) interpolates each channel amp toward the window mean: amp' = amp + (meanamp - amp)*noise. Deterministic (1.3 s-apart runs byte-identical). SoundThread's 'making the data in every channel equally loud' is the accurate description.",
+        "Content verified: noise 1 collapses channel-amp CV 2.90 -> 0.103 (mean frq -> 11 kHz flat-spectrum centre); noise 0 is a byte-identical passthrough.",
+        "CDP-enforced range 0-1 (verbatim refusals for -0.1 and 1.5); omission 'Insufficient parameters on command line.'",
+        "noise breakpoint-capable (0->1 ramp differs from both endpoints; banner-confirmed). duration static (2.0230/1.5209; flat fixture 2.0230). wav refused."
+      ]
+    },
+    {
+      "program": "focus",
+      "mode": "focus",
+      "submode": null,
+      "breakpoint_capable": ["bw", "bt", "tp"],
+      "duration_row": ["focus", "focus", null, 2.0, {"pbands": 7, "pk": 16, "bw": 0.3}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "No prior partial work found in tranche7/8 transcripts (checked; only harness_report.json mentions the pair). Curated fresh.",
+        "Formant flag REQUIRED and POSITION-ENFORCED: neither -f nor -p -> 'Formant parameter missing on cmdline.' (no ERROR prefix); flag AFTER the positionals -> same refusal; both flags -> 'ERROR: Cannot read parameter 1 [-f4]'. Entry declares pbands/fchans before pk/bw so the engine's declaration-order argv matches; strange glis precedent (both flags exposed, no defaults, mutual exclusion documented).",
+        "File-dependent band ceilings, data-checked not range-checked: -p13 'Too many formant_bands requested: max for this file is 12'; -f1000 '... max for this file is 256'; -f0 CRASHES 'ERROR: INTERNAL ERROR: (Bug?) / ERROR: Formant array too small: set_specenv_frqs()'; -p0 accepted (distinct render, undocumented).",
+        "-s stability default 9 pinned by rendered equivalence: flag-less run byte-identical to -s9 (always on; -s resizes it, -s100 differs). CDP range 2-4097 (1/4098 refused verbatim).",
+        "CDP-enforced: pk 1-16; bw 0.083333-10 octaves (min = 1/12 octave; ST's 0.1 floor advisory); -b/-t 5 to Nyquist. bt>tp silently swapped (byte-identical, verified). -i (quicksearch) live.",
+        "bw, bt, tp breakpoint-capable (each differs from both endpoints; banner-confirmed); pk and -s refuse brks (parameters 1/5); -p brk 'Cannot read count of formant_bands.'",
+        "Deterministic; duration static (2.0230/1.5209; flat fixture 2.0230 - noise input runs fine). wav refused."
+      ]
+    },
+    {
+      "program": "spec",
+      "mode": "cut",
+      "submode": null,
+      "breakpoint_capable": [],
+      "duration_row": ["spec", "cut", null, 2.0, {"starttime": 0.5, "endtime": 1.5}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "duration_model 'endtime - starttime', window-quantised slightly short (worst -0.44% across four cuts at two input durations; flat fixture 0.9956 for a 1.0 prediction).",
+        "NO SILENT SWAP - DIVERGENCE from time-domain sibling sfedit cut: start >= end refused 'ERROR: Incompatible start and end times for cut.' (both 1.5/0.5 and 1.0/1.0 probed).",
+        "Input-dependent bounds, verbatim: start '(0.000000 to 2.023039)', end '(0.002902 to 2.025941)' on a 2.029070 s (sfprops) analysis - the sfprops duration itself is REFUSED as endtime; max legal cut is one window short of the file (0 -> 2.025941 = 697 of 698 windows, exit 0).",
+        "Both parameters refuse breakpoints ('Cannot read parameter 1/2'). Deterministic. wav refused. ST DIVERGENCE (UI semantics): SoundThread's Trim node expresses start/end as PERCENTAGES and converts; CDP takes seconds."
+      ]
+    },
+    {
+      "program": "spec",
+      "mode": "gain",
+      "submode": null,
+      "breakpoint_capable": ["gain"],
+      "duration_row": ["spec", "gain", null, 2.0, {"gain": 2.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Exact frequency-transparent amp scaling: channel-wise median amp ratio 2.0/0.5 at gain 2/0.5; gain 1.0 byte-identical passthrough; gain 0 legal (spectral silence); no hidden normalisation.",
+        "CDP-enforced 0-10000 (-1 refused verbatim; 10000 accepted) - ST's 0.001-2 slider advisory. Omission 'Insufficient parameters on command line.'",
+        "gain breakpoint-capable (0.1->4 ramp differs from both endpoints; banner-confirmed) - a spectral fade drawn on the analysis data.",
+        "Deterministic; duration static (2.0230/1.5209; flat fixture 2.0230). wav refused."
+      ]
+    },
+    {
+      "program": "spectstr",
+      "mode": "stretch",
+      "submode": null,
+      "breakpoint_capable": ["timestretch"],
+      "duration_row": ["spectstr", "stretch", null, 2.0, {"timestretch": 2.0, "dratio": 0.0, "dirand": 0.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "BANNER BUG (headline): usage prints 'spectstr stretch time infile outfile ...' but the literal 'time' token is rejected by the binary itself - 'ERROR: INTERNAL ERROR: (Bug?) / ERROR: Failed tp parse input file time' (CDP's own 'tp' typo). Working argv is 'spectstr stretch infile outfile timestretch d-ratio di-rand' - exactly the engine's [program, mode, ...] shape, so NO missing engine machinery; the task's drop contingency does not trigger. Output verified .ana (synth round-trips).",
+        "duration_model 'indur * timestretch': x2 -> 4.0490 from 2.023, x0.5 -> 1.0101, x2 on 1.5209 -> 3.0447 (worst +1.2% vs the nominal fixture duration - stretch time's padding behavior). timestretch range 0.0001-10000 verbatim, identical to stretch time.",
+        "d-ratio INERT without di-rand: '2 0.5 0' byte-identical to '2 0 0'. Both discohere params CDP-enforced 0-1 (verbatim refusals), both refuse brks (parameters 2/3), both required positionals ('Insufficient parameters on cmdline.') - entry defaults 0/0.",
+        "Discohere is DETERMINISTIC: spectstr.c:1675 drand48() with no initrand48/srand anywhere in the file (osbind shim, fixed seed); '2 0.5 1' pair 1.3 s apart byte-identical. Mechanism: channels sorted by ascending loudness, quietest dratio*clength get frq = channel centre +/- dirand/2 (spectstr.c:1650-1683). version_sensitive true.",
+        "timestretch 1.0 is NOT a passthrough (windows re-interpolated; differs from input). timestretch breakpoint-capable (banner-confirmed; 1->4 brk render between and distinct from both endpoints). wav refused 'File ... is not of correct type'."
+      ]
+    },
+    {
+      "program": "strange",
+      "mode": "waver",
+      "submode": 1,
+      "breakpoint_capable": ["vibfrq", "stretch"],
+      "duration_row": ["strange", "waver", 1, 2.0, {"vibfrq": 4.0, "stretch": 2.0, "botfrq": 100.0}, 0.05],
+      "stochastic": false,
+      "notes": [
+        "Deterministic triangle-wave oscillation between harmonic and spectrally-stretched states (source: strange.c:585-645 do_waver - stretch ramps linearly 1->stretch->1 over round(1/(vibfrq*frametime)) windows; no rand in the waver path).",
+        "Mode 2 at expon 1 is BYTE-IDENTICAL to mode 1 (verified) - mode 1 is the expon=1 special case; expon CDP-enforced 0.02-50 (0 refused verbatim); mode 2 dropped, execute() reaches it.",
+        "ST DIVERGENCE: vibfrq is input-dependent at BOTH ends - '(0.493598 to 172.265628)' on 2.03 s, '(0.656250 to 172.265628)' on 1.53 s (min ~ 1/duration, max = half the window rate); SoundThread's 0.01 slider floor is below every real file's minimum.",
+        "stretch CDP-enforced 1-2205 (0.5 refused verbatim; ST/afta8 1-4 advisory); botfrq 5-Nyquist. stretch 1 NOT a passthrough (channel-reassignment fingerprint).",
+        "vibfrq and stretch breakpoint-capable (each brk differs from both endpoints; banner-confirmed); botfrq refuses (parameter 3), expon refuses (parameter 4).",
+        "duration static (2.0230/1.5209; flat fixture 2.0230). Content: tone fixture's per-window amp-weighted mean frq shows large cyclic inharmonic excursions (spikes to 4.3/6.4 kHz from ~1 kHz baseline). wav refused."
+      ]
+    }
+  ],
+  "dropped": [
+    {
+      "program": "blur",
+      "mode": "shuffle",
+      "submode": null,
+      "reason": "MISSING ENGINE MACHINERY (spot-check-caught): the domain-image mapping is a REQUIRED positional free-string ('ab-abba') that CDP parses directly from argv (cdp2k/tklib3.c:646 read_shuffle_data / get_domain_and_image - no file fallback), but the engine's validate_params rejects plain-string values for non-aux_file params (processing.py _check_type: 'Strings are only accepted for breakpoint file paths (must end in .brk)'). An entry was drafted and passed the loader, but the process_impl spot-check failed with that exact param_type error, so every process() call would fail; entry withdrawn. Precedent: specfnu's optional -o str switch is shipped documented as execute()-only - viable there because it is optional, impossible here because the string is the entry's core required parameter. What is missing: plain-string parameter support in _check_type (and string-aware duration handling). Fully probed regardless (transcript section 3): duration rule outwindows = 1 + floor((inwindows-1)/(dmncnt*grpsize))*imgcnt*grpsize exact in 7 probes at 2 durations; verbatim data validation errors; grpsize 1-32767 + brk refusal; deterministic; reachable today via execute()."
+    },
+    {
+      "program": "blur",
+      "mode": "chorus",
+      "submode": 1,
+      "reason": "amps-only variant; ST exposes only mode 5 (process_help.json has a single blur_chorus_5 key), afta8-only prior. Verified running, distinct from all siblings, deterministic (same unseeded-shim mechanism), aspread 1 byte-identical to input (neutral value pinned in the mode-5 entry). Reachable via execute()."
+    },
+    {
+      "program": "blur",
+      "mode": "chorus",
+      "submode": 2,
+      "reason": "frqs-both-ways variant; ST-uncovered, afta8-only. Verified running and distinct; determinism pair (1.3 s apart) byte-identical; tone mean-frq 754.8 vs input 873.8 recorded. Reachable via execute()."
+    },
+    {
+      "program": "blur",
+      "mode": "chorus",
+      "submode": 3,
+      "reason": "frqs-up-only variant; ST-uncovered. Verified running, distinct, direction confirmed (tone mean frq 873.8 -> 955.7). Reachable via execute()."
+    },
+    {
+      "program": "blur",
+      "mode": "chorus",
+      "submode": 4,
+      "reason": "frqs-down-only variant; ST-uncovered. Verified running, distinct, direction confirmed (tone mean frq 873.8 -> 551.2). Reachable via execute()."
+    },
+    {
+      "program": "blur",
+      "mode": "chorus",
+      "submode": 6,
+      "reason": "amps + frqs-up variant; ST-uncovered. Verified running and distinct from modes 5 and 7 on the same params (30 2). Same argv shape as curated mode 5 - trivially reachable via execute()."
+    },
+    {
+      "program": "blur",
+      "mode": "chorus",
+      "submode": 7,
+      "reason": "amps + frqs-down variant; ST-uncovered. Verified running and distinct from modes 5 and 6 on the same params (30 2). Reachable via execute()."
+    },
+    {
+      "program": "strange",
+      "mode": "waver",
+      "submode": 2,
+      "reason": "Generalisation of curated mode 1: adds an expon positional (CDP 0.02-50, 0 refused verbatim, brk refused 'Cannot read parameter 4') shaping the stretch curve; mode 2 at expon 1 renders byte-identical to mode 1 (verified), expon 3 distinct. ST exposes only strange_waver_1. Reachable via execute()."
+    }
+  ]
+}
