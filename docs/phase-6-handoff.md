@@ -55,7 +55,11 @@ construction build** on top of it:
 - **Phase 6b stereo seed-link** — machinery prerequisites curated
   (housekeep chans 3/4 split, submix interleave merge); build waits
   on a real session hitting a mono-only stochastic op with stereo
-  material.
+  material. **The trigger is instrumented**: that exact occurrence
+  now pre-flights as a structured `stereo_seed_link_missing` error
+  whose fix instructs the agent to notify the user and gives the
+  manual split/same-seed/merge workaround
+  (tests/test_seed_link_trigger.py).
 - Deferred with rationale, still: export_to_ableton, process-output
   cache.
 

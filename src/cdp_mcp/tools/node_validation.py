@@ -549,6 +549,60 @@ async def _validate_node_dry_run(
             predicted_duration_s=predicted_duration_s,
         )
 
+    # 6.5. Phase 6b usage tripwire — the stereo seed-link trigger.
+    # The dual-mono seed-link machinery (split → same seed per channel →
+    # merge, preserving the stereo image) is DEFERRED behind exactly this
+    # occurrence: a mono-only SEEDED stochastic entry receiving stereo
+    # material (docs/phase-6-design.md §Reevaluation item 3;
+    # docs/phase-6-handoff.md "Not done / deferred"). When it fires, the
+    # structured error tells the agent to notify the user — each report
+    # is the usage evidence the build decision is waiting on. Non-seeded
+    # mono entries keep the ordinary runtime channel_mismatch path.
+    if entry.channel_constraint == "mono" and "seed" in entry.parameters:
+        for resolved_path in resolved_inputs:
+            if resolved_path.suffix.lower() not in (
+                ".wav", ".aif", ".aiff", ".amb"
+            ):
+                continue
+            try:
+                n_chans = sf.info(str(resolved_path)).channels
+            except (RuntimeError, OSError):
+                continue  # unreadable here → later stages report it
+            if n_chans > 1:
+                return ValidationResult(
+                    errors=[
+                        ErrorEntry(
+                            type="stereo_seed_link_missing",
+                            message=(
+                                f"{entry.program} {entry.mode} is "
+                                f"mono-only and seeded-stochastic, but "
+                                f"{resolved_path.name} has {n_chans} "
+                                "channels. Processing channels "
+                                "independently would decorrelate the "
+                                "stereo image; the dual-mono seed-link "
+                                "machinery that solves this is a "
+                                "deferred feature (Phase 6b)."
+                            ),
+                            fix=(
+                                "NOTIFY THE USER: this is the recorded "
+                                "usage trigger the deferred stereo "
+                                "seed-link feature is waiting on — "
+                                "report that it fired so they can "
+                                "prioritize building it. Manual "
+                                "workaround meanwhile: housekeep chans 3 "
+                                "(channo 1 and 2) to split, run this "
+                                "entry on each channel with the SAME "
+                                "seed value, then submix interleave to "
+                                "remerge — identical seeds keep the "
+                                "random decisions, and therefore the "
+                                "stereo image, coherent."
+                            ),
+                        )
+                    ],
+                    warnings=param_warnings,
+                    predicted_duration_s=predicted_duration_s,
+                )
+
     # 7. Planned (never-created) graph root.
     slug = f"{entry.program}-{entry.mode}"
     planned_root = session.graphs_dir / f"DRYRUN-{slug}"

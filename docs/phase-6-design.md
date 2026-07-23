@@ -116,7 +116,12 @@ adversarial drifting-bed proxy.
       Low priority, high certainty.
 5. **Phase 6b (contingent, not critical path):** tranche 11 mini-sweep
    (see the survey below), and the stereo seed-link dual-mono machinery
-   behind its usage trigger (item 3 above).
+   behind its usage trigger (item 3 above). **Trigger INSTRUMENTED
+   (2026-07-16):** validation now trips a structured
+   `stereo_seed_link_missing` error when a mono-only seeded entry
+   receives stereo material — the fix text tells the agent to notify
+   the user (each report is the usage evidence) and carries the
+   manual split/same-seed/merge workaround.
 
 ## Uncurated-program survey for Phase 6 (2026-07-15, banner-level)
 
