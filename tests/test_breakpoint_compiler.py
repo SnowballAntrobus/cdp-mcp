@@ -430,3 +430,31 @@ def test_wrong_tuple_length_rejected(tmp_path):
         e.type == "param_breakpoint_value_type"
         for e in result.errors
     )
+
+
+# ---------------------------------------------------------------------------
+# Plain-decimal formatting — the 1e-06 field find (church-holiday journal,
+# 2026-07-23): scientific notation in a compiled .brk shifts CDP's token
+# alignment and surfaces as a misleading 'times not in increasing order'.
+# ---------------------------------------------------------------------------
+
+
+def test_tiny_values_render_as_plain_decimals_never_scientific(tmp_path):
+    result = compile_breakpoint_value(
+        param_name="amp",
+        param_spec=_BREAKPOINT_SPEC,
+        value=[[0.0, 0.000001], [0.5, 0.9], [1.0, 0.000001]],
+        source_duration_s=2.0,
+        source_kind="input_wav",
+        session_root=tmp_path,
+        envelopes_dir=tmp_path / "envelopes",
+    )
+    assert not result.errors
+    contents = result.compiled_path.read_text()
+    assert "e-" not in contents.lower() and "e+" not in contents.lower()
+    values = [line.split()[1] for line in contents.splitlines() if line]
+    assert values[0] == "0.000001"
+    # Round-trip sanity: every token parses back to the intended floats.
+    for line in contents.splitlines():
+        t, v = line.split()
+        float(t), float(v)

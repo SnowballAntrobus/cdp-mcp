@@ -460,11 +460,24 @@ def _compile_list_mode(
 def _format_brk_contents(points: list[tuple[float, float]]) -> str:
     """Render ``points`` as a CDP-compatible .brk text block.
 
-    One ``"<time> <value>\\n"`` line per point. Numbers formatted via
-    ``format(x, ".10g")`` — same convention as ``processing._format_value``,
-    which produces clean output (drops trailing ``.0`` for ints, preserves
-    significant digits for floats). CDP is whitespace-tolerant per the
-    examples in cdpr8/docs/demo/sdbats/*.brk.
+    One ``"<time> <value>\\n"`` line per point. Numbers are formatted as
+    PLAIN DECIMALS, never scientific notation: the previous ``".10g"``
+    convention rendered tiny values as e.g. ``1e-06``, which CDP's brk
+    parser mis-tokenizes — the exponent shifts token alignment and the
+    refusal surfaces as a misleading ``times not in increasing order``
+    (field find, church-holiday session journal 2026-07-23; a synth wave
+    amp envelope with a 1e-06 floor). ``".10f"`` with trailing-zero
+    stripping keeps clean output (``0.5``, ``0.000001``) at the cost of
+    flooring magnitudes below 5e-11 to ``0`` — far below anything CDP
+    distinguishes. The argv scalar path (``processing._format_value``)
+    deliberately keeps ``".10g"``: no CLI misparse has ever been
+    evidenced, and repinning every argv test for an unevidenced risk
+    would be guessing.
     """
-    lines = [f"{format(t, '.10g')} {format(v, '.10g')}\n" for t, v in points]
+
+    def _plain(x: float) -> str:
+        s = f"{x:.10f}".rstrip("0").rstrip(".")
+        return s if s not in ("", "-") else "0"
+
+    lines = [f"{_plain(t)} {_plain(v)}\n" for t, v in points]
     return "".join(lines)
