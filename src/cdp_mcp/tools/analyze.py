@@ -176,11 +176,12 @@ async def analyze_impl(
     # Hash off the event loop — sha256 of a long wav is exactly the
     # sync CPU work the async commitment says must not starve MCP
     # heartbeats. (Phase 2 hardening, M2.)
-    # feature_set "concise_v2" since the MIR v2 scorecard additions
-    # (flatness/rolloff/crest) — old concise_v1 entries orphan
+    # feature_set "concise_v3" since the sub-register fix scaled the
+    # centroid STFT window with sample rate (n_fft 4096 at 96 kHz) —
+    # high-rate scorecards change. Old concise_v1/v2 entries orphan
     # harmlessly (never matched, swept by ordinary cache cleanup).
     audio_sha = await asyncio.to_thread(sha256_file, audio_path)
-    cache_key = analysis_cache_key(audio_sha, "concise_v2", t_start, t_duration)
+    cache_key = analysis_cache_key(audio_sha, "concise_v3", t_start, t_duration)
     cache = cache_lookup(cache_root, "analysis", cache_key, ".json")
 
     scorecard_dict: dict | None = None
@@ -269,9 +270,12 @@ async def analyze_impl(
     # want it.
     verbose_block: dict | None = None
     if verbose:
+        # feature_set "verbose_v3" since the sub-register fix: the
+        # payload gained the sub block + f0_pinned_at_floor, and the
+        # trajectory STFT window now scales with sample rate.
         verbose_cache = cache_lookup(
             cache_root, "analysis",
-            analysis_cache_key(audio_sha, "verbose_v2", t_start, t_duration),
+            analysis_cache_key(audio_sha, "verbose_v3", t_start, t_duration),
             ".json",
         )
         if verbose_cache.hit:
@@ -388,6 +392,20 @@ def register(
         *periodicity*, not perceived spectral pitch — waveset-multiplied
         audio keeps its f0 while the perceived pitch rises — so read it
         alongside zcr/centroid, never instead of them.
+
+        Sub-register material (below ~80 Hz): the verbose block adds
+        ``sub`` — ``sub_f0_hz`` from a zero-padded rFFT peak-pick
+        (~0.05 Hz resolution; trustworthy where pyin octave-folds and
+        centroid misreads), plus ``sub_h2_db``/``sub_h3_db``, the
+        2nd/3rd-harmonic levels in dB relative to the fundamental
+        (even-harmonic material reads h2 > h3; odd-harmonic the
+        reverse). ``sub`` is null when less than 5% of spectral energy
+        sits in 20-80 Hz. pyin cannot report below 65.4 Hz: when its
+        median pins at that floor the f0 block sets
+        ``f0_pinned_at_floor: true`` with a note — read
+        ``sub.sub_f0_hz`` as the fundamental instead, and
+        ``inharmonicity`` is reported null (its 60-450 Hz harmonic
+        grid cannot represent a sub fundamental).
         """
         return await analyze_impl(
             ctx,

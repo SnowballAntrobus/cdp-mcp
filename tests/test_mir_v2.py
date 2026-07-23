@@ -24,7 +24,13 @@ from mcp.server.fastmcp import FastMCP
 
 # Import analysis first (it imports visualization) to pin matplotlib's
 # backend — same import-order rule as test_analysis.py.
-from cdp_mcp.analysis import extract_scorecard, extract_verbose
+from cdp_mcp.analysis import (
+    _inharmonicity,
+    _n_fft_for_sr,
+    _sub_block,
+    extract_scorecard,
+    extract_verbose,
+)
 from cdp_mcp.graph import LatestTracker
 from cdp_mcp.session import SessionManager
 from cdp_mcp.tools import analyze as analyze_module
@@ -227,8 +233,13 @@ def test_f0_block_degrades_on_unpitched_material(tmp_path):
     v = extract_verbose(_write(tmp_path / "clicks.wav", _click_train()))
     f0 = v["f0"]
     assert f0["voiced_fraction"] < 0.5
-    # median/range may be None when nothing tracks; never raise.
-    assert set(f0) == {"median_hz", "range_hz", "voiced_fraction"}
+    # median/range may be None when nothing tracks; never raise. The
+    # pinned-floor flag is always present (False here — nothing voiced
+    # pins at the 65.4 Hz search floor on click material).
+    assert set(f0) == {
+        "median_hz", "range_hz", "voiced_fraction", "f0_pinned_at_floor",
+    }
+    assert f0["f0_pinned_at_floor"] is False
 
 
 def test_verbose_v1_keys_untouched(tmp_path):
@@ -238,8 +249,117 @@ def test_verbose_v1_keys_untouched(tmp_path):
                 "n_channels", "per_channel"):
         assert key in v
     for key in ("trajectory", "inharmonicity", "roughness",
-                "attack_sharpness", "stereo_width", "f0"):
+                "attack_sharpness", "stereo_width", "sub", "f0"):
         assert key in v
+
+
+# ---------------------------------------------------------------------------
+# Sub-register fixes (2026-07): rate-invariant n_fft, pinned-floor pyin
+# detector, sub block, inharmonicity guard
+# ---------------------------------------------------------------------------
+
+_SR_96K = 96000
+
+
+def _tone_at(sr: int, comps: list[tuple[float, float]], seconds: float = 2.0) -> np.ndarray:
+    """Sum of (freq_hz, amp) partials at ``sr``, normalized to 0.5 peak."""
+    t = np.arange(int(sr * seconds)) / sr
+    y = np.zeros_like(t)
+    for freq, amp in comps:
+        y += amp * np.sin(2 * np.pi * freq * t)
+    return (0.5 * y / np.abs(y).max()).astype(np.float32)
+
+
+def _write_at(path: Path, y: np.ndarray, sr: int) -> Path:
+    sf.write(str(path), y, sr)
+    return path
+
+
+def test_n_fft_scales_with_sample_rate():
+    """~46 ms window held across rates: 2048 at 44.1k, 4096 at 96k —
+    same rate-invariance philosophy as the roughness frame rate. Never
+    below the 44.1 kHz default."""
+    assert _n_fft_for_sr(44100) == 2048
+    assert _n_fft_for_sr(48000) == 2048
+    assert _n_fft_for_sr(88200) == 4096
+    assert _n_fft_for_sr(96000) == 4096
+    assert _n_fft_for_sr(192000) == 8192
+    assert _n_fft_for_sr(22050) == 2048  # clamped, not 1024
+
+
+def test_sub_block_and_pinned_floor_on_d1_sine_96k(tmp_path):
+    """The field case: D1 = 36.7 Hz at 96 kHz. pyin pins its median at
+    the 65.4 Hz floor (flagged, with a note pointing at the sub
+    block); the zero-padded rFFT peak-pick reports the true
+    fundamental to within 0.1 Hz."""
+    path = _write_at(tmp_path / "d1.wav", _tone_at(_SR_96K, [(36.7, 1.0)]), _SR_96K)
+    v = extract_verbose(path)
+    assert v["sub"] is not None
+    assert v["sub"]["sub_f0_hz"] == pytest.approx(36.7, abs=0.1)
+    f0 = v["f0"]
+    assert f0["f0_pinned_at_floor"] is True
+    assert "sub" in f0["note"]  # plain-language pointer at the sub block
+
+
+def test_sub_block_even_vs_odd_harmonic_dialect_96k():
+    """The musical deliverable: even-harmonic (H2-strong) vs
+    odd-harmonic (H3-strong) sub synths, h2/h3 in dB relative to the
+    fundamental's magnitude."""
+    even = _tone_at(_SR_96K, [(36.7, 1.0), (73.4, 0.6), (110.1, 0.12)])
+    odd = _tone_at(_SR_96K, [(36.7, 1.0), (73.4, 0.12), (110.1, 0.6)])
+    s_even = _sub_block(even, _SR_96K)
+    s_odd = _sub_block(odd, _SR_96K)
+    assert s_even is not None and s_odd is not None
+    assert s_even["sub_f0_hz"] == pytest.approx(36.7, abs=0.1)
+    assert s_odd["sub_f0_hz"] == pytest.approx(36.7, abs=0.1)
+    assert s_even["sub_h2_db"] > s_even["sub_h3_db"] + 6.0
+    assert s_odd["sub_h3_db"] > s_odd["sub_h2_db"] + 6.0
+    # Relative-to-fundamental: both dialects keep harmonics below 0 dB.
+    assert s_even["sub_h2_db"] < 0.0
+    assert s_odd["sub_h3_db"] < 0.0
+
+
+def test_sub_block_absent_on_mid_register_material(tmp_path):
+    """Bright mid-register material: no sub block (in-band energy below
+    the 5% threshold), no pinned-floor flag, no note."""
+    v = extract_verbose(_write(tmp_path / "bright.wav", _sine(440.0)))
+    assert v["sub"] is None
+    assert v["f0"]["f0_pinned_at_floor"] is False
+    assert "note" not in v["f0"]
+
+
+def test_sub_block_degenerate_inputs():
+    assert _sub_block(np.zeros(_SR, dtype=np.float32), _SR) is None
+    assert _sub_block(np.array([], dtype=np.float32), _SR) is None
+
+
+def test_sub_block_long_file_bounded_window():
+    """Long files stay cheap: only a bounded window around the
+    RMS-envelope energy peak is analyzed — and the measurement still
+    lands within 0.1 Hz."""
+    y = np.zeros(int(_SR_96K * 10.0), dtype=np.float32)
+    y[4 * _SR_96K : 6 * _SR_96K] = _tone_at(_SR_96K, [(36.7, 1.0)], seconds=2.0)
+    s = _sub_block(y, _SR_96K)
+    assert s is not None
+    assert s["sub_f0_hz"] == pytest.approx(36.7, abs=0.1)
+
+
+def test_inharmonicity_guard_nulls_on_sub_fundamental(tmp_path):
+    """When the found sub fundamental sits below the inharmonicity
+    grid's 60 Hz search floor, the block is marked unreliable (None) —
+    even though the raw measure returns a number for the upper
+    partials."""
+    y = _tone_at(
+        _SR_96K, [(50.0, 1.0), (400.0, 0.5), (650.0, 0.4), (900.0, 0.3)]
+    )
+    # The raw measure has enough >60 Hz peaks to produce a value…
+    assert _inharmonicity(y, _SR_96K) is not None
+    # …but the verbose block nulls it: the true fundamental (50 Hz,
+    # found by the sub block) is below the grid's floor.
+    v = extract_verbose(_write_at(tmp_path / "subfund.wav", y, _SR_96K))
+    assert v["sub"] is not None
+    assert v["sub"]["sub_f0_hz"] == pytest.approx(50.0, abs=0.1)
+    assert v["inharmonicity"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -247,16 +367,19 @@ def test_verbose_v1_keys_untouched(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_cache_feature_set_literals_bumped_to_v2():
-    """Old v1 cache entries must orphan: the analyze tool's feature_set
-    literals are concise_v2 / verbose_v2 and the v1 strings are gone."""
+def test_cache_feature_set_literals_bumped_to_v3():
+    """Stale cache entries must orphan: the analyze tool's feature_set
+    literals are concise_v3 / verbose_v3 (sub-register fix: the
+    centroid/trajectory STFT window now scales with sample rate, and
+    the verbose payload gained ``sub`` + ``f0_pinned_at_floor``) and
+    the v1/v2 strings are gone."""
     source = Path(analyze_module.__file__).read_text()
-    assert '"concise_v2"' in source
-    assert '"verbose_v2"' in source
-    # No code path may still pass a v1 feature_set string (prose
+    assert '"concise_v3"' in source
+    assert '"verbose_v3"' in source
+    # No code path may still pass a stale feature_set string (prose
     # mentions in comments are fine; string literals are not).
-    assert '"concise_v1"' not in source
-    assert '"verbose_v1"' not in source
+    for stale in ('"concise_v1"', '"verbose_v1"', '"concise_v2"', '"verbose_v2"'):
+        assert stale not in source
 
 
 # ---------------------------------------------------------------------------

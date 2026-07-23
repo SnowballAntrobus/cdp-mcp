@@ -184,6 +184,20 @@ async def test_invalid_window_t_duration_zero(mcp_with_analyze):
     assert any(e["type"] == "invalid_window" for e in envelope["errors"])
 
 
+async def test_verbose_payload_carries_sub_register_fields(mcp_with_analyze):
+    """Sub-register fix: the verbose payload carries the sub block and
+    the pinned-floor flag end-to-end through the envelope (null /
+    False on mid-register material)."""
+    mcp, sessions, _tracker = mcp_with_analyze
+    session, _ = sessions.set_active("s1")
+    _write_sine(session.inputs_dir / "frog.wav", seconds=1.0)
+    envelope = await _call(mcp, {"target": "frog.wav", "verbose": True})
+    assert envelope["status"] == "ok"
+    vb = envelope["analysis_verbose"]
+    assert "sub" in vb and vb["sub"] is None  # 440 Hz — no sub energy
+    assert vb["f0"]["f0_pinned_at_floor"] is False
+
+
 # ---------------------------------------------------------------------------
 # Task 10 — Analysis cache: miss populates, hit skips extract, version invalidates
 # ---------------------------------------------------------------------------

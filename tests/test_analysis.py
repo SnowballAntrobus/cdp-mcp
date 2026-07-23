@@ -113,6 +113,22 @@ def test_click_train_detected(tmp_path):
     assert 2 <= s.onset_count <= 8
 
 
+def test_96k_sub_material_scorecard_smoke(tmp_path):
+    """Sub-register fix: 96 kHz material exercises the rate-scaled
+    centroid STFT (n_fft 4096 at 96 kHz — see _n_fft_for_sr). Full
+    scorecard, no crash, and near-DC-register material reads low —
+    the librosa default's 46.9 Hz/bin at 96 kHz could not resolve
+    anything below ~47 Hz."""
+    audio = tmp_path / "d1_96k.wav"
+    sr = 96000
+    t = np.arange(int(sr * 1.0)) / sr
+    sf.write(str(audio), (0.5 * np.sin(2 * np.pi * 36.7 * t)).astype(np.float32), sr)
+    s = extract_scorecard(audio)
+    assert s.sample_rate == 96000
+    assert s.spectral_centroid_hz < 200.0  # sub material reads low, not bright
+    assert s.peak_dbfs is not None
+
+
 # ---------------------------------------------------------------------------
 # Error paths
 # ---------------------------------------------------------------------------

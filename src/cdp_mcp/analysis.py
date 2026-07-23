@@ -11,9 +11,10 @@ flux, zero-crossing rate), onset count, channel count, and sample
 rate. :func:`extract_verbose` adds the opt-in block (MFCC/chroma
 stats, tempo, per-channel levels, and the MIR v2 additions: a
 16-point trajectory, inharmonicity, roughness, attack sharpness,
-stereo width, and a pyin f0 block). Field choices are empirical —
-see ``docs/mir-gap-analysis.md`` for the measured discrimination
-tests behind each addition.
+stereo width, a pyin f0 block, and a sub-register ``sub`` block —
+the <80 Hz fundamental + harmonic-dialect fix). Field choices are
+empirical — see ``docs/mir-gap-analysis.md`` for the measured
+discrimination tests behind each addition.
 """
 
 from __future__ import annotations
@@ -112,8 +113,13 @@ def extract_scorecard(
     # channels-first input, matching librosa.load's output shape.
     y_mono = librosa.to_mono(y) if y.ndim > 1 else y
 
+    # n_fft scaled with sr (sub-register fix): librosa's default 2048
+    # holds a ~46 ms window only at 44.1 kHz; at 96 kHz it is 46.9
+    # Hz/bin — too coarse below ~47 Hz. See _n_fft_for_sr.
     spectral_centroid_hz = float(
-        np.mean(librosa.feature.spectral_centroid(y=y_mono, sr=sr))
+        np.mean(
+            librosa.feature.spectral_centroid(y=y_mono, sr=sr, n_fft=_n_fft_for_sr(sr))
+        )
     )
     # Mean flatness in dB (MIR v2): raw flatness spans 1e-9 (pure tone)
     # to ~0.9 (white noise) — dB reads better and avoids "0.0" rounding.
@@ -397,6 +403,49 @@ _ENV_MOD_BAND_HZ = (20.0, 150.0)
 _PYIN_FMIN_HZ = 65.4
 _PYIN_FMAX_HZ = 2093.0
 
+# Pinned-floor detector (sub-register fix, 2026-07): pyin cannot report
+# below fmin, so on sub material it pins its median AT the floor rather
+# than failing loudly — measured voiced_fraction 1.0, median exactly
+# 65.4 on a 36.7 Hz (D1) sine at 96 kHz. A voiced median within 2% of
+# the floor is that failure mode, not a real C2. Deliberately a
+# detector, NOT a lower fmin: lowering fmin would silently change every
+# existing f0 result across the corpus.
+_PYIN_PIN_REL_TOL = 0.02
+
+# Rate-invariant STFT window (sub-register fix, 2026-07): librosa's
+# default n_fft=2048 holds a ~46 ms window only at 44.1 kHz; at 96 kHz
+# the same 2048 samples span 21 ms → 46.9 Hz/bin, which cannot resolve
+# anything below ~47 Hz — HIGHER sample rates get WORSE low-frequency
+# resolution. Hold the window DURATION constant instead (the same
+# rate-invariance philosophy as _ENV_MOD_FRAME_RATE_HZ above), rounded
+# to the nearest power of two and never below the 44.1 kHz default:
+# 2048 at 22.05/44.1/48 kHz, 4096 at 88.2/96 kHz, 8192 at 192 kHz.
+_STFT_WINDOW_S = 2048.0 / 44100.0  # ≈ 46.4 ms
+
+
+def _n_fft_for_sr(sr: int) -> int:
+    """Power-of-two ``n_fft`` holding a ~46 ms analysis window at any sr."""
+    return max(2048, int(2 ** round(np.log2(_STFT_WINDOW_S * float(sr)))))
+
+
+# Sub-register block (sub-register fix, 2026-07): reported when at
+# least 5% (_SUB_MIN_ENERGY_FRACTION — the documented relative
+# threshold) of the analysis window's non-DC spectral energy sits in
+# the 20-80 Hz band. The fundamental comes from a zero-padded rFFT
+# peak-pick (pad to ≤0.05 Hz bin spacing — the resolution the 96 kHz
+# field container validated against D1/F1/A1 sub renders) refined by
+# parabolic interpolation; h2/h3 are read at 2×/3× the found
+# fundamental (±2% search window) in dB relative to the fundamental's
+# magnitude — the even-vs-odd harmonic-dialect axis. The FFT stays
+# bounded on long files: at most _SUB_WINDOW_MAX_S seconds around the
+# RMS-envelope energy peak are analyzed.
+_SUB_BAND_MIN_HZ = 20.0
+_SUB_BAND_MAX_HZ = 80.0
+_SUB_MIN_ENERGY_FRACTION = 0.05
+_SUB_RESOLUTION_HZ = 0.05
+_SUB_WINDOW_MAX_S = 4.0
+_SUB_HARMONIC_TOL_REL = 0.02
+
 
 def _power_db(value: float, floor: float = _DB_FLOOR) -> float:
     """``10*log10(value)`` floored — for power-like quantities (flatness)."""
@@ -438,10 +487,13 @@ def trajectory_frames(
         empty = np.array([], dtype=np.float64)
         return empty.copy(), empty.copy(), empty.copy()
 
-    S = np.abs(librosa.stft(y_mono))
+    # n_fft scaled with sr (sub-register fix): hold the ~46 ms window
+    # so low-frequency resolution is rate-invariant — see _n_fft_for_sr.
+    n_fft = _n_fft_for_sr(sr)
+    S = np.abs(librosa.stft(y_mono, n_fft=n_fft))
     centroid = librosa.feature.spectral_centroid(S=S, sr=sr)[0]
     flatness = librosa.feature.spectral_flatness(S=S)[0]
-    rms = librosa.feature.rms(S=S)[0]
+    rms = librosa.feature.rms(S=S, frame_length=n_fft)[0]
 
     n_frames = int(centroid.shape[0])
     if n_frames >= _TRAJECTORY_MIN_POINTS:
@@ -566,6 +618,78 @@ def _stereo_width(y: np.ndarray) -> float | None:
     return 1.0 - abs(corr)
 
 
+def _sub_block(y_mono: np.ndarray, sr: int) -> dict | None:
+    """Sub-register fundamental block — the <80 Hz fix (2026-07).
+
+    Zero-padded rFFT peak-pick over the 20-80 Hz band, the measurement
+    that read 14 field renders of D1/F1/A1 (36.7/43.7/55.0 Hz)
+    correctly where pyin octave-folded and centroid misread. Returns
+    ``{"sub_f0_hz", "sub_h2_db", "sub_h3_db"}`` — the harmonic levels
+    (dB re: the fundamental's magnitude) carry the musical even-vs-odd
+    dialect distinction: even-harmonic synths read ``sub_h2_db >
+    sub_h3_db``, odd-harmonic synths the reverse.
+
+    ``None`` when less than 5% of the (Hann-windowed, non-DC) spectral
+    energy sits in the band — mid/high-register material, silence,
+    empty input. Constants and thresholds documented at
+    ``_SUB_BAND_MIN_HZ`` above.
+    """
+    if y_mono.size == 0:
+        return None
+    # Bound the analysis window on long files so the zero-padded FFT
+    # cost never scales with duration: take _SUB_WINDOW_MAX_S seconds
+    # centered on the RMS-envelope energy peak.
+    max_n = int(_SUB_WINDOW_MAX_S * sr)
+    if y_mono.size > max_n:
+        env = librosa.feature.rms(y=y_mono, frame_length=2048, hop_length=1024)[0]
+        center = int(np.argmax(env)) * 1024
+        start = min(max(center - max_n // 2, 0), y_mono.size - max_n)
+        seg = y_mono[start : start + max_n]
+    else:
+        seg = y_mono
+    seg = seg.astype(np.float64) * np.hanning(seg.size)
+    # Pad to ≤_SUB_RESOLUTION_HZ bin spacing (0.05 Hz — ~2^21 at 96 kHz).
+    n_pad = 1 << int(np.ceil(np.log2(max(sr / _SUB_RESOLUTION_HZ, float(seg.size)))))
+    mag = np.abs(np.fft.rfft(seg, n=n_pad))
+    freqs = np.fft.rfftfreq(n_pad, d=1.0 / sr)
+    power = mag**2
+    total = float(power[1:].sum())  # AC only — a DC offset is not music
+    if total <= 0.0:
+        return None
+    in_band = (freqs >= _SUB_BAND_MIN_HZ) & (freqs < _SUB_BAND_MAX_HZ)
+    if not np.any(in_band):
+        return None
+    if float(power[in_band].sum()) / total < _SUB_MIN_ENERGY_FRACTION:
+        return None
+
+    # Peak-pick in band; parabolic refinement on the log-magnitude
+    # spectrum (same move as _inharmonicity). The band starts above bin
+    # 0 and ends far below Nyquist, so k-1 / k+1 always exist.
+    band_bins = np.nonzero(in_band)[0]
+    k = int(band_bins[np.argmax(mag[band_bins])])
+    log_mag = np.log(mag + 1e-12)
+    alpha, beta, gamma = log_mag[k - 1], log_mag[k], log_mag[k + 1]
+    denom = alpha - 2.0 * beta + gamma
+    offset = 0.5 * (alpha - gamma) / denom if abs(denom) > 1e-12 else 0.0
+    sub_f0_hz = (k + offset) * sr / n_pad
+    fund_mag = float(mag[k])
+
+    def _harmonic_db(mult: float) -> float:
+        target = mult * sub_f0_hz
+        if target >= sr / 2.0 or fund_mag <= 0.0:
+            return _DB_FLOOR
+        half = max(0.5, _SUB_HARMONIC_TOL_REL * target)
+        window = (freqs >= target - half) & (freqs <= target + half)
+        h_mag = float(mag[window].max()) if np.any(window) else 0.0
+        return _amp_db(h_mag / fund_mag)
+
+    return {
+        "sub_f0_hz": round(float(sub_f0_hz), 2),
+        "sub_h2_db": round(_harmonic_db(2.0), 2),
+        "sub_h3_db": round(_harmonic_db(3.0), 2),
+    }
+
+
 def _f0_block(y_mono: np.ndarray, sr: int) -> dict:
     """pyin f0 block — THE expensive verbose feature (~2 s per 3 s file).
 
@@ -582,8 +706,20 @@ def _f0_block(y_mono: np.ndarray, sr: int) -> dict:
     ``range_hz`` is the robust p05-p95 spread of voiced frames. All
     three fields degrade to ``None`` / 0.0 when pyin finds nothing to
     track (noise, clicks, silence).
+
+    ``f0_pinned_at_floor`` (sub-register fix, 2026-07): True when the
+    voiced median lands within 2% of the 65.4 Hz search floor — pyin
+    cannot report lower, so on sub material it pins there instead of
+    failing (measured: median exactly 65.4 on a 36.7 Hz sine at
+    96 kHz). When pinned, a plain-language ``note`` points at the
+    ``sub`` block, which measures the true fundamental.
     """
-    unvoiced = {"median_hz": None, "range_hz": None, "voiced_fraction": 0.0}
+    unvoiced = {
+        "median_hz": None,
+        "range_hz": None,
+        "voiced_fraction": 0.0,
+        "f0_pinned_at_floor": False,
+    }
     if y_mono.size == 0:
         return unvoiced
     try:
@@ -600,11 +736,21 @@ def _f0_block(y_mono: np.ndarray, sr: int) -> dict:
         return unvoiced
     tracked = f0[voiced]
     p05, p95 = np.percentile(tracked, [5.0, 95.0])
-    return {
-        "median_hz": round(float(np.median(tracked)), 2),
+    median_hz = float(np.median(tracked))
+    pinned = median_hz <= _PYIN_FMIN_HZ * (1.0 + _PYIN_PIN_REL_TOL)
+    block = {
+        "median_hz": round(median_hz, 2),
         "range_hz": round(float(p95 - p05), 2),
         "voiced_fraction": round(voiced_fraction, 3),
+        "f0_pinned_at_floor": pinned,
     }
+    if pinned:
+        block["note"] = (
+            f"f0 median sits at pyin's {_PYIN_FMIN_HZ:g} Hz search floor — "
+            "the material likely lies below it (pyin cannot report lower); "
+            "consult the sub block for the true fundamental."
+        )
+    return block
 
 
 # ---------------------------------------------------------------------------
@@ -644,11 +790,22 @@ def extract_verbose(
     - ``attack_sharpness`` — normalised peak RMS-envelope rise (D4);
       1.0 = click, ~0.1 = pad.
     - ``stereo_width`` — ``1 - |corr(L, R)|`` (D9); ``None`` for mono.
-    - ``f0`` — pyin ``median_hz`` / ``range_hz`` / ``voiced_fraction``.
-      The ONE expensive feature (~0.75× realtime — ~2 s of compute on
-      a 3 s file; everything else here is O(ms)). pyin tracks
-      periodicity, not perceived spectral pitch — see
-      :func:`_f0_block` for the measured ``distort multiply`` caveat.
+    - ``f0`` — pyin ``median_hz`` / ``range_hz`` / ``voiced_fraction``
+      / ``f0_pinned_at_floor``. The ONE expensive feature (~0.75×
+      realtime — ~2 s of compute on a 3 s file; everything else here
+      is O(ms)). pyin tracks periodicity, not perceived spectral pitch
+      — see :func:`_f0_block` for the measured ``distort multiply``
+      caveat and the pinned-floor detector.
+    - ``sub`` — sub-register block (2026-07 fix): ``sub_f0_hz`` /
+      ``sub_h2_db`` / ``sub_h3_db`` when ≥5% of spectral energy sits
+      in 20-80 Hz; ``None`` otherwise. See :func:`_sub_block`.
+
+    Inharmonicity guard (2026-07 fix): when the material's fundamental
+    sits below the harmonic grid's 60 Hz search floor — the ``sub``
+    block found one there, or pyin pinned at its own floor — the
+    ``inharmonicity`` value is unreliable (the grid fits overtones of
+    a fundamental it cannot represent) and is reported ``None``, the
+    block's existing degenerate-case convention.
     """
     y, sr = librosa.load(str(audio_path), sr=None, mono=False)
     n_channels = 1 if y.ndim == 1 else y.shape[0]
@@ -691,6 +848,19 @@ def extract_verbose(
     roughness = _roughness(y_mono, sr)
     attack = _attack_sharpness(y_mono)
     width = _stereo_width(y)
+    sub = _sub_block(y_mono, sr)
+    f0_info = _f0_block(y_mono, sr)
+
+    # Inharmonicity guard (sub-register fix): the grid's f0 search
+    # starts at _INHARM_F0_MIN_HZ — when the actual fundamental sits
+    # below it (sub block found one, or pyin pinned at its floor), the
+    # grid is fitting overtones of a fundamental it cannot represent.
+    # Same treatment as the block's other degenerate cases: None.
+    if inharmonicity is not None and (
+        (sub is not None and sub["sub_f0_hz"] < _INHARM_F0_MIN_HZ)
+        or f0_info["f0_pinned_at_floor"]
+    ):
+        inharmonicity = None
 
     return {
         "mfcc_mean": [round(float(v), 4) for v in mfcc.mean(axis=1)],
@@ -704,5 +874,6 @@ def extract_verbose(
         "roughness": round(roughness, 4) if roughness is not None else None,
         "attack_sharpness": round(attack, 4) if attack is not None else None,
         "stereo_width": round(width, 4) if width is not None else None,
-        "f0": _f0_block(y_mono, sr),
+        "sub": sub,
+        "f0": f0_info,
     }
