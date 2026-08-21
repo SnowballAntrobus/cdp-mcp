@@ -22,7 +22,7 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio",
 ]
 dependencies = [
-    "mcp>=1.2",
+    "mcp>=1.2,<2",
     "pydantic>=2.0",
     "soundfile>=0.12",
     "numpy>=1.24",
