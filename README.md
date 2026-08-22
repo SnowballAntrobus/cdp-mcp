@@ -2,7 +2,23 @@
 
 An MCP (Model Context Protocol) server that wraps the [Composers' Desktop Project](https://www.composersdesktop.com/) (CDP) suite, exposing it as a set of tools an LLM can call for sound transformation, analysis, and visualization.
 
-> **Status:** Phase 6 complete. 34 tools + 4 workflow prompts; **348 curated entries** keyed by `(program, mode, submode)` (every parameter range, duration model, and breakpoint capability empirically verified against real CDP binaries) plus 99 auto-generated uncurated stubs covering what remains (mostly the out-of-scope multichannel/spatial family, toolkit plumbing, and programs dropped with recorded defect evidence — see `docs/curation/`). DAG orchestration (`graph`, `batch`), a full observation suite (spectrograms, MIR v2 scorecards, segmentation, comparison, progression, clustering), FTS5 search over CDP's manual, a packaged `cdp://examples/*` library of verified chain recipes, per-output provenance, and derivative caches throughout. Phase handoffs live in `docs/`.
+> **Where it stands:** Phase 6 complete. 34 tools + 4 workflow prompts; **348 curated entries** keyed by `(program, mode, submode)` (every parameter range, duration model, and breakpoint capability empirically verified against real CDP binaries) plus 99 auto-generated uncurated stubs covering what remains (mostly the out-of-scope multichannel/spatial family, toolkit plumbing, and programs dropped with recorded defect evidence — see `docs/curation/`). DAG orchestration (`graph`, `batch`), a full observation suite (spectrograms, MIR v2 scorecards, segmentation, comparison, progression, clustering), FTS5 search over CDP's manual, a packaged `cdp://examples/*` library of verified chain recipes, per-output provenance, and derivative caches throughout. Phase handoffs live in `docs/`.
+
+## The research question
+
+CDP will mean little to most readers — here it is the instrument, not
+the point. The project explores whether an LLM can do real sound design
+when it cannot hear: the models driving it are text-only, so everything
+they know about a sound arrives through the observation layer —
+spectrograms, MIR scorecards, segmentation, comparison, provenance.
+Which representations let a model reason about sound well enough to
+iterate toward a musical goal, and how tool design shapes that ability,
+is the experiment; the server is the harness it runs on.
+
+**Status (August 2026): in progress.** The tool surface and curated
+knowledge layer are complete through Phase 6; current work is using the
+instrument in real sound-design sessions and refining the observation
+layer against what the model actually turns out to need.
 
 ## What this does
 
