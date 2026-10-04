@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "set_by", "param": "dur"},
   "curated": true,
   "version_sensitive": false,
@@ -145,7 +144,7 @@
   ],
   "known_issues": [
     "SEED 0 IS UNSEEDED (first-class trap): source-pinned (synspline.c:1530 'if seed > 0 srand(seed) else initrand48()' = srand(time(0))). Verified: seed-0 runs 1.2 s apart differ; seeds 1-64 reproduce byte-identically. SoundThread's seed parameter DEFAULTS TO 0, so its default renders are irreproducible - this entry defaults seed to 1. The usable reproducible seed space is only 1-64.",
-    "Duration rounds UP to a whole wavecycle (dur 0.7 at 220 Hz -> 0.70295 s); overshoot < 1/frq s. At audio-rate fundamentals this is negligible (< 0.5% on the shared fixture) but at deep sub-audio frq the overshoot approaches 1/frq seconds. dur must be >= 1/frq ('Duration too short to generate a complete wavecycle.').",
+    "Duration rounds UP to a whole wavecycle (dur 0.7 at 220 Hz -> 0.70295 s); overshoot < 1/frq s. At audio-rate fundamentals this is negligible (< 0.5% observed) but at deep sub-audio frq the overshoot approaches 1/frq seconds. dur must be >= 1/frq ('Duration too short to generate a complete wavecycle.').",
     "pdrift requires driftrate ('If drift transposition set (and not 0), vals for drift step must be set (and not less than 1mS).' - verbatim, also fired for -v0.5); driftrate alone is inert.",
     "maxspline/maxinterp are 'ignored if set to zero' (verified -s0 byte-identical to flagless); they open RANDOM ranges above their base parameters - with them nonzero the character varies more between seeds.",
     "Per-cycle amplitudes are random by design (peak ~0.92 observed); -n normalizes every cycle. No master amplitude parameter - trim downstream.",

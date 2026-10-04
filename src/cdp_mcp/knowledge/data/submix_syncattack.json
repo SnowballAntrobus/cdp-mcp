@@ -10,7 +10,6 @@
   "output_format": ".txt",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -63,7 +62,7 @@
     "Files with multiple loud events sync to whichever the detector finds - use the per-line search-window times to disambiguate (verified working). Detection is content-dependent; audition the rendered alignment.",
     "Pan column is 'C' = NO-PAN in submix mix (all-mono lists render mono); replace with numeric pans for placement, and do so BEFORE submix pan (its no-pan path is broken).",
     "The output is a DATA file (mixfile, .txt): consumer = submix mix's mixfile parameter. Duration pre-flight skipped ('static' placeholder); rendered duration = max(start + dur) over the aligned lines.",
-    "Deterministic: byte-identical run to run (both flag states). Arity-0 entry: call process() with no input argument; duration_row null in the findings (data output)."
+    "Deterministic: byte-identical run to run (both flag states). Arity-0 entry: call process() with no input argument (data output)."
   ],
   "references": ["cdp://docs/html/cgromix2"]
 }

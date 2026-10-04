@@ -1,19 +1,17 @@
 """The ``segments()`` MCP tool — temporal segmentation with a marked-up
 spectrogram.
 
-Phase 2 observation track. Three methods (onset / novelty / silence, see
-:func:`cdp_mcp.analysis.extract_segments`) produce a segment list plus a
-mel spectrogram overlaid with boundary markers. Both halves are cached
+Three methods (onset / novelty / silence, see
+:func:`cdp_mcp.analysis.extract_segments`) produce a segment list plus
+a mel spectrogram overlaid with boundary markers. Both halves are cached
 in the global derivative caches — the segment JSON in the ``analysis``
 tier, the marked PNG in the ``visualizations`` tier — since each is a
 pure function of (audio bytes, method, library versions).
 
-Phase 6 adds the grid-free ``rhythm`` block
+The payload also carries a grid-free ``rhythm`` block
 (:func:`cdp_mcp.analysis.extract_rhythm`) — IOI statistics with an
 accelerando-detecting slope, plus a 16-point event-density trajectory —
-computed from the same detected events and cached in the same payload
-(cache key bumped ``v1`` → ``v2`` so stale segment-only entries
-regenerate).
+computed from the same detected events and cached in the same payload.
 """
 
 from __future__ import annotations
@@ -146,9 +144,9 @@ async def segments_impl(
             )])]
         auto_synthed = True
 
-    # Cache keys — hash off the event loop (M2 discipline). Feature-set
-    # v2: the payload gained the Phase 6 `rhythm` block; the bump makes
-    # stale v1 (segments-only) entries miss and regenerate.
+    # Cache keys — hash off the event loop. The version suffix tracks
+    # the payload shape (segments + rhythm), so stale-shape entries never
+    # match.
     audio_sha = await asyncio.to_thread(sha256_file, audio_path)
     seg_cache = cache_lookup(
         cache_root, "analysis",
@@ -182,7 +180,7 @@ async def segments_impl(
             return [_failed_envelope(session, latest_tracker, [ErrorEntry(
                 type="audio_not_found", message=str(e), fix=None,
             )])]
-        except Exception as e:  # noqa: BLE001 — librosa/soundfile zoo (M3)
+        except Exception as e:  # noqa: BLE001 — librosa/soundfile zoo
             return [_failed_envelope(session, latest_tracker, [ErrorEntry(
                 type="segmentation_failed",
                 message=(
@@ -231,7 +229,7 @@ async def segments_impl(
                 ctx, "rendering marked spectrogram", render_spectrogram,
                 audio_path, png_path, None, None, markers,
             )
-        except Exception as e:  # noqa: BLE001 (M3)
+        except Exception as e:  # noqa: BLE001
             return [_failed_envelope(session, latest_tracker, [ErrorEntry(
                 type="render_failed",
                 message=(

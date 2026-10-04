@@ -1,7 +1,6 @@
-"""Phase 3: aux_file parameter type + no_value switch semantics.
+"""The aux_file parameter type + no_value switch semantics.
 
-Three concern areas, per the tranche 3 findings record that motivated the
-engine change (docs/curation/tranche3_timedomain_findings.json, dropped[0]):
+Three concern areas:
 
 1. ``validate_params`` — ``aux_file`` params accept a str path with any
    extension except ``.brk``; bools are accepted only for ``no_value``
@@ -15,8 +14,8 @@ engine change (docs/curation/tranche3_timedomain_findings.json, dropped[0]):
    missing files fail with ``param_aux_file_missing``, and an
    outside-session aux path is rejected by the security gate.
 
-Plus a real-CDP-gated re-verification of ``texture simple`` mode 5 (the
-re-curated entry that consumes aux_file).
+Plus real-CDP-gated runs of ``texture simple`` mode 5 (the curated entry
+that consumes aux_file).
 """
 
 from __future__ import annotations
@@ -423,7 +422,7 @@ async def test_aux_file_dry_run_resolves_and_checks_existence(texture_env):
 
 
 # ---------------------------------------------------------------------------
-# Real CDP: texture simple mode 5 re-verification (gated)
+# Real CDP: texture simple mode 5 (gated)
 # ---------------------------------------------------------------------------
 
 
@@ -458,7 +457,7 @@ def real_texture_env(tmp_path, real_cdp_path):
 
 @pytest.mark.timeout(60)
 async def test_texture_simple_real_cdp_seeded_run(real_texture_env):
-    """The re-curated entry against the real binary: aux notedata resolves,
+    """The curated entry against the real binary: aux notedata resolves,
     output is stereo, duration lands inside the honest set_by bounds, and
     the -r seed reproduces the output exactly (fixed-seed determinism)."""
     env = real_texture_env
@@ -488,8 +487,8 @@ async def test_texture_simple_real_cdp_seeded_run(real_texture_env):
     assert r1["status"] == "ok", r1["errors"]
     info = sf.info(r1["output"])
     assert info.channels == 2  # mono in -> stereo out, every run
-    # Honest set_by bounds with maxdur 0.5: observed -1.3%..+1.2% across
-    # both curation rounds; assert the generous documented envelope.
+    # Honest set_by bounds with maxdur 0.5: observed -1.3%..+1.2%;
+    # assert the generous documented envelope.
     assert 5.0 * 0.95 <= info.duration <= 5.0 + 0.5
 
     r2 = await run("take2")

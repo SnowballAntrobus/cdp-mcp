@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "clickfile"},
   "curated": true,
   "version_sensitive": true,
@@ -40,7 +39,7 @@
   "known_issues": [
     "CLOCK-RANDOMIZED CLICK SHAPE, UNSEEDABLE: no seed parameter; identical commands render different click waveshapes (times identical; runs in the same second collide byte-identical - verified both ways). Render once and reuse; A/B of downstream chains must share one render.",
     "-s (start) / -e (end) flags SIGABRT (exit 134) AFTER writing plausible output, in both submodes - excluded from this entry; the engine would report subprocess failure despite the file existing. Submode 2 (start/end as line numbers) is dropped for the same reason.",
-    "Line numbers must be sequential integers from 1; accent-pattern strings must match the meter's beat count; 'TIME' cannot be the first dataline (all three refusals verbatim in the transcript).",
+    "Line numbers must be sequential integers from 1; accent-pattern strings must match the meter's beat count; 'TIME' cannot be the first dataline (all three refusals quoted verbatim in the description).",
     "Accented clicks can peak at 1.0 (full scale) - attenuate before dense mixing.",
     "Output mono 44100 Hz only (no srate parameter in this mode - unlike clicknew's 44100/48000 choice).",
     "Duration = last beat time + ~21 samples; the aux-name duration expression skips the pre-flight - the engine duration cap/watchdog is the guard. A huge bar count renders a huge file: keep counts honest.",

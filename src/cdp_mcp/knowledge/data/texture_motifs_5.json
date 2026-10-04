@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": null,
   "duration_model": {"kind": "set_by", "param": "outdur"},
   "curated": true,
   "version_sensitive": false,
@@ -275,7 +274,7 @@
     }
   ],
   "known_issues": [
-    "Duration honesty (set_by outdur): +4.1% at outdur 5, +7.6% at outdur 8 on the 0.5 s-ping probe; duration row pinned at outdur 8, tol 0.2, seed 5.",
+    "Duration honesty (set_by outdur): +4.1% at outdur 5, +7.6% at outdur 8 on the 0.5 s-ping probe.",
     "Notedata needs the pitch line plus at least ONE '#N' motif block ('Insufficient motifs in notedata file.' otherwise); several blocks legal (vocabulary).",
     "SIBLING BYTE-PROOF: motifs 1 vs motifsin 1 at the same seed render the SAME LENGTH but different samples (motifs forces only motif START notes onto the harmonic field; motifsin bends every note). motifsin has NO mode 5 ('Program mode value [5] is out of range [1 - 4].' verbatim) and is dropped - its useful modes are all harmonic-field modes, which the curated texture set leaves to execute().",
     "Breakpoint surface: outdur/gpspace/contour/seed refuse (parameters 1/14/17/30 verbatim); all 13 other numeric positionals plus -a/-p/-s accept (full sweep; packing verified against both endpoints at seed 5).",

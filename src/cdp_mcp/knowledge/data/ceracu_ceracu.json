@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "cyclcnts"},
   "curated": true,
   "version_sensitive": false,
@@ -105,7 +104,7 @@
   ],
   "known_issues": [
     "Duration = mincycdur*max(cyclcnts) + max(0, indur - mincycdur) per cycle, whole cycles >= outdur - but the counts live in the aux datafile, so the duration expression names the aux param and the PRE-FLIGHT SKIPS (engine watchdog guards). Large counts x mincycdur x outdur multiply quickly; keep them honest.",
-    "cyclcnts needs >= 2 values; counts >= 1; fractional counts are silently ROUNDED (verbatim refusals and the 4.5->5 rounding pinned in the transcript).",
+    "cyclcnts needs >= 2 values; counts >= 1; fractional counts are silently ROUNDED (refusals quoted verbatim in the description; 4.5 rendered as 5).",
     "mincycdur and echo maxima are INPUT-DEPENDENT (32*indur and 16*indur; quoted ranges verified on a 0.3 s source).",
     "Output auto-normalises to peak 0.95 (two-pass; the 'normalised by N secs' INFO line misprints its units - it is a level factor).",
     "echo > 0 extends the output beyond the cycle arithmetic (excluded from the model); echshift is ignored without echo.",

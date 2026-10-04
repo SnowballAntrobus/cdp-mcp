@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": null,
   "duration_model": {"kind": "set_by", "param": "outdur"},
   "curated": true,
   "version_sensitive": false,
@@ -315,7 +314,7 @@
     }
   ],
   "known_issues": [
-    "Duration honesty (set_by outdur): +28% at outdur 5, +15% at outdur 8 on the 0.5 s-ping probe with small groups; large gpsizehi x gppackhi inflates far more (grouped-family: 5 s -> 58.8 s observed with 1001-event groups). Duration row pinned at outdur 8, tol 0.3, seed 5.",
+    "Duration honesty (set_by outdur): +28% at outdur 5, +15% at outdur 8 on the 0.5 s-ping probe with small groups; large gpsizehi x gppackhi inflates far more (grouped-family: 5 s -> 58.8 s observed with 1001-event groups).",
     "Notedata: EXACTLY ONE timing block after the pitch line (timed-family refusals verbatim). Cell cycling: period = last cell onset + skip (content-verified on the timed sibling).",
     "Breakpoint surface: outdur/gpspace/contour/seed refuse (parameters 1/14/17/30 verbatim - same gpspace/contour manual divergence as texture grouped); all 17 other numeric positionals plus -a/-p/-s accept (full sweep; skip verified against both endpoints at seed 5).",
     "Mono input only ('Application doesn't work with this type of infile.'); output always STEREO; flag order enforced; working -r seed.",

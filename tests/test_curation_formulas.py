@@ -1,4 +1,4 @@
-"""Phase 2 Task 6.6 — curation-formula regression guards.
+"""Curation-formula regression guards.
 
 Behavioral pins so the quantitative claims in the curated knowledge JSONs
 can't silently drift from what CDP actually does. Prompted by the
@@ -69,11 +69,9 @@ async def _measured_duration(env, output_path_str: str) -> float:
     """Duration of a process output, whatever its domain.
 
     Time-domain outputs are read directly. Spectral outputs are CDP
-    .ana files libsndfile cannot open (the 2026-07-14 macOS QA run
-    failed 16 spectral rows exactly here) — synth them to a temp wav
-    via the engine's own audition path first. pvoc synth is
-    duration-faithful modulo frame padding (phase-1b handoff §5.5;
-    re-verified in every tranche transcript), well inside the rows'
+    .ana files libsndfile cannot open — synth them to a temp wav via
+    the engine's own audition path first. pvoc synth is
+    duration-faithful modulo frame padding, well inside the rows'
     rel_tol.
     """
     from pathlib import Path
@@ -109,26 +107,23 @@ async def _run(env, *, program, mode, input_name, params, submode=None):
 # ---------------------------------------------------------------------------
 
 
-# Aux data files referenced by tranche-11 duration rows, written into the
-# session's data/ dir before the row runs (the engine resolves aux_file
-# params there — write_data_file's target). Contents from the tranche-11a
-# transcript probes: td0.txt is a zero-transposition line held across the
-# 6 s outduration (initial time must be 0, times must advance, values
-# paired — the verbatim tdata rules); ndec1.txt is the agent's actual
-# one-note decorated notedata (line 1 = notional midi pitches, '#1' =
-# instrument block, then time/dur/pitch/velocity/param rows).
+# Aux data files referenced by duration rows, written into the session's
+# data/ dir before the row runs (the engine resolves aux_file params
+# there — write_data_file's target). td0.txt is a zero-transposition line
+# held across the 6 s outduration (initial time must be 0, times must
+# advance, values paired — CDP's tdata rules); ndec1.txt is a one-note
+# decorated notedata (line 1 = notional midi pitches, '#1' = instrument
+# block, then time/dur/pitch/velocity/param rows).
 _AUX_FILES = {
     "td0.txt": "0 0\n6 0\n",
     "ndec1.txt": "60\n#1\n0 1 60 64 0.2\n",
-    # envel scaled aux brkfile (tranche 13): a 0-4-axis shape peaking at
-    # 1 — time-SCALED to the input, so the peak lands at ~dur/4.
+    # envel scaled aux brkfile: a 0-4-axis shape peaking at 1 —
+    # time-SCALED to the input, so the peak lands at ~dur/4.
     "env4.txt": "0 0\n1 1\n4 0\n",
-    # Wave-2 aux rows (tranche 14/15 transcripts): sfedit masks
-    # time-pairs; shifter cycle counts; verges gliss times.
+    # sfedit masks time-pairs; shifter cycle counts; verges gliss times.
     "exc14.txt": "0.3 0.5\n1.0 1.4\n",
     "cyc1.txt": "3 4\n",
     "vt3.txt": "0.4\n1.0\n1.6\n",
-    # Wave-3 aux rows (tranche 16/17 transcripts/findings).
     "harm16.txt": "2 0.5\n3 0.3\n",
     "ienv16.txt": "0 0\n0.3 1\n1 0\n",
     "trz16.txt": "0 0\n1 0\n",
@@ -139,7 +134,6 @@ _AUX_FILES = {
     "nsp17.txt": "0 1 1 2 0.5 3 0.25\n",
     "ntx17.txt": "0 1 1 2 0.5\n",
     "sp64.txt": "0.000000 0.000000\n800.020000 1.000000\n0.000000 0.219829\n-1716.650000 0.046999\n2999.050000 0.509789\n0.000000 0.408120\n0.000000 0.083569\n0.000000 0.021371\n0.000000 0.019617\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n0.000000 0.019607\n",  # noqa: E501
-    # Wave-4 aux rows (tranche 18/19 reports).
     "pch220.txt": "0.0 220.0\n2.0 220.0\n",
     "fbank18.txt": "440 1.0\n660 0.5\n880 0.25\n",
     "fdata18.txt": "0.0  300 1.0  1200 0.5\n1.5  600 1.0  900 0.8\n",
@@ -149,7 +143,6 @@ _AUX_FILES = {
     "nd_tim18.txt": "60\n#2\n0 1 60 64 0.3\n0.5 1 62 64 0.3\n",
     "nd_tmot18.txt": "60\n#2\n0 1 60 64 0.3\n0.5 1 62 64 0.3\n#3\n0 1 60 64 0.3\n0.15 1 64 64 0.3\n0.3 1 67 64 0.3\n",  # noqa: E501
     "nd_dec18.txt": "60\n#2\n0 1 60 64 0.5\n1 1 62 64 0.5\n",
-    # Wave-5 aux rows (tranche 20/21 reports).
     "frz20.txt": "a0.5 1.0\n",
     "gq20.txt": "0.5\n400\n1200\n2600\n",
     "bd20.txt": "200 800 1000 0.5\n",
@@ -158,7 +151,7 @@ _AUX_FILES = {
     "ptmp1.txt": "0 57 64 69\n1.5 57 64 69\n",
     "pk6.txt": "157.016924\n81.590736\n76.337778\n54.753339\n48.560505\n47.812285\n",
     "ftr21.txt": "0.000000 0.300000 0.800000 1.200000 1.600000 2.025941 \n257.894745 257.894745 257.894745 257.894745 257.894745 0.000000 \n630.641357 630.641357 630.641357 630.641357 630.641357 0.000000 \n1261.282715 1261.282715 1261.282715 1261.282715 1261.282715 0.000000 \n0.038986 0.038986 0.038986 0.038986 0.038986 0.000000 \n",  # noqa: E501
-    # Wave-6 aux row (tranche 23): matrix 2 unitary matrixfile.
+    # matrix 2 unitary matrixfile.
     "mtx4.txt": "1\n0.000000\n0.000000\n0.300742\n0.603489\n-0.300742\n0.603489\n0.000000\n0.000000\n",  # noqa: E501
 }
 
@@ -166,10 +159,9 @@ _AUX_FILES = {
 @pytest.mark.timeout(60)
 @pytest.mark.parametrize(
     ("program", "mode", "submode", "indur", "params", "rel_tol"),
-    # Since the (program, mode, submode) re-keying (commit 728b986) every
-    # row carries its entry's declared submode — None for submode-less
-    # entries, the JSON's value otherwise — so lookups stay exact-triple
-    # even on pairs curated in several submodes.
+    # Every row carries its entry's declared submode — None for
+    # submode-less entries, the JSON's value otherwise — so lookups stay
+    # exact-triple even on pairs curated in several submodes.
     [
         # extend loop: duration_model "cnt * len / 1000" (len in ms).
         ("extend", "loop", 3, 3.0, {"cnt": 3, "start": 0.0, "len": 500.0}, 0.05),
@@ -180,18 +172,17 @@ _AUX_FILES = {
         ("modify", "brassage", 2, 2.0, {"velocity": 2.0}, 0.05),
         # filter sweeping: duration_model "indur + tail". The -t tail
         # exists only in the binary's banner (not the HTML manual) and
-        # omitting it appends a default tail anyway (observed +1.00 s,
-        # manual QA 2026-07-14) — so the engine always emits -t
-        # explicitly and the model adds it. Default (1.0) and explicit
-        # cases both pinned.
+        # omitting it appends a default tail anyway (observed +1.00 s) —
+        # so the engine always emits -t explicitly and the model adds it.
+        # Default (1.0) and explicit cases both pinned.
         ("filter", "sweeping", 2, 3.0,
          {"acuity": 0.1, "gain": 0.5, "lofrq": 200.0, "hifrq": 4000.0,
           "sweepfrq": 1.0}, 0.05),
         ("filter", "sweeping", 2, 3.0,
          {"acuity": 0.1, "gain": 0.5, "lofrq": 200.0, "hifrq": 4000.0,
           "sweepfrq": 1.0, "tail": 0.5}, 0.05),
-        # --- Phase 3 tranche 1 (single-input entries; multi-input rows
-        # excluded — this fixture writes one in.wav) ---
+        # --- Assorted programs (multi-input rows excluded — this fixture
+        # writes one in.wav) ---
         ("scramble", "scramble", 10, 2.0,
          {"seed": 5},
          0.05),
@@ -213,7 +204,7 @@ _AUX_FILES = {
         # (grain reverse/rerhythm/reposition + spec grab also excluded:
         # grain ops refuse the fixture's flat noise ('No grains found') and
         # rerhythm/reposition need aux timefiles the shared fixture cannot
-        # supply — duration rules pinned in docs/curation/tranche6 transcript.)
+        # supply.)
         ("modify", "loudness", 1, 2.0,
          {"gain": 0.5},
          0.05),
@@ -306,8 +297,7 @@ _AUX_FILES = {
         ("blur", "scatter", None, 2.0, {"keep": 8}, 0.05),
         ("blur", "drunk", None, 2.0, {"range": 5, "starttime": 0.5, "duration": 1.5}, 0.05),
         ("focus", "exag", None, 2.0, {"exaggeration": 2.0}, 0.05),
-        # --- Phase 5 wave 3 (tranche 9: sibling submodes of already-curated
-        # pairs; rows from docs/curation/tranche9_submodes_findings.json) ---
+        # --- Sibling submodes of multi-submode pairs ---
         ("scramble", "scramble", 9, 2.0,
          {"seed": 5},
          0.05),
@@ -322,7 +312,7 @@ _AUX_FILES = {
         # (morph bridge 2/3 also excluded: 2-input entries, incompatible
         # with the single-input duration fixture — same as sibling sm1;
         # duration rules min(indur1 - offset, indur2) / min(indur1, indur2)
-        # verified via pvoc synth round-trips in the tranche9 findings.)
+        # verified via pvoc synth round-trips.)
         ("modify", "radical", 2, 2.0,
          {"repeats": 3, "chunklen": 0.1},
          0.05),
@@ -347,8 +337,7 @@ _AUX_FILES = {
         ("specfnu", "specfnu", 2, 2.0,
          {"squeeze": 4.0, "centre": 1},
          0.05),
-        # --- Phase 5 wave 4 (tranche 10: ST-covered singles; rows from
-        # docs/curation/tranche10{a,b}_st_singles_findings.json) ---
+        # --- More assorted programs ---
         ("blur", "chorus", 5, 2.0,
          {"aspread": 30.0, "fspread": 2.0},
          0.05),
@@ -397,16 +386,11 @@ _AUX_FILES = {
          {"start": 0.5, "end": 1.0},
          0.05),
         # (modify sausage + sfedit join excluded: 2-input entries,
-        # incompatible with the single-input fixture — min(indurs)/velocity
-        # and indur1 + indur2 - splice/1000 pinned in the tranche10b
-        # transcript. phase phase 2 excluded: stereo-only, the shared
-        # fixture writes mono; static duration verified in the transcript.)
-        # --- Phase 6 tranche 11 (iteration/sequence + event-timing; rows
-        # from docs/curation/tranche11{a,b}_*_findings.json). Rows whose
-        # params reference _AUX_FILES get that data file written into the
-        # session's data/ dir (contents from the 11a transcript probes) —
-        # extending the fixture beats excluding the rows (testing-
-        # principles §10). Excluded with reasons, pinned in transcripts:
+        # incompatible with the single-input fixture; their duration rules
+        # are min(indurs)/velocity and indur1 + indur2 - splice/1000.
+        # phase phase 2 excluded: stereo-only, the shared fixture writes
+        # mono; its duration is static.)
+        # --- Iteration/sequence and event timing. Excluded:
         # extend sequence2 + iterlinef (multi-input / 25-input), stutter +
         # retime 1/6/7/9 (aux datafiles with data-dependent durations —
         # duration_model expressions engage the aux-param preflight skip),
@@ -434,7 +418,7 @@ _AUX_FILES = {
          {"time": 0.5, "shrinkage": 0.7, "gap": 2.0, "contract": 1.0,
           "dur": 6.0, "spl": 10.0},
          0.05),
-        # texture decorated is stochastic (grouped precedent): tol 0.2.
+        # texture decorated is stochastic: tol 0.2.
         ("texture", "decorated", 5, 2.0,
          {"notedata": "ndec1.txt", "outdur": 5.0, "skiptime": 0.5,
           "mindur": 0.1, "maxdur": 0.15, "gpsizlo": 2, "gpsizhi": 4,
@@ -459,13 +443,10 @@ _AUX_FILES = {
         ("housekeep", "chans", 5, 2.0,
          {},
          0.05),
-        # --- Wave 1 (tranche 13: envelope family; rows from
-        # docs/curation/tranche13_envelope_findings.json. Tranche 12's
-        # submix rows are all null: multi-input/data-output family, rules
-        # pinned in the transcript. envel create/cyclic/envtobrk/brktoenv
-        # excluded: data outputs / arity-0 aux-driven; gate excluded: the
-        # flat-noise fixture has no gateable silence — the gate → retime
-        # chain is spot-checked in the transcript instead.) ---
+        # --- Envelope family. No submix rows: multi-input / data-output
+        # family. envel create/cyclic/envtobrk/brktoenv excluded: data
+        # outputs / arity-0 aux-driven; gate excluded: the flat-noise
+        # fixture has no gateable silence. ---
         ("envel", "warp", 8, 2.0,
          {"wsize": 20.0, "gate": 0.05, "smoothing": 0},
          0.05),
@@ -499,10 +480,9 @@ _AUX_FILES = {
         ("envnu", "expdecay", None, 2.0,
          {"starttime": 0.5, "endtime": 1.0},
          0.05),
-        # --- Wave 2 (tranches 14-15; rows from the findings. Nulls
-        # excluded with reasons pinned in the transcripts: multi-input,
+        # --- Editing and gesture. Excluded: multi-input,
         # aux-sentinel/content-dependent durations, content refusals on
-        # the flat fixture, and data outputs.) ---
+        # the flat fixture, and data outputs. ---
         ("sfedit", "cutend", 1, 2.0,
          {"length": 0.75},
          0.05),
@@ -580,10 +560,9 @@ _AUX_FILES = {
          {"cycles": "cyc1.txt", "cycdur": 1.0, "dur": 6.0, "ochans": 2, "subdiv": 6,
           "linger": 2, "transit": 1, "boost": 0.5},
          0.05),
-        # --- Wave 3 (tranches 16-17; nulls excluded with transcript-
-        # pinned reasons. The distort pitch row is clock-seeded
-        # stochastic: observed spread <=0.1% on this fixture, well
-        # inside tol.) ---
+        # --- Waveset distortion and synthesis. The distort pitch row is
+        # clock-seeded stochastic: observed spread <=0.1% on this
+        # fixture, well inside tol. ---
         ("distort", "replim", None, 2.0,
          {"multiplier": 3},
          0.05),
@@ -689,10 +668,10 @@ _AUX_FILES = {
          {"chans": 1, "dur": 3.0, "plo": 60.0, "phi": 60.13, "pstart": 60.0, "sstart": 1.0,
           "step": 0.125, "sstep": 0.0, "tick": 0.25, "seed": 5},
          0.05),
-        # --- Wave 4 (tranches 18-19; texture rows are seeded (-r5)
-        # stochastic at wide tol per the family precedent; psow/tweet
-        # rows ride a steady 220 Hz pitch trace. Grain rows all null:
-        # gate-degenerate on flat noise (grain-reverse precedent). ---
+        # --- Filters, textures and pitch-synchronous ops. Texture rows
+        # are seeded (-r5) stochastic at wide tol; psow/tweet rows ride a
+        # steady 220 Hz pitch trace. No grain rows: grain ops are
+        # gate-degenerate on flat noise. ---
         ("filter", "iterated", 1, 1.0,
          {"q": 50.0, "gain": 1.0, "delay": 0.5, "dur": 3.0, "fbank": "fbank18.txt"},
          0.05),
@@ -785,9 +764,8 @@ _AUX_FILES = {
         ("tweet", "tweet", 1, 2.0,
          {"exclude": 0, "pitchdata": "pch220.txt", "minlevel": 0, "pkcnt": 10, "chirp": 0},
          0.05),
-        # --- Wave 5 (tranches 20-21: spectral tail; superaccu tol 0.2 —
-        # content-dependent decay tail. Multi-input/data-output nulls
-        # excluded with transcript-pinned reasons.) ---
+        # --- Spectral programs. superaccu tol 0.2 — content-dependent
+        # decay tail. Multi-input and data-output entries excluded. ---
         ("focus", "freeze", 3, 2.0,
          {"freezedata": "frz20.txt"},
          0.05),
@@ -856,8 +834,8 @@ _AUX_FILES = {
         ("fturanal", "synth", 1, 2.0,
          {"featurefile": "ftr21.txt"},
          0.05),
-        # --- Wave 6 (tranches 22-23; binary-aux and data-output rows
-        # null with reasons — .frq cannot ride _AUX_FILES.) ---
+        # --- Pitch data and matrix. Binary-aux and data-output entries
+        # excluded — .frq cannot ride _AUX_FILES. ---
         ("repitch", "transposef", 3, 2.0,
          {"transpos": -12.0, "formant_bands": 8},
          0.05),

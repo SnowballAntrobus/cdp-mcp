@@ -20,13 +20,13 @@ Pure functions over inputs; no global state. Errors are returned as
 :class:`ErrorEntry` items rather than raised — callers aggregate them
 with other validation errors per the all-at-once reporting principle.
 
-**Why the .brk content sha (not the original tuple list) feeds Task
-12's cache key**: the same tuple ``[[0.0, 5], [1.0, 50]]`` produces
-different .brk content for different source durations, which IS what
-we want the cache to disambiguate. Hashing the tuple directly would
-silently reuse cached output across input duration changes, producing
-wrong results. This comment must survive any future "optimization"
-that proposes to hash the tuple instead.
+**Why the .brk content sha (not the original tuple list) is the
+identity**: the same tuple ``[[0.0, 5], [1.0, 50]]`` produces different
+.brk content for different source durations, which IS what the
+content-hashed filename (an existing file is reused, not rewritten) and
+the lineage sha must disambiguate. Hashing the tuple directly would
+silently reuse a .brk compiled against a different input duration,
+producing wrong results.
 
 **JSON intake note**: MCP delivers tuple lists as lists-of-lists
 (JSON has no tuples). Internals use index access (``pair[0]``,
@@ -40,7 +40,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-from .schema import CompiledBreakpoint, ErrorEntry, ParameterSpec
+from .schema import CompiledBreakpoint, ErrorEntry
 
 # Threshold for "near-identical" timestamps that we dedup with a
 # warning. 1 microsecond is well below any musically meaningful
@@ -118,7 +118,6 @@ def detect_breakpoint_mode(
 def compile_breakpoint_value(
     *,
     param_name: str,
-    param_spec: ParameterSpec,
     value: Any,
     source_duration_s: float | None,
     source_kind: Literal[
@@ -183,7 +182,6 @@ def compile_breakpoint_value(
 
     return _compile_list_mode(
         param_name=param_name,
-        param_spec=param_spec,
         tuples=value,
         mode=mode,
         source_duration_s=source_duration_s,
@@ -214,7 +212,7 @@ def _handle_preexisting_path(
        ``"envelopes/shift.brk"`` or ``"templates/foo/bar.brk"``.
 
     Absolute paths pass through unchanged. The path-scope security
-    gate in ``build_cdp_argv`` rejects paths outside the session tree
+    gate (``validate_command``) rejects paths outside the session tree
     later if needed.
     """
     raw_path = Path(value)
@@ -281,7 +279,6 @@ def _handle_preexisting_path(
 def _compile_list_mode(
     *,
     param_name: str,
-    param_spec: ParameterSpec,
     tuples: list,
     mode: Literal["relative", "absolute"],
     source_duration_s: float | None,
@@ -461,18 +458,15 @@ def _format_brk_contents(points: list[tuple[float, float]]) -> str:
     """Render ``points`` as a CDP-compatible .brk text block.
 
     One ``"<time> <value>\\n"`` line per point. Numbers are formatted as
-    PLAIN DECIMALS, never scientific notation: the previous ``".10g"``
-    convention rendered tiny values as e.g. ``1e-06``, which CDP's brk
-    parser mis-tokenizes — the exponent shifts token alignment and the
-    refusal surfaces as a misleading ``times not in increasing order``
-    (field find, church-holiday session journal 2026-07-23; a synth wave
-    amp envelope with a 1e-06 floor). ``".10f"`` with trailing-zero
-    stripping keeps clean output (``0.5``, ``0.000001``) at the cost of
-    flooring magnitudes below 5e-11 to ``0`` — far below anything CDP
-    distinguishes. The argv scalar path (``processing._format_value``)
-    deliberately keeps ``".10g"``: no CLI misparse has ever been
-    evidenced, and repinning every argv test for an unevidenced risk
-    would be guessing.
+    PLAIN DECIMALS, never scientific notation: CDP's brk parser
+    mis-tokenizes exponent forms like ``1e-06`` — the exponent shifts
+    token alignment and the refusal surfaces as a misleading ``times not
+    in increasing order`` (seen on a synth wave amp envelope with a
+    1e-06 floor). ``".10f"`` with trailing-zero stripping keeps clean
+    output (``0.5``, ``0.000001``) at the cost of flooring magnitudes
+    below 5e-11 to ``0`` — far below anything CDP distinguishes. The
+    argv scalar path (``processing._format_value``) deliberately keeps
+    ``".10g"``: no CLI misparse of exponent forms has been observed.
     """
 
     def _plain(x: float) -> str:

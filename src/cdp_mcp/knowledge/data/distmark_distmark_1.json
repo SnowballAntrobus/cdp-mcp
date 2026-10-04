@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -70,7 +69,7 @@
       "default": false,
       "flag": "-t",
       "flag_kind": "no_value",
-      "description": "Append the source's remaining tail after the last mark, bringing the output to ~the input duration (1.9420 from 2.0 on flat noise) - the pinned duration row uses this. Pass 1 to enable. (Mode-1 only flag.)"
+      "description": "Append the source's remaining tail after the last mark, bringing the output to ~the input duration (1.9420 from 2.0 on flat noise). Pass 1 to enable. (Mode-1 only flag.)"
     }
   },
   "examples": [

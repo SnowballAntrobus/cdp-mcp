@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur * timestretch"},
   "curated": true,
   "version_sensitive": false,
@@ -73,7 +72,7 @@
     "trans hard range is +-24 semitones - both afta8 and SoundThread advertise +-48; the binary refuses beyond 24.",
     "GARBAGE-THROUGH LANDMINE (psow-wide): flat noise with a fake trace runs cleanly (3.9971 s from 2 s at x2/trans 0). No pitched-material check exists.",
     "MONO only ('must be mono', psow-wide). Deterministic (runs 1.2 s apart byte-identical).",
-    "Pitch-trace workflow: repitch getpitch -> ptobrk not yet curated; execute() for real voices, write_data_file() for known pitches (verified)."
+    "Pitch-trace workflow: repitch getpitch -> ptobrk for real voices, write_data_file() for known pitches (verified)."
   ],
   "references": ["cdp://docs/html/cgropsow"]
 }

@@ -10,11 +10,10 @@
   "output_format": ".trn",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
-  "description": "Randomises a pitch line, emitting the wander as a BINARY TRANSPOSITION FILE (.trn, 'is a transpos file' - re-verified tranche 24). Argv 'repitch randomise 2 pitchfile out.trn maxinterval timestep [-sslew]'. STOCHASTIC AND UNSEEDABLE (re-verified: no seed argv anywhere in the banner; runs 1.3 s apart produce different data chunks - clock path). Ranges verbatim: maxinterval 'Parameter[1] Value (97.000000) out of range (0.000000 to 96.000000)' semitones; timestep 'Parameter[2] Value (0.100000) out of range (2.902494 to 2025.940895)' ms - floor = one analysis window, ceiling = the file's duration, both input-dependent; slew 'ERROR: slew out of range: slew must be >1 or <-1' (verbatim; 2 and -3 verified accepted). maxinterval is BREAKPOINT-CAPABLE (banner 'Maxinterval and timestep may vary over time'; brk exits 0 on a marker-free track - endpoints comparison is meaningless under unseeded randomness); timestep breakpoints FAIL on this build with a content refusal 'ERROR: Too much unpitched data in file to proceed this time. But try again.' (verbatim - raised even on a fully-interpolated, marker-FREE pitchfile; scalar timestep works everywhere) - banner claim diverges, timestep curated scalar-only.",
+  "description": "Randomises a pitch line, emitting the wander as a BINARY TRANSPOSITION FILE (.trn, 'is a transpos file' - verified). Argv 'repitch randomise 2 pitchfile out.trn maxinterval timestep [-sslew]'. STOCHASTIC AND UNSEEDABLE (re-verified: no seed argv anywhere in the banner; runs 1.3 s apart produce different data chunks - clock path). Ranges verbatim: maxinterval 'Parameter[1] Value (97.000000) out of range (0.000000 to 96.000000)' semitones; timestep 'Parameter[2] Value (0.100000) out of range (2.902494 to 2025.940895)' ms - floor = one analysis window, ceiling = the file's duration, both input-dependent; slew 'ERROR: slew out of range: slew must be >1 or <-1' (verbatim; 2 and -3 verified accepted). maxinterval is BREAKPOINT-CAPABLE (banner 'Maxinterval and timestep may vary over time'; brk exits 0 on a marker-free track - endpoints comparison is meaningless under unseeded randomness); timestep breakpoints FAIL on this build with a content refusal 'ERROR: Too much unpitched data in file to proceed this time. But try again.' (verbatim - raised even on a fully-interpolated, marker-FREE pitchfile; scalar timestep works everywhere) - banner claim diverges, timestep curated scalar-only.",
   "musical_use": "Controlled pitch instability for the original sound: getpitch 1 (curated) -> THIS -> transposef 4 (curated) loosens a track's intonation with formants intact. Small values humanize (maxinterval 0.3-1 st, timestep 150-400 ms: the drift of a relaxed singer - the natural companion AFTER quantise 2's correction, replacing robotic accuracy with lifelike scatter); medium values destabilize (2-5 st: seasick, inebriated delivery); large values at short timesteps atomize the line into pointillist pitch-hash (10+ st, sub-50 ms steps). slew biases the wander: -s2 doubles upward range vs downward (material floats sharp), -s-3 sinks it - drift with a direction. Ramp maxinterval by breakpoint ('abs:' times) from 0 upward and a phrase progressively falls apart - the counterpart of exag 6's range ramp. NOT reproducible: each run is a unique take (cache one .trn and reuse it via transposef 4 when you need the SAME wander on several sources).",
   "parameters": {
     "pitchfile": {
@@ -71,11 +70,11 @@
   ],
   "known_issues": [
     "STOCHASTIC, UNSEEDABLE (re-verified): no seed argv; 1.3 s-apart runs differ. No A/B reproducibility - to reuse one wander across sources, keep the .trn and apply it repeatedly via transposef 4. NOTE the engine cache keys on argv+inputs, so an identical re-call returns the CACHED (identical) .trn rather than a fresh roll - vary a parameter minutely to force a new take.",
-    "timestep is SCALAR-ONLY despite the banner: breakpoint values raise 'Too much unpitched data in file to proceed this time. But try again.' (verbatim) even on a fully-interpolated marker-free track - build divergence pinned tranche 24.",
+    "timestep is SCALAR-ONLY despite the banner: breakpoint values raise 'Too much unpitched data in file to proceed this time. But try again.' (verbatim) even on a fully-interpolated marker-free track - a build divergence.",
     "timestep bounds are input-dependent (one window to file duration); the curated 2.9-2025.94 reflects the 2 s / 44.1 kHz probe - longer files widen the ceiling (schema max may under-admit there; use execute() past it).",
     "slew's legal range is disjoint (>1 or <-1, verbatim) - in-between values fail at CDP, not in validate_params.",
     "Output is DATA (.trn): pre-flight skipped, verify = exists+non-empty; apply via curated transposef 4. BREAKPOINT AXIS (arity-0): 'abs:' mode or .brk only.",
-    "duration_model 'static' is a schema placeholder (data output). Sibling mode 1 (pitchfile out) verified running - execute()/future-curation."
+    "duration_model 'static' is a schema placeholder (data output). Sibling mode 1 (pitchfile out) verified running - use execute()."
   ],
-  "references": ["cdp://docs/html/crepitch", "docs/curation/tranche22_pitchdata.md", "docs/curation/tranche24_schema_unblocks.md"]
+  "references": ["cdp://docs/html/crepitch"]
 }

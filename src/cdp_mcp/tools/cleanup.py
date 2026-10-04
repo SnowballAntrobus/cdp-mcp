@@ -14,11 +14,9 @@ Two deletion levers with deliberately different units of work:
 
 Both default to ``dry_run=True`` — deletion is opt-in per call.
 
-**Dependency safety (design deviation, documented).** Design-doc Task 14
-committed a maintained ``dependency_index.json``; it was deferred to
-Phase 4 alongside this consumer, and Phase 4 builds the dependency view
-*on the fly* instead: before deleting, every surviving graph's
-``lineage.json`` is scanned and any candidate graph owning a file
+**Dependency safety.** There is no maintained dependency index; the
+dependency view is built *on the fly*: before deleting, every surviving
+graph's ``lineage.json`` is scanned and any candidate graph owning a file
 referenced by a survivor's ``inputs[].path`` is refused. This trades a
 per-cleanup scan (cheap: sessions hold tens of graphs, lineage files are
 KB-sized) for zero index-maintenance burden and no staleness bugs. The
@@ -31,13 +29,12 @@ keepers. A graph carrying any tag is refused unless the predicate
 explicitly selects by one of that graph's tags — ``{"tag": "reject"}``
 deletes graphs tagged ``reject``, but ``{"age_days": 30}`` skips them.
 
-**cleanup_cache predicate honesty.** The design doc's grammar included
-``cdp_version`` / ``lib_version`` predicates. They are NOT supported
-here: cache filenames are opaque content hashes with the versions baked
-into the key, so selecting by version would need a metadata sidecar
-written at populate time. Recorded as future work; ``tier`` /
-``age_days`` / ``size_gt_mb`` cover the practical eviction cases
-(post-upgrade eviction ≈ ``{"tier": "pvoc"}`` after a CDP upgrade).
+**cleanup_cache has no version predicates.** ``cdp_version`` /
+``lib_version`` predicates are NOT supported: cache filenames are opaque
+content hashes with the versions baked into the key, so selecting by
+version would need a metadata sidecar written at populate time.
+``tier`` / ``age_days`` / ``size_gt_mb`` cover the practical eviction
+cases (post-upgrade eviction ≈ ``{"tier": "pvoc"}`` after a CDP upgrade).
 """
 
 from __future__ import annotations
@@ -435,7 +432,7 @@ async def cleanup_impl(
     result = await asyncio.to_thread(_run_cleanup, session, predicate, dry_run)
     if not dry_run:
         # Prune conversational slots for deleted graphs WITHOUT
-        # renumbering (design Rule 3): holes stay holes.
+        # renumbering: holes stay holes.
         for gid in result["deleted"]:
             latest_tracker.remove(gid)
     return result
@@ -653,11 +650,10 @@ def register(
         - ``{"size_gt_mb": 100}`` — individual files larger than N MB.
         - ``{"and": [...]}`` / ``{"or": [...]}`` / ``{"not": {...}}``.
 
-        The design doc's ``cdp_version`` / ``lib_version`` predicates
-        are NOT supported: cache keys are opaque hashes with versions
-        baked in, so version-selective eviction would need a metadata
-        sidecar (recorded as future work). Use ``{"tier": ...}`` after
-        an upgrade instead.
+        ``cdp_version`` / ``lib_version`` predicates are NOT supported:
+        cache keys are opaque hashes with versions baked in, so
+        version-selective eviction would need a metadata sidecar. Use
+        ``{"tier": ...}`` after an upgrade instead.
 
         Returns ``{status, dry_run, deleted_count, freed_bytes,
         per_tier: {tier: {files, bytes, matched_files, matched_bytes}},

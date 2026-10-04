@@ -4,9 +4,8 @@ The parser is exercised end-to-end via process() and execute() in
 test_process.py / test_execute.py; this file pins down the matching
 logic directly so regex changes are caught at the unit level.
 
-The Phase 6 refusal-corpus patterns are tested with VERBATIM refusal
-strings quoted from the curation transcripts (docs/curation/tranche*.md)
-— each test cites its tranche. Two end-to-end checks against real CDP
+The refusal-corpus patterns are tested with VERBATIM refusal strings
+captured from real CDP runs. Two end-to-end checks against real CDP
 (gated on the ``real_cdp_path`` fixture) prove the structured entries
 reach process() results for genuinely refusing binaries.
 """
@@ -176,9 +175,9 @@ def test_usage_banner_returned_skipped_when_no_expected_output():
 
 @pytest.mark.parametrize("exit_code", [0, 1, 2, 255])
 def test_usage_banner_returned_exit_code_agnostic(tmp_path, exit_code):
-    """Design-doc Rule (v7 correction): trigger is behavioral (missing
-    output + Usage: present), NOT exit-code dependent. CDP binaries are
-    inconsistent about exit codes when printing usage."""
+    """The trigger is behavioral (missing output + Usage: present), NOT
+    exit-code dependent. CDP binaries are inconsistent about exit codes
+    when printing usage."""
     out = tmp_path / "missing.wav"
     errors = parse_cdp_errors(
         stdout="",
@@ -327,8 +326,7 @@ def test_multiple_patterns_all_appended():
 
 
 # ---------------------------------------------------------------------------
-# Phase 6 refusal corpus — one case per pattern, verbatim strings from
-# the curation transcripts (docs/curation/tranche*.md).
+# Refusal corpus — one case per pattern, verbatim CDP output.
 # ---------------------------------------------------------------------------
 
 
@@ -337,8 +335,8 @@ def _types(errors):
 
 
 def test_no_grains_found_verbatim():
-    """tranche6/tranche19: grain family refuses continuous material.
-    Live-verified stdout capture (note CDP's progress-junk prefix)."""
+    """The grain family refuses continuous material. Live-verified
+    stdout capture (note CDP's progress-junk prefix)."""
     errors = parse_cdp_errors(
         stdout=(
             "0 min  0.00 sec0 min  0.00 secERROR: INVALID DATA\n"
@@ -353,8 +351,8 @@ def test_no_grains_found_verbatim():
 
 
 def test_no_silence_gaps_verbatim():
-    """tranche11b: retime modes 3/6-10 refuse material without exact
-    digital-zero gaps. Live-verified stdout capture."""
+    """retime modes 3/6-10 refuse material without exact digital-zero
+    gaps. Live-verified stdout capture."""
     errors = parse_cdp_errors(
         stdout=(
             "INFO: Counting silences between events.\n"
@@ -371,8 +369,8 @@ def test_no_silence_gaps_verbatim():
 
 
 def test_no_change_refused_verbatim():
-    """tranche10b: shift 0 refused — SoundThread defaults the param to 0,
-    the CDP binary refuses the identity transform."""
+    """shift 0 refused — SoundThread defaults the param to 0, the CDP
+    binary refuses the identity transform."""
     errors = parse_cdp_errors(
         stdout=(
             "ERROR: CANNOT ACHIEVE TASK: \n"
@@ -387,9 +385,7 @@ def test_no_change_refused_verbatim():
 @pytest.mark.parametrize(
     "stdout",
     [
-        # tranches 5/7/8/9/10a/22 — long form.
         "ERROR: Insufficient parameters on command line.\n",
-        # tranches 10a/11a/19 — short form.
         "ERROR: Insufficient parameters on cmdline.\n",
     ],
 )
@@ -401,8 +397,7 @@ def test_insufficient_parameters_both_phrasings(stdout):
 
 
 def test_breakpoint_not_permitted_verbatim():
-    """tranche1 (and a dozen others): brk file passed for a scalar-only
-    parameter."""
+    """A brk file passed for a scalar-only parameter."""
     errors = parse_cdp_errors(
         stdout=(
             "ERROR: Cannot read parameter 1 [b_rng.brk]: "
@@ -417,9 +412,9 @@ def test_breakpoint_not_permitted_verbatim():
 
 
 def test_out_of_range_extracts_bounds_to_form():
-    """tranche1_timedomain: 'Parameter[1] Value (17.000000) out of range
-    (2.000000 to 16.000000)' — the bounds land in the message so the
-    retry can be exact."""
+    """'Parameter[1] Value (17.000000) out of range (2.000000 to
+    16.000000)' — the bounds land in the message so the retry can be
+    exact."""
     errors = parse_cdp_errors(
         stdout=(
             "ERROR: Parameter[1] Value (17.000000) out of range "
@@ -436,8 +431,8 @@ def test_out_of_range_extracts_bounds_to_form():
 
 
 def test_out_of_range_extracts_bounds_dash_form_negative():
-    """tranche19: datafile ratios use the DASH form with negative bounds
-    — 'Ratio (50.000000) out of range (-48.000000 - 48.000000)'."""
+    """Datafile ratios use the DASH form with negative bounds —
+    'Ratio (50.000000) out of range (-48.000000 - 48.000000)'."""
     errors = parse_cdp_errors(
         stdout=(
             "ERROR: INVALID DATA\n"
@@ -453,8 +448,8 @@ def test_out_of_range_extracts_bounds_dash_form_negative():
 
 
 def test_out_of_range_mode_digit_bracket_form():
-    """tranche7/18: 'Program mode value [5] is out of range [1 - 4].' —
-    the message quotes the raw line, so the mode context is visible."""
+    """'Program mode value [5] is out of range [1 - 4].' — the message
+    quotes the raw line, so the mode context is visible."""
     errors = parse_cdp_errors(
         stdout="ERROR: Program mode value [5] is out of range [1 - 4].\n",
         stderr="",
@@ -466,8 +461,8 @@ def test_out_of_range_mode_digit_bracket_form():
 
 
 def test_out_of_range_brkpntfile_form():
-    """tranche21: in-brk values out of range — 'Value (0.000000) out of
-    range (0.000010 to 0.900000) in brkpntfile b_fi.brk.'"""
+    """In-brk values out of range — 'Value (0.000000) out of range
+    (0.000010 to 0.900000) in brkpntfile b_fi.brk.'"""
     errors = parse_cdp_errors(
         stdout=(
             "ERROR: Value (0.000000) out of range "
@@ -480,9 +475,9 @@ def test_out_of_range_brkpntfile_form():
 
 
 def test_out_of_range_without_bounds_stays_generic():
-    """tranche13: 'Start of fade time : out of range.' carries no bounds
-    — matching it would produce a rangeless entry, so per forensics
-    5.1.3 it deliberately falls back to the generic subprocess_error."""
+    """'Start of fade time : out of range.' carries no bounds — matching
+    it would produce a rangeless entry, so it deliberately falls back
+    to the generic subprocess_error."""
     errors = parse_cdp_errors(
         stdout="ERROR: Start of fade time : out of range.\n",
         stderr="",
@@ -492,8 +487,8 @@ def test_out_of_range_without_bounds_stays_generic():
 
 
 def test_invalid_cdp_file_verbatim():
-    """tranche13: '.evl' data renamed to '.dat' refused on extension
-    alone — 'ERROR: out1.dat is not a valid CDP file'."""
+    """'.evl' data renamed to '.dat' is refused on extension alone —
+    'ERROR: out1.dat is not a valid CDP file'."""
     errors = parse_cdp_errors(
         stdout="ERROR: out1.dat is not a valid CDP file\n",
         stderr="",
@@ -505,8 +500,8 @@ def test_invalid_cdp_file_verbatim():
 
 
 def test_formant_flag_missing_verbatim():
-    """tranche22: argv-order landmine — '-p8 <brk>' exits 0 where
-    '<brk> -p8' exits 255 with this message."""
+    """Argv-order landmine — '-p8 <brk>' exits 0 where '<brk> -p8'
+    exits 255 with this message."""
     errors = parse_cdp_errors(
         stdout="ERROR: Formant flag missing on cmdline.\n",
         stderr="",
@@ -518,8 +513,8 @@ def test_formant_flag_missing_verbatim():
 
 
 def test_program_dead_by_design_verbatim():
-    """tranche23: hfperm delperm's unconditional kill-switch (doubled
-    'ERROR:' prefix is verbatim)."""
+    """hfperm delperm's unconditional kill-switch (doubled 'ERROR:'
+    prefix is verbatim)."""
     errors = parse_cdp_errors(
         stdout="ERROR: ERROR: This program is currently malfunctioning.\n",
         stderr="",
@@ -531,7 +526,7 @@ def test_program_dead_by_design_verbatim():
 
 
 def test_mix_end_overflow_verbatim():
-    """tranche12: submix LP64 bug — stereo paths need an explicit -e."""
+    """submix LP64 bug — stereo paths need an explicit -e."""
     errors = parse_cdp_errors(
         stdout=(
             "ERROR: INVALID DATA\n"
@@ -546,8 +541,8 @@ def test_mix_end_overflow_verbatim():
 
 
 def test_input_wrong_type_bare_form():
-    """tranche20: time-domain program given a .ana — 'File rich2.ana is
-    not of correct type' with no channel suffix."""
+    """Time-domain program given a .ana — 'File rich2.ana is not of
+    correct type' with no channel suffix."""
     errors = parse_cdp_errors(
         stdout=(
             "ERROR: INVALID DATA\n"
@@ -561,7 +556,7 @@ def test_input_wrong_type_bare_form():
 
 
 def test_input_wrong_type_mode_specific_form():
-    """tranche16: 'File st2.wav is not of correct type for Mode 3'."""
+    """'File st2.wav is not of correct type for Mode 3'."""
     errors = parse_cdp_errors(
         stdout="ERROR: File st2.wav is not of correct type for Mode 3\n",
         stderr="",
@@ -571,9 +566,9 @@ def test_input_wrong_type_mode_specific_form():
 
 
 def test_input_wrong_type_suppressed_by_channel_suffix():
-    """tranche6/9/13/...: 'File st2.wav is not of correct type (must be
-    mono)' is a CHANNEL constraint — channel_mismatch explains it more
-    precisely, so input_wrong_type must not double-fire."""
+    """'File st2.wav is not of correct type (must be mono)' is a CHANNEL
+    constraint — channel_mismatch explains it more precisely, so
+    input_wrong_type must not double-fire."""
     errors = parse_cdp_errors(
         stdout=(
             "ERROR: INVALID DATA\n"
@@ -587,9 +582,8 @@ def test_input_wrong_type_suppressed_by_channel_suffix():
 
 
 def test_channel_mismatch_covers_must_be_stereo_suffix_form():
-    """tranche10b verbatim: 'File ... is not of correct type (must be
-    stereo)' — confirms the pre-existing channel regex covers the corpus
-    suffix phrasing for stereo too."""
+    """'File ... is not of correct type (must be stereo)' — the channel
+    regex covers the suffix phrasing for stereo too."""
     errors = parse_cdp_errors(
         stdout=(
             "ERROR: File in.wav is not of correct type (must be stereo)\n"

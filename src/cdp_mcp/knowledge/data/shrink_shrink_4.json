@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "gap * (((dur - 0.000001) // gap) + 1)"},
   "curated": true,
   "version_sensitive": true,
@@ -145,7 +144,7 @@
     "-r no-op without -m; fixed-sequence when active (unseeded drand48 shim; byte-identical reruns verified in submode 1; no seed exists). stochastic: false, version_sensitive: true.",
     "-s larger than the input duration segfaults (exit 139, no message).",
     "Content rule (verified): each repeat's level follows the source envelope AT 'time' - quiet centres give quiet bounces; -n equalises.",
-    "Modes 5/6 (peak-segmentation variants) are multi-output and dropped - see docs/curation/tranche11a_iteration_findings.json."
+    "Modes 5/6 (peak-segmentation variants) are multi-output and not curated."
   ],
   "references": ["cdp://docs/html/cr8new"]
 }

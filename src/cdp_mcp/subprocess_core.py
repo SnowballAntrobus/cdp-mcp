@@ -1,7 +1,7 @@
 """Async subprocess runner with periodic MCP progress reporting.
 
-This module provides :func:`run_cdp_command`, the single entry point every
-later task uses to spawn a CDP binary. It handles:
+This module provides :func:`run_cdp_command`, the single entry point used
+to spawn a CDP binary. It handles:
 
 - Apple Silicon ``arch -x86_64`` wrapping (auto-on, override via
   ``$CDP_MCP_DISABLE_ARCH_X86_64``).
@@ -13,7 +13,7 @@ later task uses to spawn a CDP binary. It handles:
 - SIGKILL on timeout with a clean ``timed_out=True`` result.
 
 It does NOT resolve binary names — ``argv[0]`` must be an absolute path.
-Binary resolution and command-line assembly are Task 5/6 concerns.
+Binary resolution happens in :func:`cdp_mcp.security.validate_command`.
 """
 
 from __future__ import annotations
@@ -43,16 +43,15 @@ class SubprocessResult(BaseModel):
     exit_code: int | None  # None if timed out
     duration_ms: int
     timed_out: bool
-    # Disk watchdog (Task 7): True when the expected output crossed the
-    # size cap and the subprocess was SIGKILL'd. ``triggered_at_bytes``
-    # records the size that triggered the kill. Both defaulted so
-    # existing callers and test fixtures don't need to change.
+    # Disk watchdog: True when the expected output crossed the size cap
+    # and the subprocess was SIGKILL'd. ``triggered_at_bytes`` records
+    # the size that triggered the kill.
     size_cap_exceeded: bool = False
     triggered_at_bytes: int | None = None
 
 
 # ---------------------------------------------------------------------------
-# Disk watchdog (Task 7)
+# Disk watchdog
 # ---------------------------------------------------------------------------
 
 
@@ -220,7 +219,7 @@ async def run_cdp_command(
         _emit_progress(ctx, state, progress_interval_seconds)
     )
 
-    # Disk watchdog (Task 7) — only active when both output_path AND
+    # Disk watchdog — only active when both output_path AND
     # size_cap_bytes are supplied. execute() passes neither and skips
     # watchdog protection entirely.
     watchdog_state = _WatchdogState()
@@ -295,9 +294,9 @@ async def run_cdp_command(
         # Runs on EVERY exit — most importantly task cancellation (client
         # hit stop / disconnected mid-run, which FastMCP surfaces as a
         # CancelledError at any await above). Without this, the CDP
-        # process kept running unbounded and the progress task kept
-        # firing on a dead request context. Everything here is
-        # idempotent and a no-op on the normal path.
+        # process would keep running unbounded and the progress task
+        # would keep firing on a dead request context. Everything here
+        # is idempotent and a no-op on the normal path.
         #
         # Order matters: kill synchronously first (the one resource that
         # must not leak), cancel helpers synchronously second, and only

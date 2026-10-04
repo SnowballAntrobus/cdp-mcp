@@ -249,7 +249,7 @@ def _strip_flag_prefix(arg: str) -> str:
     path like ``-e/Users/x/secret.wav`` is not itself absolute, gets
     joined under ``session_root``, resolves inside the session, and
     passes — while CDP's own flag parser strips the ``-e`` and opens
-    the absolute path *outside* the sandbox. (Phase 2 hardening, M1.)
+    the absolute path *outside* the sandbox.
 
     Non-flag arguments (no leading ``-``, or ``-`` followed by a digit
     — negative numbers) are returned unchanged.

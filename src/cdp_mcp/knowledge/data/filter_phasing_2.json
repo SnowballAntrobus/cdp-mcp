@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur + tail"},
   "curated": true,
   "version_sensitive": false,
@@ -85,7 +84,7 @@
     "prescale's real range is -1 to 1, not the banner's 0-1.",
     "Only delay accepts breakpoint files (verified against both endpoints); gain refuses as parameter 2. -l is only meaningful with a delay contour (verified).",
     "Submode 1 (raw ALLPASS) probed working with identical argv: near-transparent alone on steady material (RMS 0.134 vs source 0.144 - phase rotation, magnitude untouched); its uses are pre-mix phase tricks - dropped for scope, execute().",
-    "Undocumented tail default 1.0 s re-verified sample-exact; entry pins -t. Deterministic; stereo accepted; no normalization pre-pass (P5-1 does not apply)."
+    "Undocumented tail default 1.0 s re-verified sample-exact; entry pins -t. Deterministic; stereo accepted; no normalization pre-pass (so the vintage-binary bank hang does not apply)."
   ],
   "references": ["cdp://docs/html/cgrofilt"]
 }

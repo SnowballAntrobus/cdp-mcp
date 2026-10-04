@@ -10,7 +10,6 @@
   "output_format": ".ana",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur * timestretch"},
   "curated": true,
   "version_sensitive": false,

@@ -1,4 +1,4 @@
-"""Tests for the graph() tool — Phase 2 Task 11a (dry-run only).
+"""Tests for the graph() tool.
 
 The dry-run path must leave zero persistent artifacts: no graph
 directories, no envelope files, no subprocess invocations. Several tests
@@ -134,7 +134,7 @@ def _assert_no_side_effects(session):
 
 
 # ---------------------------------------------------------------------------
-# Preconditions and the Task 11a execution boundary
+# Preconditions and execution
 # ---------------------------------------------------------------------------
 
 

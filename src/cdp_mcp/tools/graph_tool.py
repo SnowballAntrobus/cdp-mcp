@@ -1,23 +1,23 @@
 """The ``graph()`` MCP tool — declarative multi-node DAGs.
 
-Task 11a shipped ``dry_run=True``: structural validation (node specs,
-reference resolution, cycle detection), per-node validation through the
-same :func:`~cdp_mcp.tools.node_validation.validate_node` chain that
-drives ``process()``, and **per-node duration predictions** chained
-through the DAG — one node's predicted output duration feeds the next
-node's pre-flight, so the report says *which* node would exceed the cap.
+``dry_run=True`` runs structural validation (node specs, reference
+resolution, cycle detection), per-node validation through the same
+:func:`~cdp_mcp.tools.node_validation.validate_node` chain that drives
+``process()``, and **per-node duration predictions** chained through the
+DAG — one node's predicted output duration feeds the next node's
+pre-flight, so the report says *which* node would exceed the cap.
 
-Task 11b ships full execution: the dry-run pass runs first as execution
-phase 1 (nothing spawns until the whole DAG validates clean), then nodes
-execute in topological order into **one shared graph directory** through
-the same :func:`~cdp_mcp.tools.node_execution.execute_validated_node`
-path ``process()`` uses. A mid-graph runtime failure yields
+A full run performs the same dry-run pass first (nothing spawns until the
+whole DAG validates clean), then nodes execute in topological order into
+**one shared graph directory** through the same
+:func:`~cdp_mcp.tools.node_execution.execute_validated_node` path
+``process()`` uses. A mid-graph runtime failure yields
 ``partial_success``: completed nodes stay on disk and addressable via
 ``<graph_id>:<node_id>``, downstream nodes are skipped, and ``latest``
 points at the designated output node if it succeeded (else the last
 successful node).
 
-Reference grammar inside a graph (design doc, Graph Execution Semantics):
+Reference grammar inside a graph:
 
 - **bare names** refer to this graph's own nodes or to keys of the
   ``inputs`` dict — never to files. External files must be declared in
@@ -128,9 +128,9 @@ async def graph_impl(
             graph_errors.append(lookup_error)
             continue
         assert entry is not None  # resolve_entry contract
-        # Arity-0 exclusion (Phase 5 wave 2a, documented choice): node
-        # specs require a non-empty 'in' by construction, so a
-        # generator node is inexpressible in graph()'s wiring grammar.
+        # Arity-0 exclusion: node specs require a non-empty 'in' by
+        # construction, so a generator node is inexpressible in graph()'s
+        # wiring grammar.
         # Refuse with the actionable route rather than letting the
         # per-node arity check emit a "pass exactly 0 inputs" paradox.
         if entry.input_arity == 0:

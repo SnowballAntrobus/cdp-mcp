@@ -10,7 +10,6 @@
   "output_format": ".txt",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -85,8 +84,8 @@
     "Positions are drawn INSIDE -1..+1 only (bounds CDP-enforced verbatim) - the mixfile format's beyond-hard-side pan semantics are unreachable through this mode.",
     "STEREO SOURCE FILES BECOME MONO POINTS (banner rule for the scatter modes) - each event is a positioned point source, the file's own stereo image is discarded at mix time. Keep wide files out of scatter passes, or accept the collapse.",
     "The output is a DATA file (rewritten mixfile, .txt): consumer = submix mix's mixfile parameter. Any event with pan data makes the rendered mix STEREO (family channel rule). Duration pre-flight skipped ('static' is a placeholder); rendered duration is unchanged (times untouched).",
-    "Deterministic siblings recorded in the transcript: mode 2 verified as pans x Q toward centre; mode 1 duplicates submix pan's scalar case (use submix pan - it also takes trajectories and is deterministic). All are text arithmetic - execute() territory.",
-    "Arity-0 entry: call process() with no input argument. duration_row null in the findings (data output; stochastic)."
+    "Deterministic siblings: mode 2 verified as pans x Q toward centre; mode 1 duplicates submix pan's scalar case (use submix pan - it also takes trajectories and is deterministic). All are text arithmetic - execute() territory.",
+    "Arity-0 entry: call process() with no input argument (data output; stochastic)."
   ],
   "references": ["cdp://docs/html/cgromix2"]
 }

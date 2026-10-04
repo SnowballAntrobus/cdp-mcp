@@ -1,12 +1,11 @@
-"""Post-validation node execution shared by ``process()`` and ``graph()``.
+"""Post-validation node execution shared by the execution tools.
 
-Task 11b extraction, mirroring Task 3's ``validate_node`` split: the
-subprocess-run → verify → lineage → error-aggregation sequence that lived
-as steps 11–15 of ``process_impl`` moves here *unchanged in behavior*, so
-``graph()`` (and later ``batch()``) execute nodes through exactly the code
-path ``process()`` uses — same watchdog, same error taxonomy, same
-precedence (size_cap > timeout > subprocess_error), same lineage shape.
-The existing process-tool tests are the regression suite for this path.
+The subprocess-run → verify → lineage → error-aggregation sequence (steps
+11–15, following :func:`~cdp_mcp.tools.node_validation.validate_node`'s
+steps 4–10). ``process()``, ``graph()``, ``batch()``, ``sweep()``, and
+``timeline()`` all execute nodes through this one code path — same
+watchdog, same error taxonomy, same precedence (size_cap > timeout >
+subprocess_error), same lineage shape.
 """
 
 from __future__ import annotations
@@ -57,8 +56,7 @@ async def execute_validated_node(
     session: Session,
     cdp: CDPConfig,
 ) -> NodeExecutionOutcome:
-    """Run a validated node's subprocess and record it. Steps 11–15 of
-    the original ``process_impl``, verbatim in behavior.
+    """Run a validated node's subprocess and record it (steps 11–15).
 
     Preconditions: ``validation`` is a *success* result from
     :func:`~cdp_mcp.tools.node_validation.validate_node` with
@@ -87,7 +85,7 @@ async def execute_validated_node(
     )
     finished_at = datetime.now(timezone.utc)
 
-    # 12. Verify output (Task 4). Off the event loop: verification
+    # 12. Verify output. Off the event loop: verification
     # decodes audio for the RMS/silence check — sync work that must not
     # starve MCP heartbeats.
     verification = await asyncio.to_thread(verify_output, output_path)

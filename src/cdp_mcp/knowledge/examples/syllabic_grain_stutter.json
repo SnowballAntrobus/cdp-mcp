@@ -3,7 +3,7 @@
  "title": "Reverse syllables, narrow formants, stutter the phrase",
  "material": "articulated phrases with real gaps - speech, vocal phrases, sparse percussion",
  "description": "For material with genuine silences between events: grain reverse flips the order and content of the detected syllables, specfnu's narrow mode squeezes the formant bands, modify loudness rebalances, and envspeak repeats each detected syllable twice for a stutter.",
- "source": "Verified end-to-end on a formant-filtered 4-syllable vocal proxy in the Phase 5 generalization matrix (tests/test_generalization.py, vocal chain; docs/generalization-matrix.md).",
+ "source": "Verified end-to-end on a formant-filtered 4-syllable vocal proxy in the generalization matrix (tests/test_generalization.py, vocal chain).",
  "definition": {
   "inputs": {
    "src": "YOUR_INPUT.wav"

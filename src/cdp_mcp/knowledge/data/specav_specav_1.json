@@ -10,7 +10,6 @@
   "output_format": ".txt",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -59,7 +58,7 @@
     }
   ],
   "known_issues": [
-    "DATA-TO-DATA OUTPUT (.txt): no audio verification or audition; the duration model is a placeholder and the findings duration row is null.",
+    "DATA-TO-DATA OUTPUT (.txt): no audio verification or audition; the duration model is a placeholder.",
     "starttime 0 is refused (minimum = one analysis frametime, input-dependent) - the banner's 'Start time of section' does not mention this.",
     "Mode 2 (average of SEVERAL analysis files, variadic inputs) and mode 3 (set of numbered textfiles per groupcnt windows - verified writes '<stem>_1.txt' etc., no file at the declared name) are not curated; mode 3 is a standing-rule multi-output drop.",
     "Output format: tab-separated 'frequency<TAB>amplitude', one line per channel, frequencies ascending - directly consumable by scripts and by hand-built filter banks.",

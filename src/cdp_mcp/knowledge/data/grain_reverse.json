@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -83,7 +82,7 @@
     }
   ],
   "known_issues": [
-    "Needs at least two detectable grains: a pure 440 Hz tone and flat unenveloped noise both refuse with 'ERROR: INVALID DATA / ERROR: No grains found.' (exit 255). This also means the duration-model regression fixture's flat-noise input cannot run this program - verify on percussive material.",
+    "Needs at least two detectable grains: a pure 440 Hz tone and flat unenveloped noise both refuse with 'ERROR: INVALID DATA / ERROR: No grains found.' (exit 255). Use percussive material.",
     "Duration honesty (static): output gains one closing splice - +331 frames (7.5 ms) on 2 s and 3 s click trains; on sparse material the last grain's repositioning can shave a little (-1.34% on a 2-grain noise file). Worst observed |error| 1.4%.",
     "Grain detection is the musical parameter surface: gate too high merges soft grains into their loud neighbours (verified: a 0.15-amp grain between 0.9-amp grains disappears as a separate unit at gate 0.3), gate too low can hear noise floors as grains. CDP's grain assess utility (execute()) suggests the gate that maximises the grain count.",
     "DIVERGENCE: the banner says gate 'default 1'; the actual default is 0.3 (manual value; unflagged render byte-identical to -l0.3).",

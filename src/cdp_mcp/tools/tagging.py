@@ -1,6 +1,6 @@
 """The ``tag()`` MCP tool — durable labels for session files.
 
-Phase 4. Graph ids are timestamps and node ids are counters — neither
+Graph ids are timestamps and node ids are counters — neither
 survives in the LLM's memory once the conversational window scrolls.
 Tags are the human/LLM-meaningful layer on top: ``tag("latest",
 ["drone", "keeper"])`` today lets ``tags.json`` answer "which file was
@@ -213,9 +213,8 @@ def _apply(
 
 def _load_tag_map(session: Session) -> tuple[dict, ErrorEntry | None]:
     """Read tags.json into ``{rel_path: [tags]}``. Missing file → empty
-    map (sessions created before Phase 4 layouts, or hand-built test
-    sessions). Unreadable/corrupt → structured error; we refuse to
-    silently clobber user tags."""
+    map (e.g. a hand-built test session). Unreadable/corrupt →
+    structured error; we refuse to silently clobber user tags."""
     path = session.tags_path
     if not path.exists():
         return {}, None

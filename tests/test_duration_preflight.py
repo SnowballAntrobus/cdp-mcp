@@ -21,7 +21,6 @@ from cdp_mcp.duration_preflight import (
 )
 from cdp_mcp.schema import (
     DurationModelExpression,
-    DurationModelLinear,
     DurationModelSetBy,
     DurationModelStatic,
     KnowledgeEntry,
@@ -44,7 +43,6 @@ def _make_entry(
         input_arity=arity, channel_constraint="any",
         input_format=".wav", output_format=".wav",
         stability="stable", phase_sensitive=False,
-        stereo_link_default=None,
         duration_model=duration_model,
         curated=True, version_sensitive=False,
         description="test", musical_use="test",
@@ -117,20 +115,6 @@ def test_set_by_non_numeric_param_raises():
     )
     with pytest.raises(DurationModelError, match="not numeric"):
         _evaluate_duration_model(entry, {"dur": "abc"}, [10.0])
-
-
-# ---------------------------------------------------------------------------
-# linear (currently identical to set_by in Phase 1b)
-# ---------------------------------------------------------------------------
-
-
-def test_linear_returns_param_value():
-    """linear evaluates as outdur = float(params[param]) — currently
-    identical to set_by until the schema gains a multiplier field."""
-    entry = _make_entry(
-        duration_model=DurationModelLinear(kind="linear", param="cnt"),
-    )
-    assert _evaluate_duration_model(entry, {"cnt": 8}, [10.0]) == 8.0
 
 
 # ---------------------------------------------------------------------------
@@ -218,9 +202,7 @@ def test_expression_attribute_access_forbidden():
 def test_expression_indur_none_skips_when_referenced():
     """Chain invariant: when indur is None (e.g., a .ana input) AND
     the expression references indur, return None (skip pre-flight).
-    The Task 7 watchdog is the reactive guardrail. Task 8's lineage
-    will close this gap by recording source_wav_duration_s for
-    chained .ana inputs."""
+    The disk watchdog is the reactive guardrail."""
     entry = _make_entry(
         duration_model=DurationModelExpression(
             kind="expression", expr="indur / velocity",
@@ -320,7 +302,7 @@ async def test_preflight_rejects_on_evaluation_failure(tmp_path):
 async def test_preflight_skips_when_static_indur_unknown(tmp_path):
     """`.ana` input + no CDP context → indur is None → static falls
     back to skip (chain invariant). Without the CDP-context kwargs,
-    the .ana fallback path stays disabled and behavior matches Phase 1b.
+    the .ana fallback path stays disabled.
     """
     ana_input = tmp_path / "in.ana"
     ana_input.write_bytes(b"fake ana data")  # not a real .ana, sf.info fails
@@ -370,7 +352,7 @@ async def test_read_duration_seconds_nonexistent_returns_none(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Phase 2 Task 2 — .ana duration fallback via sfprops
+# .ana duration fallback via sfprops
 # ---------------------------------------------------------------------------
 
 
@@ -434,7 +416,7 @@ async def test_preflight_uses_ana_fallback_when_cdp_context_provided(
 async def test_preflight_ana_fallback_disabled_without_full_cdp_context(
     tmp_path,
 ):
-    """Omitting any of the four CDP-context kwargs reduces to Phase 1b:
+    """Omitting any of the four CDP-context kwargs disables the fallback:
     the .ana branch returns None and the static model skips the check.
     This is the load-bearing backward-compat guarantee."""
     cdp_path = (tmp_path / "cdp").resolve()
@@ -465,8 +447,7 @@ async def test_preflight_ana_fallback_disabled_without_full_cdp_context(
     assert errors == []
 
 
-def test_expression_type_error_becomes_structured(  # Phase 2 hardening, M11
-):
+def test_expression_type_error_becomes_structured():
     """A curated expr whose operator application raises TypeError (e.g.
     a string literal leaking into arithmetic) must surface as
     DurationModelError — the structured

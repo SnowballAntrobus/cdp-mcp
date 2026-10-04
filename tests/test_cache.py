@@ -9,7 +9,6 @@ from unittest.mock import patch
 
 import pytest
 
-from cdp_mcp import cache as cache_mod
 from cdp_mcp.cache import (
     _LIB_VERSIONS,
     _compose_key,
@@ -327,12 +326,6 @@ def test_lib_versions_populated():
     assert _LIB_VERSIONS["librosa"] != "unknown"
     assert _LIB_VERSIONS["numpy"] != "unknown"
     assert _LIB_VERSIONS["matplotlib"] != "unknown"
-
-
-def test_known_tiers_constant_includes_audition():
-    """Task 11 (audition cache) lands in the same tier registry; declare
-    it from day one so describe_workspace's cache block is stable."""
-    assert "audition" in cache_mod._KNOWN_TIERS
 
 
 # ---------------------------------------------------------------------------

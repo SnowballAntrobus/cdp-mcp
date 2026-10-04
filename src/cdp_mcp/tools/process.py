@@ -1,11 +1,11 @@
 """The ``process()`` MCP tool — curated CDP invocation with PVOC auto-insertion.
 
-The main attraction of Phase 1a. Where ``execute()`` (Task 5) is the raw
-escape hatch, ``process()`` is the curated path: it looks up the knowledge
-entry, validates params against the entry's ``ParameterSpec``, automatically
-inserts ``pvoc anal`` or ``pvoc synth`` nodes when input domains don't
-match, runs each node through the security boundary, and records full
-lineage in a fresh graph directory.
+Where ``execute()`` is the raw escape hatch, ``process()`` is the curated
+path: it looks up the knowledge entry, validates params against the
+entry's ``ParameterSpec``, automatically inserts ``pvoc anal`` or
+``pvoc synth`` nodes when input domains don't match, runs each node
+through the security boundary, and records full lineage in a fresh graph
+directory.
 """
 
 from __future__ import annotations
@@ -68,9 +68,9 @@ async def process_impl(
     rather than silently rewriting the name.
 
     ``input`` may be omitted (or an empty list) for arity-0 generator
-    entries — ``synth noise`` / ``synth wave`` / ``submix mix`` take no
-    audio inputs (Phase 5 wave 2a). Arity mismatches either way return
-    the structured ``arity_mismatch`` error.
+    entries (e.g. ``synth noise`` / ``synth wave`` / ``submix mix``), which
+    take no audio inputs. Arity mismatches either way return the
+    structured ``arity_mismatch`` error.
 
     ``submode`` selects among multiple curated submodes of the same
     (program, mode); required (``submode_required`` error) only when
@@ -117,8 +117,8 @@ async def process_impl(
         )
     assert entry is not None  # resolve_entry contract
 
-    # 4–10: pre-subprocess validation and planning, factored out so the
-    # same chain serves graph(dry_run=True) and batch() without drift.
+    # 4–10: pre-subprocess validation and planning — the same chain
+    # graph(), batch(), sweep(), and timeline() use.
     # None → [] (arity-0 generators take no input; validate_node's
     # arity check owns the mismatch reporting either way).
     validation = await validate_node(
@@ -154,8 +154,7 @@ async def process_impl(
     param_warnings = validation.warnings
 
     # 11–15: subprocess run, verification, lineage, error aggregation —
-    # extracted to execute_validated_node (Task 11b) so graph()/batch()
-    # execute through exactly this code path.
+    # the same execute_validated_node path the other execution tools use.
     outcome = await execute_validated_node(
         ctx=ctx,
         validation=validation,
@@ -247,7 +246,7 @@ def register(
         (e.g. ``.aiff``) returns a structured ``invalid_output_name``
         error rather than silently rewriting the name.
 
-        Generator entries (``input_arity: 0`` — synth noise/wave,
+        Generator entries (``input_arity: 0`` — e.g. synth noise/wave,
         submix mix) take no input: omit the ``input`` argument
         entirely. submix mix instead reads its sources from a mixfile
         written with ``write_data_file()`` and passed as the

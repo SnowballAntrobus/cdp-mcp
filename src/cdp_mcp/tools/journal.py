@@ -1,6 +1,6 @@
 """The ``journal()`` MCP tool — append-only session notebook.
 
-Phase 4. ``<session>/journal.md`` exists from session init (see
+``<session>/journal.md`` exists from session init (see
 :mod:`cdp_mcp.session`); this tool appends timestamped one-line entries
 (``- [<ISO-8601Z>] <note>``) so aesthetic judgments — "variant 3 too
 harsh, keep the 40-window blur" — survive the conversational window and
@@ -121,8 +121,8 @@ def _append_note(session: Session, note: str) -> dict:
 def _read_journal(session: Session) -> dict:
     path = session.journal_path
     if not path.exists():
-        # Sessions created before Phase 4 layouts or hand-built test
-        # sessions; an empty journal, not an error.
+        # No journal.md (e.g. a hand-built test session): an empty
+        # journal, not an error.
         return {
             "status": "ok",
             "content": "",

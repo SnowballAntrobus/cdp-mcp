@@ -1,19 +1,19 @@
 """The ``cluster()`` MCP tool — group batch variants for audition triage.
 
-Phase 3. After ``batch()`` produces 10-40 variants, auditioning every
-one wastes the user's time and the conversation's context window.
-``cluster()`` groups the variants by timbral similarity so the user
-auditions ONE representative per cluster — the medoid — instead of
-everything. Workflow: batch → cluster → compare medoids → keep winners.
+After ``batch()`` produces 10-40 variants, auditioning every one wastes
+the user's time and the conversation's context window. ``cluster()``
+groups the variants by timbral similarity so the user auditions ONE
+representative per cluster — the medoid — instead of everything.
+Workflow: batch → cluster → compare medoids → keep winners.
 
-Features per target: MFCC(13) means + stds + spectral-centroid mean +
-RMS mean, plus the MIR v2 additions — flatness-dB mean + std, rolloff-85
-mean, centroid-trajectory total variation, and rms-trajectory range
-(33 dims) — standardized, PCA-reduced, then agglomerative (Ward)
-clustering. When ``k`` is omitted, a silhouette scan over 2..min(6, N-1)
-picks the best-separated cluster count. The medoid of each cluster is
-the member with the smallest mean euclidean distance to its co-members
-in the scaled-PCA space. Deterministic for a fixed ``seed``.
+Features per target: MFCC(13) means + stds, spectral-centroid mean, RMS
+mean, flatness-dB mean + std, rolloff-85 mean, centroid-trajectory total
+variation, and rms-trajectory range (33 dims) — standardized,
+PCA-reduced, then agglomerative (Ward) clustering. When ``k`` is
+omitted, a silhouette scan over 2..min(6, N-1) picks the best-separated
+cluster count. The medoid of each cluster is the member with the
+smallest mean euclidean distance to its co-members in the scaled-PCA
+space. Deterministic for a fixed ``seed``.
 
 Same target grammar and auto-synth behavior as :func:`analyze`, plus
 the literal string ``"latest_batch"`` meaning every element of the most
@@ -238,8 +238,7 @@ async def cluster_impl(
             )
         except Exception as e:  # noqa: BLE001 — soundfile/librosa raise a zoo
             # Corrupt/truncated/unsupported audio must surface as a
-            # structured error, not a raw protocol error. (Phase 2
-            # hardening, M3.)
+            # structured error, not a raw protocol error.
             return _failure(
                 session, latest_tracker, seed,
                 [ErrorEntry(
@@ -270,7 +269,7 @@ async def cluster_impl(
             k,
             seed,
         )
-    except Exception as e:  # noqa: BLE001 — sklearn raises a zoo (M3)
+    except Exception as e:  # noqa: BLE001 — sklearn raises a zoo
         return _failure(
             session, latest_tracker, seed,
             [ErrorEntry(
@@ -341,12 +340,11 @@ def register(
         mean/std + rolloff-85 mean + centroid-trajectory total
         variation + rms-trajectory range), standardized and
         PCA-reduced, then grouped with agglomerative clustering. The
-        MIR v2 vector separates noisy-vs-tonal and ordered-vs-scrambled
-        variants that the earlier Phase 3 28-dim vector conflated —
-        groupings may therefore differ from pre-v2 runs on the same
-        material. ``k`` (>= 2) fixes the cluster count; when omitted, a
-        silhouette scan over 2..min(6, N-1) picks the best-separated k.
-        Results are deterministic for a fixed ``seed``.
+        flatness and trajectory terms separate noisy-vs-tonal and
+        ordered-vs-scrambled variants. ``k`` (>= 2) fixes the cluster
+        count; when omitted, a silhouette scan over 2..min(6, N-1) picks
+        the best-separated k. Results are deterministic for a fixed
+        ``seed``.
 
         Returns ``clusters`` — each with ``members``, ``size``, and its
         ``medoid`` (the member closest to its cluster's co-members: the
@@ -372,16 +370,14 @@ def register(
 
 
 def _extract_features(audio_path: Path) -> np.ndarray:
-    """33-dim timbre vector (MIR v2).
+    """33-dim timbre vector.
 
-    The Phase 3 28-dim core (MFCC(13) means + stds + centroid mean +
-    RMS mean) plus the gap-analysis §4.5 additions: flatness-dB
-    mean + std (D1 — a noisy pad and a bright tone no longer
-    co-cluster), rolloff-85 mean (D2 spectral edge), and — from the
-    shared 16-point trajectory (:func:`~cdp_mcp.analysis.
-    trajectory_frames`, same frame math as ``analyze(verbose=True)``)
-    — centroid total variation and rms-dB range (D7 — ordered vs
-    scrambled variants were previously indistinguishable, §3.f).
+    MFCC(13) means + stds, centroid mean, RMS mean, flatness-dB
+    mean + std (so a noisy pad and a bright tone don't co-cluster),
+    rolloff-85 mean (spectral edge), and — from the shared 16-point
+    trajectory (:func:`~cdp_mcp.analysis.trajectory_frames`, same frame
+    math as ``analyze(verbose=True)``) — centroid total variation and
+    rms-dB range (so ordered and scrambled variants differ).
 
     Mono downmix at native sample rate. Raises whatever librosa /
     soundfile raise on unreadable audio — the tool layer converts to

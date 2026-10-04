@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur_min"},
   "curated": true,
   "version_sensitive": true,
@@ -62,7 +61,7 @@
     }
   ],
   "known_issues": [
-    "Multi-input entry: the single-input duration fixture doesn't apply. Rule pinned by probes: duration = indur_min (equal-length pairs -> that length exactly; 3s+2s and 2s+1s -> the shorter; times beyond the end overrun by <1%).",
+    "Multi-input entry; duration rule pinned by probes: duration = indur_min (equal-length pairs -> that length exactly; 3s+2s and 2s+1s -> the shorter; times beyond the end overrun by <1%).",
     "splicelen enforced 2-15 ms (verbatim) - much tighter than other sfedit splices; its breakpoint refusal says 'parameter 1' while its range refusal says 'Parameter[2]'.",
     "DETERMINISTIC-RANDOM FAMILY (first-class, source-diagnosed): modes 2/3 and the -r flag use osbind.c's drand48 shim (rand()/RAND_MAX) with NO srand call on this path - every run produces the same 'random' result (byte-identical 1.2 s apart, verified twice); there is no seed argv. Build/link-order dependent, hence version_sensitive.",
     "Mode 4 (Edit only) is engine-dropped: it writes chunk 1 at the argv name but chunks 2..N to '<argv-stem-minus-1-char><N>.wav' - orphan outputs; use execute() with cwd control.",

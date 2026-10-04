@@ -10,7 +10,6 @@
   "output_format": ".txt",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -38,7 +37,7 @@
     "NO SAMPLE-RATE VALIDATION at this stage - mixed-rate lists pass (exit 0) and refuse only at render time.",
     "Endpoint alignment stacks every file's final energy at one instant - pre-flight with submix getlevel 3 (mix-stage overload WRAPS).",
     "The output is a DATA file (mixfile, .txt) - consumer = submix mix's mixfile parameter. Duration pre-flight skipped ('static' placeholder); rendered duration = the longest listed file, exactly.",
-    "Deterministic; no numeric parameters. Arity-0 entry: call process() with no input argument; duration_row null in the findings (data output)."
+    "Deterministic; no numeric parameters. Arity-0 entry: call process() with no input argument (data output)."
   ],
   "references": ["cdp://docs/html/cgromix2"]
 }

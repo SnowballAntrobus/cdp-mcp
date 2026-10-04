@@ -1,11 +1,10 @@
-"""Tests for the ``combine cross`` curated entry (Phase 2 Task 9).
+"""Tests for the ``combine cross`` curated entry.
 
-The point of this entry is to prove a *second* multi-input spectral op ships
-usefully through the **existing** node-validation path — each input
-independently auto-PVOC'd, no length-alignment step — relying on CDP's native
-length handling (output = shorter input, confirmed order-independent by the
-Task 9 probe). The differing-length test asserts exactly that: success plus the
-absence of any alignment artifact in the graph.
+A multi-input spectral op that runs through the standard node-validation
+path — each input independently auto-PVOC'd, no length-alignment step —
+relying on CDP's native length handling (output = shorter input,
+order-independent). The differing-length test asserts exactly that: success
+plus the absence of any alignment artifact in the graph.
 
 Real-CDP tests gate on ``real_cdp_path`` AND a local ``combine`` presence check
 (``combine`` is not in conftest's shared required-binaries list).
@@ -39,13 +38,10 @@ def test_combine_cross_entry_loads_and_validates():
     assert entry is not None, "combine cross entry missing from the index"
     assert entry.input_arity == 2
     assert entry.domain == "spectral"
-    # The whole proof: this entry needs no alignment, so it declares no strategy.
-    assert entry.default_length_strategy is None
     assert entry.submode is None
     interp = entry.parameters["interp"]
     assert interp.flag == "-i" and interp.flag_kind == "attached_value"
     assert interp.breakpoint_capable is True
-    assert interp.breakpoint_duration_source == "input1"
     assert (interp.min, interp.max, interp.default) == (0.0, 1.0, 0.5)
 
 
@@ -128,8 +124,7 @@ async def test_combine_cross_constant_interp(cross_env):
 @pytest.mark.timeout(60)
 @pytest.mark.parametrize("order", [("a.wav", "b.wav"), ("b.wav", "a.wav")])
 async def test_combine_cross_differing_lengths_no_alignment(cross_env, order):
-    """Differing-length inputs (2s, 3s) succeed with NO alignment step —
-    the proof that the multi-input path needs no Task 8 alignment layer."""
+    """Differing-length inputs (2s, 3s) succeed with NO alignment step."""
     env = cross_env
     _make_wav(env.session.inputs_dir / "a.wav", 2.0, seed=42)  # shorter
     _make_wav(env.session.inputs_dir / "b.wav", 3.0, seed=43)  # longer
@@ -144,16 +139,12 @@ async def test_combine_cross_differing_lengths_no_alignment(cross_env, order):
     node_index = json.loads((graph_dir / "node_index.json").read_text())
     # Exactly the existing path: two PVOC nodes + main. No alignment nodes.
     assert set(node_index.keys()) == {"n1", "n2", "n3"}
-    # No aligned-input artifact written anywhere in the graph dir.
-    assert not list(graph_dir.rglob("*aligned*")), (
-        "found an alignment artifact — the existing path should run unmodified"
-    )
 
 
 @pytest.mark.timeout(60)
 async def test_combine_cross_breakpoint_on_interp(cross_env):
     """interp as a linear 0→1 breakpoint compiles against input1's duration
-    via the existing resolver and runs — Task 6 DSL on a multi-input entry."""
+    via the existing resolver and runs — breakpoint() on a multi-input entry."""
     env = cross_env
     _make_wav(env.session.inputs_dir / "a.wav", 2.0, seed=42)
     _make_wav(env.session.inputs_dir / "b.wav", 3.0, seed=43)

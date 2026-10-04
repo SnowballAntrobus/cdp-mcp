@@ -1,8 +1,8 @@
-"""End-to-end acceptance test for Phase 1a.
+"""End-to-end acceptance test against real CDP.
 
-Exercises the full Phase 1a workflow against real CDP under a dotted
-session name (``frog_acceptance_v1.0``) — locks in Task 6.1's
-path-mangling fix as a permanent regression check. Skipped cleanly when
+Exercises the core workflow under a dotted session name
+(``frog_acceptance_v1.0``) — a regression check for ``modify brassage``
+crashing on absolute paths containing a '.'. Skipped cleanly when
 ``$CDP_PATH`` isn't set or doesn't contain the required binaries
 (see the ``real_cdp_path`` fixture in ``conftest.py``).
 
@@ -80,7 +80,7 @@ def acceptance_env(tmp_path, real_cdp_path):
     latest_tracker = LatestTracker()
     knowledge = KnowledgeIndex.load()
 
-    # Dotted session name — exercises Task 6.1's path-mangling fix.
+    # Dotted session name — exercises the dotted-path regression (step 4).
     session_name = "frog_acceptance_v1.0"
     session, _created = sessions.set_active(session_name)
 
@@ -168,12 +168,10 @@ async def test_frog_acceptance_chain(acceptance_env):
         )
 
     # ------------------------------------------------------------------
-    # Step 1.5 (Phase 2 Task 2 gate): real `sfprops -d` parses the
-    # auto-PVOC output's .ana duration cleanly. Reads the n1 (pvoc anal)
-    # node's .ana — the input wav was 2 s, so this should report ~2 s
-    # within a couple of analysis frames. If real CDP r8's sfprops
-    # ever stops parsing cleanly, this assertion fails on first run and
-    # the read_ana_duration design premise needs revision.
+    # Step 1.5: real `sfprops -d` parses the auto-PVOC output's .ana
+    # duration cleanly (read_ana_duration depends on it). Reads the n1
+    # (pvoc anal) node's .ana — the input wav was 2 s, so this should
+    # report ~2 s within a couple of analysis frames.
     # ------------------------------------------------------------------
     pvoc_ana_path = graph_1_dir / node_index_1["n1"]
     assert pvoc_ana_path.suffix == ".ana"
@@ -186,8 +184,7 @@ async def test_frog_acceptance_chain(acceptance_env):
     )
     assert ana_duration is not None, (
         f"read_ana_duration returned None against real sfprops on "
-        f"{pvoc_ana_path} — the Phase 2 Task 2 design premise may need "
-        f"revision (see docs/phase-2-determinism.md / pvoc.read_ana_duration)."
+        f"{pvoc_ana_path}."
     )
     assert ana_duration == pytest.approx(2.0, abs=0.05), (
         f"sfprops reported {ana_duration:.4f}s for an .ana derived from "
@@ -219,10 +216,9 @@ async def test_frog_acceptance_chain(acceptance_env):
 
     # ------------------------------------------------------------------
     # Step 4: modify brassage — time op on .ana, auto-inserts pvoc synth.
-    # The dotted session name (frog_acceptance_v1.0) is what makes this
-    # the Task 6.1 regression check: before the cwd-relative argv fix,
-    # brassage crashed with SIGILL on any absolute path whose ancestry
-    # contained a dot.
+    # The dotted session name (frog_acceptance_v1.0) makes this a
+    # regression check: brassage crashes with SIGILL on any absolute path
+    # whose ancestry contains a dot, so argv paths must be cwd-relative.
     # ------------------------------------------------------------------
     r2 = await process_impl(
         ctx,
@@ -234,7 +230,7 @@ async def test_frog_acceptance_chain(acceptance_env):
     )
     assert r2["status"] == "ok", (
         f"modify brassage failed under dotted session name "
-        f"'{env.session_name}' (Task 6.1 regression): {r2}"
+        f"'{env.session_name}': {r2}"
     )
     assert r2["output"].endswith(".wav")
     graph_2_id = r2["context"]["active_graph"]

@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur + tail"},
   "curated": true,
   "version_sensitive": false,
@@ -75,7 +74,7 @@
     "Undocumented tail default 1.0 s re-verified sample-exact (1 s and 2 s inputs); entry pins -t explicitly.",
     "frq's real ceiling is 22050 regardless of the banner's 'srate/2' wording (refusal verbatim at 30000).",
     "Submodes 2 (band-pass), 3 (low-pass), 4 (high-pass) probed working, all four shapes mutually distinct on the same args - dropped for scope overlap with curated sweeping (band-pass LFO) and lohi (static lo/hi): reach for execute().",
-    "Deterministic (probe pair byte-identical); stereo accepted; no normalization pre-pass (P5-1 does not apply)."
+    "Deterministic (probe pair byte-identical); stereo accepted; no normalization pre-pass (so the vintage-binary bank hang does not apply)."
   ],
   "references": ["cdp://docs/html/cgrofilt"]
 }

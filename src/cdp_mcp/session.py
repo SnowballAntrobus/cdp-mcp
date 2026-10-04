@@ -3,9 +3,9 @@
 A *session* is a named directory under the sessions root (``~/cdp_sessions/``
 by default, or ``$CDP_MCP_SESSIONS_ROOT``) that holds a user's working
 materials for one piece or experiment. Every CDP operation that produces or
-consumes files (Task 4+) lives inside the active session.
+consumes files lives inside the active session.
 
-Phase 1a provides:
+This module provides:
 
 - a :class:`SessionManager` that creates new sessions or switches between
   existing ones, with strict name validation;
@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from . import __version__ as _cdp_mcp_version
 from .config import CDPConfig
@@ -69,9 +69,6 @@ class SessionConfig(BaseModel):
     cdp_version: str  # "unknown" if CDP wasn't configured at creation time
     python_version: str
     cdp_mcp_version: str
-    # User-adjustable settings persisted by set_config() (Phase 4).
-    # Absent from pre-Phase-4 config.json files; defaults to {} on load.
-    user_config: dict = Field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------

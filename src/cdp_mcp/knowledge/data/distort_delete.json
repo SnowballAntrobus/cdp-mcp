@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur / cyclecnt"},
   "curated": true,
   "version_sensitive": false,
@@ -52,7 +51,7 @@
     }
   ],
   "known_issues": [
-    "Duration honesty: 'indur / cyclecnt' holds within +/-0.25% on periodic material (440 Hz tone, cyclecnt 2/4/8; AM tone; sweep) but NOISE runs long - +21% (cyclecnt 2) and +44% (cyclecnt 4) on both enveloped and flat noise, because the strongest wavecycle in a noise group is biased toward longer cycles. The model under-predicts there; budget accordingly. For this reason the entry is EXCLUDED from the shared flat-noise duration-row fixture (would fail its 5% tolerance by construction).",
+    "Duration honesty: 'indur / cyclecnt' holds within +/-0.25% on periodic material (440 Hz tone, cyclecnt 2/4/8; AM tone; sweep) but NOISE runs long - +21% (cyclecnt 2) and +44% (cyclecnt 4) on both enveloped and flat noise, because the strongest wavecycle in a noise group is biased toward longer cycles. The model under-predicts there; budget accordingly.",
     "skipcycles drops the skipped region from the output entirely (verified -0.0567 s = 100 cycles / cyclecnt at 440 Hz); the duration model assumes skipcycles = 0.",
     "Stereo refused: 'Application doesn't work with this type of infile.' -> mono.",
     "Deterministic: two runs 1.2 s apart decoded-identical. Submode 2 output differs from submodes 1 and 3 (verified).",

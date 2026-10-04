@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": null,
   "duration_model": {"kind": "set_by", "param": "outdur"},
   "curated": true,
   "version_sensitive": false,
@@ -220,7 +219,7 @@
     }
   ],
   "known_issues": [
-    "Duration honesty (set_by outdur): actual output lands between about 1.3% below outdur and roughly outdur + maxdur, because the final event's tail extends past the grid. Observed across both curation rounds: -1.3% to +1.2% with maxdur 0.5; +11.6% with maxdur 1.5; +18.5% with maxdur 2.0; +25.4% with maxdur 2.5 (all on outdur 5). The banner calls outdur the '(min) duration of outfile' but runs land slightly below it (7.98 from outdur 8). Keep maxdur small relative to outdur when output length matters; unseeded duration also varies run to run.",
+    "Duration honesty (set_by outdur): actual output lands between about 1.3% below outdur and roughly outdur + maxdur, because the final event's tail extends past the grid. Observed: -1.3% to +1.2% with maxdur 0.5; +11.6% with maxdur 1.5; +18.5% with maxdur 2.0; +25.4% with maxdur 2.5 (all on outdur 5). The banner calls outdur the '(min) duration of outfile' but runs land slightly below it (7.98 from outdur 8). Keep maxdur small relative to outdur when output length matters; unseeded duration also varies run to run.",
     "Mono input -> STEREO output on every run (events are placed in a stereo image via position/spread). Stereo input is refused: 'Application doesn't work with this type of infile.' channel_constraint 'mono' describes the input side; the output .wav is always 2-channel.",
     "Genuinely stochastic with a working -r seed (contrast modify revecho's no-op seed): unseeded runs differ in both samples and frame count; the same seed reproduces output byte-identically.",
     "CDP enforces option-flag ORDER: flags must follow the positionals in banner order -a -p -s -r -w ('-r5 -a0.5' refuses with 'option flag -a out of order on cmdline.'). The engine emits parameters in entry declaration order, which matches the banner order.",

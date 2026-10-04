@@ -53,7 +53,7 @@ def test_categories_sorted_and_unique(real_index):
 
 def test_list_entries_by_category(real_index):
     entries = real_index.list_entries(category="filter")
-    # bank appears once per curated submode since Phase 5 wave 3.
+    # bank appears once per curated submode.
     assert [(e.program, e.mode, e.submode) for e in entries] == [
         ("filter", "bank", 1), ("filter", "bank", 5), ("filter", "bank", 6),
         ("filter", "bankfrqs", 1), ("filter", "fixed", 3),
@@ -68,9 +68,9 @@ def test_list_entries_by_domain_spectral(real_index):
     entries = real_index.list_entries(domain="spectral")
     keys = {(e.program, e.mode) for e in entries}
     assert keys == {
-        # Regenerated from the loader at each integration wave — the
-        # spectral tail made hand-maintenance error-prone. Any drift
-        # (new spectral entry, domain flip) still fails here.
+        # Generated from the loader — the spectral tail made
+        # hand-maintenance error-prone. Any drift (new spectral entry,
+        # domain flip) still fails here.
         ("analjoin", "join"), ("blur", "avrg"), ("blur", "blur"),
         ("blur", "chorus"), ("blur", "drunk"), ("blur", "noise"),
         ("blur", "scatter"), ("blur", "shuffle"), ("blur", "spread"),
@@ -110,14 +110,11 @@ def test_list_entries_by_domain_spectral(real_index):
 
 
 def test_list_entries_filters_compose_and(real_index):
-    # No spectral filter entry in Phase 1a.
+    # No spectral filter entry.
     assert real_index.list_entries(category="filter", domain="spectral") == []
 
 
 def test_curated_only_passthrough_includes_all(real_index):
-    # All curated entries are curated, so curated_only=False just returns the
-    # same set. The flag's behavior is exercised; the data doesn't (yet)
-    # contain uncurated entries to filter out.
     assert len(real_index.list_entries(curated_only=False)) == 447
     assert len(real_index.list_entries(curated_only=True)) == 348
 
@@ -167,8 +164,8 @@ def test_malformed_entry_warns_and_skips(tmp_path, monkeypatch, capsys):
 
         def joinpath(self, *parts):
             # Only the curated data dir maps to tmp_path; the uncurated
-            # dir (Phase 3) resolves to a dead traversable so the fake
-            # doesn't serve every entry twice.
+            # dir resolves to a dead traversable so the fake doesn't
+            # serve every entry twice.
             live = bool(parts) and parts[-1] == "data"
             return _FakeTraversable(self._p, live=live)
 

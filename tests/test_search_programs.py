@@ -63,7 +63,7 @@ def test_build_index_records_meta(built_index, knowledge):
     meta = _meta(built_index)
     curated = knowledge.list_entries(curated_only=True)
     assert int(meta["entry_count"]) == len(curated)
-    assert int(meta["entry_count"]) > 300  # the Phase 6 curated corpus
+    assert int(meta["entry_count"]) > 300
     assert meta["built_at"]
     assert len(meta["knowledge_fingerprint"]) == 64
     assert not built_index.with_name(built_index.name + ".tmp").exists()
@@ -337,7 +337,7 @@ def test_prompt_function_mentions_the_workflow_tools():
         "list_examples",
     ):
         assert needle in text, f"prompt text is missing {needle!r}"
-    # The material-class vocabulary from docs/generalization-matrix.md.
+    # The material-class vocabulary (see test_generalization.py).
     for klass in ("PITCHED SUSTAIN", "ARTICULATED", "BROADBAND BED", "ONE-SHOT"):
         assert klass in text
 

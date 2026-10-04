@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "unstable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "set_by", "param": "dur"},
   "curated": true,
   "version_sensitive": true,
@@ -48,7 +47,7 @@
     "Duration quantizes up to whole pattern units (+0.26% observed at 3 s).",
     "maxfrac (-m), str (-t), warp (-i), -s and -o flags are banner-documented but unprobed - uncurated.",
     "Deterministic in probing (no seed observed).",
-    "Sibling fractal spectrum (fractalise a spectrum by transposition) unprobed this tranche."
+    "Sibling fractal spectrum (fractalise a spectrum by transposition) is unprobed."
   ],
   "references": ["cdp://docs/html/cr8new"]
 }

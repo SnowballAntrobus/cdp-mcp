@@ -251,9 +251,9 @@ def _trigger_signal_death() -> None:
     ReportCrash.
 
     Production code only inspects exit_code for == 0 / != 0; no path
-    examines a specific signal value. If a future Phase 1b task needs
-    signal-number fidelity, introduce a separate opt-in code path rather
-    than changing this default.
+    examines a specific signal value. If a test ever needs signal-number
+    fidelity, introduce a separate opt-in code path rather than changing
+    this default.
 
     Never returns.
     """

@@ -8,7 +8,7 @@ The loop is **find a program → process the audio → observe the result → re
 
 ## Contents
 
-- `src/cdp_mcp/`: the server. `server.py` registers the 34 tools and 4 prompts, and `tools/` holds the tool modules. The other modules check, run and record CDP commands, cache derived files and analyze audio.
+- `src/cdp_mcp/`: the server. `server.py` registers the 33 tools and 4 prompts, and `tools/` holds the tool modules. The other modules check, run and record CDP commands, cache derived files and analyze audio.
 - `src/cdp_mcp/knowledge/`: the curated entries, stubs for uncurated programs, and six verified example chains.
 - `tests/`: a suite that fakes CDP, plus tests that run when real CDP binaries are available.
 - `scripts/build_cdp8_linux.sh`: builds the CDP binaries from source on Linux.

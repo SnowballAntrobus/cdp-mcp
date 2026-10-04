@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": "related",
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -74,7 +73,7 @@
     }
   ],
   "known_issues": [
-    "Mono-only + stochastic + seed-reproducible, like sibling submode 10 (the stereo seed-link trigger combination): stereo input refused 'ERROR: INVALID DATA / ERROR: File st2.wav is not of correct type (must be mono)'. Stereo sources must be split/processed/rejoined manually; stereo_link_default 'related' records the intended per-channel-seed default (seed and seed+1, not identical).",
+    "Mono-only, stochastic and seed-reproducible, like sibling submode 10: stereo input refused 'ERROR: INVALID DATA / ERROR: File st2.wav is not of correct type (must be mono)'. Split stereo sources into mono channels, process each, and rejoin them.",
     "The seed is REQUIRED and there is no unseeded/clock path: rerunning identical params always reproduces byte-identically. Seed 0 equals seed 1 (verified byte-identical at trns 3/atten 0.5) - the usable distinct-seed space is 1-256.",
     "With trns = 0 and atten = 0 (the defaults) the level-sort consumes no randomness: seed 5 and seed 9 renders are byte-identical. The seed only matters once trns and/or atten are nonzero.",
     "Duration is static but waveset-quantised: -0.23% worst observed (deep-AM tone); -0.005% on flat noise. trns > 0 adds a random +/-~1-2% length drift that varies with the seed (wavesets are resampled to new pitches).",

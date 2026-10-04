@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur / cyclecnt"},
   "curated": true,
   "version_sensitive": false,
@@ -60,7 +59,7 @@
     }
   ],
   "known_issues": [
-    "Duration honesty: 'indur / cyclecnt' holds within +/-0.3% on periodic material but the default longest-cycle telescope runs +55% long on flat noise (0.7729 vs 0.5 predicted at cyclecnt 4); with average=1 the same render is 0.5158 (+3.2%). The pinned duration row uses average=1 for this reason.",
+    "Duration honesty: 'indur / cyclecnt' holds within +/-0.3% on periodic material but the default longest-cycle telescope runs +55% long on flat noise (0.7729 vs 0.5 predicted at cyclecnt 4); with average=1 the same render is 0.5158 (+3.2%). Use average=1 when the predicted duration matters.",
     "skipcycles drops the skipped region from the output; model assumes skipcycles = 0.",
     "Unipolar / zero-crossing-free material refused: 'ERROR: CANNOT ACHIEVE TASK: / ERROR: source sound too short to attempt this process.'",
     "Stereo refused: 'Application doesn't work with this type of infile.' (exit 255) -> mono.",

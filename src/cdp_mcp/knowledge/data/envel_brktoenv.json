@@ -10,7 +10,6 @@
   "output_format": ".evl",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -49,8 +48,8 @@
     }
   ],
   "known_issues": [
-    "DATA-TO-DATA entry (.txt aux in, .evl data out): no audio, no audition, duration pre-flight skipped ('static' is a placeholder; findings duration row null). Consumers: envel impose 2 / replace 2 / reshape via execute().",
-    "SUBSTRATE PIN (matters for exotic builds, recorded for macOS re-verification): this program READS text through CDP's parser, which breaks wholesale on unsigned-char platforms (Linux aarch64) - every text file refuses 'ERROR: <name> is not a valid CDP file' until the binaries are built with -fsigned-char (cdparse.c '(char)fgetc() != EOF' loop; diagnosed and fixed on this tranche's substrate). macOS r8 (signed char) is unaffected.",
+    "DATA-TO-DATA entry (.txt aux in, .evl data out): no audio, no audition, duration pre-flight skipped ('static' is a placeholder). Consumers: envel impose 2 / replace 2 / reshape via execute().",
+    "SUBSTRATE PIN (matters for exotic builds): this program READS text through CDP's parser, which breaks wholesale on unsigned-char platforms (Linux aarch64) - every text file refuses 'ERROR: <name> is not a valid CDP file' until the binaries are built with -fsigned-char (cdparse.c '(char)fgetc() != EOF' loop). macOS r8 (signed char) is unaffected.",
     "wsize's maximum tracks the breakpoint list's time span (refusals quote the per-file bound).",
     "Breakpoint values above 1.0 convert without clamping - downstream imposition can amplify past full scale.",
     "First-time > 0 lists gain a level-hold from time 0 (banner-documented; no refusal).",

@@ -10,10 +10,10 @@ Three tools live here:
   active session's ``envelopes/`` directory. Lets the LLM introspect
   user-supplied breakpoint files without copy-paste.
 
-All follow Task 1's convention: ``async def`` with ``ctx: Context`` first.
-All are backed by a :class:`~cdp_mcp.session.SessionManager` captured by
-closure in :func:`register`, mirroring the knowledge-index pattern from
-Task 2's :mod:`cdp_mcp.tools.introspection`.
+All are ``async def`` with ``ctx: Context`` first, backed by a
+:class:`~cdp_mcp.session.SessionManager` captured by closure in
+:func:`register` (the same pattern as the knowledge index in
+:mod:`cdp_mcp.tools.introspection`).
 """
 
 from __future__ import annotations
@@ -64,7 +64,7 @@ def register(
 
         Resets the in-memory conversational state (``latest``,
         ``prev_1`` .. ``prev_4``) so the new activation starts with no
-        aliases. Does not affect on-disk graphs or ``cache_index.json``.
+        aliases. Does not affect on-disk graphs or the cache.
 
         If the session's recorded CDP version differs from the currently
         installed one, a one-line warning naming both versions appears
@@ -107,7 +107,7 @@ def register(
         available = sessions.list_sessions()
         # Disk walks (cache rglob + recursive session du) run off the
         # event loop — a multi-GB session tree or cache on a slow disk
-        # would otherwise stall MCP heartbeats. (Phase 2 hardening, M2.)
+        # would otherwise stall MCP heartbeats.
         cache_block = await asyncio.to_thread(_cache_block, cache_root)
         if active is None:
             return {
@@ -127,8 +127,8 @@ def register(
         Useful for inspecting user-supplied breakpoint (``.brk``) files
         before feeding them to ``process()``, or for confirming the
         engine-compiled ``.brk`` content that ``process()`` writes
-        whenever you pass a breakpoint list. Phase 1b supports ``.brk``
-        and ``.txt`` extensions.
+        whenever you pass a breakpoint list. Supports ``.brk`` and
+        ``.txt`` extensions.
 
         Args:
             name: A bare basename inside ``envelopes/``. Path separators
@@ -199,10 +199,10 @@ def _describe_active(
 def _history(session: Session) -> dict[str, str | None]:
     """Compressed mapping of every session graph ID to its primary output.
 
-    The design-doc-committed "explicit recall" complement to the
-    in-memory ``recent_graphs`` deque: built from the filesystem at call
-    time, so it survives server restarts and covers graphs that have
-    scrolled out of the conversational window. The primary output is the
+    The "explicit recall" complement to the in-memory ``recent_graphs``
+    deque: built from the filesystem at call time, so it survives server
+    restarts and covers graphs that have scrolled out of the
+    conversational window. The primary output is the
     highest-numbered node's filename (the main op — auto-PVOC nodes get
     lower numbers); reference it as ``<graph_id>:<node_id>`` or by name.
     Unreadable/empty ``node_index.json`` → ``None`` (the graph directory
@@ -290,9 +290,8 @@ def _read_envelope(session: Session, name: str) -> dict:
             f"Envelope file not found: {target}. "
             f"Call describe_workspace() to list available envelope files."
         )
-    # Cap the READ, not just the response: the old read_bytes() loaded a
-    # pathological multi-GB file fully into RAM before truncating.
-    # (Phase 2 hardening, M2.)
+    # Cap the READ, not just the response: never load a pathological
+    # multi-GB file fully into RAM before truncating.
     size_bytes = target.stat().st_size
     truncated = size_bytes > _READ_ENVELOPE_MAX_BYTES
     with target.open("rb") as fh:
@@ -316,8 +315,8 @@ def _count_dirs(path) -> int:
 def _disk_usage(root) -> int:
     """Recursive sum of file sizes under ``root``.
 
-    Phase 1a uses a naive ``rglob`` — fine for sessions with a handful of
-    inputs and a few graphs. Revisit if it becomes slow in practice.
+    A naive ``rglob`` — fine for sessions with a handful of inputs and a
+    few graphs.
     """
     if not root.exists():
         return 0

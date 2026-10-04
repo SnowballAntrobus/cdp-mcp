@@ -10,7 +10,6 @@
   "output_format": ".ana",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur + 14.5 / (10000 * (1 - decay**0.0001))"},
   "curated": true,
   "version_sensitive": false,
@@ -65,7 +64,7 @@
     "BANNER DIVERGENCE (first-class): decay's documented default '1.0 (no attenuation)' is outside the enforced range (0.00001-0.9); the real source default is 0.01 (flag-less == -d0.01, duration-verified). There is no 'no attenuation' setting.",
     "DURATION EXTENDS past the input: outdur = indur + resonant tail, tail ~= 14.5/-ln(decay) s (probes: decay 0.01/0.1/0.3/0.5 -> tails 2.80/5.66/10.87/18.95 s on a tone; indur-independent). The tail ends at an ABSOLUTE amplitude threshold, so it is CONTENT-DEPENDENT: broadband/louder material rings longer (flat noise: 3.40/6.90 s at 0.01/0.1 - ~20% over the model). Treat the pre-flight as a +/-20% staging estimate, and expect far longer outputs when a decay breakpoint rises above its starting value (0.5->0.8 ramp -> 61.7 s from 2 s).",
     "Contrast focus accu (curated): same sustain idea, but STATIC duration - choose superaccu when you want the ring-out, focus accu when you want the length preserved.",
-    "Siblings: mode 2 = resonance starts forced to the tempered scale (verified running, distinct output); modes 3/4 take a tuning file that - despite the banner calling it 'a set of frequencies' - is parsed as MIDI pitch values (verbatim refusal for 220: 'Pitch out of range (10.000000 - 14700.000000)... file tun1.txt'; MIDI-valued files run). Divergence recorded for their future curation.",
+    "Siblings: mode 2 = resonance starts forced to the tempered scale (verified running, distinct output); modes 3/4 take a tuning file that - despite the banner calling it 'a set of frequencies' - is parsed as MIDI pitch values (verbatim refusal for 220: 'Pitch out of range (10.000000 - 14700.000000)... file tun1.txt'; MIDI-valued files run).",
     "-r verified a byte-identical no-op unless material is actually glissing into other channels - source-dependent, not a bug.",
     "Deterministic (byte-identical data chunks 1.2 s apart). 'WARNING: failed to write PEAK data' family warning harmless."
   ],

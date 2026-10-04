@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {
     "kind": "expression",
     "expr": "indur + (1.0 / (440.0 * 2 ** ((midipitch - 69) / 12.0))) * 18.5 * ((feedback if feedback >= 0 else -feedback) + 1) / (2.0 * (1.0 - (feedback if feedback >= 0 else -feedback)))"

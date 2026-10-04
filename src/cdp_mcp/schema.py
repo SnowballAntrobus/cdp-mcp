@@ -10,7 +10,7 @@ This module defines two related families of models:
 
 2. **Result-envelope models** — ``ErrorEntry``, ``RecentGraphEntry``,
    ``ContextBlock``, and ``ResultEnvelope``. These describe what an execution
-   tool returns. Defined here in Phase 1a; first consumed in Task 4+.
+   tool returns.
 
 All logging of validation failures happens at the loader boundary; the models
 themselves only raise ``pydantic.ValidationError`` and let the loader decide
@@ -46,49 +46,45 @@ class ParameterSpec(BaseModel):
 
     ``musical_range`` is advisory only — it documents the values that
     typically produce musically useful results, and is *not* enforced at
-    validation time. Phase 1a leaves it unset on every entry; curated in
-    Phase 3.
+    validation time.
 
-    ``breakpoint_capable`` was empirically verified per parameter against
-    the CDP r8 binary in the Phase 2 curation review (see
-    ``docs/phase-2-breakpoint-review.md``); outcomes are pinned in
+    ``breakpoint_capable`` is empirically verified per parameter against
+    the CDP r8 binary; outcomes are pinned in
     ``tests/test_breakpoint_curation.py``, which fails on any drift
     between the JSONs and the verified table.
 
-    ``type: "aux_file"`` (Phase 3) marks a parameter whose value is a
-    string path to an existing auxiliary data file — e.g. ``texture``'s
-    notedata slot, produced by the ``write_data_file`` tool into
+    ``type: "aux_file"`` marks a parameter whose value is a string path
+    to an existing auxiliary data file — e.g. ``texture``'s notedata
+    slot, produced by the ``write_data_file`` tool into
     ``<session>/data/``. Usually a text file, but binary CDP data files
-    are equally valid (``formants put``'s ``.for`` slot — Phase 5 wave
-    2a). Any extension except ``.brk`` is accepted (``.brk`` is
-    reserved for the breakpoint compiler's routing).
-    ``validate_params`` checks the type only; existence + resolution
-    against the session happen in ``node_validation`` (step 8.7), which
-    replaces the value with a resolved :class:`~pathlib.Path` so
-    ``build_cdp_argv`` renders it cwd-relative like other paths.
+    are equally valid (``formants put``'s ``.for`` slot). Any extension
+    except ``.brk`` is accepted (``.brk`` is reserved for the breakpoint
+    compiler's routing). ``validate_params`` checks the type only;
+    existence + resolution against the session happen in
+    ``node_validation`` (step 8.7), which replaces the value with a
+    resolved :class:`~pathlib.Path` so ``build_cdp_argv`` renders it
+    cwd-relative like other paths.
 
-    ``position: "pre_output"`` (Phase 5 wave 2a) marks a positional
-    ``aux_file`` parameter whose argv slot sits BETWEEN the inputs and
-    the output path — CDP's ``submix mix <mixfile> <outfile>`` and
-    ``formants put 1 <infile> <fmntfile> <outfile>`` layouts.
-    ``build_cdp_argv`` renders ``pre_output`` params (in entry
-    declaration order) before the output slot; all other params render
-    after it as before. Only meaningful on positional (``flag is
-    None``) ``aux_file`` params — enforced by a model validator, since
-    a flagged or non-file param "before the output" has no CDP meaning
-    and would silently corrupt the argv.
+    ``position: "pre_output"`` marks a positional ``aux_file`` parameter
+    whose argv slot sits BETWEEN the inputs and the output path — CDP's
+    ``submix mix <mixfile> <outfile>`` and ``formants put 1 <infile>
+    <fmntfile> <outfile>`` layouts. ``build_cdp_argv`` renders
+    ``pre_output`` params (in entry declaration order) before the output
+    slot; all other params render after it. Only meaningful on
+    positional (``flag is None``) ``aux_file`` params — enforced by a
+    model validator, since a flagged or non-file param "before the
+    output" has no CDP meaning and would silently corrupt the argv.
 
-    ``type: "free_string"`` (Phase 6, tranche 24) marks a parameter
-    whose value is a plain string parsed straight from argv by CDP —
-    NOT a file path. The motivating shape is the ``shuffle``
-    domain-image map (``"ab-abab"``, ``cdp2k/tklib3.c:646
-    read_shuffle_data``), a REQUIRED positional with no file fallback,
-    which the pre-existing ``str`` type could not express (the engine
-    rejects caller-supplied strings for ``str`` params — they exist
-    only to pin curated side-file default names, e.g. ``repitch
+    ``type: "free_string"`` marks a parameter whose value is a plain
+    string parsed straight from argv by CDP — NOT a file path. The
+    motivating shape is the ``shuffle`` domain-image map (``"ab-abab"``,
+    ``cdp2k/tklib3.c:646 read_shuffle_data``), a REQUIRED positional
+    with no file fallback, which the ``str`` type cannot express (the
+    engine rejects caller-supplied strings for ``str`` params — they
+    exist only to pin curated side-file default names, e.g. ``repitch
     getpitch``'s ``pitchdata``). ``free_string`` values pass
-    ``validate_params`` as strings, optionally gated by ``pattern``
-    (a ``re.fullmatch`` regex), and render verbatim into the argv.
+    ``validate_params`` as strings, optionally gated by ``pattern`` (a
+    ``re.fullmatch`` regex), and render verbatim into the argv.
     ``.brk``-suffixed values are refused at type-check time so the
     breakpoint compiler's string routing can never intercept one.
 
@@ -104,13 +100,6 @@ class ParameterSpec(BaseModel):
     max: float | None = None
     unit: str | None = None
     breakpoint_capable: bool = False
-    # Phase 2 Task 5. Multi-input entries (input_arity > 1) need to say which
-    # input's duration defines the breakpoint envelope's relative-time axis.
-    # ``"input1"`` / ``"input2"`` pick a specific input; ``"max"`` / ``"min"``
-    # take the longer / shorter of the inputs. Must be None on single-input
-    # entries; required when ``breakpoint_capable=True`` on a multi-input
-    # entry. Enforced by a ``KnowledgeEntry``-level validator.
-    breakpoint_duration_source: Literal["input1", "input2", "max", "min"] | None = None
     default: float | int | str | bool | None = None
     musical_range: tuple[float, float] | None = None
     description: str | None = None
@@ -134,9 +123,9 @@ class ParameterSpec(BaseModel):
     @model_validator(mode="after")
     def _position_requires_positional_aux_file(self) -> ParameterSpec:
         """``position: "pre_output"`` is only meaningful for positional
-        ``aux_file`` params (Phase 5 wave 2a) — the pre-output argv slot
-        is where CDP programs like ``submix mix`` / ``formants put``
-        expect their data file, and nothing else belongs there."""
+        ``aux_file`` params — the pre-output argv slot is where CDP
+        programs like ``submix mix`` / ``formants put`` expect their data
+        file, and nothing else belongs there."""
         if self.position is None:
             return self
         if self.type != "aux_file":
@@ -155,10 +144,10 @@ class ParameterSpec(BaseModel):
 
     @model_validator(mode="after")
     def _pattern_requires_free_string(self) -> ParameterSpec:
-        """``pattern`` gates ``free_string`` values only (Phase 6,
-        tranche 24). A pattern on any other type would silently never
-        run; a non-compiling pattern would crash validate_params at
-        call time. Both are curator errors caught at load."""
+        """``pattern`` gates ``free_string`` values only. A pattern on any
+        other type would silently never run; a non-compiling pattern
+        would crash validate_params at call time. Both are curator
+        errors caught at load."""
         if self.pattern is None:
             return self
         if self.type != "free_string":
@@ -202,31 +191,19 @@ class DurationModelSetBy(BaseModel):
     param: str
 
 
-class DurationModelLinear(BaseModel):
-    """Output duration is a linear function of the named parameter.
-
-    For example, ``extend loop`` mode 3's ``cnt`` (loop repeat count) is a
-    linear duration model: ``outdur ≈ cnt * loop_segment_duration``.
-    """
-
-    kind: Literal["linear"]
-    param: str
-
-
 class DurationModelExpression(BaseModel):
     """Free-form expression for duration models that don't fit the simpler kinds.
 
-    **Expression vocabulary** (fixed convention so future curation doesn't drift):
+    Evaluated arithmetic-only (``simpleeval``, no function calls) by
+    :mod:`cdp_mcp.duration_preflight`. **Expression vocabulary**:
 
     - ``indur`` — input duration in seconds (single-input case).
+    - ``indur1``, ``indur2``, etc. — per-input durations.
+    - ``indur_min`` / ``indur_max`` — shortest / longest input duration.
     - Any name appearing in the entry's ``parameters`` dict — value of that
-      parameter at call time.
-    - Multi-input cases use ``indur1``, ``indur2``, etc. (not needed for any
-      Phase 1a entry).
+      parameter at call time (its curated numeric default if not passed).
 
-    Phase 1a records the expression as an opaque string only; the evaluator
-    lands in Phase 1b alongside breakpoint compilation. Example for
-    ``modify brassage`` mode 2 (TIMESTRETCH)::
+    Example for ``modify brassage`` mode 2 (TIMESTRETCH)::
 
         DurationModelExpression(kind="expression", expr="indur / velocity")
     """
@@ -236,7 +213,7 @@ class DurationModelExpression(BaseModel):
 
 
 DurationModel = Annotated[
-    DurationModelStatic | DurationModelSetBy | DurationModelLinear | DurationModelExpression,
+    DurationModelStatic | DurationModelSetBy | DurationModelExpression,
     Field(discriminator="kind"),
 ]
 
@@ -245,9 +222,8 @@ DurationModel = Annotated[
 # KnowledgeEntry
 # ---------------------------------------------------------------------------
 
-# Data (non-audio) output formats a curated entry may declare (Phase 5
-# wave 2a, unblocking envel extract / formants get). Empirically pinned
-# against the r8 binaries:
+# Data (non-audio) output formats a curated entry may declare. Empirically
+# pinned against the r8 binaries:
 #
 # - ``.evl`` — envel extract mode 1's binary envelope file. CDP dresses
 #   it as a RIFF/WAVE (FLOAT subtype, sample rate 57 for a 2 s input at
@@ -257,19 +233,16 @@ DurationModel = Annotated[
 # - ``.for`` — formants get's binary formant data file (also a RIFF
 #   container; a get output named ``.ana`` misreports 107.85 s via
 #   ``sfprops -d`` from a 2 s source).
-# - ``.txt`` — text data outputs (envel extract mode 2's brkfile form;
-#   no curated consumer yet, reserved so the namer/verifier logic
-#   doesn't need reopening when one lands).
-# - ``.frq`` / ``.trn`` (Phase 6, tranche 24) — CDP's binary pitch-data
-#   and transposition-data files (the repitch transform layer, verified
-#   working in tranche 22 but schema-blocked until now). Both are RIFF
-#   containers: fmt FLOAT mono with "sample rate" = the analysis window
-#   rate (344 for 44.1 kHz / 1024-point / overlap-3), LIST adtl note
-#   properties ``is a pitch file`` / ``is a transpos file``, one
-#   float32 per analysis window (Hz values with -1/-2 markers for .frq,
-#   ratios for .trn). Exactly the .evl poison shape: soundfile happily
-#   "decodes" them as 344 Hz pseudo-wavs, so they must never reach the
-#   audio verifier or the duration probe.
+# - ``.txt`` — text data outputs (e.g. envel envtobrk's breakpoint list).
+# - ``.frq`` / ``.trn`` — CDP's binary pitch-data and transposition-data
+#   files (the repitch transform layer). Both are RIFF containers: fmt
+#   FLOAT mono with "sample rate" = the analysis window rate (344 for
+#   44.1 kHz / 1024-point / overlap-3), LIST adtl note properties ``is a
+#   pitch file`` / ``is a transpos file``, one float32 per analysis
+#   window (Hz values with -1/-2 markers for .frq, ratios for .trn).
+#   Exactly the .evl poison shape: soundfile happily "decodes" them as
+#   344 Hz pseudo-wavs, so they must never reach the audio verifier or
+#   the duration probe.
 #
 # Consumers: the output namer (node_validation step 9) uses the entry's
 # declared data format instead of the domain-derived audio extension;
@@ -278,8 +251,8 @@ DurationModel = Annotated[
 # duration); and the PVOC domain gate already refuses them as inputs
 # (unknown_input_domain), so nothing feeds them to sfprops or the
 # audition synth. Entries CONSUMING .frq/.trn take them through
-# ``aux_file`` params (pre_output slots — the repitch combineb 1 /
-# transposef 4 precedent), never as engine-resolved audio inputs.
+# ``aux_file`` params (pre_output slots, e.g. repitch combineb 1 /
+# transposef 4), never as engine-resolved audio inputs.
 DATA_OUTPUT_FORMATS = frozenset({".evl", ".for", ".txt", ".frq", ".trn"})
 
 
@@ -300,43 +273,26 @@ class KnowledgeEntry(BaseModel):
     submode: int | None = None
     category: str
     domain: Literal["time", "spectral"]
-    # ``input_arity: 0`` (Phase 5 wave 2a) marks a generator / data-driven
-    # entry with NO audio inputs (synth noise/wave; submix mix, whose
-    # sources live inside its mixfile). validate_node accepts an empty
-    # inputs list, the duration pre-flight evaluates with no indurs
-    # (duration typically ``set_by`` a dur param), and lineage records an
-    # empty inputs list. graph()/batch()/sweep() exclude arity-0 entries
-    # with a structured ``arity_zero_unsupported`` error — their spec
-    # shapes are input-wiring by construction (see those modules).
-    input_arity: int | Literal["N", "variable"]
+    # ``input_arity: 0`` marks a generator / data-driven entry with NO
+    # audio inputs (synth noise/wave; submix mix, whose sources live
+    # inside its mixfile). validate_node accepts an empty inputs list, the
+    # duration pre-flight evaluates with no indurs (duration typically
+    # ``set_by`` a dur param), and lineage records an empty inputs list.
+    # graph()/batch()/sweep() exclude arity-0 entries with a structured
+    # ``arity_zero_unsupported`` error — their spec shapes are
+    # input-wiring by construction (see those modules).
+    input_arity: int
     channel_constraint: Literal["mono", "stereo", "any", "multi"]
     input_format: str
     # ``.wav`` / ``.ana`` are the audio formats (extension actually
-    # derived from ``domain`` at output-naming time, as before).
+    # derived from ``domain`` at output-naming time).
     # ``.evl`` / ``.for`` / ``.txt`` / ``.frq`` / ``.trn`` are data
     # formats — see DATA_OUTPUT_FORMATS above for the exact semantics
     # they switch on.
     output_format: Literal[".wav", ".ana", ".evl", ".for", ".txt", ".frq", ".trn"]
-    stability: Literal["stable", "unstable", "buggy", "deprecated"] = "stable"
+    stability: Literal["stable", "unstable"] = "stable"
     phase_sensitive: bool = False
-    stereo_link_default: Literal["linked", "related", "independent"] | None = None
     duration_model: DurationModel
-    # Phase 2 Task 5. How the engine should align multi-input durations when
-    # no per-call override is supplied. Accepted values:
-    #
-    # - ``"pad_with_fade"`` — pad shorter inputs with silence + fade-in/out
-    #   so they match the longest. Default for most multi-input combiners.
-    # - ``"truncate_to_shortest"`` — truncate all inputs to the shortest.
-    # - ``"fail"`` — refuse to run when input lengths differ; surface a
-    #   structured error.
-    # - ``"stagger:<float>"`` — for programs that have their own offset
-    #   mechanism (e.g. ``morph morph``'s ``-s`` flag); the float is the
-    #   default offset in seconds.
-    # - ``None`` — no strategy (default behavior; appropriate for
-    #   single-input entries).
-    #
-    # Enforced format by a model_validator below; engine wiring is Task 8.
-    default_length_strategy: str | None = None
     curated: bool = True
     version_sensitive: bool = False
     description: str
@@ -346,51 +302,9 @@ class KnowledgeEntry(BaseModel):
     known_issues: list[str] = Field(default_factory=list)
     references: list[str] = Field(default_factory=list)
 
-    @model_validator(mode="after")
-    def _breakpoint_duration_source_consistent(self) -> KnowledgeEntry:
-        """Per Phase 2 Task 5, ``breakpoint_duration_source`` is only
-        meaningful on multi-input entries, and is required whenever a
-        multi-input entry has a breakpoint-capable parameter."""
-        multi = isinstance(self.input_arity, int) and self.input_arity > 1
-        for name, spec in self.parameters.items():
-            if spec.breakpoint_duration_source is not None and not multi:
-                raise ValueError(
-                    f"Parameter {name!r}: breakpoint_duration_source is "
-                    f"only meaningful for multi-input entries "
-                    f"(input_arity > 1)."
-                )
-            if multi and spec.breakpoint_capable and spec.breakpoint_duration_source is None:
-                raise ValueError(
-                    f"Parameter {name!r}: breakpoint_capable on a "
-                    f"multi-input entry requires breakpoint_duration_source."
-                )
-        return self
-
-    @model_validator(mode="after")
-    def _default_length_strategy_format(self) -> KnowledgeEntry:
-        """Phase 2 Task 5: validate the ``default_length_strategy``
-        string shape. Accepted: ``"pad_with_fade"``,
-        ``"truncate_to_shortest"``, ``"fail"``, ``"stagger:<float>"``,
-        or ``None``."""
-        s = self.default_length_strategy
-        if s is None:
-            return self
-        if s in {"pad_with_fade", "truncate_to_shortest", "fail"}:
-            return self
-        if s.startswith("stagger:"):
-            try:
-                float(s.removeprefix("stagger:"))
-                return self
-            except ValueError:
-                pass
-        raise ValueError(
-            f"default_length_strategy {s!r} must be one of: 'pad_with_fade', "
-            f"'truncate_to_shortest', 'fail', or 'stagger:<float>'."
-        )
-
 
 # ---------------------------------------------------------------------------
-# Result-envelope models (consumed Task 4+)
+# Result-envelope models
 # ---------------------------------------------------------------------------
 
 
@@ -404,9 +318,8 @@ class RecentGraphEntry(BaseModel):
     """One slot of the conversational ``recent_graphs`` deque.
 
     ``output_node`` is ``None`` for a ``batch()`` entry — batch is an
-    atomic context event (one deque slot for N outputs; design-doc
-    Context Block rule 6) whose elements are addressed via
-    ``latest_batch[i]``, with ``batch_size`` carrying N."""
+    atomic context event (one deque slot for N outputs) whose elements
+    are addressed via ``latest_batch[i]``, with ``batch_size`` carrying N."""
 
     id: str
     output_node: str | None
@@ -435,16 +348,15 @@ class ResultEnvelope(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Lineage and output verification (consumed Task 5+)
+# Lineage and output verification
 # ---------------------------------------------------------------------------
 
 
 class InputRecord(BaseModel):
     """Provenance for one input file to a node.
 
-    The sha256 is captured at execution time so later ``why()``-style tools
-    (Phase 1b) can confirm a downstream output really did come from the
-    input it claims to.
+    The sha256 is captured at execution time so provenance (``why()``) can
+    report exactly which input bytes a downstream output came from.
 
     ``source_node`` is set when this input came from an upstream node in the
     same graph — most commonly an auto-inserted PVOC node. It's ``None``
@@ -460,10 +372,9 @@ class InputRecord(BaseModel):
 class CompiledBreakpoint(BaseModel):
     """Record of a compiled breakpoint file used by one node.
 
-    Captured in :class:`NodeLineage.compiled_breakpoints` so cache-key
-    construction (Task 12) can incorporate the .brk content sha, and so
-    the provenance trail shows which audio duration the relative-time
-    list was compiled against.
+    Captured in :class:`NodeLineage.compiled_breakpoints` so the
+    provenance trail shows the .brk content sha and which audio duration
+    the relative-time list was compiled against.
 
     ``source_kind`` distinguishes:
 
@@ -474,14 +385,14 @@ class CompiledBreakpoint(BaseModel):
     - ``"ana_sfprops"`` — duration came from shelling out to CDP's
       ``sfprops -d`` on a .ana whose source wav isn't reachable in the
       current graph (pre-converted .ana in inputs/, or cross-graph
-      reference). Phase 2 Task 2.
+      reference).
     - ``"preexisting_brk"`` — user supplied an existing .brk file by
       path. No compilation happened; ``source_duration_s`` is ``None``.
     - ``"set_by_param"`` — arity-0 (generator) entry: there is no input
       audio, so the envelope axis is the OUTPUT duration, taken from
       the entry's ``set_by`` duration-model parameter (e.g. ``synth
-      wave``'s ``dur``). Phase 5 wave 2a.
-    - ``"dry_run_override"`` / ``"dry_run_dummy"`` — Task 11a
+      wave``'s ``dur``).
+    - ``"dry_run_override"`` / ``"dry_run_dummy"`` —
       ``graph(dry_run=True)`` records only: duration came from a
       caller-supplied upstream prediction, or was unknowable and a
       placeholder axis was used for structural validation. Never
@@ -503,7 +414,7 @@ class NodeLineage(BaseModel):
     Written into a graph's ``lineage.json`` under ``nodes[node_id]``. Every
     field is filled in by the engine; nothing is user-supplied at this level.
     The ``params`` field is a snapshot of the user's parameter dict, included
-    for human-readable debugging and for cache-key derivation in Phase 1b.
+    for human-readable debugging and surfaced by ``why()``.
     """
 
     argv: list[str]  # exact subprocess argv after arch-prefix wrapping
@@ -511,20 +422,19 @@ class NodeLineage(BaseModel):
     output_path: str  # absolute path on disk
     output_sha256: str | None  # None if output verification failed pre-hashing
     params: dict[str, Any]  # snapshot of the user's parameter dict
-    cdp_version: str  # captured from the active session's config
+    cdp_version: str  # version of the detected CDP install
     started_at: datetime
     finished_at: datetime
     duration_ms: int
     exit_code: int | None  # None if the subprocess timed out
-    # Task 8 additions — both defaulted for backward compat with
-    # pre-Phase-1b lineage JSON files.
+    # Set on auto-PVOC nodes: the source wav's duration, for downstream
+    # relative-time breakpoint compilation.
     source_wav_duration_s: float | None = None
     compiled_breakpoints: dict[str, CompiledBreakpoint] = Field(
         default_factory=dict,
     )
-    # Task 10: True when this node's output was served from the global
-    # derivative cache instead of being freshly computed. Defaulted so
-    # pre-Task-10 lineage JSON files parse unchanged.
+    # True when this node's output was served from the global derivative
+    # cache instead of being freshly computed (auto-PVOC nodes only).
     cache_hit: bool = False
 
 

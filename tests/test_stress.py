@@ -16,9 +16,8 @@ Marked ``@pytest.mark.slow`` so it doesn't run in the default
 Why a fake subprocess instead of real CDP
 -----------------------------------------
 
-The original Phase 1b plan called for running ``pvoc anal`` on a
-multi-minute audio file. On Apple Silicon M-series, a 10-minute mono
-44.1 kHz wav analyzes in ~5 s — to push the run past 60 s we'd need
+Real ``pvoc anal`` is too fast: on Apple Silicon M-series, a 10-minute
+mono 44.1 kHz wav analyzes in ~5 s — to push the run past 60 s we'd need
 ~2+ hours of audio (1.3+ GB wav, 13+ GB ``.ana``), which is
 impractical on disk and slow to generate.
 
@@ -30,8 +29,7 @@ identically whether the subprocess is real ``pvoc anal`` or
 ``tests/fixtures/fake_subprocess.py`` sleeping for 80 s.
 
 This test uses the fixture sleep so the duration is deterministic
-across machines and doesn't require ``$CDP_PATH``. The real-CDP
-runtime characteristics are recorded in Tasks 10/11 verification.
+across machines and doesn't require ``$CDP_PATH``.
 """
 
 from __future__ import annotations

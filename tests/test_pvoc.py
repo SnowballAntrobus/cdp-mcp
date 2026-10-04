@@ -90,7 +90,7 @@ async def test_ana_input_target_spectral_skipped(
     assert result.state == "skipped"
     assert result.output_path == inp
     assert result.node_id is None
-    assert "n1" not in graph.node_ids()
+    assert "n1" not in json.loads(graph.node_index_path.read_text())
 
 
 async def test_wav_input_target_time_skipped(
@@ -125,14 +125,8 @@ async def test_wav_to_spectral_runs_pvoc_anal(
     inp = session.inputs_dir / "x.wav"
     inp.write_bytes(b"\x00" * 2000)
 
-    # Patch the fake pvoc binary to actually write a .ana file at argv[-1]
-    # whenever invoked. We can't pass --write-ana through the real
-    # validate_command path; instead we replace run_cdp_command with a
-    # version that intercepts. But cleaner: replace `pvoc` with a wrapper
-    # script that always writes its output file.
-    #
-    # Approach: write a shell wrapper at cdp_path/pvoc that calls
-    # fake_subprocess.py with --write-ana set to the last argv element.
+    # Replace `pvoc` with a shell wrapper that calls fake_subprocess.py
+    # with --write-ana set to the last argv element.
     wrapper = fake_cdp_path / "pvoc"
     wrapper.unlink()
     wrapper.write_text(
@@ -160,7 +154,6 @@ exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
     assert result.output_path.exists()
     assert result.node_id == "n1"
     assert isinstance(result.lineage, NodeLineage)
-    assert "n1" in graph.node_ids()
     # node_index.json reflects the new node.
     index = json.loads(graph.node_index_path.read_text())
     assert index["n1"] == "n1_pvoc-anal.ana"
@@ -169,7 +162,7 @@ exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
 async def test_pvoc_insert_records_source_wav_duration(
     fake_cdp_path, session_and_graph, cache_root
 ):
-    """Task 8: maybe_insert_pvoc on a real .wav input records the wav's
+    """maybe_insert_pvoc on a real .wav input records the wav's
     duration in NodeLineage.source_wav_duration_s. Downstream breakpoint
     compilation reads this to convert relative-time tuples to absolute
     seconds across chained .ana ops."""
@@ -300,7 +293,7 @@ exec "{_FAKE_SUBPROCESS}" --exit 1
 
 
 # ---------------------------------------------------------------------------
-# synth_for_audition (Task 7 — rendering aid, no graph node)
+# synth_for_audition (rendering aid, no graph node)
 # ---------------------------------------------------------------------------
 
 
@@ -440,7 +433,7 @@ exec "{_FAKE_SUBPROCESS}" --exit 0
 
 
 # ---------------------------------------------------------------------------
-# Task 10 — PVOC cache: miss populates, hit skips subprocess, version invalidates
+# PVOC cache: miss populates, hit skips subprocess, version invalidates
 # ---------------------------------------------------------------------------
 
 
@@ -583,7 +576,7 @@ async def test_pvoc_cache_invalidates_on_cdp_version_change(
 
 
 # ---------------------------------------------------------------------------
-# Task 11 — Audition cache for synth_for_audition
+# Audition cache for synth_for_audition
 # ---------------------------------------------------------------------------
 
 
@@ -728,7 +721,7 @@ async def test_audition_cache_populate_failure_non_fatal(
 
 
 # ---------------------------------------------------------------------------
-# Phase 2 Task 2 — read_ana_duration (sfprops -d shell-out, session-cached)
+# read_ana_duration (sfprops -d shell-out, session-cached)
 # ---------------------------------------------------------------------------
 
 
@@ -907,8 +900,7 @@ async def test_read_ana_duration_unparseable_stdout_returns_none(
 ):
     """sfprops emits non-numeric text on stdout → returns None.
 
-    Defensive against the Phase 1b §5 finding that CDP can write error
-    text to stdout even on exit 0.
+    Defensive: CDP can write error text to stdout even on exit 0.
     """
     session, _graph = session_and_graph
     _install_sfprops_wrapper(fake_cdp_path, duration="banana")

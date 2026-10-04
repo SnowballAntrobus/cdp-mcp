@@ -2,10 +2,9 @@
 
 These three tools are backed by the curated :class:`KnowledgeIndex` rather
 than CDP itself — they describe what cdp-mcp knows, not what the binaries
-on disk are. (Querying the binaries directly is Task 4's responsibility.)
+on disk are.
 
-Every tool is ``async def`` with ``ctx: Context`` as its first parameter,
-matching the convention established in Task 1.
+Every tool is ``async def`` with ``ctx: Context`` as its first parameter.
 """
 
 from __future__ import annotations
@@ -93,8 +92,7 @@ def register(mcp: FastMCP, index: KnowledgeIndex) -> None:
         chooser payload instead of an error: ``{"status": "ok",
         "program", "mode", "submodes": [{"submode", "summary",
         "musical_use"}, ...]}`` — pick one and call again with
-        ``submode=<n>``. Unambiguous pairs return the full entry as
-        before.
+        ``submode=<n>``. Unambiguous pairs return the full entry.
         """
         if submode is not None:
             entry = index.get(program, mode, submode)

@@ -12,7 +12,6 @@ from pydantic import ValidationError
 from cdp_mcp.schema import (
     ContextBlock,
     DurationModelExpression,
-    DurationModelLinear,
     DurationModelSetBy,
     DurationModelStatic,
     KnowledgeEntry,
@@ -83,13 +82,6 @@ def test_duration_model_set_by_parses():
     assert entry.duration_model.param == "dur"
 
 
-def test_duration_model_linear_parses():
-    payload = json.loads(_blur_blur_path().read_text(encoding="utf-8"))
-    payload["duration_model"] = {"kind": "linear", "param": "cnt"}
-    entry = KnowledgeEntry.model_validate(payload)
-    assert isinstance(entry.duration_model, DurationModelLinear)
-
-
 def test_duration_model_expression_parses():
     payload = json.loads(_blur_blur_path().read_text(encoding="utf-8"))
     payload["duration_model"] = {"kind": "expression", "expr": "indur / velocity"}
@@ -110,18 +102,10 @@ def test_duration_model_missing_discriminator_raises():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("arity", [1, 2, "N", "variable"])
+@pytest.mark.parametrize("arity", [0, 1, 2])
 def test_input_arity_accepts_valid_values(arity):
     payload = json.loads(_blur_blur_path().read_text(encoding="utf-8"))
     payload["input_arity"] = arity
-    # Phase 2 Task 5: blur_blur's ``blurring`` is breakpoint_capable. When
-    # we force arity > 1 just to exercise the input_arity Literal, the
-    # KnowledgeEntry-level validator now requires a
-    # ``breakpoint_duration_source`` to accompany it. Add one when we
-    # cross into multi-input territory so this test stays focused on the
-    # arity field rather than entangling with breakpoint validation.
-    if arity == 2:
-        payload["parameters"]["blurring"]["breakpoint_duration_source"] = "input1"
     entry = KnowledgeEntry.model_validate(payload)
     assert entry.input_arity == arity
 
@@ -214,89 +198,5 @@ def test_result_envelope_constructs_with_only_status():
     assert env.context.recent_graphs == []
 
 
-# TODO: ParameterSpec cross-field validation (min > max) is intentionally not
-# enforced in Phase 1a. CDP itself would reject such a call; we can revisit
-# in Phase 3 if the curated entries ever benefit from the extra guardrail.
-
-
-# ---------------------------------------------------------------------------
-# Phase 2 Task 5 — schema additions
-# ---------------------------------------------------------------------------
-
-
-def _minimal_entry_payload(**overrides) -> dict:
-    base = {
-        "program": "x", "mode": "x", "category": "test",
-        "domain": "time", "input_arity": 1, "channel_constraint": "any",
-        "input_format": ".wav", "output_format": ".wav",
-        "duration_model": {"kind": "static"},
-        "description": "t", "musical_use": "t",
-        "parameters": {},
-    }
-    base.update(overrides)
-    return base
-
-
-def test_breakpoint_duration_source_rejected_when_arity_one():
-    payload = _minimal_entry_payload(
-        parameters={
-            "v": {
-                "type": "float",
-                "breakpoint_capable": True,
-                "breakpoint_duration_source": "input1",
-            }
-        },
-    )
-    with pytest.raises(ValidationError, match="breakpoint_duration_source"):
-        KnowledgeEntry.model_validate(payload)
-
-
-def test_breakpoint_duration_source_required_on_multi_input_capable():
-    payload = _minimal_entry_payload(
-        input_arity=2,
-        parameters={
-            "v": {
-                "type": "float",
-                "breakpoint_capable": True,
-                # missing breakpoint_duration_source
-            }
-        },
-    )
-    with pytest.raises(ValidationError, match="breakpoint_duration_source"):
-        KnowledgeEntry.model_validate(payload)
-
-
-def test_breakpoint_duration_source_accepted_when_paired():
-    payload = _minimal_entry_payload(
-        input_arity=2,
-        parameters={
-            "v": {
-                "type": "float",
-                "breakpoint_capable": True,
-                "breakpoint_duration_source": "max",
-            }
-        },
-    )
-    entry = KnowledgeEntry.model_validate(payload)
-    assert entry.parameters["v"].breakpoint_duration_source == "max"
-
-
-@pytest.mark.parametrize("value", [
-    "pad_with_fade", "truncate_to_shortest", "fail",
-    "stagger:0", "stagger:0.5", "stagger:-1.5", "stagger:3.14159",
-    None,
-])
-def test_default_length_strategy_accepts_valid_values(value):
-    payload = _minimal_entry_payload(default_length_strategy=value)
-    entry = KnowledgeEntry.model_validate(payload)
-    assert entry.default_length_strategy == value
-
-
-@pytest.mark.parametrize("value", [
-    "", "foo", "stagger:", "stagger:abc",
-    "pad", "pad_with_fade ", "STAGGER:0", "stagger:0:5",
-])
-def test_default_length_strategy_rejects_invalid_values(value):
-    payload = _minimal_entry_payload(default_length_strategy=value)
-    with pytest.raises(ValidationError, match="default_length_strategy"):
-        KnowledgeEntry.model_validate(payload)
+# ParameterSpec cross-field validation (min > max) is intentionally not
+# enforced. CDP itself would reject such a call.

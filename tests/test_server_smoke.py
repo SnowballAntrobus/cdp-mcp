@@ -1,9 +1,8 @@
 """Smoke test for FastMCP server assembly.
 
-Does NOT exercise the stdio transport — that's the manual acceptance test
-documented in the README. We only verify here that the server builds and
-the three introspection tools are registered. Deep behavior tests live in
-``test_introspection.py``.
+Does NOT exercise the stdio transport. We only verify here that the server
+builds and the three introspection tools are registered. Deep behavior
+tests live in ``test_introspection.py``.
 """
 
 from __future__ import annotations

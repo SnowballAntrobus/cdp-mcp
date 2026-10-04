@@ -80,9 +80,9 @@ def test_type_error_on_string():
 
 
 def test_list_accepted_at_type_check_level():
-    """Task 8 (Phase 1b): lists are now accepted by _check_type. Actual
-    breakpoint-content validation happens later in the compiler (step
-    8.5 in process.py) — and only if breakpoint_capable is true. Here
+    """Lists are accepted by _check_type. Actual breakpoint-content
+    validation happens later in the compiler (step 8.5 in
+    node_validation.py) — and only if breakpoint_capable is true. Here
     we just confirm validate_params doesn't reject the list at the
     type-check stage."""
     entry = _entry_with({"x": ParameterSpec(type="float")})
@@ -92,8 +92,8 @@ def test_list_accepted_at_type_check_level():
 
 
 def test_brk_path_string_accepted_at_type_check_level():
-    """Task 8: .brk path strings accepted by _check_type. Non-.brk
-    strings still rejected with a hint pointing at breakpoint paths."""
+    """.brk path strings accepted by _check_type. Non-.brk strings
+    still rejected with a hint pointing at breakpoint paths."""
     entry = _entry_with({"x": ParameterSpec(type="float")})
     ok_errors, _ = validate_params(entry, {"x": "envelopes/my.brk"})
     assert not any(e.type == "param_type" for e in ok_errors)
@@ -257,7 +257,7 @@ def test_argv_int_no_decimal_point():
 
 
 # ---------------------------------------------------------------------------
-# cwd-relative path conversion (Task 6.1 fix)
+# cwd-relative path conversion
 # ---------------------------------------------------------------------------
 
 
@@ -318,10 +318,7 @@ def test_optional_flag_with_no_value_omitted_from_argv():
 def test_argv_no_value_flag_emits_bare_switch_when_supplied():
     """Value-less switch flags emit `-b` alone, not `-bTrue` or `-b1`.
 
-    This test exercises the no_value branch via a synthetic fixture. No
-    Phase 1a curated entry declares a no_value flag yet (the -b switch on
-    extend loop remains unexposed pending bool-param support); the test
-    documents the codegen contract for when one does.
+    This test exercises the no_value branch via a synthetic fixture.
     """
     entry = _entry_with({
         "cnt": ParameterSpec(type="int"),

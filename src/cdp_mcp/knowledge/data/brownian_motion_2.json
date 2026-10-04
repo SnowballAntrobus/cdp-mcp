@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "dur + indur * 2 ** ((pstart - plo) / 12)"},
   "curated": true,
   "version_sensitive": false,

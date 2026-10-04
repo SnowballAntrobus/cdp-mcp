@@ -185,9 +185,9 @@ async def test_invalid_window_t_duration_zero(mcp_with_analyze):
 
 
 async def test_verbose_payload_carries_sub_register_fields(mcp_with_analyze):
-    """Sub-register fix: the verbose payload carries the sub block and
-    the pinned-floor flag end-to-end through the envelope (null /
-    False on mid-register material)."""
+    """The verbose payload carries the sub block and the pinned-floor
+    flag end-to-end through the envelope (null / False on mid-register
+    material)."""
     mcp, sessions, _tracker = mcp_with_analyze
     session, _ = sessions.set_active("s1")
     _write_sine(session.inputs_dir / "frog.wav", seconds=1.0)
@@ -199,7 +199,7 @@ async def test_verbose_payload_carries_sub_register_fields(mcp_with_analyze):
 
 
 # ---------------------------------------------------------------------------
-# Task 10 — Analysis cache: miss populates, hit skips extract, version invalidates
+# Analysis cache: miss populates, hit skips extract, version invalidates
 # ---------------------------------------------------------------------------
 
 

@@ -17,11 +17,10 @@ with ``.ana`` / ``.pvx`` auto-synth) or a single string naming a graph
 id, in which case every completed node in that graph is rendered in
 node-id order.
 
-**No caching for the composite** — this first pass ships uncached. A
-composite cache key would have to hash every target plus the layout
-params, and the per-panel mel render is cheap next to CDP processing;
-deferred until usage data justifies it. (``.ana`` auto-synth still hits
-the audition cache inside :func:`~cdp_mcp.pvoc.synth_for_audition`.)
+**No caching for the composite.** A composite cache key would have to
+hash every target plus the layout params, and the per-panel mel render
+is cheap next to CDP processing. (``.ana`` auto-synth still hits the
+audition cache inside :func:`~cdp_mcp.pvoc.synth_for_audition`.)
 """
 
 from __future__ import annotations
@@ -281,8 +280,7 @@ async def progression_impl(
         )
     except Exception as e:  # noqa: BLE001 — soundfile/librosa/PIL raise a zoo
         # Corrupt/truncated/unsupported audio must surface as a
-        # structured envelope, not a raw protocol error. (Phase 2
-        # hardening, M3.)
+        # structured envelope, not a raw protocol error.
         return [
             _failed_envelope(
                 session,
@@ -470,9 +468,9 @@ def _render_progression(
         canvas.paste(panel, (0, y))
         y += panel.height + _GUTTER_PX
     canvas.save(output_path)
-    # Tool results over ~1 MB are rejected by Claude Desktop (empirical,
-    # 2026-07-14 QA: a 3-panel composite blew the cap). Downscale in
-    # place until the inline image fits.
+    # Tool results over ~1 MB are rejected by Claude Desktop (empirical;
+    # a 3-panel composite can exceed it). Downscale in place until the
+    # inline image fits.
     shrink_png_under_cap(output_path)
     with PILImage.open(output_path) as final:
         return final.width, final.height

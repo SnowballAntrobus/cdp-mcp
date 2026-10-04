@@ -10,7 +10,6 @@
   "output_format": ".txt",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -83,7 +82,7 @@
     }
   ],
   "known_issues": [
-    "DATA OUTPUT (.txt): not audio - it cannot be auditioned or fed to an entry as an audio input; the duration pre-flight is skipped (the 'static' model is a schema placeholder) and verification checks exists + non-empty only. The findings duration row is null.",
+    "DATA OUTPUT (.txt): not audio - it cannot be auditioned or fed to an entry as an audio input; the duration pre-flight is skipped (the 'static' model is a schema placeholder) and verification checks exists + non-empty only.",
     "Reserved-extension guard is CDP's own: naming the output .wav refuses 'Cannot open a textfile (pc2.wav) with a reserved extension.' - the engine's .txt naming never hits it.",
     "The emitted text is a well-formed breakpoint file (times ascending, values 0-1): valid as a value for breakpoint-capable 0-1 params of other entries, or as brktoenv input.",
     "pkwidth is data-enforced here (refusal verbatim above) unlike in mode 1 - if it refuses, shrink pkwidth or raise gate to thin the peaks.",

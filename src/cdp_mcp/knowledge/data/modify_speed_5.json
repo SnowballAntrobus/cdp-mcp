@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {
     "kind": "expression",
     "expr": "(indur if accel == 1 else (starttime + (goaltime - starttime) * 10000 * (((1 + (indur - starttime) * 10000 * (accel ** 0.0001 - 1) / (goaltime - starttime)) if (1 + (indur - starttime) * 10000 * (accel ** 0.0001 - 1) / (goaltime - starttime)) > 0.002 else 0.002) ** 0.0001 - 1) / (10000 * (accel ** 0.0001 - 1))))"

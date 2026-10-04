@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "(indur1 if indur1 > (stagger + indur2 - skip) else (stagger + indur2 - skip))"},
   "curated": true,
   "version_sensitive": true,
@@ -98,7 +97,7 @@
     "begin/end crop in mix-time and shorten the output (end - begin when both set); the duration model assumes no cropping and over-predicts (safe direction) when they are used.",
     "Sample rates must match: 'ERROR: INCORRECT USE / ERROR: Different sample-rates in input files: can't proceed.' (exit 255).",
     "All five parameters refuse breakpoint files ('Cannot read parameter N [...]: brkpnt_files not permitted.', N = 1-5). Deterministic: identical decoded shas 1.2 s apart; -s0 -j0 -k1 -b0 byte-identical to the flag-less run.",
-    "Multi-input entry: duration model verified against both input orders, stagger, skip and crop probes (see docs/curation/tranche12_submix_depth.md); incompatible with the single-input duration fixture (duration_row null, tranche-11 rule)."
+    "Multi-input entry: duration model verified against both input orders, stagger, skip and crop probes."
   ],
   "references": ["cdp://docs/html/cgromix2"]
 }

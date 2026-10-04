@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur_max"},
   "curated": true,
   "version_sensitive": false,
@@ -30,7 +29,7 @@
     "All inputs start at time zero and there are no parameters - no offsets, no levels, no pans. Reach for submix mix the moment you need any of those.",
     "Channel counts must all match (refusal verbatim, names the offending file) and sample rates must all match (ditto). A stereo trio renders stereo (verified).",
     "This entry pins input_arity 3; the binary accepts 2 or more (2-file run verified). For 4+ files use execute() - or submix mix, which scales to hundreds of events.",
-    "Multi-input entry: duration rule (indur_max) verified at 3 and 2 inputs in docs/curation/tranche12_submix_depth.md; duration_row null (tranche-11 rule)."
+    "Multi-input entry: duration rule (indur_max) verified at 3 and 2 inputs."
   ],
   "references": ["cdp://docs/html/cgromix2"]
 }

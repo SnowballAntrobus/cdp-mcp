@@ -10,7 +10,6 @@
  "output_format": ".ana",
  "stability": "stable",
  "phase_sensitive": false,
- "stereo_link_default": null,
  "duration_model": {
   "kind": "static"
  },
@@ -61,10 +60,10 @@
   }
  ],
  "known_issues": [
-  "domain is 'time' (input-domain semantics): specanal CONSUMES time-domain audio and produces .ana \u2014 declaring 'spectral' makes the engine auto-insert pvoc anal, and specanal refuses .ana input ('is not of correct type'). Caught at wave-5 integration by the duration row.",
+  "domain is 'time' (input-domain semantics): specanal CONSUMES time-domain audio and produces .ana \u2014 declaring 'spectral' makes the engine auto-insert pvoc anal, and specanal refuses .ana input ('is not of correct type').",
   "BANNER DIVERGENCE: chs enforced 2-32768, not the documented 'multiple of 4 (4-32768)' - odd and tiny values are accepted silently (verified 5 and 2 run and round-trip). Stick to powers of two unless experimenting.",
   "Analyses made with non-default chs/ovlp are INCOMPATIBLE with auto-PVOC'd .ana files in multi-input spectral programs (the family's 'Incompatible analysis-sample-rate/params' refusals) - make matching analyses for both inputs of any pair process.",
-  "Sibling modes pinned for the record: 2-6 write one textfile per window (690 files verified from 2 s - multi-output, engine-incompatible); mode 9 (pitch varibank) SEGFAULTS on this build (exit 139); modes 7/8/10 write single data textfiles and work via execute().",
+  "Sibling modes: 2-6 write one textfile per window (690 files verified from 2 s - multi-output, engine-incompatible); mode 9 (pitch varibank) SEGFAULTS on this build (exit 139); modes 7/8/10 write single data textfiles and work via execute().",
   "Mono only ('File ... is not of correct type (must be mono)' verbatim); .ana input refused ('is not of correct type').",
   "Duration static within ~0.5% but the exact window-quantised length varies with chs/ovlp (2.0027 s at 1024/3 vs 2.0085 s at 1024/1 from a 2.0 s source).",
   "Deterministic (byte-identical data chunks run to run)."

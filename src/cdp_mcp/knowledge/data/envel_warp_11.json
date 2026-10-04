@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -64,7 +63,7 @@
     "The banner's 'trofdel < peak_separation' constraint is NOT enforced by the binary (8 vs 6 accepted silently); violating it produces mostly-gap output rather than an error.",
     "Punched gaps are literal digital zeros (7692 zero samples counted on the 2 s probe) - corrugated output is valid input for retime's zero-run event detection and housekeep gate's zero-point cutting.",
     "wsize's maximum is the input duration in ms (input-dependent), as across the envel family; wsize refuses breakpoints ('Cannot read parameter 1').",
-    "Only warp modes 8 (gate) and 11 (corrugate) are curated this tranche; the other 13 modes share the argv shape with different trailing params (mode table in docs/curation/tranche13_envelope.md).",
+    "Only warp modes 8 (gate) and 11 (corrugate) are curated; the other 13 modes share the argv shape with different trailing params.",
     "Deterministic; duration static and exact at both probed input durations; stereo accepted."
   ],
   "references": ["cdp://docs/html/cgroenvl"]

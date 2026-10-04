@@ -117,22 +117,6 @@ def test_add_node_two_sequential_calls(session):
     assert set(lineage_data["nodes"].keys()) == {"n1", "n2"}
 
 
-def test_get_node_output_path(session):
-    g = GraphDir(session, "x")
-    g.add_node("n1", "n1_out.wav", _fake_lineage())
-    assert g.get_node_output_path("n1") == g.root / "n1_out.wav"
-    assert g.get_node_output_path("missing") is None
-
-
-def test_node_ids_returns_sorted(session):
-    g = GraphDir(session, "x")
-    g.add_node("n2", "n2.wav", _fake_lineage())
-    g.add_node("n1", "n1.wav", _fake_lineage())
-    g.add_node("n10", "n10.wav", _fake_lineage())
-    # Lexicographic sort — n1, n10, n2 — that's fine for Phase 1a.
-    assert g.node_ids() == ["n1", "n10", "n2"]
-
-
 # ---------------------------------------------------------------------------
 # LatestTracker — deque + prev_N
 # ---------------------------------------------------------------------------
@@ -309,9 +293,8 @@ def test_resolve_target_relative_path_not_found(session):
 
 
 def test_resolve_target_absolute_path_exists(session, tmp_path):
-    # Phase 2 M5 containment: absolute refs resolve only INSIDE the
-    # session tree (previously any existing absolute path was accepted;
-    # see TestResolveTargetContainment for the rejection cases).
+    # Absolute refs resolve only INSIDE the session tree (see
+    # TestResolveTargetContainment for the rejection cases).
     target = session.root / "tmp" / "somewhere_else.wav"
     target.write_bytes(b"hi")
     assert resolve_target(str(target), session, LatestTracker()) == target.resolve()
@@ -523,7 +506,7 @@ def test_verify_output_ana_file_size_only(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# resolve_target containment (Phase 2 hardening, M5)
+# resolve_target containment
 # ---------------------------------------------------------------------------
 
 

@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur + clipsize * echos"},
   "curated": true,
   "version_sensitive": false,
@@ -141,10 +140,10 @@
   ],
   "known_issues": [
     "BREAKPOINT FILES SILENTLY IGNORED (first-class): the banner marks clipsize/echos/clipmax/echosmax/rand/shredno/shredcnt 'time-variable', but a .brk in the clipsize slot rendered byte-identical to the scalar-first-value render, an echos brk likewise, and a rand brk (with seed) rendered byte-identical to the NO-rand base - accepted argv, zero effect. Every parameter here is scalar-only; the capable=false markings are load-bearing.",
-    "Duration model exact only with clipmax = 0 (fixed grid): with clipmax > 0 the length is seed-dependent (3.0712 vs 3.7227 at seeds 5/9). Row pinned at clipmax 0.",
+    "Duration model exact only with clipmax = 0 (fixed grid): with clipmax > 0 the length is seed-dependent (3.0712 vs 3.7227 at seeds 5/9).",
     "Fully reproducible randomness: unseeded -r runs are byte-identical 1.2 s apart (never clock-seeded); seed 0-64 selects patterns.",
     "Mode 3 requires MONO input: stereo refused 'ERROR: File st2.wav is not of correct type for Mode 3' (modes 1/6 accept N-channel). Unipolar/zero-crossing-free material ACCEPTED (time-grid cutting, not wavesets).",
-    "Modes 6-10 replace clipsize with a cut-times textfile (different argv shape) - execute() or a later entry."
+    "Modes 6-10 replace clipsize with a cut-times textfile (different argv shape) - use execute()."
   ],
   "references": ["cdp://docs/html/cascade"]
 }

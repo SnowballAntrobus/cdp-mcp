@@ -1,10 +1,10 @@
 """Integration tests for the execute() tool.
 
-Uses ``fake_subprocess.py`` (Task 4 fixture) via a symlink into a tmp
-``CDP_PATH``, so the tool's binary-resolution path works against an
-executable that's discoverable by name. Sets
-``CDP_MCP_DISABLE_ARCH_X86_64=1`` because the venv's Python is arm64-native
-and ``arch -x86_64`` would fail with "Bad CPU type in executable".
+Copies ``fake_subprocess.py`` into a tmp ``CDP_PATH``, so the tool's
+binary-resolution path works against an executable that's discoverable
+by name. conftest sets ``CDP_MCP_DISABLE_ARCH_X86_64=1`` because the
+venv's Python is arm64-native and ``arch -x86_64`` would fail with
+"Bad CPU type in executable".
 """
 
 from __future__ import annotations

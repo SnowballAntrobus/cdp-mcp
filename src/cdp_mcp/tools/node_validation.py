@@ -1,16 +1,12 @@
 """Pre-subprocess validation and planning for curated node invocations.
 
-Factored out of :func:`cdp_mcp.tools.process.process_impl` so the same
-validation-and-planning chain drives ``process()``, ``graph(dry_run=True)``,
-``graph()`` full execution, and ``batch()`` — each consumer can call
-:func:`validate_node` rather than reimplementing (and inevitably drifting
-from) the validator.
-
-This module is a pure refactor. Every step that lived as a numbered
-section in ``process_impl`` (arity check → PVOC auto-insert → breakpoint
-compile → argv build → security validate) lives here now, *unchanged in
-behavior*. Tests stayed where they were — the existing process-tool
-tests are the regression suite for this code path.
+:func:`validate_node` is the one validation-and-planning chain (steps
+4–10 of a node run: arity check → input resolution → params → duration
+pre-flight → graph dir → PVOC auto-insert → breakpoint compile → aux-file
+resolution → argv build → security validate). ``process()``, ``graph()``
+(dry-run and full execution), ``batch()``, ``sweep()``, and
+``timeline()`` all call it rather than reimplementing the validator.
+Execution (steps 11–15) lives in :mod:`cdp_mcp.tools.node_execution`.
 """
 
 from __future__ import annotations
@@ -58,16 +54,16 @@ class ValidationResult:
     Carries ``errors`` and ``warnings`` always; everything else is
     populated on the success path. When ``errors`` is non-empty, the
     caller routes to its failure envelope and reads ``graph_dir`` to
-    populate ``active_graph`` (matching the pre-refactor behavior of
-    surfacing the partial graph dir for failures from step 8 onward).
+    populate ``active_graph`` (surfacing the partial graph dir for
+    failures from step 8 onward).
 
-    Failure-stage mapping for ``graph_dir`` (preserves the contract
-    established by the original ``process_impl``):
+    Failure-stage mapping for ``graph_dir``:
 
     - Arity / resolve / params / preflight errors → ``graph_dir`` is None
       (failure occurred before the graph directory was created).
-    - PVOC / breakpoint / argv / security errors → ``graph_dir`` is set
-      (failure occurred after step 7 created the graph directory).
+    - PVOC / breakpoint / aux-file / argv / security errors →
+      ``graph_dir`` is set (failure occurred after step 7 created the
+      graph directory).
     """
 
     errors: list[ErrorEntry]
@@ -82,8 +78,7 @@ class ValidationResult:
     post_pvoc_paths: list[Path] | None = None
     pvoc_source_nodes: list[str | None] | None = None
     compiled_breakpoints: dict[str, CompiledBreakpoint] = field(default_factory=dict)
-    params_for_lineage: dict[str, Any] | None = None  # the mutated params dict
-    # Informational — useful for Task 11a's graph(dry_run=True) reporting.
+    # Reported by dry runs; graph() also chains it into downstream pre-flight.
     predicted_duration_s: float | None = None
 
 
@@ -111,7 +106,8 @@ async def validate_node(
 ) -> ValidationResult:
     """Run pre-subprocess validation and planning for a single node.
 
-    Multi-node extensions (Task 11b, used by ``graph()``/``batch()``):
+    Multi-node extensions (used by ``graph()`` / ``batch()`` /
+    ``sweep()`` / ``timeline()``):
 
     - ``graph_dir`` — reuse an existing graph directory instead of
       creating a fresh one (one directory, many nodes). When supplied,
@@ -132,7 +128,7 @@ async def validate_node(
     :class:`ValidationResult` carrying a planned argv plus all metadata
     the caller needs for subprocess execution and lineage construction.
 
-    ``dry_run=True`` (Task 11a): the same validation chain without
+    ``dry_run=True``: the same validation chain without
     persistent side effects — no graph directory, no PVOC subprocesses,
     no surviving breakpoint files (compilation runs against a temporary
     directory under ``session/tmp/`` for structural validation, then is
@@ -168,25 +164,10 @@ async def validate_node(
             indur_overrides=indur_overrides,
         )
 
-    params_dict = params  # caller-owned; we mutate this in step 8.5
+    params_dict = params  # caller-owned; steps 8.5 and 8.7 mutate it
     warnings: list[str] = []
 
     # 4. Arity normalize + check.
-    if entry.input_arity in ("N", "variable"):
-        return ValidationResult(
-            errors=[
-                ErrorEntry(
-                    type="unsupported_arity",
-                    message=(
-                        f"Entry {entry.program} {entry.mode} has variable "
-                        f"input arity ({entry.input_arity!r}); not supported "
-                        f"in Phase 1a."
-                    ),
-                    fix="Use execute() for variable-arity CDP commands.",
-                )
-            ],
-            warnings=warnings,
-        )
     if len(inputs) != entry.input_arity:
         return ValidationResult(
             errors=[_arity_mismatch_error(entry, len(inputs))],
@@ -195,8 +176,8 @@ async def validate_node(
 
     # 5. Resolve inputs. Path entries are pre-resolved upstream outputs
     # from an orchestrating graph()/batch() call — used as-is. An
-    # arity-0 entry (generator; Phase 5 wave 2a) has an empty list here
-    # and every per-input loop below is a clean no-op.
+    # arity-0 entry (generator) has an empty list here and every
+    # per-input loop below is a clean no-op.
     try:
         resolved_inputs = [
             ref if isinstance(ref, Path)
@@ -229,8 +210,8 @@ async def validate_node(
         )
 
     # 6.5. Pre-flight duration prediction. Catches runaway durations
-    # before CDP spawns; the disk watchdog (Task 7) is the reactive
-    # complement for cases pre-flight can't predict.
+    # before CDP spawns; the disk watchdog is the reactive complement
+    # for cases pre-flight can't predict.
     preflight_errors, predicted_duration_s = await check_duration_preflight(
         entry=entry,
         params=params_dict,
@@ -311,7 +292,7 @@ async def validate_node(
         else:
             pvoc_source_nodes.append(None)
 
-    # 8.5. Compile breakpoint parameters (Task 8). For each list / .brk
+    # 8.5. Compile breakpoint parameters. For each list / .brk
     # path-valued param, validate breakpoint_capable, resolve the
     # source duration, run the compiler, and mutate params_dict to
     # point at the compiled .brk file so build_cdp_argv renders it.
@@ -338,8 +319,8 @@ async def validate_node(
             ))
             continue
         if not post_pvoc_paths:
-            # Arity-0 (Phase 5 wave 2a): no input audio — the envelope
-            # axis is the OUTPUT duration from the set_by dur param.
+            # Arity-0: no input audio — the envelope axis is the OUTPUT
+            # duration from the set_by dur param.
             src_duration, src_kind = _arity0_axis_duration(
                 entry, params_dict
             )
@@ -354,7 +335,6 @@ async def validate_node(
             )
         result = compile_breakpoint_value(
             param_name=param_name,
-            param_spec=spec,
             value=value,
             source_duration_s=src_duration,
             source_kind=src_kind,
@@ -374,7 +354,7 @@ async def validate_node(
             graph_dir=graph_dir,
         )
 
-    # 8.7. Resolve aux_file parameters (Phase 3). Existence-check the
+    # 8.7. Resolve aux_file parameters. Existence-check the
     # str path against the session (data/ first — write_data_file's
     # output directory), then swap in the resolved Path so
     # build_cdp_argv renders it cwd-relative and the security gate
@@ -418,12 +398,9 @@ async def validate_node(
             graph_dir=graph_dir,
         )
 
-    # Preserve pre-refactor behavior: on the success path the envelope's
-    # ``warnings`` field carries only ``param_warnings``;
-    # ``breakpoint_warnings`` is silently dropped. The combined list
-    # only surfaces on the breakpoint-errors failure path above. (Likely
-    # a latent quirk worth a follow-up, but Task 3 is a pure refactor —
-    # no drive-by behavior changes.)
+    # On the success path ``warnings`` carries only ``param_warnings``;
+    # ``breakpoint_warnings`` is dropped. The combined list only surfaces
+    # on the breakpoint-errors failure path above (and in dry-run).
     return ValidationResult(
         errors=[],
         warnings=param_warnings,
@@ -435,13 +412,12 @@ async def validate_node(
         post_pvoc_paths=post_pvoc_paths,
         pvoc_source_nodes=pvoc_source_nodes,
         compiled_breakpoints=compiled_breakpoints,
-        params_for_lineage=params_dict,
         predicted_duration_s=predicted_duration_s,
     )
 
 
 # ---------------------------------------------------------------------------
-# Dry-run branch (Task 11a)
+# Dry-run branch
 # ---------------------------------------------------------------------------
 
 
@@ -468,28 +444,12 @@ async def _validate_node_dry_run(
     sees the same shape it will see at execution time).
 
     Unlike the real path, breakpoint warnings ARE surfaced (dry-run
-    exists to report; the real path's silent drop is a preserved
-    Phase 1b quirk).
+    exists to report; the real path drops them on success).
     """
     params_dict = dict(params)  # copy — dry run must not mutate caller state
     warnings: list[str] = []
 
     # 4. Arity normalize + check.
-    if entry.input_arity in ("N", "variable"):
-        return ValidationResult(
-            errors=[
-                ErrorEntry(
-                    type="unsupported_arity",
-                    message=(
-                        f"Entry {entry.program} {entry.mode} has variable "
-                        f"input arity ({entry.input_arity!r}); not supported "
-                        f"in Phase 1a."
-                    ),
-                    fix="Use execute() for variable-arity CDP commands.",
-                )
-            ],
-            warnings=warnings,
-        )
     if len(inputs) != entry.input_arity:
         return ValidationResult(
             errors=[_arity_mismatch_error(entry, len(inputs))],
@@ -548,60 +508,6 @@ async def _validate_node_dry_run(
             warnings=param_warnings,
             predicted_duration_s=predicted_duration_s,
         )
-
-    # 6.5. Phase 6b usage tripwire — the stereo seed-link trigger.
-    # The dual-mono seed-link machinery (split → same seed per channel →
-    # merge, preserving the stereo image) is DEFERRED behind exactly this
-    # occurrence: a mono-only SEEDED stochastic entry receiving stereo
-    # material (docs/phase-6-design.md §Reevaluation item 3;
-    # docs/phase-6-handoff.md "Not done / deferred"). When it fires, the
-    # structured error tells the agent to notify the user — each report
-    # is the usage evidence the build decision is waiting on. Non-seeded
-    # mono entries keep the ordinary runtime channel_mismatch path.
-    if entry.channel_constraint == "mono" and "seed" in entry.parameters:
-        for resolved_path in resolved_inputs:
-            if resolved_path.suffix.lower() not in (
-                ".wav", ".aif", ".aiff", ".amb"
-            ):
-                continue
-            try:
-                n_chans = sf.info(str(resolved_path)).channels
-            except (RuntimeError, OSError):
-                continue  # unreadable here → later stages report it
-            if n_chans > 1:
-                return ValidationResult(
-                    errors=[
-                        ErrorEntry(
-                            type="stereo_seed_link_missing",
-                            message=(
-                                f"{entry.program} {entry.mode} is "
-                                f"mono-only and seeded-stochastic, but "
-                                f"{resolved_path.name} has {n_chans} "
-                                "channels. Processing channels "
-                                "independently would decorrelate the "
-                                "stereo image; the dual-mono seed-link "
-                                "machinery that solves this is a "
-                                "deferred feature (Phase 6b)."
-                            ),
-                            fix=(
-                                "NOTIFY THE USER: this is the recorded "
-                                "usage trigger the deferred stereo "
-                                "seed-link feature is waiting on — "
-                                "report that it fired so they can "
-                                "prioritize building it. Manual "
-                                "workaround meanwhile: housekeep chans 3 "
-                                "(channo 1 and 2) to split, run this "
-                                "entry on each channel with the SAME "
-                                "seed value, then submix interleave to "
-                                "remerge — identical seeds keep the "
-                                "random decisions, and therefore the "
-                                "stereo image, coherent."
-                            ),
-                        )
-                    ],
-                    warnings=param_warnings,
-                    predicted_duration_s=predicted_duration_s,
-                )
 
     # 7. Planned (never-created) graph root.
     slug = f"{entry.program}-{entry.mode}"
@@ -709,7 +615,6 @@ async def _validate_node_dry_run(
                 continue
             result = compile_breakpoint_value(
                 param_name=param_name,
-                param_spec=spec,
                 value=value,
                 source_duration_s=src_duration,
                 source_kind=src_kind,  # type: ignore[arg-type]
@@ -784,7 +689,6 @@ async def _validate_node_dry_run(
         post_pvoc_paths=post_pvoc_paths,
         pvoc_source_nodes=pvoc_source_nodes,
         compiled_breakpoints=compiled_breakpoints,
-        params_for_lineage=None,  # dry run: nothing will be executed
         predicted_duration_s=predicted_duration_s,
     )
 
@@ -820,12 +724,12 @@ async def _dry_run_source_duration(
 
 
 # ---------------------------------------------------------------------------
-# Helpers (moved from process.py — used only internally by validate_node)
+# Helpers (used only internally by validate_node)
 # ---------------------------------------------------------------------------
 
 
 def _output_extension(entry: KnowledgeEntry) -> str:
-    """Output extension for step 9's naming (Phase 5 wave 2a).
+    """Output extension for step 9's naming.
 
     Data-output entries (envel extract's ``.evl``, formants get's
     ``.for``) use their declared ``output_format`` — naming these with
@@ -834,11 +738,11 @@ def _output_extension(entry: KnowledgeEntry) -> str:
     verification at sample rate 57; a ``.ana``-named .for misreports
     107 s via sfprops). Audio entries keep the domain-derived extension
     — except an explicitly declared ``.ana`` output, which wins over
-    the domain: ``specanal`` (tranche 21) is a cross-domain analyzer
+    the domain: ``specanal`` is a cross-domain analyzer
     with time-domain INPUT semantics (``domain: "time"`` so auto-PVOC
     stays out of its way — it refuses .ana input) but a spectral
     OUTPUT. Naming that output ``.wav`` sends verification down the
-    audio path against an .ana container (wave-5 integration find).
+    audio path against an .ana container.
     """
     if entry.output_format in DATA_OUTPUT_FORMATS:
         return entry.output_format
@@ -873,7 +777,7 @@ def _arity0_axis_duration(
     entry: KnowledgeEntry,
     params_dict: dict[str, Any],
 ) -> tuple[float | None, Literal["set_by_param"] | None]:
-    """Envelope axis for arity-0 breakpoint compilation (Phase 5 wave 2a).
+    """Envelope axis for arity-0 breakpoint compilation.
 
     Generators have no input audio, but their breakpoint envelopes
     still need a relative-time axis: the OUTPUT duration, which a
@@ -983,19 +887,14 @@ async def _resolve_source_duration(
     3. ``.ana`` with no same-graph PVOC node (pre-converted .ana in
        ``inputs/``, or cross-graph reference) → shell out to
        ``sfprops -d`` via :func:`pvoc.read_ana_duration`; tag
-       ``ana_sfprops``. Phase 2 Task 2.
+       ``ana_sfprops``.
 
     Returns ``(None, None)`` only when every attempt fails — the caller
     then surfaces ``param_breakpoint_no_source_duration``. Cross-graph
-    lineage walking remains out of scope.
+    lineage is not walked.
 
-    Note (multi-input): this resolver is hardcoded to ``post_pvoc_paths[0]``
-    (input 1). It does **not** read a parameter's ``breakpoint_duration_source``
-    field. The only curated multi-input breakpoint-capable entry,
-    ``combine cross``, declares ``breakpoint_duration_source: "input1"`` — which
-    *coincides* with this ``[0]`` default, so it resolves correctly today. Honoring
-    ``input2``/``max``/``min`` is deferred Task 8 work with no current consumer;
-    don't assume the field is being consumed until that lands.
+    On multi-input entries this always uses ``post_pvoc_paths[0]``, so
+    relative breakpoint times follow input 1's duration.
     """
     if not post_pvoc_paths:
         return None, None
@@ -1028,13 +927,6 @@ async def _resolve_source_duration(
     return None, None
 
 
-# Audio extensions we recognize as "the user clearly meant a specific
-# format." If output_name carries one of these and it isn't the one
-# this program writes, we refuse rather than silently rewrite — better
-# to surface the mismatch than to mint a wav named ``foo.aiff``.
-_AUDIO_EXTENSIONS = frozenset({".wav", ".aif", ".aiff", ".ana", ".pvx"})
-
-
 def _normalize_output_name(
     name: str | None, expected_ext: str
 ) -> tuple[str | None, ErrorEntry | None]:
@@ -1043,14 +935,14 @@ def _normalize_output_name(
     Why this exists: CDP binaries (brassage at least) silently append
     ``.wav`` when the output argv is extensionless, but our verifier
     looks at exactly the path we passed — so an extensionless
-    ``output_name`` made CDP write ``foo.wav`` while we checked ``foo``
-    and reported ``output_verification_failed``. Controlling the
+    ``output_name`` would make CDP write ``foo.wav`` while we check
+    ``foo`` and report ``output_verification_failed``. Controlling the
     extension on our side keeps the argv and the verifier in lockstep.
 
     Returns ``(normalized_name, error)``:
 
-    - ``name is None`` → ``(None, None)``: caller didn't specify; let the
-      auto-name path in :func:`process` fill in ``<node>_<slug>.<ext>``.
+    - ``name is None`` → ``(None, None)``: caller didn't specify; let
+      step 9's auto-naming fill in ``<node>_<slug>.<ext>``.
     - Already ends with ``expected_ext`` (case-insensitive) →
       ``(name, None)``.
     - No extension at all → ``(name + expected_ext, None)``.

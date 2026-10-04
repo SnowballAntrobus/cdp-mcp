@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "stagger + indur2"},
   "curated": true,
   "version_sensitive": false,
@@ -78,7 +77,7 @@
     "Same operational constraints as submode 1, all re-verified: stagger > 0 requires begin > stagger (verbatim refusal); equal channel counts required ('Different no. of channels in input files'); equal sample rates required; output duration = stagger + indur2 sample-exact; overload-safe (complementary gains); deterministic (identical decoded shas 1.2 s apart).",
     "powfac range is 0.125-8 (CDP-enforced, refusals quote it) - the banner's '0.12 - 1' lower band understates the floor. powfac only shapes the fade; it never changes the duration (verified).",
     "All four parameters refuse breakpoint files (parameters 1-4). The fade trajectory is fixed per call; automate blends with submix balance instead.",
-    "Multi-input entry: duration_row null (tranche-11 rule); model shared with submode 1, verified in docs/curation/tranche12_submix_depth.md."
+    "Multi-input entry: duration model shared with submode 1, verified."
   ],
   "references": ["cdp://docs/html/cgromix2"]
 }

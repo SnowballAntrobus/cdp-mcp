@@ -10,7 +10,6 @@
   "output_format": ".txt",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -50,9 +49,9 @@
     }
   ],
   "known_issues": [
-    "DATA-TO-DATA entry: no audio anywhere. Output .txt verification is exists + non-empty; duration pre-flight skipped ('static' is a placeholder; findings duration row null).",
-    "The .evl input must keep its envelope extension - renamed binaries refuse 'is not a valid CDP file' (extension-driven type detection, pinned this tranche).",
-    "SUBSTRATE PIN (recorded for the macOS re-verification): CDP's textfile parser breaks entirely on unsigned-char platforms (Linux aarch64 default) - every text input refuses 'is not a valid CDP file' because '(char)fgetc() != EOF' never terminates cleanly (cdparse.c initial_parse_textfile). The Linux probe substrate needed -fsigned-char; macOS (signed char on both x86_64 and arm64) is unaffected. envtobrk itself takes binary input so it worked either way; its .txt OUTPUT feeds parsers that hit this on exotic builds.",
+    "DATA-TO-DATA entry: no audio anywhere. Output .txt verification is exists + non-empty; duration pre-flight skipped ('static' is a placeholder).",
+    "The .evl input must keep its envelope extension - renamed binaries refuse 'is not a valid CDP file' (extension-driven type detection).",
+    "SUBSTRATE PIN: CDP's textfile parser breaks entirely on unsigned-char platforms (Linux aarch64 default) - every text input refuses 'is not a valid CDP file' because '(char)fgetc() != EOF' never terminates cleanly (cdparse.c initial_parse_textfile). The Linux probe substrate needed -fsigned-char; macOS (signed char on both x86_64 and arm64) is unaffected. envtobrk itself takes binary input so it worked either way; its .txt OUTPUT feeds parsers that hit this on exotic builds.",
     "Sibling conversions not curated (all probed working, reachable via execute()): envtodb (.evl -> dB text, silence floors at -96.000000), dbtogain / gaintodb (text dB <-> gain), dbtoenv (dB text -> .evl) - the dB text kind has no curated consumer; envel replot (text -> text through the 15-mode warp table).",
     "Deterministic: byte-identical text across runs (no RIFF date chunk in text outputs)."
   ],

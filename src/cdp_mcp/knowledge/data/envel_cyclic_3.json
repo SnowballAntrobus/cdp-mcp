@@ -10,7 +10,6 @@
   "output_format": ".evl",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "set_by", "param": "totaldur"},
   "curated": true,
   "version_sensitive": false,
@@ -91,7 +90,7 @@
     }
   ],
   "known_issues": [
-    "DATA OUTPUT (.evl, RIFF/FLOAT dressing, srate 1000/wsize) - not audio; duration pre-flight is skipped; verification is exists + non-empty; findings duration row null. Consumers: envel impose 2 / replace 2 via execute().",
+    "DATA OUTPUT (.evl, RIFF/FLOAT dressing, srate 1000/wsize) - not audio; duration pre-flight is skipped; verification is exists + non-empty. Consumers: envel impose 2 / replace 2 via execute().",
     "OUTPUT ROUNDS UP TO WHOLE CELLS: actual duration = ceil(totaldur/celldur) x celldur (2.25 from 2.0/0.25, verified) - the set_by model under-predicts by up to one cell; its purpose here is the breakpoint-compilation axis.",
     "celldur's floor is tied to wsize (must exceed the window; refusal quotes the wsize-dependent bound).",
     "Siblings not curated: submodes 1 (rising) and 2 (falling) share this exact argv; submode 4 replaces trough/expo with a userenv textfile whose time axis is RELATIVE (stretched per cell) - all verified working via execute().",

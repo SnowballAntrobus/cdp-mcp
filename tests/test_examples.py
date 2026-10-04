@@ -1,7 +1,7 @@
 """Tests for the packaged examples library (``cdp://examples/*``).
 
-Three tiers, per testing-principles §10 ("integration code extending a
-pinned table must EXECUTE the table"):
+Three tiers (integration code extending a pinned table must EXECUTE the
+table):
 
 1. Loader/summary integrity — the packaged JSONs load, carry the
    required fields, and ``list_examples`` summarizes them.

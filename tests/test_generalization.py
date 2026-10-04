@@ -1,12 +1,11 @@
-"""Phase 5 generalization matrix — four material classes through curated chains.
+"""Generalization matrix — four material classes through curated chains.
 
-The 107-entry curated knowledge base was probed almost entirely on synthetic
+The curated knowledge base was probed almost entirely on synthetic
 noise/tone fixtures. This module verifies the acceptance machinery (process
 chaining, auto-PVOC boundary insertion, duration models, lineage) generalizes
 to four musically distinct material classes, each represented by a
 deterministic (seeded) numpy-synthesized proxy — no wav fixtures live in the
-repo; all audio is generated in-fixture. Real recorded material + listening
-is the human half of Phase 5; this is the machine half.
+repo; all audio is generated in-fixture.
 
 The four proxies and why they're built the way they are:
 
@@ -46,8 +45,7 @@ has none).
 
 ``test_material_sensitivity`` pins the negative half of the matrix — which
 curated claims did NOT generalize (grain gating on drifting beds, the
-"steady tones are refused" envspeak claim). Findings are written up in
-``docs/generalization-matrix.md``.
+"steady tones are refused" envspeak claim).
 
 Gated on real CDP via the ``real_cdp_path`` fixture: hermetic runs (no
 ``$CDP_PATH``) skip cleanly.
@@ -213,7 +211,7 @@ def gen_env(tmp_path, real_cdp_path):
 async def _measured_duration(env, output_path_str: str) -> float:
     """Duration of a process output whatever its domain — .ana measured via
     the engine's own audition synth (libsndfile cannot open .ana; see
-    test_curation_formulas._measured_duration and testing-principles §10)."""
+    test_curation_formulas._measured_duration)."""
     from cdp_mcp.pvoc import synth_for_audition
 
     out = Path(output_path_str)
@@ -324,8 +322,8 @@ async def test_clarinet_chain(gen_env):
     repitch transpose 3 (+12 st, wav→.ana auto-PVOC) → strange waver
     (harmonicity vibrato, .ana→.ana) → modify speed 2 (-12 st varispeed,
     .ana→time crossing, doubles duration) → envel dovetail (edit family).
-    Chosen because these ops act on a coherent harmonic spectrum — the
-    curation-era noise fixtures never gave the pitch ops real pitch.
+    Chosen because these ops act on a coherent harmonic spectrum, which
+    noise fixtures never give them.
     """
     chain = _Chain(gen_env, "clarinet.wav")
 

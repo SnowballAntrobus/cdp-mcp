@@ -7,11 +7,10 @@ decode to bit-identical samples. This proves the lineage record alone is
 sufficient to regenerate an output — no engine state required.
 
 Comparison is over DECODED SAMPLES, not raw bytes: CDP r8 embeds a tick
-counter in output headers (``docs/forensics.md`` P2-1), so raw files may
-differ across tick boundaries while samples stay bit-identical. Spectral
-``.ana`` outputs can't be decoded by libsndfile, so both sides are
-rendered to wav via ``pvoc synth`` first (itself sample-deterministic —
-forensics 5.5.2), then compared.
+counter in output headers, so raw files may differ across tick boundaries
+while samples stay bit-identical. Spectral ``.ana`` outputs can't be
+decoded by libsndfile, so both sides are rendered to wav via
+``pvoc synth`` first (itself sample-deterministic), then compared.
 
 Gated on real CDP via the ``real_cdp_path`` fixture (skips cleanly when
 ``$CDP_PATH`` is unset); fixture pattern copied from
@@ -139,8 +138,8 @@ async def test_lineage_argv_regenerates_identical_samples(cdp_env):
 
     # 3. Re-run the EXACT argv with only the output path swapped into a
     # fresh directory. cwd = session root so the cwd-relative input
-    # paths the engine records (brassage path-mangling defense,
-    # forensics 5.1.6) resolve exactly as they did in the real run.
+    # paths the engine records (modify brassage crashes on absolute paths
+    # containing a '.') resolve exactly as they did in the real run.
     fresh = env.session.tmp_dir / "repro"
     fresh.mkdir(parents=True)
     rerun_out = fresh / original_out.name
@@ -159,8 +158,7 @@ async def test_lineage_argv_regenerates_identical_samples(cdp_env):
     assert rerun_out.stat().st_size > 0
 
     # 4. Decoded-sample equivalence (raw bytes may legitimately differ
-    # across CDP tick-counter boundaries — P2-1 — so they are NOT
-    # compared).
+    # across CDP tick-counter boundaries, so they are NOT compared).
     sha_original = _decoded_sample_sha256(env, original_out)
     sha_rerun = _decoded_sample_sha256(env, rerun_out)
     assert sha_original == sha_rerun, (

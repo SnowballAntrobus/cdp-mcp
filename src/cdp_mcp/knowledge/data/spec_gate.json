@@ -10,7 +10,6 @@
   "output_format": ".ana",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -42,7 +41,7 @@
   ],
   "known_issues": [
     "Threshold is an absolute channel-amplitude, not dB or percent-of-peak: on a -14 dBFS rich source, 0.5 already produced total silence at exit 0 - silence is a legal outcome, not an error. Calibrate low.",
-    "Output is marginally SHORTER than the input round-trip (1.9998 vs 2.0230 on the shared fixture) - still within the static model's tolerance, but note the family-atypical direction.",
+    "Output is marginally SHORTER than the input round-trip (1.9998 vs 2.0230 on a 2 s flat-noise input) - still within the static model's tolerance, but note the family-atypical direction.",
     "wav input refused ('Application doesn't work with this type of infile.'); engine auto-PVOCs.",
     "Deterministic (1.3 s-apart runs byte-identical in the data chunk)."
   ],

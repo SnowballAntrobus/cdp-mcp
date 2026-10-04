@@ -10,12 +10,11 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur - (end - start)"},
   "curated": true,
   "version_sensitive": false,
   "description": "Discards the chunk of sound between start and end and closes up the gap - the inverse of sfedit cut (which KEEPS the selected region). Pinned to submode 1 (times in seconds); submode 2 takes sample counts. Duration model 'indur - (end - start)' is SAMPLE-EXACT (2 s minus [0.5,1.0] -> 1.5000/66150 frames; minus [0.2,1.8] -> 0.4000; 1 s minus [0.3,0.5] -> 0.8000; stereo identical). The splice crossfades the seam without changing duration, and with splice 0 the output is a verbatim sample-exact concatenation of input[0:start] + input[end:] (allclose, max diff 0.0). Reversed bounds are silently SWAPPED ('1.0 0.5' renders byte-identical to '0.5 1.0' - the sfedit cut behavior, re-verified here); start == end refuses 'ERROR: endcut = startcut: No cutting possible.'. Deterministic; mono and stereo accepted.",
-  "musical_use": "The remove-and-heal edit: take out a cough, a silence, a beat, or a whole section and let the file close around the wound. The default 15 ms splice makes the join inaudible on most material; a long splice (100-500 ms) turns removal into a composed transition - the sound morphs across the missing region; splice 0 is the raw jump-cut, clicks and all (musically useful on rhythmic material - it IS the classic beat-chop). Iterated excision is a form-builder: strip every other bar for half-time feels, remove all the vowels from speech leaving consonant percussion, or shorten a long texture from the inside so its two ends collide in new ways (where sfedit cut selects one region, excise composes with the MATERIAL AROUND it). For excising several regions in one pass CDP offers sfedit excises (cut list via execute()).",
+  "musical_use": "The remove-and-heal edit: take out a cough, a silence, a beat, or a whole section and let the file close around the wound. The default 15 ms splice makes the join inaudible on most material; a long splice (100-500 ms) turns removal into a composed transition - the sound morphs across the missing region; splice 0 is the raw jump-cut, clicks and all (musically useful on rhythmic material - it IS the classic beat-chop). Iterated excision is a form-builder: strip every other bar for half-time feels, remove all the vowels from speech leaving consonant percussion, or shorten a long texture from the inside so its two ends collide in new ways (where sfedit cut selects one region, excise composes with the MATERIAL AROUND it). For excising several regions in one pass use sfedit excises (a cut list).",
   "parameters": {
     "start": {
       "type": "float",
@@ -67,7 +66,7 @@
     "The splice must fit the surrounding material or CDP aborts ('ERROR: Edited portion is too short for specified splicelen.', runtime- and parameter-dependent).",
     "All three parameters reject breakpoint files ('Cannot read parameter N [...]: brkpnt_files not permitted.', N = 1-3).",
     "Duration model sample-exact on all probes (two input durations, stereo included); splice never affects length. Deterministic (identical decoded shas 1.2 s apart).",
-    "Submode 2 (sample-count times) and the multi-region sibling 'sfedit excises' are uncurated - reach them via execute()."
+    "Submode 2 (sample-count times) is uncurated - reach it via execute(). The multi-region sibling 'sfedit excises' has its own entry."
   ],
   "references": ["cdp://docs/html/cgroedit"]
 }

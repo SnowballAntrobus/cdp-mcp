@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur + plus"},
   "curated": true,
   "version_sensitive": false,
@@ -83,7 +82,7 @@
     }
   ],
   "known_issues": [
-    "Duration honesty: indur + plus was EXACT (4 dp) at two plus values on a 3.5 s syllable train, but a dense 16-grain train rendered +1.71/+1.76 s BEYOND the model at plus 0.5/1.5 - the extension rounds to whole passes of the found grain grid. Treat the model as a floor on unfamiliar material and measure. duration_row null: the flat-noise fixture's grain census is unverified and the overshoot is content-dependent (rule pinned in docs/curation/tranche15_gesture.md).",
+    "Duration honesty: indur + plus was EXACT (4 dp) at two plus values on a 3.5 s syllable train, but a dense 16-grain train rendered +1.71/+1.76 s BEYOND the model at plus 0.5/1.5 - the extension rounds to whole passes of the found grain grid. Treat the model as a floor on unfamiliar material and measure. The overshoot is content-dependent.",
     "CONTENT REFUSAL is the common failure: 'Insufficient grains to proceed.' (verbatim, after 'Number of grains found = 0') on sustained/smooth material, trof at 0 or 1, plus 0, or a reversed zone. Choose grainy zones and interior trof values.",
     "All five parameters are scalar-only (each brk slot refused verbatim, parameters 1-5).",
     "MONO ONLY (verbatim). Deterministic - byte-identical pairs, no seed.",

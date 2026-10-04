@@ -1,6 +1,6 @@
 # How the server works
 
-The server exposes CDP as 34 MCP tools and 4 prompts. Most of the work happens in one place: running a curated CDP program safely, with every input, parameter and output recorded.
+The server exposes CDP as 33 MCP tools and 4 prompts. Most of the work happens in one place: running a curated CDP program safely, with every input, parameter and output recorded.
 
 ## A `process()` call
 
@@ -10,13 +10,13 @@ The server exposes CDP as 34 MCP tools and 4 prompts. Most of the work happens i
 2. **Resolve inputs.** A plain filename refers to the session's `inputs/` directory. `latest` and `prev_1`–`prev_4` name recent outputs, `latest_batch[i]` names one output of the last `batch()`, and `<graph_id>:<node_id>` names any earlier node. Every input must stay inside the session.
 3. **Check parameters** against the entry's types and ranges, then predict the output duration from the entry's duration rule. A call predicted to exceed the duration cap is refused before CDP starts.
 4. **Convert domains.** CDP's spectral programs read `.ana` analysis files and its time-domain programs read `.wav`. When an input is in the wrong domain, the server inserts `pvoc anal` or `pvoc synth` as its own node.
-5. **Compile breakpoints.** A time-varying parameter given as `[[time, value], ...]` becomes a `.brk` file in `envelopes/`. Times are fractions of the input's duration, or seconds when written `"abs:1.5"`. `breakpoint()` builds these lists from named shapes.
+5. **Compile breakpoints.** A time-varying parameter given as `[[time, value], ...]` becomes a `.brk` file in `envelopes/`. Times are fractions of the input's duration (the first input's, for programs with several), or seconds when written `"abs:1.5"`. `breakpoint()` builds these lists from named shapes.
 6. **Check and run the command.** The binary must be inside `CDP_PATH`, no argument may contain shell metacharacters, and every path must be inside the session or the cache. While CDP runs, progress notifications keep the MCP client from timing out, and a watchdog kills the process if its output grows past the size cap.
 7. **Verify and record.** The output must exist, and audio must not be silent. The argv, input and output hashes, and timings of every node go into `lineage.json` in a new graph directory, and `latest` moves to the new output.
 
 The action and observation tools return a result envelope: a status, the output path, any `errors` as `{type, message, fix}`, and a `context` block naming the current `latest` and recent graphs. CDP prints many of its errors to stdout rather than stderr, so the server searches both for known CDP messages and turns them into specific error types with a suggested fix.
 
-The other action tools reuse the same steps. `graph()` runs a whole DAG of nodes, and with `dry_run=True` it validates everything and predicts each node's duration without running anything. `batch()` runs one program over many inputs, `sweep()` runs one input through many parameter settings, and `timeline()` places several sources at set times and mixes them with `submix mix`. CDP's mixer wraps around on overload instead of clipping, so by default `timeline()` first measures the mix with `submix getlevel` and attenuates it when needed. `execute()` runs any CDP command after the same command checks, without lineage or output verification.
+The other action tools reuse the same steps. `graph()` runs a whole DAG of nodes, and with `dry_run=True` it validates everything and predicts each node's duration without running anything. `batch()` runs one program over many inputs, `sweep()` runs one input through many parameter settings, and `timeline()` places several sources at set times and mixes them with `submix mix`. CDP's mixer wraps around on overload instead of clipping, so by default `timeline()` first measures the mix with `submix getlevel` and attenuates it when needed. `execute()` runs any CDP command after the same command checks, without lineage, output verification or the size watchdog.
 
 ## Sessions and files
 
@@ -51,7 +51,7 @@ The engineering fields were measured against CDP8 binaries built by `scripts/bui
 | Find | `list_categories`, `list_programs`, `get_program_info`, `search_programs`, `search_docs`, `read_doc`, `list_examples` |
 | Run | `process`, `graph`, `batch`, `sweep`, `timeline`, `breakpoint`, `write_data_file`, `execute` |
 | Observe | `visualize`, `analyze`, `segments`, `compare`, `progression`, `cluster`, `why` |
-| Session | `set_session`, `describe_workspace`, `read_envelope`, `set_config`, `list_session_files`, `tag`, `journal`, `cleanup`, `cleanup_cache`, `save_graph`, `load_graph`, `list_graphs` |
+| Session | `set_session`, `describe_workspace`, `read_envelope`, `list_session_files`, `tag`, `journal`, `cleanup`, `cleanup_cache`, `save_graph`, `load_graph`, `list_graphs` |
 
 The prompts `explore_material`, `build_texture`, `review_provenance` and `recommend_transforms` walk the model through common workflows.
 
@@ -69,3 +69,10 @@ The prompts `explore_material`, `build_texture`, `review_provenance` and `recomm
 | `CDP_MCP_DISABLE_ARCH_X86_64` | off | On Apple Silicon the server runs CDP under `arch -x86_64`; set to `1` for native arm64 binaries. |
 
 A symlinked binary in `CDP_PATH` must point to a file that is also inside `CDP_PATH`.
+
+## Known limitations
+
+- Warnings from breakpoint compilation, such as a dropped duplicate point, appear only in dry runs and failed runs. A successful run doesn't report them.
+- `breakpoint()`'s `step` shape clamps out-of-range values with a warning, where the other shapes refuse them.
+- For `graph()`, `batch()` and `sweep()` runs, `describe_workspace` and `list_graphs` can name an intermediate PVOC node as a graph's main output, because they pick the highest-numbered node by name.
+- Nothing deletes a session's `tmp/` directory, which collects resynthesized audio and comparison files. Delete it by hand when it grows.

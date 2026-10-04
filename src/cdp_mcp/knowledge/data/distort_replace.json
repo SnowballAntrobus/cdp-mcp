@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -52,7 +51,7 @@
     }
   ],
   "known_issues": [
-    "Duration honesty: static within -0.1% to -1.1% on periodic material (tones, AM tone, sweep; the trailing partial group is dropped) but +44% LONGER on noise at cyclecnt 4 (enveloped and flat noise alike) - replaced slots inherit the strongest cycle's length. For this reason the entry is EXCLUDED from the shared flat-noise duration-row fixture (would fail its 5% tolerance by construction).",
+    "Duration honesty: static within -0.1% to -1.1% on periodic material (tones, AM tone, sweep; the trailing partial group is dropped) but +44% LONGER on noise at cyclecnt 4 (enveloped and flat noise alike) - replaced slots inherit the strongest cycle's length.",
     "skipcycles drops the skipped region from the output entirely (verified sample-accurately); the duration model assumes skipcycles = 0.",
     "Stereo refused: 'Application doesn't work with this type of infile.' -> mono.",
     "Deterministic: two runs 1.2 s apart decoded-identical.",

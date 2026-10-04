@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "notes"},
   "curated": true,
   "version_sensitive": true,
@@ -173,7 +172,7 @@
   ],
   "known_issues": [
     "INPUT-TYPING LANDMINE (source-diagnosed): even-count note lists whose odd-position values ascend are typed as possible breakpoint files and refuse 'Application doesn't work with this type of infile.' (only NUMLIST typing validates hfperm; cdp2k/validate.c:603). Always-safe forms: odd value counts, or descending order. Two even-count orderings verified refusing, descending 6-count verified passing.",
-    "Output duration is combinatorial (chord count from pitch-class math), unpredictable statically: the duration expression names the aux param so the pre-flight skips (clicknew pattern); duration_row excluded in findings. Big inputs make LONG files - 8 pitch classes at minset 2 is 200+ chords.",
+    "Output duration is combinatorial (chord count from pitch-class math), unpredictable statically: the duration expression names the aux param so the pre-flight skips (clicknew pattern). Big inputs make LONG files - 8 pitch classes at minset 2 is 200+ chords.",
     "Octave duplicates in the input are eliminated before combination ('after octave duplication elimination' refusal verbatim) - a 6-note list spanning octaves yields the same chords as its pitch-class reduction (verified). minset caps at the CLASS count, not the note count.",
     "Fractional MIDI values are accepted in the list (sibling mode 4 rounds them in its text output; this mode's tuning of fractional inputs is unpinned - prefer integers).",
     "Output is mono, peak 0.800, harmonic-rich tone (1x/2x/3x partials verified). Deterministic.",

@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "stagger + indur2"},
   "curated": true,
   "version_sensitive": false,
@@ -74,7 +73,7 @@
     "Output duration = stagger + indur2, sample-exact on all probes - file 1's length only matters if it is the shorter file (it bounds the default fade region). A short file 2 means a short output even when file 1 is long (2s+1s -> 1.0 s, verified).",
     "Overload-safe: the fade gains are complementary and outside the fade the files pass verbatim - bounded by the louder input. Contrast submix mix (WRAPS on summed overs).",
     "All three parameters refuse breakpoint files ('Cannot read parameter N [...]: brkpnt_files not permitted.', N = 1-3). The fade shape is fixed (linear here, cosinusoidal in submode 2); for an arbitrary time-varying blend use submix balance.",
-    "Multi-input entry: duration rule verified across both orders + stagger + crop in docs/curation/tranche12_submix_depth.md; duration_row null (tranche-11 rule)."
+    "Multi-input entry: duration rule verified across both orders + stagger + crop."
   ],
   "references": ["cdp://docs/html/cgromix2"]
 }
