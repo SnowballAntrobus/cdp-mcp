@@ -254,7 +254,7 @@ def test_triple_violation_all_three_types_reported(roots):
 
 
 # ---------------------------------------------------------------------------
-# Flag-attached path values (Phase 2 hardening, M1)
+# Flag-attached path values
 # ---------------------------------------------------------------------------
 
 

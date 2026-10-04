@@ -183,12 +183,11 @@ async def maybe_insert_pvoc(
             ),
         )
 
-    # Cache check (Task 10). PVOC anal/synth output is a pure function of
-    # input bytes + argv shape + CDP version. On hit, hardlink the cached
+    # Cache check. PVOC anal/synth output is a pure function of input
+    # bytes + argv shape + CDP version. On hit, hardlink the cached
     # artifact into the graph dir and build a "cache_hit=True" lineage
     # entry without running any subprocess. Hashing runs off the event
-    # loop — these are the big-file sha256 calls the async commitment
-    # names explicitly. (Phase 2 hardening, M2.)
+    # loop — big-file sha256 calls would otherwise block it.
     input_sha = await asyncio.to_thread(sha256_file, input_path)
     argv_discriminator = "_".join(argv_template[1:])  # "anal_1" or "synth"
     out_suffix = ".ana" if target_domain == "spectral" else ".wav"
@@ -289,10 +288,10 @@ async def maybe_insert_pvoc(
             ),
         )
 
-    # Verify success: exit 0, not timed out, output file exists and is
-    # non-empty. We deliberately *don't* run verify_output here for ana
-    # files — Task 4's verify_output is for the final main-op output. For
-    # PVOC intermediates, "exists and exit 0" is sufficient.
+    # Verify success: exit 0, not timed out, output file exists. We
+    # deliberately *don't* run verify_output here for ana files —
+    # verify_output is for the final main-op output. For PVOC
+    # intermediates, "exists and exit 0" is sufficient.
     if sub.timed_out or sub.exit_code != 0 or not output_path.exists():
         return PVOCResult(
             state="failed",
@@ -317,7 +316,7 @@ async def maybe_insert_pvoc(
 
     output_sha = await asyncio.to_thread(sha256_file, output_path)
 
-    # Task 8: record the source wav's duration on the PVOC node's lineage
+    # Record the source wav's duration on the PVOC node's lineage
     # so downstream breakpoint compilation can resolve relative-time
     # tuples against the original audio. Only meaningful when the input
     # was a .wav (PVOC anal direction); .ana inputs already have their
@@ -445,26 +444,27 @@ async def synth_for_audition(
 
     Used by :func:`visualize` and :func:`analyze` so they can render
     spectral files without polluting the graph. **No graph node, no
-    lineage entry** — the temp wav is purely a rendering aid. It lives in
-    ``session.tmp_dir`` until Phase 1b's ``cleanup()`` tool removes it.
+    lineage entry** — the temp wav is purely a rendering aid, left in
+    ``session.tmp_dir`` (``cleanup()`` only removes graph directories).
 
     Output filename: ``<ana_path.stem>.wav``. On a cache miss the
     pre-existing wav (if any) is deleted first because CDP r8's
     ``pvoc synth`` refuses to overwrite existing files and exits 255.
 
     Cached at ``~/.cdp_mcp/cache/audition/<sha>.wav`` keyed by
-    ``sha256(ana_bytes + cdp_version)`` (Task 11). A cache hit returns
-    the cached path directly, skipping the subprocess entirely; a miss
-    runs ``pvoc synth`` into ``session.tmp_dir`` (the cwd-relative
-    argv path keeps Task 2's brassage-style path-mangling defense in
-    play) and then populates the cache best-effort.
+    ``sha256(ana_bytes + cdp_version)``. A cache hit returns the cached
+    path directly, skipping the subprocess entirely; a miss runs ``pvoc
+    synth`` into ``session.tmp_dir`` (the cwd-relative argv path keeps
+    the brassage-style path-mangling defense in play — see
+    ``processing.build_cdp_argv``) and then populates the cache
+    best-effort.
 
     Raises:
         PVOCFailedError: on non-zero exit, timeout, or missing output.
         SecurityError: if the constructed argv fails the security gate
             (should not happen in normal use; surfaces as a bug signal).
     """
-    # Cache check (Task 11). On hit, return the cache path directly;
+    # Cache check. On hit, return the cache path directly;
     # callers read via librosa (no writes), so no materialize needed.
     ana_sha = await asyncio.to_thread(sha256_file, ana_path)
     cache = cache_lookup(
@@ -481,7 +481,7 @@ async def synth_for_audition(
         )
 
     output_path = session.tmp_dir / f"{ana_path.stem}.wav"
-    # Defensive — Task 3's _SUBDIRS already creates tmp/ at session init,
+    # Defensive — session creation already makes tmp/ (session._SUBDIRS),
     # but a caller building a Session by hand might forget it.
     session.tmp_dir.mkdir(parents=True, exist_ok=True)
 
@@ -530,9 +530,9 @@ async def synth_for_audition(
             subprocess_result=sub,
         )
 
-    # Best-effort cache populate (Task 11). Failure logs a stderr
-    # warning and returns False; the in-session output remains usable
-    # regardless of cache state.
+    # Best-effort cache populate. Failure logs a stderr warning and
+    # returns False; the in-session output remains usable regardless of
+    # cache state.
     cache_populate(cache.path, output_path)
 
     return output_path, sub
@@ -557,15 +557,13 @@ async def read_ana_duration(
 
     Never raises — returns ``None`` on any failure (missing binary,
     security-validation reject, non-zero exit, unparseable stdout,
-    timeout, I/O error). The disk watchdog (Task 7) is the reactive
-    safety net for the cases this can't predict.
+    timeout, I/O error). The disk watchdog is the reactive safety net
+    for the cases this can't predict.
 
-    Investigation outcome (Phase 2 Task 2): the high-level design doc
-    named ``dirsf`` as the candidate, but verification against r8
-    revealed ``dirsf`` is a directory-listing utility, not a per-file
-    header reader. ``pvoc info`` does not exist in r8 (modes are
-    ``anal``/``synth``/``extract``). ``sfprops -d <path>`` is the right
-    tool — exits 0 on success and writes exactly one float to stdout
+    Why ``sfprops``: in r8, ``dirsf`` is a directory-listing utility,
+    not a per-file header reader, and ``pvoc info`` does not exist
+    (modes are ``anal``/``synth``/``extract``). ``sfprops -d <path>``
+    exits 0 on success and writes exactly one float to stdout
     (e.g. ``"7.235465\\n"``); exits 1 on missing/corrupt file.
     Sub-second cost on a 10 MB ana.
 

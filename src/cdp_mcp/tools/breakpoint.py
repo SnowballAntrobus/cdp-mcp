@@ -1,10 +1,10 @@
 """The ``breakpoint()`` MCP tool — named-shape breakpoint envelope constructor.
 
-Phase 2 Task 6. A pure constructor: it generates relative-time tuple lists
-in named shapes (``linear``, ``exponential``, ``sigmoid``, ``pulse_train``,
-``step``, ``random``) that the LLM then passes as a parameter value to
-``process()``. The existing Phase 1b breakpoint compiler consumes the
-output unchanged — ``breakpoint()`` adds no new compiler path.
+A pure constructor: it generates relative-time tuple lists in named shapes
+(``linear``, ``exponential``, ``sigmoid``, ``pulse_train``, ``step``,
+``random``) that the LLM then passes as a parameter value to ``process()``.
+The breakpoint compiler consumes the output unchanged — ``breakpoint()``
+adds no new compiler path.
 
 Why a separate tool rather than inline ``process()`` syntax: construction-
 time validation. ``breakpoint()`` rejects "this parameter isn't
@@ -232,9 +232,9 @@ def _shape_random(
     n = 8 if points is None else points
     if n < 1:
         raise _ShapeArgsError("shape 'random' requires points >= 1.")
-    # Instance-scoped RNG — never touches global numpy RNG state (Task 2.5
-    # found global RNG mutation is a test-contamination vector). Same seed →
-    # identical output across calls and sessions.
+    # Instance-scoped RNG — never touches global numpy RNG state (mutating
+    # it leaks between tests). Same seed → identical output across calls
+    # and sessions.
     rng = np.random.default_rng(seed)
     draws = rng.uniform(low, high, size=n)
     pts: list[list[float]] = []
@@ -531,9 +531,7 @@ async def breakpoint_impl(
                     fix=f"Choose {name} within [{spec.min}, {spec.max}].",
                 ))
 
-    # 6b. Generated values out of range → clamp + warn (defensive; the
-    # current shapes don't overshoot in-range anchors, but a future shape
-    # might).
+    # 6b. Generated values out of range → clamp + warn.
     clamped = 0
     for p in pts:
         cv = _clamp(p[1], spec)

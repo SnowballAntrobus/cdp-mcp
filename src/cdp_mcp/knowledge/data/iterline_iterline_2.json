@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": null,
   "duration_model": {"kind": "set_by", "param": "outduration"},
   "curated": true,
   "version_sensitive": true,
@@ -119,7 +118,7 @@
     "Step rule: nearest tdata point in TIME wins; an exactly half-way copy takes the EARLIER value (probe-pinned on 2- and 3-point lines). Pitch changes land midway between adjacent time points - place points accordingly.",
     "FIRST-EVENT BUG as submode 1 (shared two-pass engine): the first copy sounds at the line's final value (+12 measured on a 0->12 line). Trim it or fold it into the design.",
     "ALL-POSITIONAL argv, required tdata/outduration/delay; delay 0 hangs (timeout-killed); mode 3 silently aliases to this mode (byte-identical render); mode 0 exits 249 with no message.",
-    "Duration honesty (set_by outduration): actual = last onset below the request + the last copy's transposed length; lines ending low overshoot (up to 4x input at -24), ending high undershoot. Row pinned on a flat 0 st line with delay = fixture duration (exact).",
+    "Duration honesty (set_by outduration): actual = last onset below the request + the last copy's transposed length; lines ending low overshoot (up to 4x input at -24), ending high undershoot. Exact on a flat 0 st line with delay = input duration.",
     "Seed 0 is the clock path; entry default 1. -n refused at seed 0 (verbatim). Auto-gain can exceed full scale with pshift - floats written unclipped.",
     "version_sensitive: CDP8-new program (no release banner); argv shape and first-event bug are build-specific findings."
   ],

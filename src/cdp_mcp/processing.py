@@ -59,9 +59,9 @@ def validate_params(
             continue
         if spec.flag is None and spec.default is None:
             if spec.type == "free_string":
-                # Phase 6 (tranche 24): the required value is a plain
-                # string (e.g. a shuffle domain-image map), so "pass a
-                # numeric value" would send the caller the wrong way.
+                # The required value is a plain string (e.g. a shuffle
+                # domain-image map), so "pass a numeric value" would send
+                # the caller the wrong way.
                 pattern_hint = (
                     f" matching pattern {spec.pattern!r}"
                     if spec.pattern is not None else ""
@@ -88,8 +88,8 @@ def validate_params(
             errors.append(type_error)
             continue
         # Range + musical-range checks only apply to scalar constants.
-        # List / .brk-path values go through the breakpoint compiler
-        # (Task 8) which validates content separately.
+        # List / .brk-path values go through the breakpoint compiler,
+        # which validates content separately.
         if not isinstance(value, (int, float)) or isinstance(value, bool):
             continue
         range_error = _check_range(name, spec, value)
@@ -124,11 +124,11 @@ def _check_type(
 ) -> ErrorEntry | None:
     """Accepts int / float scalars, list (breakpoint pairs), `.brk`
     path strings, and — for ``aux_file`` params — non-``.brk`` path
-    strings. Compiler validates list / .brk-path contents separately
-    (Task 8); aux-file existence is checked in node_validation step 8.7.
-    Bool accepted only for value-less switch params (Phase 3).
-    ``free_string`` params (Phase 6, tranche 24) accept plain non-.brk
-    strings, optionally gated by the spec's ``pattern`` regex."""
+    strings. Compiler validates list / .brk-path contents separately;
+    aux-file existence is checked in node_validation step 8.7.
+    Bool accepted only for value-less switch params.
+    ``free_string`` params accept plain non-.brk strings, optionally
+    gated by the spec's ``pattern`` regex."""
     if spec.type == "free_string":
         # Plain string parsed straight from argv by CDP (shuffle's
         # domain-image map). Not a path: nothing downstream resolves
@@ -207,8 +207,8 @@ def _check_type(
         )
     if isinstance(value, bool):
         # bool is a subclass of int. Accepted only for value-less switch
-        # flags (Phase 3: True emits the bare flag, False omits it);
-        # rejected for numeric params as before.
+        # flags (True emits the bare flag, False omits it); rejected for
+        # numeric params.
         if spec.flag_kind == "no_value":
             return None
         return ErrorEntry(
@@ -222,7 +222,7 @@ def _check_type(
     if isinstance(value, (int, float)):
         return None
     if isinstance(value, list):
-        # Breakpoint compiler (Task 8) validates the list contents.
+        # The breakpoint compiler validates the list contents.
         return None
     if isinstance(value, str) and value.lower().endswith(".brk"):
         # Pre-existing .brk path; the compiler reads + hashes it.
@@ -311,7 +311,7 @@ def build_cdp_argv(
     - ``cwd`` is the directory the subprocess will run from (typically
       ``session.root``); paths inside ``cwd`` are emitted as cwd-relative.
 
-    Layout (per the Phase 1a spec, extended Phase 5 wave 2a):
+    Layout:
         [program, mode, *([submode] if submode else []),
          *input_paths,
          *pre_output_params_in_entry_declaration_order,
@@ -322,7 +322,7 @@ def build_cdp_argv(
     positional aux_file slots like ``submix mix``'s mixfile and
     ``formants put``'s fmntfile) render BETWEEN the inputs and the
     output path, where those CDP programs expect their data file;
-    every other param renders after the output as before.
+    every other param renders after the output.
 
     Each param emits one of three forms:
 
@@ -336,9 +336,7 @@ def build_cdp_argv(
 
     A ``no_value`` switch emits its bare flag only when the resolved value
     is truthy; a falsy value (``False``, ``0``, or ``None``-after-default)
-    omits the switch. (Phase 3 fix: previously any non-``None`` value —
-    including a curated ``default: false`` — emitted the switch
-    unconditionally, so e.g. ``strange glis``'s ``-i`` was always on.)
+    omits the switch, so a curated ``default: false`` leaves it off.
 
     Paths are rendered cwd-relative when they live under ``cwd`` (i.e. inside
     the session tree). Paths outside ``cwd`` stay absolute. This dodges a
@@ -354,9 +352,9 @@ def build_cdp_argv(
         argv.append(str(entry.submode))
     for p in input_paths:
         argv.append(_argv_path(p, cwd))
-    # Phase 5 wave 2a: pre_output params occupy the argv slot(s) between
-    # the inputs and the output path (submix mix's mixfile, formants
-    # put's fmntfile); everything else renders after the output.
+    # pre_output params occupy the argv slot(s) between the inputs and
+    # the output path (submix mix's mixfile, formants put's fmntfile);
+    # everything else renders after the output.
     for name, spec in entry.parameters.items():
         if spec.position == "pre_output":
             _emit_param(argv, spec, params.get(name, spec.default), cwd)
@@ -373,12 +371,7 @@ def _emit_param(
     value: Any,
     cwd: Path,
 ) -> None:
-    """Append one parameter's argv rendering (possibly nothing) to ``argv``.
-
-    Factored out of :func:`build_cdp_argv` when pre_output positioning
-    split the single param loop in two (Phase 5 wave 2a); the emission
-    rules themselves are unchanged from Phase 3.
-    """
+    """Append one parameter's argv rendering (possibly nothing) to ``argv``."""
     # Optional flag parameter with no value supplied and no default:
     # omit from argv. (CDP flags are optional by definition; emitting
     # `-l` with no value would be invalid, and emitting a default for
@@ -392,9 +385,9 @@ def _emit_param(
             argv.append(spec.flag)
         return
     if isinstance(value, Path):
-        # Compiled breakpoint or resolved aux file (Tasks 8 / 8.7).
-        # Render cwd-relative inside the session tree (CDP-quirk
-        # workaround applies the same as for inputs/outputs).
+        # Compiled breakpoint or resolved aux file. Render cwd-relative
+        # inside the session tree (CDP-quirk workaround applies the same
+        # as for inputs/outputs).
         formatted = _argv_path(value, cwd)
     else:
         formatted = _format_value(value, spec.type)
@@ -430,11 +423,11 @@ def _format_value(value: Any, declared_type: str) -> str:
     Integer values use plain ``str(int(value))`` to avoid spurious decimals.
     """
     if declared_type in ("free_string", "str"):
-        # Phase 6 (tranche 24): plain strings render verbatim —
-        # ``free_string`` for caller-supplied values (shuffle maps),
-        # ``str`` for curated fixed defaults (getpitch side names).
-        # Ordered before the numeric branches so a numeric-looking
-        # string is never reformatted.
+        # Plain strings render verbatim — ``free_string`` for
+        # caller-supplied values (shuffle maps), ``str`` for curated
+        # fixed defaults (getpitch side names). Ordered before the
+        # numeric branches so a numeric-looking string is never
+        # reformatted.
         return str(value)
     if declared_type == "int" or (
         isinstance(value, int) and not isinstance(value, bool)

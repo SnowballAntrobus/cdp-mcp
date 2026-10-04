@@ -1,166 +1,60 @@
 # cdp-mcp
 
-An MCP (Model Context Protocol) server that wraps the [Composers' Desktop Project](https://www.composersdesktop.com/) (CDP) suite, exposing it as a set of tools an LLM can call for sound transformation, analysis, and visualization.
+An [MCP](https://modelcontextprotocol.io) server that lets an LLM use the [Composers' Desktop Project](https://www.composersdesktop.com/) (CDP), a suite of more than 500 command-line programs for offline sound transformation.
 
-> **Where it stands:** Phase 6 complete. 34 tools + 4 workflow prompts; **348 curated entries** keyed by `(program, mode, submode)` (every parameter range, duration model, and breakpoint capability empirically verified against real CDP binaries) plus 99 auto-generated uncurated stubs covering what remains (mostly the out-of-scope multichannel/spatial family, toolkit plumbing, and programs dropped with recorded defect evidence — see `docs/curation/`). DAG orchestration (`graph`, `batch`), a full observation suite (spectrograms, MIR v2 scorecards, segmentation, comparison, progression, clustering), FTS5 search over CDP's manual, a packaged `cdp://examples/*` library of verified chain recipes, per-output provenance, and derivative caches throughout. Phase handoffs live in `docs/`.
+Can a model that cannot hear do real sound design? The models driving this server are text-only, so everything they learn about a sound comes through its observation tools: spectrograms, feature scorecards, segmentation, comparisons and provenance. This server was the harness for that question. The project is complete and archived.
 
-## The research question
+The loop is **find a program → process the audio → observe the result → refine**. There are 348 curated program modes, each with musical guidance on when to use it. Their parameter ranges, output-duration rules and breakpoint support were measured against real CDP binaries. The server converts between audio and spectral files automatically and records how every output was made. When a call goes wrong, it returns structured errors with suggested fixes. [How the server works](docs/how-it-works.md) has the details.
 
-CDP will mean little to most readers — here it is the instrument, not
-the point. The project explores whether an LLM can do real sound design
-when it cannot hear: the models driving it are text-only, so everything
-they know about a sound arrives through the observation layer —
-spectrograms, MIR scorecards, segmentation, comparison, provenance.
-Which representations let a model reason about sound well enough to
-iterate toward a musical goal, and how tool design shapes that ability,
-is the experiment; the server is the harness it runs on.
+## Contents
 
-**Status (August 2026): in progress.** The tool surface and curated
-knowledge layer are complete through Phase 6; current work is using the
-instrument in real sound-design sessions and refining the observation
-layer against what the model actually turns out to need.
+- `src/cdp_mcp/`: the server. `server.py` registers the 33 tools and 4 prompts, and `tools/` holds the tool modules. The other modules check, run and record CDP commands, cache derived files and analyze audio.
+- `src/cdp_mcp/knowledge/`: the curated entries, stubs for uncurated programs, and six verified example chains.
+- `tests/`: a suite that fakes CDP, plus tests that run when real CDP binaries are available.
+- `scripts/build_cdp8_linux.sh`: builds the CDP binaries from source on Linux.
+- `docs/`: [how the server works](docs/how-it-works.md) and the [CDP quirks](docs/cdp-quirks.md) found during curation.
 
-## What this does
+## Setup
 
-Wraps CDP — a 500+ program suite for offline sound transformation — as MCP tools an LLM can call in collaboration with a human composer. The knowledge layer curates the musically vital core of CDP (spectral blurring/morphing/stretching, waveset distortion, granular time-stretch, scrambling and gesture extension, filtering, texture generation) with hand-written musical guidance and machine-verified engineering metadata. Auto-inserts PVOC analysis/synthesis when input and program domains don't match, so the LLM never thinks about `.ana` vs `.wav`. Every action returns structured errors with fixes, full lineage lands on disk, and an `execute()` escape hatch covers the uncurated long tail behind a security boundary.
+Clone the repository and install the locked dependencies with [uv](https://docs.astral.sh/uv/):
 
-## Phase history
-
-- **Phase 1a/1b** — core loop (`process` → `visualize`/`analyze`), five curated programs, derivative caches (15×–1231× speedups), pre-flight duration prediction + reactive disk watchdog, structured error taxonomy, polymorphic breakpoint parameters, `latest`/`prev_N` conversational aliases. Record: `docs/phase-1b-handoff.md`.
-- **Phase 2** — DAG orchestration: `graph()` (whole-DAG validation with chained per-node duration predictions, then topological execution into one graph directory) and `batch()` (N inputs, one atomic context event, `latest_batch[i]` addressing); the observation track (`segments`, `compare`, `progression`, verbose `analyze`); the `breakpoint()` envelope DSL; multi-input processing; a hardening pass (cancellation-safe subprocesses, security-gate fixes, event-loop hygiene). Record: `docs/phase-2-handoff.md`.
-- **Phase 3** — knowledge completion: 6 → 43 curated entries via an empirical pipeline against CDP built from source (`scripts/build_cdp8_linux.sh`); four-source curation hierarchy (*binaries decide, source explains, manual describes, SoundThread + afta8 prioritize*); `search_docs`/`read_doc` (FTS5 over the CDP manual), `why()` provenance, `cluster()`, `write_data_file()` + `aux_file` parameters (texture programs); long-tail stub generator. Findings — including several CDP bugs the docs don't know about — in `docs/forensics.md` and `docs/curation/`. Record: `docs/phase-3-handoff.md`.
-- **Phase 4** — workflow polish: `sweep()` (one source × N param variants — a reversed design-doc non-goal, driven by usage evidence), `tag`/`journal`/`set_config`/`list_session_files`, dependency-safe `cleanup()` + `cleanup_cache()` (dry-run default), graph templates (`save_graph`/`load_graph`/`list_graphs`), a lineage→regenerate reproducibility test, and three MCP workflow prompts. `export_to_ableton` and the process-output cache are deferred with recorded rationale.
-- **Phase 5** — knowledge depth: 43 → 107 curated entries across six tranches (mix/envelope, grain/pitch, unblocked aux-file entries, seed-hunt singles, sibling submodes, the remaining SoundThread-covered singles); `(program, mode, submode)` triple keying; three engine schema gaps closed (`pre_output` aux positioning, data-file outputs, arity-0 generators); MIR v2 (13-field scorecard, 33-dim cluster vector); a generalization matrix running four synthesized material classes through curated chains (`docs/generalization-matrix.md` — including what did *not* generalize); and the `cdp://examples/*` library, every recipe executed against real CDP before shipping. Record: `docs/phase-5-handoff.md`.
-- **Phase 6** — gesture construction + full-coverage curation: the curation completion run (tranches 9–23: 43 → 348 entries across every relevant CDP family — mix, envelope, editing, gesture, waveset, synthesis, texture/filter, grain/FOF, spectral, pitch-data); `timeline()` (deterministic multi-source event placement onto `submix mix`, with headroom staging via the curated `getlevel` pre-flight — overload wraps, so this matters); grid-free rhythm analysis (IOI stats + accelerando detection + density trajectory in `segments()`); `search_programs()` + a `recommend_transforms` prompt (FTS over the curated knowledge — at 348 entries, discoverability is its own feature); stdout-refusal error mapping (11 patterns from the curation run's verbatim corpus); and three schema gaps closed (`free_string` params, `.frq`/`.trn` pitch-data kinds — the full curated pitch workflow `getpitch → transform → transposef` runs with no `execute()` escape). Record: `docs/phase-6-handoff.md`.
-
-## Installation
-
-Clone the repo and install in editable mode into a Python 3.10+ environment:
-
-```bash
-git clone https://github.com/<you>/cdp-mcp.git
-cd cdp-mcp
-python3.11 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
+```sh
+uv sync --extra dev
 ```
 
-Or with [`uv`](https://docs.astral.sh/uv/) (recommended):
+The server needs CDP binaries. On Linux, build them from the CDP8 source the entries were verified against. Elsewhere, point `CDP_PATH` at a CDP release.
 
-```bash
-uv venv
-source .venv/bin/activate
-uv pip install -e ".[dev]"
+```sh
+scripts/build_cdp8_linux.sh ~/CDP8
+export CDP_PATH=~/CDP8/NewRelease
 ```
 
-## Configuring `CDP_PATH`
-
-The server needs to know where your CDP binaries live. Set `CDP_PATH` to the directory containing programs like `housekeep`, `blur`, `modify`, `pvoc`, etc.
-
-```bash
-export CDP_PATH=/cdpr8/_cdp/_cdprogs
-```
-
-No CDP install? On Linux, `scripts/build_cdp8_linux.sh` builds ~211 binaries from the open-source [CDP8 release](https://github.com/ComposersDesktop/CDP8) in one command.
-
-## Use with Claude Desktop
-
-Add this to your `claude_desktop_config.json`:
+To use the server from Claude Desktop, add it to `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "cdp": {
-      "command": "cdp-mcp",
-      "env": { "CDP_PATH": "/path/to/cdpr8/_cdp/_cdprogs" }
+      "command": "/path/to/cdp-mcp/.venv/bin/cdp-mcp",
+      "env": { "CDP_PATH": "/path/to/CDP8/NewRelease" }
     }
   }
 }
 ```
 
-Restart Claude Desktop. In a new conversation, the `cdp` server should appear in the MCP server list with no error icon. Ask Claude to call `list_categories()` and you should get back the categorized list of curated CDP programs.
+In a conversation, ask Claude to start a session called `first`. That creates `~/cdp_sessions/first/`. Copy a `.wav` file into its `inputs/` directory and ask for something like "blur the spectrum of frog.wav, then show me a spectrogram." The remaining settings are listed under [configuration](docs/how-it-works.md#configuration).
 
-## Quick start
+## Tests
 
-In a Claude conversation with the MCP server connected:
-
-> Set up a CDP MCP session called `my_first_session`.
-
-Claude calls `set_session("my_first_session")`. The server creates `~/cdp_sessions/my_first_session/` with `inputs/`, `graphs/`, `tmp/`, and a few other subdirectories.
-
-Drop a `.wav` file into `~/cdp_sessions/my_first_session/inputs/`, then:
-
-> Blur the spectral content of frog.wav with a blurring factor of 10, then show me a spectrogram.
-
-Claude calls `process("blur", "blur", input="frog.wav", params={"blurring": 10})` — the server auto-inserts a `pvoc anal` step because blur is spectral and the input is a wav — followed by `visualize("latest")`. The spectrogram comes back inline in the chat, and the rendered PNG is on disk under `<session>/visualizations/`.
-
-From here the workflows compose:
-
-- **Iterate:** chain further `process()` calls via `"latest"` / `prev_N`, with time-varying parameters built by `breakpoint()` (named shapes or custom point lists).
-- **Orchestrate:** describe a whole chain declaratively with `graph(dry_run=True)` — per-node duration predictions before anything runs — then execute it.
-- **Explore:** `batch()` one program across many inputs or `sweep()` one input across many parameter settings, `cluster()` the results, audition one medoid per cluster with `compare()`, and view a chain's evolution with `progression()`.
-- **Understand:** `segments()` finds onsets/silences to feed edit points; `why()` reconstructs any output's full provenance; `search_docs()`/`read_doc()` consult CDP's own manual.
-- **Keep:** `tag()` the winners, `journal()` the taste notes, `save_graph()` a chain you liked as a reusable template, `cleanup()` the rest (dependency-safe, dry-run by default).
-
-## Environment variables
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `CDP_PATH` | (required) | Path to the CDP binaries directory. |
-| `CDP_MCP_SESSIONS_ROOT` | `~/cdp_sessions` | Where session directories live. |
-| `CDP_MCP_DOCS_ROOT` | (auto-derived) | CDP HTML manual location for `search_docs` (found by walking up from `CDP_PATH`). |
-| `CDP_MCP_DISABLE_ARCH_X86_64` | (off) | Set to `1` on Apple Silicon if your CDP is a native arm64 build. |
-| `CDP_MCP_DURATION_CAP_S` | `300.0` | Predicted output duration cap, seconds. `process()` pre-flight rejects calls above this. |
-| `CDP_MCP_OUTPUT_SIZE_CAP_BYTES` | `1073741824` (1 GB) | Output file size cap. Reactive disk watchdog SIGKILLs the subprocess on crossing. |
-
-Invalid values (non-numeric, non-positive) fall back to defaults with a warning on stderr.
-
-## Tools
-
-34 tools across six groups:
-
-| Group | Tools |
-|-------|-------|
-| Introspection | `list_categories`, `list_programs`, `get_program_info`, `search_programs` (FTS over the curated knowledge), `search_docs`, `read_doc` (serves `cdp://docs/*` and `cdp://examples/*`), `list_examples` |
-| Workspace | `set_session`, `describe_workspace` (incl. full graph `history`), `read_envelope`, `write_data_file`, `set_config`, `list_session_files` |
-| Action | `process` (curated, PVOC auto-insert, lineage), `execute` (gated escape hatch), `graph` (declarative DAG w/ dry-run), `batch` (N inputs × one process), `sweep` (one input × N param variants), `timeline` (multi-source event placement w/ headroom staging), `breakpoint` (envelope DSL) |
-| Observation | `visualize`, `analyze` (+`verbose`), `segments`, `compare`, `progression`, `cluster` |
-| Curation | `tag`, `journal`, `cleanup` (dependency-safe, dry-run default), `cleanup_cache`, `save_graph`/`load_graph`/`list_graphs` |
-| Provenance | `why` |
-
-Every action returns a `ResultEnvelope` with structured errors (each carrying `fix` text) and a context block (`latest`, `recent_graphs`, `available_sources`) so the LLM stays grounded across turns.
-
-## Development
-
-```bash
-pytest                    # hermetic: fake-CDP doubles, no CDP needed
-ruff check src tests
+```sh
+uv run --extra dev pytest                               # fakes CDP; no binaries needed
+CDP_PATH=~/CDP8/NewRelease uv run --extra dev pytest    # adds the tests that need real CDP
+uv run --extra dev pytest -m slow                       # 80-second MCP keepalive test
+uv run --extra dev ruff check src tests
 ```
 
-With real CDP, the CDP-gated layer executes too — curation formula rows, breakpoint-capability probes, and the acceptance chains:
-
-```bash
-CDP_PATH=/path/to/cdpr8/_cdp/_cdprogs pytest        # zero gated skips
-```
-
-On Linux, `scripts/build_cdp8_linux.sh` provides the binaries for this; the curated knowledge layer was verified against exactly this build, then re-verified on macOS r8.
-
-### Curation
-
-Adding a program to the knowledge layer is an empirical process, not transcription — CDP's banners and manual both contain errors (see `docs/forensics.md` for the catalogue). The pipeline: `scripts/curation_harness.py` inventories banners; probes against real binaries pin ranges, duration models, breakpoint capability, and determinism; `docs/curation/` holds per-tranche transcripts and machine-readable findings; pinned tables in `tests/test_breakpoint_curation.py` and `tests/test_curation_formulas.py` fail on any drift. Priors come from SoundThread's `process_help.json` and afta8's 888 Renoise definitions (`scripts/parse_afta8_definitions.py`).
-
-### Slow tests (MCP keepalive stress test)
-
-Tests marked `@pytest.mark.slow` are excluded from the default cycle. `pytest -m slow tests/test_stress.py` exercises the keepalive mechanism (~80–120 s). To run everything: `pytest -m ''`.
-
-### Apple Silicon
-
-CDP binaries are x86-only. The server auto-wraps subprocesses with `arch -x86_64` on arm64 macOS. Disable with `CDP_MCP_DISABLE_ARCH_X86_64=1` (needed for tests where the test subprocess runs a system Python that isn't a fat binary).
-
-### Symlinks in `$CDP_PATH`
-
-The security boundary's binary check resolves symlinks before verifying location. A symlinked binary in `$CDP_PATH` must point at a target that is itself inside `$CDP_PATH`.
+The development notes are gone from the working tree but kept in the git history at commit `7d967b9`. They include the phase plans, session handoffs, the original design document and the per-program curation transcripts.
 
 ## Acknowledgements
 
-Inspired by [DavidPiazza/CDP_MCP](https://github.com/DavidPiazza/CDP_MCP) and [j-p-higgins/SoundThread](https://github.com/j-p-higgins/SoundThread); curation priors from SoundThread's process help data and [afta8's CDP Interface](https://www.renoise.com/tools/cdp-interface) for Renoise (definitions by afta8 and Djeroek). CDP itself is open source: [ComposersDesktop/CDP8](https://github.com/ComposersDesktop/CDP8) (LGPL) — thanks to Trevor Wishart and everyone at CDP. This project adopts a few conventions from these tools (the `CDP_PATH` environment variable, array-form invocation) but derives no code from them.
+Inspired by [DavidPiazza/CDP_MCP](https://github.com/DavidPiazza/CDP_MCP) and [SoundThread](https://github.com/j-p-higgins/SoundThread). Curation started from SoundThread's process help data and [afta8's CDP Interface](https://www.renoise.com/tools/cdp-interface) for Renoise, with definitions by afta8 and Djeroek. No code is taken from these projects. CDP itself is open source as [CDP8](https://github.com/ComposersDesktop/CDP8); thanks to Trevor Wishart and everyone at CDP.

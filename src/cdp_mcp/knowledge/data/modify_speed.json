@@ -10,14 +10,13 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {
     "kind": "expression",
     "expr": "indur / 2 ** (semitones / 12)"
   },
   "curated": true,
   "version_sensitive": false,
-  "description": "Varispeed: changes the speed and pitch of the sound together, like re-clocking a tape. Pinned to submode 2 (transposition in fractional semitones — the more musical control surface). Submode 1 is the same process parameterized as a speed ratio; submodes 3/4 only print information; 5 is accel/decel and 6 is vibrato — all can be curated separately later. Duration model verified against the r8 binary to within 0.01% across ±12, +7 and -5 semitones on 1–3 s inputs.",
+  "description": "Varispeed: changes the speed and pitch of the sound together, like re-clocking a tape. Pinned to submode 2 (transposition in fractional semitones — the more musical control surface). Submode 1 is the same process parameterized as a speed ratio; submodes 3/4 only print information; 5 is accel/decel and 6 is vibrato. Duration model verified against the r8 binary to within 0.01% across ±12, +7 and -5 semitones on 1–3 s inputs.",
   "musical_use": "The tape-speed transposition: pitch and duration move together, preserving the source's internal coherence (unlike independent pitch-shift or time-stretch). -12 doubles the duration an octave down; +12 halves it an octave up. Fractional values give detunings for thickening layers. With a breakpoint file for semitones, you get glissandi and tape-wobble effects — the transposition contour is followed smoothly across the file. Deep drops of 1-3 octaves are a classic move, turning ordinary sources into deep, rich tones; ramp the contour and those tones slowly rise or descend (the airplane-takeoff effect).",
   "parameters": {
     "semitones": {

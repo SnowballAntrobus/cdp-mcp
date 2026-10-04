@@ -10,7 +10,6 @@
   "output_format": ".ana",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -69,7 +68,7 @@
   ],
   "known_issues": [
     "Deterministic 'randomness' (headline finding): despite being a random process, blur scatter never seeds its RNG — identical arguments produce bit-identical output on every run. Verified empirically on the Linux source build (runs > 2 s apart, with and without -r: .ana data chunks and resynthesised audio identical; only the header date stamp differs) and confirmed in source (scat_preprocess() lacks the initrand48() call that blur drunk has, and CDP's drand48 shim wraps unseeded rand()). No seed flag exists in banner or manual, so a different scatter requires changing keep/blocksize or the input.",
-    "The Phase 2 design doc flagged this mode as a stochastic/phase-sensitive candidate; empirically it is not stochastic run-to-run on this build. If a future CDP build seeds the RNG, phase_sensitive and the determinism notes here must be re-verified."
+    "Although a random process, this mode is empirically not stochastic run-to-run on this build, so it is not marked stochastic/phase-sensitive. A CDP build that seeds the RNG would behave differently."
   ],
   "references": ["cdp://docs/html/cblur", "http://www.ensemble-software.net/CDPDocs/html/cblur.htm#SCATTER"]
 }

@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur1"},
   "curated": true,
   "version_sensitive": false,
@@ -23,7 +22,6 @@
       "max": 1.0,
       "unit": null,
       "breakpoint_capable": true,
-      "breakpoint_duration_source": "input1",
       "default": 0.5,
       "flag": "-k",
       "flag_kind": "attached_value",
@@ -70,7 +68,7 @@
     "Overload-safe by construction: gains are complementary (sum 1), verified at multiple balance values - two full-scale inputs cannot exceed full scale. Contrast submix mix (WRAPS) and submix faders (wraps via its overall envelope).",
     "Sample rates must match: 'ERROR: INCORRECT USE / ERROR: Different sample-rates in input files: can't proceed.' (exit 255).",
     "begin/end refuse breakpoints (parameters 2-3); balance is the only time-variable parameter. Deterministic: identical decoded shas 1.2 s apart.",
-    "Multi-input entry: duration rule (indur1; end-begin under cropping) verified in docs/curation/tranche12_submix_depth.md; incompatible with the single-input duration fixture (duration_row null, tranche-11 rule)."
+    "Multi-input entry: duration rule (indur1; end-begin under cropping) verified."
   ],
   "references": ["cdp://docs/html/cgromix2"]
 }

@@ -2,7 +2,7 @@
 
 ``execute(command)`` runs an arbitrary CDP command after three independent
 security checks. It's the path the LLM reaches for when curation (via
-``process()``, Task 6) gets in the way or when the program isn't curated.
+``process()``) gets in the way or when the program isn't curated.
 
 Deliberately minimal — no graph directory, no ``latest`` tracking, no
 output verification. Fire and return. Callers chain outputs by absolute

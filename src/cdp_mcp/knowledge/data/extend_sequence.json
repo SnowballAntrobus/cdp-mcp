@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "seqfile"},
   "curated": true,
   "version_sensitive": false,
@@ -48,7 +47,7 @@
     }
   ],
   "known_issues": [
-    "DURATION comes from the sequence file: outdur = max over events of (time + indur/2^(semitones/12)), exact to the sample on four probe scores (two source lengths, transposed and chord cases). The engine cannot predict it (the aux-param expression engages the preflight skip path); duration_row null, rule pinned in docs/curation/tranche15_gesture.md.",
+    "DURATION comes from the sequence file: outdur = max over events of (time + indur/2^(semitones/12)), exact to the sample on four probe scores (two source lengths, transposed and chord cases). The engine cannot predict it (the aux-param expression engages the preflight skip path).",
     "No per-event duration column - events ALWAYS play their full transposed length (contrast sequence2, whose 5-value rows can curtail). Prepare source length upstream.",
     "Transposition is semitone-RELATIVE (+/-48 enforced verbatim), not sequence2's absolute-MIDI-vs-notional convention; a sequence2 score will NOT parse here (5-value groups break the 3-value stream).",
     "Loudness > 1 accepted silently; overlapping events sum unclipped above full scale (peak 2.229 verified). attenuation 0 = digital silence (curated min 0.000002).",

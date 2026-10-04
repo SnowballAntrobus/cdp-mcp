@@ -10,7 +10,6 @@
   "output_format": ".txt",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -69,8 +68,8 @@
     }
   ],
   "known_issues": [
-    "DATA OUTPUT (.txt): 'frq  amp' per line, fundamental-normalised (MIDI in sibling mode 4; varibank2 blocks with -v) - filter-bank/pitch-data food, not audio. Duration pre-flight skipped; duration_row null in the findings.",
-    "Modes 1-2 (the banner's primary modes) require SINGLE-WINDOW analysis files and refuse ordinary .ana ('This mode only works with single-window analysis files' verbatim) - for engine use on normal analyses, modes 3-4 with a time are the working forms; pair modes 1-2 with a spec grab-style single-window extraction via execute() if ever needed.",
+    "DATA OUTPUT (.txt): 'frq  amp' per line, fundamental-normalised (MIDI in sibling mode 4; varibank2 blocks with -v) - filter-bank/pitch-data food, not audio. Duration pre-flight skipped.",
+    "Modes 1-2 (the banner's primary modes) require SINGLE-WINDOW analysis files and refuse ordinary .ana ('This mode only works with single-window analysis files' verbatim) - for engine use on normal analyses, modes 3-4 with a time are the working forms; pair modes 1-2 with a single-window extraction such as spec grab if ever needed.",
     "time's ceiling is the file duration (input-dependent).",
     "Deterministic (byte-identical text run to run). The -v switch is execute()-side until the engine accepts bools."
   ],

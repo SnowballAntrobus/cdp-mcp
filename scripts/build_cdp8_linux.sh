@@ -1,25 +1,17 @@
 #!/usr/bin/env bash
-# Build CDP8 from source on Linux — the Phase 3 empirical-curation substrate.
+# Build the CDP binaries from source on Linux.
 #
-# Produces ~211 real CDP binaries so the curation loop (banner extraction,
-# duration measurement, breakpoint probes, determinism checks) runs on any
-# Linux box (sandbox, CI) without a macOS machine in the loop. Findings
-# derived from these binaries are ALWAYS re-verified against the user's
-# macOS r8 install via the CDP-gated pytest suite — this build is the
-# exploration substrate, not the source of truth.
-#
-# Known-skipped targets (make -k): a handful of optional externals
-# (reverb/rmresp and friends) hardcode clang's -stdlib=libc++ and fail
-# under gcc — none are needed for curation. First verified 2026-07-14:
-# 211/~228 binaries built; filter/blur/modify/extend/morph/combine/pvoc/
-# sfprops/housekeep all present and behaviorally consistent with macOS r8
-# on the filter-sweeping tail check.
+# Checks out the CDP8 commit the knowledge entries were verified against and
+# builds ~211 binaries into <target_dir>/NewRelease. A few optional externals
+# (reverb/rmresp and friends) hardcode clang's -stdlib=libc++ and fail under
+# gcc; `make -k` skips them, and nothing here needs them.
 #
 # Usage: scripts/build_cdp8_linux.sh [target_dir]   (default: /tmp/CDP8)
-# After: export CDP_PATH=<target_dir>/NewRelease
+# Then:  export CDP_PATH=<target_dir>/NewRelease
 set -euo pipefail
 
 TARGET="${1:-/tmp/CDP8}"
+CDP8_COMMIT=28bc42c72c1a7cb0fab933acd1c433be958a787b  # 2026-06-08
 
 if ! command -v cmake >/dev/null 2>&1; then
     echo "cmake not found; installing via pip --user" >&2
@@ -28,15 +20,17 @@ if ! command -v cmake >/dev/null 2>&1; then
 fi
 
 if [ ! -d "$TARGET/.git" ]; then
-    git clone --depth 1 https://github.com/ComposersDesktop/CDP8 "$TARGET"
+    git init -q "$TARGET"
+    git -C "$TARGET" fetch -q --depth 1 https://github.com/ComposersDesktop/CDP8 "$CDP8_COMMIT"
+    git -C "$TARGET" checkout -q FETCH_HEAD
 fi
 
 # -fsigned-char: mandatory on aarch64 (unsigned-char default), harmless on
 # x86. CDP's text parsers compare (char)fgetc() != EOF (cdparse.c and
 # friends) — with unsigned char the loop never terminates and EVERY
 # textfile input (mixfiles, breakpoints, notedata) refuses "is not a valid
-# CDP file". Forensics P6-1. Per-subdir CMakeLists clobber C_FLAGS, so the
-# flag must be injected into those files, not just the top-level invocation.
+# CDP file". Per-subdir CMakeLists clobber C_FLAGS, so the flag must be
+# injected into those files, not just the top-level invocation.
 find "$TARGET/dev" "$TARGET" -maxdepth 3 -name CMakeLists.txt \
     -exec grep -l 'set(CMAKE_C_FLAGS' {} + 2>/dev/null | while read -r f; do
     grep -q 'fsigned-char' "$f" || \
@@ -56,7 +50,7 @@ for p in blur filter modify extend morph combine pvoc sfprops housekeep; do
     if [ -x "$TARGET/NewRelease/$p" ]; then
         echo "  core: $p OK"
     else
-        echo "  core: $p MISSING — curation harness will be degraded" >&2
+        echo "  core: $p MISSING" >&2
     fi
 done
 echo "export CDP_PATH=$TARGET/NewRelease"

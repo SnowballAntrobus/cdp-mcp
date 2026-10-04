@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "cnt * len / 1000"},
   "curated": true,
   "version_sensitive": false,
@@ -79,7 +78,7 @@
     }
   ],
   "known_issues": [
-    "The -b flag (play from beginning of infile even if looping doesn't begin there) is not currently exposed in the curated parameters. Schema support for value-less flags exists (flag_kind: 'no_value'); future curation work may surface it. To use -b in the meantime, reach for execute()."
+    "The -b flag (play from beginning of infile even if looping doesn't begin there) is not exposed in the curated parameters. To use -b, reach for execute()."
   ],
   "references": ["cdp://docs/extend/loop"]
 }

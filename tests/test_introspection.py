@@ -76,7 +76,7 @@ async def test_list_programs_no_filter_returns_all_curated(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {})
     assert len(payload) == 348
     keys = {(e["program"], e["mode"]) for e in payload}
-    # Spot-check representatives across phases rather than the full set
+    # Spot-check representatives rather than the full set
     # (the count above pins the total; per-entry presence is pinned by
     # the loader and breakpoint-curation tables).
     for expected in (
@@ -90,8 +90,7 @@ async def test_list_programs_no_filter_returns_all_curated(mcp_with_tools):
 
 async def test_list_programs_category_filter(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {"category": "filter"})
-    # Pairs curated in several submodes list once per submode (bank
-    # gained 5/6 in Phase 5 wave 3).
+    # Pairs curated in several submodes list once per submode.
     assert [(e["program"], e["mode"], e["submode"]) for e in payload] == [
         ("filter", "bank", 1), ("filter", "bank", 5), ("filter", "bank", 6),
         ("filter", "bankfrqs", 1), ("filter", "fixed", 3),
@@ -106,9 +105,9 @@ async def test_list_programs_domain_filter(mcp_with_tools):
     payload = await _call_raw(mcp_with_tools, "list_programs", {"domain": "spectral"})
     keys = {(e["program"], e["mode"]) for e in payload}
     assert keys == {
-        # Regenerated from the loader at each integration wave — the
-        # spectral tail made hand-maintenance error-prone. Any drift
-        # (new spectral entry, domain flip) still fails here.
+        # Generated from the loader — the spectral tail made
+        # hand-maintenance error-prone. Any drift (new spectral entry,
+        # domain flip) still fails here.
         ("analjoin", "join"), ("blur", "avrg"), ("blur", "blur"),
         ("blur", "chorus"), ("blur", "drunk"), ("blur", "noise"),
         ("blur", "scatter"), ("blur", "shuffle"), ("blur", "spread"),
@@ -194,7 +193,7 @@ async def test_get_program_info_missing_raises_tool_error(mcp_with_tools):
     """FastMCP propagates raised ``ToolError`` instances out of ``call_tool``
     (wrapped in another ``ToolError`` with an "Error executing tool ..."
     prefix). The wire-level effect is ``isError=true`` on the JSON-RPC
-    response — verified end-to-end in the manual smoke test, not here.
+    response — not exercised here.
     """
     with pytest.raises(ToolError, match="No knowledge entry"):
         await _call_raw(

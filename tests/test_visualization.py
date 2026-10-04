@@ -39,11 +39,10 @@ def test_mono_440hz_renders(tmp_path):
     assert isinstance(result, SpectrogramResult)
     assert png.exists()
     assert png.stat().st_size > 10_000  # PNGs of a real spectrogram are well over 10 KB
-    # Dimensions in the rough ballpark of 1024×768. The plan's ±10% target
-    # was directional — bbox_inches="tight" trims by ~15-20% in practice,
-    # and the exact amount varies by matplotlib version. We assert a wider
-    # window that still confirms "approximately the intended size, not a
-    # thumbnail and not a 4K poster."
+    # Dimensions in the rough ballpark of 1024×768. bbox_inches="tight"
+    # trims by ~15-20% in practice, and the exact amount varies by
+    # matplotlib version. We assert a wider window that still confirms
+    # "approximately the intended size, not a thumbnail and not a 4K poster."
     assert 700 <= result.width_px <= 1200
     assert 500 <= result.height_px <= 900
     assert result.sample_rate == _SR
@@ -133,7 +132,7 @@ def test_no_figure_leak_across_calls(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# shrink_png_under_cap (2026-07-14 QA: 1 MB tool-result cap)
+# shrink_png_under_cap (1 MB tool-result cap)
 # ---------------------------------------------------------------------------
 
 

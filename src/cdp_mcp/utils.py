@@ -1,10 +1,7 @@
 """Shared filesystem and hashing helpers.
 
-These utilities started life inside :mod:`cdp_mcp.session` (Task 3) and were
-promoted here in Task 4 so :mod:`cdp_mcp.graph` can share the atomic-write
-pattern without circular imports. Anything else in the project that writes
-on-disk metadata should call :func:`atomic_write_text` rather than rolling
-its own write.
+Anything in the project that writes on-disk metadata should call
+:func:`atomic_write_text` rather than rolling its own write.
 """
 
 from __future__ import annotations
@@ -30,8 +27,8 @@ def atomic_write_text(path: Path, content: str) -> None:
 def sha256_file(path: Path, chunk_size: int = 65536) -> str:
     """Compute the sha256 hex digest of a file, chunked for memory safety.
 
-    Used by the lineage layer (input + output provenance) and — in Phase 1b —
-    by the content-addressable cache. ``chunk_size`` defaults to 64 KiB which
+    Used by the lineage layer (input + output provenance) and the
+    content-addressable cache. ``chunk_size`` defaults to 64 KiB which
     is well-suited to typical audio file I/O.
     """
     h = hashlib.sha256()

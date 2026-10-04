@@ -14,8 +14,8 @@ Cache key construction is per-tier:
 Files are written atomically (``.tmp`` + ``os.replace``) so concurrent
 writers producing identical content don't corrupt each other.
 
-Lifetime: derivative-cache files live as long as the cache root exists.
-Phase 4 introduces ``cleanup_cache()`` with predicate-based eviction.
+Lifetime: derivative-cache files persist until ``cleanup_cache()``
+evicts them (predicate-based) or the cache root is removed.
 
 This module is consumed by:
 
@@ -228,8 +228,8 @@ def analysis_cache_key(
 ) -> str:
     """Cache key for an analysis scorecard.
 
-    ``feature_set`` is a short string identifying the schema (Phase 1a:
-    ``"concise_v1"``). Library versions affecting analysis flow in via
+    ``feature_set`` is a short string identifying the schema (e.g.
+    ``"concise_v3"``). Library versions affecting analysis flow in via
     :func:`_lib_versions_for_tier`.
     """
     return _compose_key(
@@ -261,11 +261,9 @@ def visualization_cache_key(
 ) -> str:
     """Cache key for a rendered spectrogram PNG.
 
-    ``mode`` is the spectrogram type (Phase 1a: ``"mel"``).
+    ``mode`` is the spectrogram type (e.g. ``"mel"``).
     ``render_params_discriminator`` captures FFT size, hop, dpi, and the
-    fig dimensions — currently locked constants in
-    :mod:`cdp_mcp.visualization`, future user overrides land in the
-    same string.
+    fig dimensions — fixed constants in :mod:`cdp_mcp.visualization`.
     """
     return _compose_key(
         "visualization",

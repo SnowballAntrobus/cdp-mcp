@@ -10,9 +10,8 @@ Panels are stitched with PIL rather than tiled in a single matplotlib
 figure: ``bbox_inches="tight"`` garbles grid alignment when tiling axes,
 so each panel renders to its own PNG and is stacked with a small gutter.
 
-No caching layer for the composite — the first pass ships uncached (a
-compare is two renders plus two scorecards; revisit if it shows up in
-profiles).
+The composite is not cached (a compare is two renders plus two
+scorecards).
 
 Targets accepted: session input filenames, ``<graph_id>:nN`` references,
 and the ``"latest"`` alias. ``.ana`` / ``.pvx`` targets get
@@ -239,8 +238,7 @@ async def compare_impl(
         ]
     except Exception as e:  # noqa: BLE001 — soundfile/librosa/pyloudnorm raise a zoo
         # Corrupt/truncated/unsupported audio must surface as a
-        # structured envelope, not a raw protocol error. (Phase 2
-        # hardening, M3.)
+        # structured envelope, not a raw protocol error.
         return [
             _failed_envelope(
                 session,
@@ -393,8 +391,7 @@ def _compare_sync(
     """Load → loudness-match → temp wavs → scorecards → panels → stitch.
 
     The gain-adjusted temp wavs (and per-panel PNGs) are left in the
-    session's ``tmp/`` — transients are allowed there and the cleanup
-    tool sweeps them.
+    session's ``tmp/`` scratch directory.
     """
     for p in (path_a, path_b):
         if not p.exists():
@@ -539,7 +536,6 @@ def _max_momentary_lufs(y: np.ndarray, sr: int) -> float:
     a 100 ms hop and run pyloudnorm's ``integrated_loudness`` on each
     window — over a single gating block the measurement is effectively
     ungated, so the max over windows tracks max momentary closely.
-    Documented approximation, honest about its provenance.
 
     Raises:
         ValueError: if the audio is shorter than 400 ms or every window
@@ -616,7 +612,7 @@ def _stitch_panels(
             y += _LABEL_STRIP_PX + im.height + _GUTTER_PX
         canvas.save(out_path)
         # Keep the inline tool-result under Claude Desktop's ~1 MB cap
-        # (empirical, 2026-07-14 QA — see shrink_png_under_cap).
+        # (empirical — see shrink_png_under_cap).
         shrink_png_under_cap(out_path)
         with PILImage.open(out_path) as final:
             return final.size

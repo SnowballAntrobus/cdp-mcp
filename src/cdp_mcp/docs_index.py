@@ -14,13 +14,11 @@ from, the document count, a build timestamp, and a corpus fingerprint
 whenever the index is missing, the recorded CDP version differs from the
 current one, or the fingerprint no longer matches the files on disk.
 
-Design-doc deviation, documented here on purpose: the design commits that
-"the index records the CDP version it was built from; mismatch triggers
-rebuild". That check happens *lazily* — :func:`ensure_index` runs at
+The staleness check happens *lazily* — :func:`ensure_index` runs at
 tool-call time (``search_docs`` / ``read_doc`` in
 :mod:`cdp_mcp.tools.docs`), not at ``set_session()``. Sessions that never
-touch the docs tools never pay the index-build cost, and the staleness
-check still runs before every query that could observe stale data.
+touch the docs tools never pay the index-build cost, and the check
+still runs before every query that could observe stale data.
 
 Builds are atomic: the database is written to ``<index_path>.tmp`` and
 moved into place with ``os.replace``, so readers never see a half-built

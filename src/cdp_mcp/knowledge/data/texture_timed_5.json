@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": null,
   "duration_model": {"kind": "set_by", "param": "outdur"},
   "curated": true,
   "version_sensitive": false,
@@ -189,7 +188,7 @@
     }
   ],
   "known_issues": [
-    "Duration honesty (set_by outdur): +26% at outdur 5, +14% at outdur 8 on the 0.5 s-ping probe (0.5 s cell, skiptime 1); duration row pinned at outdur 8, tol 0.3, seed 5.",
+    "Duration honesty (set_by outdur): +26% at outdur 5, +14% at outdur 8 on the 0.5 s-ping probe (0.5 s cell, skiptime 1).",
     "Notedata takes EXACTLY ONE timing block - both 'Incorrect number [0] ... (expected 1).' and 'Incorrect number [2] ... (expected 1).' probed verbatim. The cell's own pitch/amp columns are carriers in mode 5; sounding pitch comes from minpich/maxpich.",
     "CYCLING RULE (content-verified by onset detection): the cell restarts at last-cell-onset + skiptime - onsets {0,0.5}, skiptime 1.0 gave attacks at 0, 0.5, 1.5, 2.0, 3.0, 3.5, ... The banner's 'time between repetitions' is measured from the cell's last note, not its start.",
     "Breakpoint surface: only outdur and seed refuse (parameters 1/30 verbatim); all 9 other numeric positionals plus -a/-p/-s accept (full sweep; skiptime verified against both endpoints at seed 5). No gpspace/contour slots exist in this mode.",

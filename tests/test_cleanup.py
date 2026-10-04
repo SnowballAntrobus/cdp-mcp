@@ -393,7 +393,7 @@ async def test_deleting_latest_leaves_hole_not_successor(env):
     await _call_raw(mcp, "cleanup", {
         "predicate": {"graph_id": "gNewest"}, "dry_run": False,
     })
-    # Rule 3: a pruned latest is gone, not silently replaced by older.
+    # A pruned latest is gone, not silently replaced by older.
     assert tracker.latest is None
 
 

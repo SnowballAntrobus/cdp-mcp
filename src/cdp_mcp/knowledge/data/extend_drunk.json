@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": "related",
   "duration_model": {"kind": "expression", "expr": "outdur + splicelen * 0.001"},
   "curated": true,
   "version_sensitive": false,
@@ -130,7 +129,7 @@
     "The walk is stochastic even at clokrand 0 - segment CONTENT always depends on the seed; only the duration is fixed.",
     "clock <= 2*splicelen refuses at runtime (verbatim); banner's step floor '>0.002' is not enforced (0 accepted).",
     "All five positional walk params plus clokrand/overlap take breakpoints through OUTPUT time (verified slot-by-slot at seed 5); outdur, splicelen and seed refuse (parameters 1/8/11).",
-    "Stereo accepted (2-channel output, duration model holds). stereo_link_default 'related' records the per-channel-seed intent (seed and seed+1) for decorrelated stereo walks."
+    "Stereo accepted (2-channel output, duration model holds)."
   ],
   "references": ["cdp://docs/html/cgroextd"]
 }

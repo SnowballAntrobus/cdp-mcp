@@ -1,12 +1,10 @@
-"""Phase 5 wave 2a: data (non-audio) output support.
+"""Data (non-audio) output support.
 
-The schema gap that dropped ``envel extract`` and ``formants get`` in
-tranche 5 (docs/curation/tranche5_mix_env_findings.json, dropped[1] and
-dropped[2]): both emit RIFF-container DATA files that CDP writes
-verbatim under any name. The old engine named every output ``.wav`` /
-``.ana`` and ran audio verification on it — an envel extract output is a
-sample-rate-57 pseudo-wav that PASSES an RMS check, and a formants get
-output named .ana misreports 107.85 s via sfprops. Poison, not failure.
+``envel extract`` and ``formants get`` emit RIFF-container DATA files that
+CDP writes verbatim under any name. Named and verified as audio, they are
+poison, not failure — an envel extract output is a sample-rate-57
+pseudo-wav that PASSES an RMS check, and a formants get output named .ana
+misreports 107.85 s via sfprops.
 
 Coverage:
 
@@ -192,7 +190,7 @@ async def test_data_output_extensionless_name_gets_extension(data_env):
 
 
 async def test_data_output_wav_name_refused(data_env):
-    """A .wav-named envel extract output is exactly the tranche-5 poison
+    """A .wav-named envel extract output is exactly the pseudo-wav poison
     — the namer must refuse, not silently rewrite."""
     vr = await _dry_run(
         data_env, "envel", "extract", {"wsize": 20.0}, output_name="x.wav"
@@ -319,8 +317,7 @@ async def test_envel_extract_real_cdp(real_data_env):
 @pytest.mark.timeout(120)
 async def test_formants_get_put_chain_real_cdp(real_data_env):
     """Extract a .for with formants get, then impose it with formants put
-    (pre_output aux slot) — the two-entry workflow that motivated both
-    engine gaps, end to end through process()."""
+    (pre_output aux slot), end to end through process()."""
     env = real_data_env
     session = env["session"]
 

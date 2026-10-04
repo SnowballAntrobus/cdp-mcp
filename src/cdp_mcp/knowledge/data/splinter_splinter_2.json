@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "target + (shrcnt + ocnt + ecnt) * (1 / p1 + 1 / p2) / 2"},
   "curated": true,
   "version_sensitive": false,
@@ -173,7 +172,7 @@
     }
   ],
   "known_issues": [
-    "FLAT/BRIGHT NOISE REFUSED: wavesets of broadband noise are too high-frequency to shrink toward the splinter goal - 'ERROR: INVALID DATA / ERROR: Targeted-wavesets frq (c. 17454.55) >= goal frq (6000.00): Cannot shrink.' (and -f cannot exceed Nyquist/2, so it cannot be raised enough). Splinter needs pitched/percussive material at the target. The shared flat-noise duration row is impossible by construction - row withheld with this evidence.",
+    "FLAT/BRIGHT NOISE REFUSED: wavesets of broadband noise are too high-frequency to shrink toward the splinter goal - 'ERROR: INVALID DATA / ERROR: Targeted-wavesets frq (c. 17454.55) >= goal frq (6000.00): Cannot shrink.' (and -f cannot exceed Nyquist/2, so it cannot be raised enough). Splinter needs pitched/percussive material at the target.",
     "MODE 4 + -d SEGFAULT: 'splinter 4 ... -d40' crashes (exit 139, Segmentation fault, no output) on this build; modes 3/4 without -d run. Entry pins mode 2.",
     "Duration model: exact at p1 == p2 (0.02-0.1%), ~+2% when p1 != p2 (pulse-speed curve integration); the model divides by p1/p2 so this entry floors both at 0.1 Hz (the binary's special 0 values are documented above, execute() only).",
     "All randomisation is deterministic across runs (unseeded generator; -r0.5 pairs 1.2 s apart byte-identical) - no seed exists; different results require different param values.",

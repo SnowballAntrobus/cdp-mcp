@@ -56,8 +56,8 @@ def _write_submix_wrapper(
     peak: str = "2.970153",
     getlevel_exit: int = 0,
 ) -> None:
-    """Fake submix: 'getlevel' writes a pinned report shaped like the
-    tranche-12 empirics to the LAST .txt argv element (the output — the
+    """Fake submix: 'getlevel' writes a pinned report shaped like real
+    getlevel output to the LAST .txt argv element (the output — the
     mixfile precedes it); 'mix' writes a non-silent wav at the last
     .wav argv element."""
     path.write_text(
@@ -561,7 +561,7 @@ async def test_timeline_real_headroom_auto_no_wrap(real_timeline_env):
 async def test_timeline_real_headroom_off_wraps(real_timeline_env):
     """The same hot mix with headroom='off' WRAPS: where the ideal
     float sum sits in (1.1, 1.9), wrapped int16 output is negative
-    (ideal − 2), the P5-3 pathology."""
+    (ideal − 2)."""
     env = real_timeline_env
     events = [
         {"source": "loud.wav", "at": 0.0},

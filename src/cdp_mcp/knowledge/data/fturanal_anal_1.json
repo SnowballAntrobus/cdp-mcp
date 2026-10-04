@@ -10,7 +10,6 @@
   "output_format": ".txt",
   "stability": "unstable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": true,
@@ -44,7 +43,7 @@
   ],
   "known_issues": [
     "MODES 2 AND 3 SEGFAULT on this build (exit 139, zero-byte output; reproduced across two sources and two marklists) - mode 1 is the only working anal mode. Entry marked unstable/version_sensitive for that reason; mode 1 itself probed clean repeatedly.",
-    "DATA OUTPUT (.txt): 5 rows (times+duration, F1, F2, F3, brightness) - the exact featurefile format of fturanal synth. Duration pre-flight skipped; duration_row null in the findings.",
+    "DATA OUTPUT (.txt): 5 rows (times+duration, F1, F2, F3, brightness) - the exact featurefile format of fturanal synth. Duration pre-flight skipped.",
     "The feature file is bound to its source: fturanal synth cuts the SOURCE WAV at these times (times at/beyond the wav's end are ignored with a WARNING).",
     "-r is accepted and range-enforced but produced byte-identical output to the base AND across repeat runs (no live seed) on the probes.",
     "Deterministic (byte-identical text run to run)."

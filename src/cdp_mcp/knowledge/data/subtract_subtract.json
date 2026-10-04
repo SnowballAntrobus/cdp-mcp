@@ -10,11 +10,10 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur_max"},
   "curated": true,
   "version_sensitive": false,
-  "description": "TIME-DOMAIN sample subtraction (despite living in the spectral wave's target list, it refuses .ana and takes soundfiles): output = file1 - file2, where file2 must be MONO; with a multichannel file1, -c picks which channel the subtraction hits. Verified sample-exact: self-subtraction renders digital silence (-240 dBFS); a two-file probe matched r-f exactly wherever |r-f| <= 1. OVERFLOW WRAPS, it does not clip: the 6 out-of-range samples in the probe were bit-identical to integer wraparound of the sum (the submix mix pathology). Output duration = the LONGER input (2.0 from both (2.0,1.5) and (1.5,2.0) pairs) - beyond the shorter file the remaining material continues (sign-inverted where file2 outlasts file1). Deterministic.",
+  "description": "TIME-DOMAIN sample subtraction (not a spectral program: it refuses .ana and takes soundfiles): output = file1 - file2, where file2 must be MONO; with a multichannel file1, -c picks which channel the subtraction hits. Verified sample-exact: self-subtraction renders digital silence (-240 dBFS); a two-file probe matched r-f exactly wherever |r-f| <= 1. OVERFLOW WRAPS, it does not clip: the 6 out-of-range samples in the probe were bit-identical to integer wraparound of the sum (the submix mix pathology). Output duration = the LONGER input (2.0 from both (2.0,1.5) and (1.5,2.0) pairs) - beyond the shorter file the remaining material continues (sign-inverted where file2 outlasts file1). Deterministic.",
   "musical_use": "The difference machine: cancel what two takes share and keep what changed. Classic uses - null-test processing chains (subtract dry from wet to hear exactly what an effect added), lift an overdub from a bounce when you still have the original bed (sample-aligned!), or create residue layers by subtracting a filtered/degraded copy from its source. Cancellation is only as good as alignment: one sample of offset turns subtraction into comb filtering (sometimes the point). Phase-sensitive by construction. Watch levels - the difference of two hot files can exceed full scale and WRAPS into harsh garbage rather than clipping; attenuate both inputs first (modify loudness / gain 0.5) when in doubt.",
   "parameters": {
     "chan": {

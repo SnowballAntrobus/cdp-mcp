@@ -10,11 +10,10 @@
   "output_format": ".frq",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
-  "description": "Shifts every pitched value in a pitchfile by a constant number of semitones, writing a new BINARY PITCHFILE (.frq, 'is a pitch file', window count preserved - re-verified tranche 24). Argv 'repitch pchshift pitchfile out.frq transposition' (NO mode token). Content-proven exact: +7 gives 12*log2(out/in) = 7.000 at every pitched window (257.73 -> 386.15 Hz etc.); MARKERS PRESERVED LITERALLY (-2.0 silence and -1.0 unpitched values pass through untouched, verified on the first four windows of the marker probe). transposition CDP-enforced -96..96, verbatim 'Parameter[1] Value (100.000000) out of range (-96.000000 to 96.000000)' (same at -100); SCALAR-ONLY, verbatim 'ERROR: Cannot read parameter 1 [mi.brk]: brkpnt_files not permitted.' (the banner itself points at 'repitch transpose[f]' for time-varying shifts). Deterministic (byte-identical data chunks 1.3 s apart).",
+  "description": "Shifts every pitched value in a pitchfile by a constant number of semitones, writing a new BINARY PITCHFILE (.frq, 'is a pitch file', window count preserved - verified). Argv 'repitch pchshift pitchfile out.frq transposition' (NO mode token). Content-proven exact: +7 gives 12*log2(out/in) = 7.000 at every pitched window (257.73 -> 386.15 Hz etc.); MARKERS PRESERVED LITERALLY (-2.0 silence and -1.0 unpitched values pass through untouched, verified on the first four windows of the marker probe). transposition CDP-enforced -96..96, verbatim 'Parameter[1] Value (100.000000) out of range (-96.000000 to 96.000000)' (same at -100); SCALAR-ONLY, verbatim 'ERROR: Cannot read parameter 1 [mi.brk]: brkpnt_files not permitted.' (the banner itself points at 'repitch transpose[f]' for time-varying shifts). Deterministic (byte-identical data chunks 1.3 s apart).",
   "musical_use": "Transposition of the pitch DATA rather than the sound - which matters exactly when the data drives something else. Flagship uses: (1) parallel-harmony resynthesis - getpitch 1 -> pchshift +7 (or +3/+4) -> repitch synth/vowels (curated) builds a synthetic harmony voice that sings the tracked melody a fixed interval away, while the original audio stays put; stack shifts (+4, +7) for triadic choirs from one voice. (2) Register-relocation before comparison - combineb 1 ratios between an original and its octave-shifted self are a constant 2.0 (sanity anchor), while pchshift into a target register before combineb against ANOTHER voice keeps the derived transposition contour register-sane. (3) Preparing melody data for vowels/synth in a singable range when the source was tracked an octave off (getpitch octave errors on low material - shift +12 to repair). For transposing the ACTUAL SOUND use curated repitch transposef 3 (formant-preserving) or transpose 3 - this entry never touches audio; for time-varying data shifts the binary refuses breakpoints (use transposef's brk transpos instead).",
   "parameters": {
     "pitchfile": {
@@ -54,7 +53,7 @@
     "Markers preserved literally (-1/-2 unchanged, verified) - marker-laden files stay marker-laden; downstream consumers that refuse markers (pitchinfo convert) still refuse.",
     "Output is DATA (.frq): pre-flight skipped, verify = exists+non-empty; not auditionable directly (resynthesize via repitch synth to hear it).",
     "duration_model 'static' is a schema placeholder (data output; window count preserved 698 -> 698).",
-    "Deterministic (byte-identical data chunks, re-verified tranche 24)."
+    "Deterministic (byte-identical data chunks)."
   ],
-  "references": ["cdp://docs/html/crepitch", "docs/curation/tranche22_pitchdata.md", "docs/curation/tranche24_schema_unblocks.md"]
+  "references": ["cdp://docs/html/crepitch"]
 }

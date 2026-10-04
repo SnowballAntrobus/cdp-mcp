@@ -10,7 +10,6 @@
   "output_format": ".for",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -44,10 +43,10 @@
     }
   ],
   "known_issues": [
-    "DATA OUTPUT (binary single-moment-formants file in a RIFF container, declared .for): not audio, not a full formant file - its only consumers are oneform put and oneform combine. Duration pre-flight skipped; duration_row null in the findings.",
+    "DATA OUTPUT (binary single-moment-formants file in a RIFF container, declared .for): not audio, not a full formant file - its only consumers are oneform put and oneform combine. Duration pre-flight skipped.",
     "EXTENSION TRAP (verified): output names without a recognised extension get '.wav' appended by CDP ('v1fb' -> 'v1fb.wav', 'x.txt' -> 'x.txt.wav') - a pseudo-wav that passes casual audio checks; '.for' names are kept verbatim, so the engine's .for naming is load-bearing.",
     "Arity-0 entry (the formant file rides the pre-output aux slot): call process() with no input argument; provenance is the aux path in params.",
-    "The upstream formants get is curated separately; oneform combine (pitchfile + 1f -> ana) additionally needs a binary pitchfile from the not-yet-curated repitch layer (tranche 22) and stays uncurated for now.",
+    "The upstream formants get is curated separately; oneform combine (pitchfile + 1f -> ana) additionally needs a binary pitchfile (repitch getpitch) and is uncurated.",
     "Deterministic: repeat runs differ ONLY in the embedded DATE stamp (data chunks byte-identical) - compare data chunks, not raw bytes."
   ],
   "references": ["cdp://docs/html/coneform"]

@@ -1,10 +1,9 @@
 """Knowledge-index loader.
 
 Scans :mod:`cdp_mcp.knowledge.data` (curated entries) and
-``data_uncurated/`` (auto-generated long-tail stubs from
-``scripts/generate_uncurated_entries.py``) for ``*.json`` files, validates
-each through :class:`~cdp_mcp.schema.KnowledgeEntry`, and exposes lookup
-helpers used by the introspection tools.
+``data_uncurated/`` (auto-generated long-tail stubs) for ``*.json`` files,
+validates each through :class:`~cdp_mcp.schema.KnowledgeEntry`, and
+exposes lookup helpers used by the introspection tools.
 
 Uncurated entries carry ``curated: false`` and surface only through
 ``list_programs(curated_only=False)`` — ``process()`` hard-gates on
@@ -61,11 +60,10 @@ class KnowledgeIndex:
     """In-memory index of curated CDP knowledge entries.
 
     Entries are keyed by ``(program, mode, submode)`` — one CDP program
-    mode can be curated in several submodes (e.g. ``filter bank`` submode
-    1 today, siblings in later tranches), and each submode is a distinct
-    entry with its own parameter semantics. A duplicate triple warns to
-    stderr and keeps the first entry seen (consistent with the loader's
-    tolerant failure mode).
+    mode can be curated in several submodes (e.g. ``filter bank``), and
+    each submode is a distinct entry with its own parameter semantics. A
+    duplicate triple warns to stderr and keeps the first entry seen
+    (consistent with the loader's tolerant failure mode).
 
     Construct via :meth:`load` rather than directly — ``load`` is the entry
     point that walks the packaged ``data/`` directory.
@@ -156,7 +154,7 @@ class KnowledgeIndex:
 
         - 0 entries → ``None``;
         - exactly 1 entry → that entry (regardless of its submode), so
-          single-submode pairs keep the pre-submode-keying call shape;
+          single-submode pairs need no ``submode`` argument;
         - >1 entries → :class:`SubmodeAmbiguousError` carrying the sorted
           curated submode list — the caller must pick one.
         """

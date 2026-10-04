@@ -1,4 +1,4 @@
-"""Phase 5 wave 2a: arity-0 (generator) entries.
+"""Arity-0 (generator) entries.
 
 ``input_arity: 0`` marks entries with no audio inputs — ``synth noise``
 / ``synth wave`` (pure generators) and ``submix mix`` (sources live in

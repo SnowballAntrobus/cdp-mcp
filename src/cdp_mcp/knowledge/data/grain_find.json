@@ -10,7 +10,6 @@
   "output_format": ".txt",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -86,7 +85,7 @@
     "Data output (.txt): output-duration verification and audio preflight do not apply; the static duration model is a placeholder required by the schema.",
     "Needs >= 2 detectable grains: pure tone refuses 'ERROR: CANNOT ACHIEVE TASK: / ERROR: No grains found.' (exit 255). Flat noise does NOT refuse - its edge ramps read as 2 pseudo-grains (onsets 0.0458/1.9176 observed on a 2 s flat-noise file). On weakly-articulated material the list is a diagnosis of what a grain process WOULD do: if the times don't match audible events, downstream grain ops will silently truncate (generalization-matrix landmine).",
     "DIVERGENCE: banner gate 'default 1' vs real default 0.3 (byte-verified); manual len minimum '1' vs enforced 0.1 (family-wide).",
-    "grain count and grain assess are stdout-only siblings with no output-file argv ('Unknown parameter'/'Too many parameters on command line.' when one is supplied) - dropped from curation; find subsumes count (line count == grain count at that gate).",
+    "grain count and grain assess are stdout-only siblings with no output-file argv ('Unknown parameter'/'Too many parameters on command line.' when one is supplied) - not curated; find subsumes count (line count == grain count at that gate).",
     "grain assess's automatic estimate maximises a windowed count and can be misleading: on a clean 10-grain 0.2 s click train it reported 'Maximum grains found = 9 at gate value 0.859600 and windowlen 50ms' while gate 0.3 finds all 10.",
     "Onset times carry a small constant detection offset (+0.0003 s on a synthetic click grid) - sample-accurate enough for reposition/align work.",
     "Stereo accepted (single combined onset list); -x must follow the value flags."

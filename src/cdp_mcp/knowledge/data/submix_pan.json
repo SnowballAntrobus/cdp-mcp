@@ -10,7 +10,6 @@
   "output_format": ".txt",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -56,7 +55,7 @@
     "Sounds are positioned at their START only - the trajectory does not move a sound WHILE it plays (banner-documented: 'the sounds THEMSELVES will not be panned'). For within-sound movement pan the source first (modify space) and place the result with submix mix.",
     "Engine breakpoint mechanics on this arity-0 entry: relative-time lists refuse cleanly (no input audio = no axis; 'param_breakpoint_no_source_duration'); use 'abs:' tuples (absolute mix-time - the natural frame) or a pre-existing .brk path. CDP-side, the trajectory file is accepted in the positional slot directly (verified).",
     "The output is a DATA file (rewritten mixfile, .txt): consumer = submix mix's mixfile parameter. Duration pre-flight skipped (duration_model 'static' is a placeholder). Deterministic (byte-identical run to run).",
-    "Arity-0 entry: call process() with no input argument. duration_row null in the findings (data output)."
+    "Arity-0 entry: call process() with no input argument (data output)."
   ],
   "references": ["cdp://docs/html/cgromix2"]
 }

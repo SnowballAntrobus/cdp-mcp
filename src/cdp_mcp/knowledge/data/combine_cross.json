@@ -23,7 +23,6 @@
       "max": 1.0,
       "default": 0.5,
       "breakpoint_capable": true,
-      "breakpoint_duration_source": "input1",
       "description": "Degree of replacement of input1's channel amplitudes by input2's. 0 = input1 unchanged; 1 = full amplitude replacement. Weighted crossover. May vary over time (breakpoint envelope scales to input1's duration)."
     }
   },

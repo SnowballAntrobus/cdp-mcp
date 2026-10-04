@@ -1,11 +1,8 @@
-"""Phase 6 tranche 24: the ``free_string`` parameter type.
+"""The ``free_string`` parameter type.
 
-The schema gap that dropped ``blur shuffle`` at its tranche-10a
-spot-check and ``distort shuffle`` in tranche 16: both take a REQUIRED
-positional domain-image map (``"ab-abab"``) parsed straight from argv
-(``cdp2k/tklib3.c:646 read_shuffle_data`` — no file fallback), and
-``validate_params._check_type`` accepted strings only for ``.brk``
-paths and ``aux_file`` params.
+``blur shuffle`` and ``distort shuffle`` both take a REQUIRED positional
+domain-image map (``"ab-abab"``) parsed straight from argv
+(``cdp2k/tklib3.c:646 read_shuffle_data`` — no file fallback).
 
 Coverage:
 
@@ -178,7 +175,7 @@ def test_free_string_never_numeric_reformatted(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# 4. Curated entries load with the new type
+# 4. Curated entries load with the free_string type
 # ---------------------------------------------------------------------------
 
 
@@ -375,7 +372,7 @@ async def test_blur_shuffle_bad_map_real_cdp(real_env):
 @pytest.mark.timeout(60)
 async def test_distort_shuffle_real_cdp(real_env):
     """Time-domain twin: 2.0 s 'ab-abab' → ~2x minus the trailing
-    incomplete wavecycle block (3.9909 on the tranche-16 tone probe)."""
+    incomplete wavecycle block (3.9909 s on a tone)."""
     env = real_env
     r = await _run_real(
         env, "distort", "shuffle", "tone.wav", {"domain_image": "ab-abab"},

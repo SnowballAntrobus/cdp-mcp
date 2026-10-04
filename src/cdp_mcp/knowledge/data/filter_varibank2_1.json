@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur + tail"},
   "curated": true,
   "version_sensitive": false,
@@ -81,7 +80,7 @@
   ],
   "known_issues": [
     "BOTH data sections must start at time 0.0 ('FIRST TIME VALUE FOR PITCHES MUST BE ZERO' verbatim) - stricter than plain varibank, which accepts a late first time. Missing '#' partials block: 'FAILED TO GET SECOND SET OF DATA (PARTIALS INFORMATION) AFTER HASH SIGN'.",
-    "UNDOCUMENTED -n normalize switch (source vflag[1] -> do_norm; banner lists only -d). Varybank internal-param slots cover the pre-pass write - no P5-1 vintage hang; version_sensitive false.",
+    "UNDOCUMENTED -n normalize switch (source vflag[1] -> do_norm; banner lists only -d). Varybank internal-param slots cover the pre-pass write - no vintage-binary bank hang; version_sensitive false.",
     "Undocumented tail default 1.0 s re-verified sample-exact; entry pins -t explicitly. tail 0 not probed - family bug assumed, curated min 0.01.",
     "Only Q accepts breakpoint files (verified against both endpoints); gain refuses as parameter 2.",
     "Deterministic (probe pair byte-identical); stereo accepted.",

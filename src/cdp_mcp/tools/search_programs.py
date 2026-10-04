@@ -1,8 +1,8 @@
 """The ``search_programs`` tool + the ``recommend_transforms`` prompt.
 
 ``search_programs`` is the discoverability layer over the CURATED
-knowledge: 338 entries is too much context to list, and ``search_docs``
-greps the official manual — which describes every program
+knowledge: several hundred entries is too much context to list, and
+``search_docs`` greps the official manual — which describes every program
 indiscriminately and never sees the curated ``musical_use`` /
 ``description`` / parameter-description text. This tool searches that
 curated text via :mod:`cdp_mcp.knowledge.search_index` (FTS5, bm25),
@@ -15,9 +15,9 @@ failures.
 
 ``recommend_transforms_prompt`` is the matching workflow prompt — the
 sample-driven discovery path (analyze → classify the material → search →
-vet → audition). It is intentionally NOT registered by :func:`register`;
-the integrator calls :func:`register_prompt` alongside the existing
-:mod:`cdp_mcp.prompts` registrations.
+vet → audition). It is NOT registered by :func:`register`; the server
+calls :func:`register_prompt` alongside the :mod:`cdp_mcp.prompts`
+registrations.
 """
 
 from __future__ import annotations
@@ -145,9 +145,8 @@ def recommend_transforms_prompt(
     goal: str = "a musically interesting transformation",
 ) -> str:
     """The ``recommend_transforms`` prompt text — the sample-driven
-    discovery recipe. Kept as a plain function (like the docstring says:
-    NOT registered by :func:`register`) so the integrator wires it via
-    :func:`register_prompt` next to the existing prompt registrations.
+    discovery recipe. A plain function; :func:`register_prompt` exposes
+    it as an MCP prompt.
     """
     return f"""\
 Recommend CDP transforms for {input_file!r}, aiming for: {goal}.
@@ -199,7 +198,7 @@ material that's already there."""
 
 def register_prompt(mcp: FastMCP) -> None:
     """Register the ``recommend_transforms`` prompt template against
-    ``mcp`` — called by the integrator next to ``prompts.register``."""
+    ``mcp`` — called by the server next to ``prompts.register``."""
 
     @mcp.prompt(title="Recommend transforms")
     def recommend_transforms(

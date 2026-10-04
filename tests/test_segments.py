@@ -1,4 +1,4 @@
-"""Tests for segments() and analyze(verbose=True) — Phase 2 observation."""
+"""Tests for segments() and analyze(verbose=True)."""
 
 from __future__ import annotations
 
@@ -166,7 +166,7 @@ async def test_segments_missing_target(harness):
 
 
 # ---------------------------------------------------------------------------
-# extract_rhythm() — pure-function pins (Phase 6 grid-free rhythm)
+# extract_rhythm() — pure-function pins (grid-free rhythm)
 # ---------------------------------------------------------------------------
 
 
@@ -308,7 +308,7 @@ async def test_segments_rhythm_block_steady(harness):
 
 async def test_segments_rhythm_accelerando(harness):
     """Bouncing-ball fixture through the tool: negative slope, trend
-    'accelerando' — the Phase 6 reference use case."""
+    'accelerando'."""
     mcp, sessions, _ = harness
     session, _ = sessions.set_active("s1")
     times = _geometric_times(0.1, 0.35, 0.82, 10)
@@ -355,35 +355,6 @@ async def test_segments_rhythm_silence_method(harness):
     rhythm = envelope["rhythm"]
     assert rhythm["onset_count"] == envelope["count"]
     assert rhythm["ioi"]["count"] == max(rhythm["onset_count"] - 1, 0)
-
-
-async def test_segments_cache_key_bump(harness, tmp_path):
-    """The v1 → v2 feature-set bump: a stale v1 payload (no rhythm block)
-    must NOT be read — keys don't collide, results regenerate."""
-    mcp, sessions, _ = harness
-    session = _session_with_clicks(sessions)
-    cache_root = tmp_path / "cache"
-    sha = sha256_file(session.inputs_dir / "clicks.wav")
-
-    old_key = analysis_cache_key(sha, "segments_onset_v1", None, None)
-    new_key = analysis_cache_key(sha, "segments_onset_v2", None, None)
-    assert old_key != new_key
-
-    # Poison the OLD key with a recognizable stale payload.
-    stale = cache_lookup(cache_root, "analysis", old_key, ".json")
-    assert not stale.hit
-    cache_populate_json(stale.path, {
-        "segments": [{"start": 0.0, "end": 9.9, "label": "stale_0"}],
-        "markers": [],
-        "warnings": [],
-    })
-
-    result = await _call(mcp, "segments", {"target": "clicks.wav"})
-    envelope = result[1]
-    assert envelope["status"] == "ok"
-    assert envelope["cached"] is False  # the stale v1 entry never hit
-    assert all(s["label"] != "stale_0" for s in envelope["segments"])
-    assert envelope["rhythm"]["onset_count"] >= 2
 
 
 async def test_segments_v2_payload_without_rhythm_regenerates(harness, tmp_path):

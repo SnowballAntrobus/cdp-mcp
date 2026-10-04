@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -74,7 +73,7 @@
   ],
   "known_issues": [
     "DOUBLING BUG (first-class, trigger pinned): when the first above-gate sample lies WITHIN ONE SPLICELEN of the file start (0 < startsamp < splicelen samples), the output is the file rendered TWICE - 2.0 s inputs came back 3.99 s of doubled material (verified with a 5 ms lead-silence fixture at gates 0.1; a 50 ms lead trims correctly to 1.9499 s, and startsamp == 0 passes through exactly). Avoid by keeping startgate at/below the level of the very first samples, or ensuring real lead silence longer than splicelen. Source: top_and_tail() in dev/standalone/topantail2.c clamps startsplice to 0 while startsamp stays > 0.",
-    "DURATION IS CONTENT-DEPENDENT: output = last-above-endgate minus first-above-startgate (plus splices); the 'static' model is a placeholder that is exact only for material loud at both ends (the findings duration row uses gates 0.01 on the flat fixture: 2.0000 sample-exact).",
+    "DURATION IS CONTENT-DEPENDENT: output = last-above-endgate minus first-above-startgate (plus splices); the 'static' model is a placeholder that is exact only for material loud at both ends (gates 0.01 on 2 s flat noise: 2.0000 sample-exact).",
     "Gates are absolute linear amplitudes (0-1), not dB and not peak-relative.",
     "Whole-file-quiet refusals exist in source ('At this gate level, entire file will be removed.') - not triggered in probes, quoted from topantail2.c.",
     "All params scalar-only (breakpoints refused, parameters 1-4). Deterministic; stereo accepted."

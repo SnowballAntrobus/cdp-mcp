@@ -3,7 +3,7 @@
  "title": "Bounce a one-shot, spectrally stretch, loop, and trim",
  "material": "short percussive gestures - drum hits, synth stabs, plucks",
  "description": "Builds a gesture from a single hit: bounce repeats it with accelerating, decaying echoes (physical ball-drop feel), stretch time expands the result 2.5x spectrally (keeping pitch), extend loop cuts a rhythmic cell, and sfedit cut trims an exact one-second window.",
- "source": "Verified end-to-end on a percussive sweep-hit proxy in the Phase 5 generalization matrix (tests/test_generalization.py, one-shot chain; docs/generalization-matrix.md).",
+ "source": "Verified end-to-end on a percussive sweep-hit proxy in the generalization matrix (tests/test_generalization.py, one-shot chain).",
  "definition": {
   "inputs": {
    "src": "YOUR_INPUT.wav"

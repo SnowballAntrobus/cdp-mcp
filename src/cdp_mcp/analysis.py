@@ -9,12 +9,11 @@ level/dynamics metrics (duration, peak, RMS, LUFS, crest factor),
 five spectral descriptors (centroid, flatness in dB, rolloff-85,
 flux, zero-crossing rate), onset count, channel count, and sample
 rate. :func:`extract_verbose` adds the opt-in block (MFCC/chroma
-stats, tempo, per-channel levels, and the MIR v2 additions: a
-16-point trajectory, inharmonicity, roughness, attack sharpness,
-stereo width, a pyin f0 block, and a sub-register ``sub`` block —
-the <80 Hz fundamental + harmonic-dialect fix). Field choices are
-empirical — see ``docs/mir-gap-analysis.md`` for the measured
-discrimination tests behind each addition.
+stats, tempo, per-channel levels, a 16-point trajectory,
+inharmonicity, roughness, attack sharpness, stereo width, a pyin f0
+block, and a sub-register ``sub`` block for the <80 Hz fundamental
+and harmonic dialect). Field choices are empirical; the docstrings
+below quote the measurements behind them.
 """
 
 from __future__ import annotations
@@ -35,7 +34,7 @@ from .visualization import _apply_window
 
 @dataclass
 class ScorecardResult:
-    """Concise scorecard (Phase 1a core + MIR v2 additions).
+    """Concise 13-field scorecard.
 
     ``peak_dbfs`` and ``rms_db`` are ``None`` when the signal is digital
     silence (JSON forbids ``-inf``; the convention matches
@@ -113,17 +112,17 @@ def extract_scorecard(
     # channels-first input, matching librosa.load's output shape.
     y_mono = librosa.to_mono(y) if y.ndim > 1 else y
 
-    # n_fft scaled with sr (sub-register fix): librosa's default 2048
-    # holds a ~46 ms window only at 44.1 kHz; at 96 kHz it is 46.9
-    # Hz/bin — too coarse below ~47 Hz. See _n_fft_for_sr.
+    # n_fft scaled with sr: librosa's default 2048 holds a ~46 ms
+    # window only at 44.1 kHz; at 96 kHz it is 46.9 Hz/bin — too coarse
+    # below ~47 Hz. See _n_fft_for_sr.
     spectral_centroid_hz = float(
         np.mean(
             librosa.feature.spectral_centroid(y=y_mono, sr=sr, n_fft=_n_fft_for_sr(sr))
         )
     )
-    # Mean flatness in dB (MIR v2): raw flatness spans 1e-9 (pure tone)
-    # to ~0.9 (white noise) — dB reads better and avoids "0.0" rounding.
-    # Floored at -120 dB (gap analysis §4.1).
+    # Mean flatness in dB: raw flatness spans 1e-9 (pure tone) to ~0.9
+    # (white noise) — dB reads better and avoids "0.0" rounding.
+    # Floored at -120 dB.
     spectral_flatness_db = _power_db(
         float(np.mean(librosa.feature.spectral_flatness(y=y_mono)))
     )
@@ -142,7 +141,7 @@ def extract_scorecard(
     onset_count = int(len(librosa.onset.onset_detect(y=y_mono, sr=sr)))
 
     # Crest factor is free — both operands are already computed. Same
-    # derivation compare() has always used privately (_crest_db).
+    # derivation as compare()'s private _crest_db.
     crest_db = (
         peak_dbfs - rms_db
         if peak_dbfs is not None and rms_db is not None
@@ -168,17 +167,17 @@ def extract_scorecard(
 
 
 # ---------------------------------------------------------------------------
-# Segmentation (Phase 2 — segments() tool)
+# Segmentation (segments() tool)
 # ---------------------------------------------------------------------------
 
 # Boundaries closer than this are collapsed (mirrors the breakpoint
 # compiler's dedup instinct; sub-millisecond segments are render noise).
 _SEGMENT_DEDUP_S = 1e-3
 
-# Grid-free rhythm analysis (Phase 6): event-density trajectory bins the
-# detected events into 16 equal-width windows — the same 16-point
-# compromise as _TRAJECTORY_POINTS, but binning *events* rather than
-# STFT frames, so it never degrades to fewer points.
+# Grid-free rhythm analysis: event-density trajectory bins the detected
+# events into 16 equal-width windows — the same 16-point compromise as
+# _TRAJECTORY_POINTS, but binning *events* rather than STFT frames, so
+# it never degrades to fewer points.
 _DENSITY_POINTS = 16
 
 # IOI trend threshold: |least-squares slope| relative to the mean IOI.
@@ -198,8 +197,7 @@ def extract_rhythm(
     """Grid-free rhythm block from detected event times; pure numpy.
 
     NO grid detection — no beat tracking, no meter induction, no tempo
-    curve (the Phase 6 detection-vs-construction ruling). Two views of
-    the raw event timing:
+    curve. Two views of the raw event timing:
 
     - ``ioi`` — inter-onset-interval statistics: ``count`` (number of
       intervals, ``onset_count − 1`` floored at 0), ``mean_s`` /
@@ -370,7 +368,7 @@ def extract_segments(
 
 
 # ---------------------------------------------------------------------------
-# MIR v2 feature math (2026-07 gap analysis — docs/mir-gap-analysis.md)
+# Verbose-block feature math
 # ---------------------------------------------------------------------------
 
 # dB floor for flatness / trajectory RMS: keeps pure tones (flatness
@@ -383,18 +381,18 @@ _TRAJECTORY_POINTS = 16
 _TRAJECTORY_MIN_POINTS = 4
 
 # Inharmonicity: top-12 spectral peaks vs a harmonic grid whose f0 is
-# grid-searched over 60-450 Hz (gap analysis §3.0/§3.b).
+# grid-searched over 60-450 Hz.
 _INHARM_PEAKS = 12
 _INHARM_F0_MIN_HZ = 60.0
 _INHARM_F0_MAX_HZ = 450.0
 _INHARM_F0_STEP_HZ = 0.25
 
-# Roughness proxy: RMS envelope at a fixed 689 Hz frame rate — the gap
-# analysis's "hop 64" is that rate's 44.1 kHz realization (frame_length
-# 4×hop = 256 there). Holding the RATE constant (not the hop) keeps the
-# proxy sample-rate-invariant: the short-window RMS ripple of a pitched
-# signal aliases against the frame rate, and at 689 Hz a 220 Hz tone's
-# 440 Hz ripple lands at 249 Hz — outside the band — at any input sr.
+# Roughness proxy: RMS envelope at a fixed 689 Hz frame rate — hop 64
+# at 44.1 kHz (frame_length 4×hop = 256 there). Holding the RATE
+# constant (not the hop) keeps the proxy sample-rate-invariant: the
+# short-window RMS ripple of a pitched signal aliases against the frame
+# rate, and at 689 Hz a 220 Hz tone's 440 Hz ripple lands at 249 Hz —
+# outside the band — at any input sr.
 _ENV_MOD_FRAME_RATE_HZ = 689.0
 _ENV_MOD_BAND_HZ = (20.0, 150.0)
 
@@ -403,23 +401,23 @@ _ENV_MOD_BAND_HZ = (20.0, 150.0)
 _PYIN_FMIN_HZ = 65.4
 _PYIN_FMAX_HZ = 2093.0
 
-# Pinned-floor detector (sub-register fix, 2026-07): pyin cannot report
-# below fmin, so on sub material it pins its median AT the floor rather
-# than failing loudly — measured voiced_fraction 1.0, median exactly
-# 65.4 on a 36.7 Hz (D1) sine at 96 kHz. A voiced median within 2% of
-# the floor is that failure mode, not a real C2. Deliberately a
-# detector, NOT a lower fmin: lowering fmin would silently change every
-# existing f0 result across the corpus.
+# Pinned-floor detector: pyin cannot report below fmin, so on sub
+# material it pins its median AT the floor rather than failing loudly —
+# measured voiced_fraction 1.0, median exactly 65.4 on a 36.7 Hz (D1)
+# sine at 96 kHz. A voiced median within 2% of the floor is that
+# failure mode, not a real C2. Deliberately a detector, NOT a lower
+# fmin: lowering fmin would silently change every existing f0 result
+# across the corpus.
 _PYIN_PIN_REL_TOL = 0.02
 
-# Rate-invariant STFT window (sub-register fix, 2026-07): librosa's
-# default n_fft=2048 holds a ~46 ms window only at 44.1 kHz; at 96 kHz
-# the same 2048 samples span 21 ms → 46.9 Hz/bin, which cannot resolve
-# anything below ~47 Hz — HIGHER sample rates get WORSE low-frequency
-# resolution. Hold the window DURATION constant instead (the same
-# rate-invariance philosophy as _ENV_MOD_FRAME_RATE_HZ above), rounded
-# to the nearest power of two and never below the 44.1 kHz default:
-# 2048 at 22.05/44.1/48 kHz, 4096 at 88.2/96 kHz, 8192 at 192 kHz.
+# Rate-invariant STFT window: librosa's default n_fft=2048 holds a
+# ~46 ms window only at 44.1 kHz; at 96 kHz the same 2048 samples span
+# 21 ms → 46.9 Hz/bin, which cannot resolve anything below ~47 Hz —
+# HIGHER sample rates get WORSE low-frequency resolution. Hold the
+# window DURATION constant instead (the same rate-invariance philosophy
+# as _ENV_MOD_FRAME_RATE_HZ above), rounded to the nearest power of two
+# and never below the 44.1 kHz default: 2048 at 22.05/44.1/48 kHz, 4096
+# at 88.2/96 kHz, 8192 at 192 kHz.
 _STFT_WINDOW_S = 2048.0 / 44100.0  # ≈ 46.4 ms
 
 
@@ -428,17 +426,16 @@ def _n_fft_for_sr(sr: int) -> int:
     return max(2048, int(2 ** round(np.log2(_STFT_WINDOW_S * float(sr)))))
 
 
-# Sub-register block (sub-register fix, 2026-07): reported when at
-# least 5% (_SUB_MIN_ENERGY_FRACTION — the documented relative
-# threshold) of the analysis window's non-DC spectral energy sits in
-# the 20-80 Hz band. The fundamental comes from a zero-padded rFFT
-# peak-pick (pad to ≤0.05 Hz bin spacing — the resolution the 96 kHz
-# field container validated against D1/F1/A1 sub renders) refined by
-# parabolic interpolation; h2/h3 are read at 2×/3× the found
-# fundamental (±2% search window) in dB relative to the fundamental's
-# magnitude — the even-vs-odd harmonic-dialect axis. The FFT stays
-# bounded on long files: at most _SUB_WINDOW_MAX_S seconds around the
-# RMS-envelope energy peak are analyzed.
+# Sub-register block: reported when at least 5%
+# (_SUB_MIN_ENERGY_FRACTION) of the analysis window's non-DC spectral
+# energy sits in the 20-80 Hz band. The fundamental comes from a
+# zero-padded rFFT peak-pick (pad to ≤0.05 Hz bin spacing — validated
+# against 96 kHz D1/F1/A1 sub renders) refined by parabolic
+# interpolation; h2/h3 are read at 2×/3× the found fundamental (±2%
+# search window) in dB relative to the fundamental's magnitude — the
+# even-vs-odd harmonic-dialect axis. The FFT stays bounded on long
+# files: at most _SUB_WINDOW_MAX_S seconds around the RMS-envelope
+# energy peak are analyzed.
 _SUB_BAND_MIN_HZ = 20.0
 _SUB_BAND_MAX_HZ = 80.0
 _SUB_MIN_ENERGY_FRACTION = 0.05
@@ -476,9 +473,8 @@ def trajectory_frames(
     ``_TRAJECTORY_MIN_POINTS`` when that many frames exist. Empty input
     yields three empty arrays.
 
-    This is the D7 (temporal evolution) fix from the gap analysis §3.f:
-    whole-file means are permutation-invariant, so ordered and scrambled
-    material are indistinguishable without the time axis. Shared by
+    Whole-file means are permutation-invariant, so ordered and scrambled
+    material are indistinguishable without this time axis. Shared by
     :func:`extract_verbose` (the ``trajectory`` block) and ``cluster()``
     (centroid total variation, RMS range) — one frame math, two
     consumers.
@@ -487,8 +483,8 @@ def trajectory_frames(
         empty = np.array([], dtype=np.float64)
         return empty.copy(), empty.copy(), empty.copy()
 
-    # n_fft scaled with sr (sub-register fix): hold the ~46 ms window
-    # so low-frequency resolution is rate-invariant — see _n_fft_for_sr.
+    # n_fft scaled with sr: hold the ~46 ms window so low-frequency
+    # resolution is rate-invariant — see _n_fft_for_sr.
     n_fft = _n_fft_for_sr(sr)
     S = np.abs(librosa.stft(y_mono, n_fft=n_fft))
     centroid = librosa.feature.spectral_centroid(S=S, sr=sr)[0]
@@ -514,7 +510,7 @@ def trajectory_frames(
 
 
 def _inharmonicity(y_mono: np.ndarray, sr: int) -> float | None:
-    """Harmonic-grid deviation — the D6 axis (gap analysis §3.b).
+    """Harmonic-grid deviation.
 
     Mean relative deviation of the top-12 peaks of the mean magnitude
     spectrum from a best-fit harmonic grid, with the grid's f0 searched
@@ -558,7 +554,7 @@ def _inharmonicity(y_mono: np.ndarray, sr: int) -> float | None:
 
 
 def _roughness(y_mono: np.ndarray, sr: int) -> float | None:
-    """Envelope-modulation proxy — the D3/D10 axis (gap analysis §3.c).
+    """Envelope-modulation (roughness / grain) proxy.
 
     Fraction of the RMS-envelope AC-spectrum energy that falls in the
     20-150 Hz roughness/grain band; envelope at a fixed 689 Hz frame
@@ -587,10 +583,9 @@ def _attack_sharpness(y_mono: np.ndarray) -> float | None:
     """Peak positive first-difference of the RMS envelope, normalised.
 
     Normalised by the envelope maximum: 1.0 means silence-to-peak
-    within one hop (a click train); ~0.1 means gradual swells. The D4
-    axis where centroid/zcr actively mislead (gap analysis §3.c:
-    1.00 → 0.087 across ``blur blur 50``). ``None`` for silent or
-    sub-two-frame signals.
+    within one hop (a click train); ~0.1 means gradual swells. An axis
+    where centroid/zcr actively mislead (measured 1.00 → 0.087 across
+    ``blur blur 50``). ``None`` for silent or sub-two-frame signals.
     """
     if y_mono.size == 0:
         return None
@@ -602,7 +597,7 @@ def _attack_sharpness(y_mono: np.ndarray) -> float | None:
 
 
 def _stereo_width(y: np.ndarray) -> float | None:
-    """``1 - |corr(L, R)|`` — the D9 axis (gap analysis §3.g).
+    """``1 - |corr(L, R)|``.
 
     0.0 for a dual-mono bounce, 0.40 measured on ``texture simple``'s
     spatialised cloud. ``None`` for anything but 2-channel input, and
@@ -619,11 +614,11 @@ def _stereo_width(y: np.ndarray) -> float | None:
 
 
 def _sub_block(y_mono: np.ndarray, sr: int) -> dict | None:
-    """Sub-register fundamental block — the <80 Hz fix (2026-07).
+    """Sub-register (<80 Hz) fundamental block.
 
     Zero-padded rFFT peak-pick over the 20-80 Hz band, the measurement
-    that read 14 field renders of D1/F1/A1 (36.7/43.7/55.0 Hz)
-    correctly where pyin octave-folded and centroid misread. Returns
+    that read 14 renders of D1/F1/A1 (36.7/43.7/55.0 Hz) correctly
+    where pyin octave-folded and centroid misread. Returns
     ``{"sub_f0_hz", "sub_h2_db", "sub_h3_db"}`` — the harmonic levels
     (dB re: the fundamental's magnitude) carry the musical even-vs-odd
     dialect distinction: even-harmonic synths read ``sub_h2_db >
@@ -695,24 +690,24 @@ def _f0_block(y_mono: np.ndarray, sr: int) -> dict:
 
     Everything else in the verbose block is O(ms); pyin runs at roughly
     0.75× realtime, which is why f0 lives in verbose and not the
-    always-on scorecard (gap analysis §4.2).
+    always-on scorecard.
 
-    Honest caveat (measured, §3.d): pyin tracks *periodicity*, NOT
-    perceived spectral pitch. ``distort multiply`` N=2/4/8 leaves the
-    waveform 220 Hz-periodic at every N — f0_median stays 220.1 Hz
-    while the perceived pitch rises with N. Read f0 alongside
+    Caveat (measured): pyin tracks *periodicity*, NOT perceived
+    spectral pitch. ``distort multiply`` N=2/4/8 leaves the waveform
+    220 Hz-periodic at every N — f0_median stays 220.1 Hz while the
+    perceived pitch rises with N. Read f0 alongside
     zero_crossing_rate / centroid, never instead of them.
 
     ``range_hz`` is the robust p05-p95 spread of voiced frames. All
     three fields degrade to ``None`` / 0.0 when pyin finds nothing to
     track (noise, clicks, silence).
 
-    ``f0_pinned_at_floor`` (sub-register fix, 2026-07): True when the
-    voiced median lands within 2% of the 65.4 Hz search floor — pyin
-    cannot report lower, so on sub material it pins there instead of
-    failing (measured: median exactly 65.4 on a 36.7 Hz sine at
-    96 kHz). When pinned, a plain-language ``note`` points at the
-    ``sub`` block, which measures the true fundamental.
+    ``f0_pinned_at_floor``: True when the voiced median lands within 2%
+    of the 65.4 Hz search floor — pyin cannot report lower, so on sub
+    material it pins there instead of failing (measured: median exactly
+    65.4 on a 36.7 Hz sine at 96 kHz). When pinned, a plain-language
+    ``note`` points at the ``sub`` block, which measures the true
+    fundamental.
     """
     unvoiced = {
         "median_hz": None,
@@ -754,7 +749,7 @@ def _f0_block(y_mono: np.ndarray, sr: int) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Verbose feature block (Phase 2 — analyze(verbose=True))
+# Verbose feature block (analyze(verbose=True))
 # ---------------------------------------------------------------------------
 
 
@@ -765,47 +760,44 @@ def extract_verbose(
 ) -> dict:
     """Opt-in verbose feature block for ``analyze(verbose=True)``.
 
-    Design doc v9 sketched "per-frame matrices"; what ships is summary
-    statistics over those matrices — MFCC means/stds (13 coefficients),
-    chroma means (12 pitch classes), a tempo estimate, and per-channel
-    level metrics. Raw per-frame matrices are thousands of floats that
-    would flood an LLM context window for no interpretive gain; the
-    stats carry the same timbral/harmonic signal at ~40 numbers. (If a
-    future consumer needs the matrices, add a file-output mode rather
-    than inlining them.)
+    Summary statistics over per-frame feature matrices — MFCC
+    means/stds (13 coefficients), chroma means (12 pitch classes), a
+    tempo estimate, and per-channel level metrics. Raw per-frame
+    matrices are thousands of floats that would flood an LLM context
+    window for no interpretive gain; the stats carry the same
+    timbral/harmonic signal at ~40 numbers.
 
-    MIR v2 additions (all empirically motivated —
-    ``docs/mir-gap-analysis.md``), additive to the v1 keys:
+    Further keys:
 
     - ``trajectory`` — ``{"points", "rms_db", "centroid_hz",
       "flatness_db"}``: 16 equal-width points across the (windowed)
       signal, 2 dp. The 48-number time axis that whole-file means
-      cannot see (D7/D8: dissolves, glissandi, scrambling, decays).
-      The deliberate compromise between static means and full frame
+      cannot see (dissolves, glissandi, scrambling, decays). The
+      deliberate compromise between static means and full frame
       matrices — same reasoning as above.
-    - ``inharmonicity`` — harmonic-grid deviation (D6); ~0.002
-      harmonic, ~0.014 bell-like stretched spectra.
-    - ``roughness`` — 20-150 Hz envelope-modulation fraction (D3/D10
-      grain/throb proxy).
-    - ``attack_sharpness`` — normalised peak RMS-envelope rise (D4);
+    - ``inharmonicity`` — harmonic-grid deviation; ~0.002 harmonic,
+      ~0.014 bell-like stretched spectra.
+    - ``roughness`` — 20-150 Hz envelope-modulation fraction
+      (grain/throb proxy).
+    - ``attack_sharpness`` — normalised peak RMS-envelope rise;
       1.0 = click, ~0.1 = pad.
-    - ``stereo_width`` — ``1 - |corr(L, R)|`` (D9); ``None`` for mono.
+    - ``stereo_width`` — ``1 - |corr(L, R)|``; ``None`` for mono.
     - ``f0`` — pyin ``median_hz`` / ``range_hz`` / ``voiced_fraction``
       / ``f0_pinned_at_floor``. The ONE expensive feature (~0.75×
       realtime — ~2 s of compute on a 3 s file; everything else here
       is O(ms)). pyin tracks periodicity, not perceived spectral pitch
       — see :func:`_f0_block` for the measured ``distort multiply``
       caveat and the pinned-floor detector.
-    - ``sub`` — sub-register block (2026-07 fix): ``sub_f0_hz`` /
-      ``sub_h2_db`` / ``sub_h3_db`` when ≥5% of spectral energy sits
-      in 20-80 Hz; ``None`` otherwise. See :func:`_sub_block`.
+    - ``sub`` — sub-register block: ``sub_f0_hz`` / ``sub_h2_db`` /
+      ``sub_h3_db`` when ≥5% of spectral energy sits in 20-80 Hz;
+      ``None`` otherwise. See :func:`_sub_block`.
 
-    Inharmonicity guard (2026-07 fix): when the material's fundamental
-    sits below the harmonic grid's 60 Hz search floor — the ``sub``
-    block found one there, or pyin pinned at its own floor — the
-    ``inharmonicity`` value is unreliable (the grid fits overtones of
-    a fundamental it cannot represent) and is reported ``None``, the
-    block's existing degenerate-case convention.
+    Inharmonicity guard: when the material's fundamental sits below the
+    harmonic grid's 60 Hz search floor — the ``sub`` block found one
+    there, or pyin pinned at its own floor — the ``inharmonicity``
+    value is unreliable (the grid fits overtones of a fundamental it
+    cannot represent) and is reported ``None``, the block's
+    degenerate-case convention.
     """
     y, sr = librosa.load(str(audio_path), sr=None, mono=False)
     n_channels = 1 if y.ndim == 1 else y.shape[0]
@@ -835,8 +827,8 @@ def extract_verbose(
         else [_channel_levels(y[c]) for c in range(y.shape[0])]
     )
 
-    # MIR v2 additions. Cheap block first (O(ms)), pyin last (~0.75×
-    # realtime — the one expensive feature; see _f0_block).
+    # Cheap features first (O(ms)), pyin last (~0.75× realtime — the
+    # one expensive feature; see _f0_block).
     rms_traj, centroid_traj, flatness_traj = trajectory_frames(y_mono, sr)
     trajectory = {
         "points": int(rms_traj.size),
@@ -851,11 +843,11 @@ def extract_verbose(
     sub = _sub_block(y_mono, sr)
     f0_info = _f0_block(y_mono, sr)
 
-    # Inharmonicity guard (sub-register fix): the grid's f0 search
-    # starts at _INHARM_F0_MIN_HZ — when the actual fundamental sits
-    # below it (sub block found one, or pyin pinned at its floor), the
-    # grid is fitting overtones of a fundamental it cannot represent.
-    # Same treatment as the block's other degenerate cases: None.
+    # Inharmonicity guard: the grid's f0 search starts at
+    # _INHARM_F0_MIN_HZ — when the actual fundamental sits below it (sub
+    # block found one, or pyin pinned at its floor), the grid is fitting
+    # overtones of a fundamental it cannot represent. Same treatment as
+    # the block's other degenerate cases: None.
     if inharmonicity is not None and (
         (sub is not None and sub["sub_f0_hz"] < _INHARM_F0_MIN_HZ)
         or f0_info["f0_pinned_at_floor"]

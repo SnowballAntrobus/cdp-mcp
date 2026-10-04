@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": "related",
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -74,7 +73,7 @@
     }
   ],
   "known_issues": [
-    "STEREO SEED-LINK TRIGGER (recorded for the Phase 6 reevaluation): this is the first curated entry that is simultaneously mono-only, genuinely stochastic AND seed-reproducible - the combination the long-deferred stereo channel machinery was specified for (split stereo -> per-channel runs with related seeds -> interleave). The machinery itself is deliberately NOT built (phase 6 reevaluation decision); stereo sources must be split/processed/rejoined manually (stereo input refused: 'ERROR: INVALID DATA / ERROR: File ... is not of correct type (must be mono)'). stereo_link_default 'related' records the intended default: per-channel seeds related (e.g. seed and seed+1), not identical, to avoid mono-collapsed randomness.",
+    "Mono-only, stochastic and seed-reproducible. Stereo input is refused ('ERROR: INVALID DATA / ERROR: File ... is not of correct type (must be mono)'), so split stereo sources into mono channels, process each, and rejoin them. Identical seeds repeat the same random choices on both channels (a coherent image); related seeds such as seed and seed+1 decorrelate them.",
     "The seed is REQUIRED and there is no unseeded/clock path: rerunning identical params always reproduces the output byte-identically. Seed 0 equals seed 1 (glibc srand(0) == srand(1), verified byte-identical) - the usable distinct-seed space is 1-256.",
     "With trns = 0 and atten = 0 (the defaults) the level-sort consumes no randomness: seed 5 and seed 9 renders are byte-identical. The seed only matters once trns and/or atten are nonzero.",
     "Duration is static but waveset-quantised: -0.23% worst observed (enveloped tone); sample-near-exact on noise (-0.005%). trns > 0 adds a random +/-~1% length drift that varies with the seed (wavesets are resampled to new pitches).",

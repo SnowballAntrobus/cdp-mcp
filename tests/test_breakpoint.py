@@ -1,4 +1,4 @@
-"""Tests for the breakpoint() DSL constructor (Phase 2 Task 6).
+"""Tests for the breakpoint() DSL constructor.
 
 Three tiers:
   * Pure shape generators — structure, math, determinism (no CDP).
@@ -162,7 +162,7 @@ def test_random_values_within_range():
 
 def test_random_does_not_touch_global_rng():
     """Instance-scoped default_rng must not perturb numpy's global RNG —
-    Task 2.5 found global RNG mutation is a contamination vector."""
+    global RNG mutation is a contamination vector."""
     np.random.seed(123)
     before = np.random.get_state()[1][:5].copy()
     bp._shape_random(low=0, high=1, duration_relative=1.0, points=8, seed=42)
@@ -193,7 +193,7 @@ async def test_unknown_param(index):
 
 
 async def test_not_breakpoint_capable_rejected(index):
-    """filter sweeping.gain is not breakpoint-capable (Task 5)."""
+    """filter sweeping.gain is not breakpoint-capable."""
     r = await breakpoint_impl(
         "linear", "filter", "sweeping", "gain",
         start=0.1, end=1.0, knowledge_index=index,

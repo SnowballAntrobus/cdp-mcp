@@ -10,11 +10,10 @@
   "output_format": ".trn",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
-  "description": "Exaggerates (or flattens) a pitch CONTOUR around a mean pitch, emitting the change as a BINARY TRANSPOSITION FILE (.trn, 'is a transpos file' - re-verified tranche 24). Submode 6 is the GENERAL form with both handles: 'repitch exag 6 pitchfile out.trn meanpch range contour' (submodes 1-2 range-only, 3-4 contour-only, 5 the pitchfile-output twin of 6 - all verified running, curated as the one entry that spans them). RANGE multiplies each semitone interval from meanpch (2 = twice as far from the mean, verified ratio spread 0.964-1.038 on the wobbling probe at range 2/contour 0.5; 0 accepted = full flatten despite the banner's '>0'); CONTOUR (0-1) exaggerates the contour SHAPE. Ranges verbatim: meanpch 'Parameter[1] Value (200.000000) out of range (0.000000 to 127.000000)' MIDI (0 accepted); contour 'Parameter[3] Value (2.000000) out of range (0.000000 to 1.000000)'. ALL THREE params breakpoint-capable (banner-confirmed; each brk render differs from both scalar endpoints, verified tranche 24). Deterministic (byte-identical data chunks 1.3 s apart).",
+  "description": "Exaggerates (or flattens) a pitch CONTOUR around a mean pitch, emitting the change as a BINARY TRANSPOSITION FILE (.trn, 'is a transpos file' - verified). Submode 6 is the GENERAL form with both handles: 'repitch exag 6 pitchfile out.trn meanpch range contour' (submodes 1-2 range-only, 3-4 contour-only, 5 the pitchfile-output twin of 6 - all verified running, curated as the one entry that spans them). RANGE multiplies each semitone interval from meanpch (2 = twice as far from the mean, verified ratio spread 0.964-1.038 on the wobbling probe at range 2/contour 0.5; 0 accepted = full flatten despite the banner's '>0'); CONTOUR (0-1) exaggerates the contour SHAPE. Ranges verbatim: meanpch 'Parameter[1] Value (200.000000) out of range (0.000000 to 127.000000)' MIDI (0 accepted); contour 'Parameter[3] Value (2.000000) out of range (0.000000 to 1.000000)'. ALL THREE params breakpoint-capable (banner-confirmed; each brk render differs from both scalar endpoints, verified). Deterministic (byte-identical data chunks 1.3 s apart).",
   "musical_use": "The melodic caricaturist: getpitch 1 (curated) -> THIS -> transposef 4 (curated) redraws how far a melody swings around its center WITHOUT changing its center - formants intact. range > 1 turns speech inflection into operatic melodrama and modest vibrato into wild siren (range 2-4); range < 1 compresses toward monotone (0.3 = deadpan; 0 = reciting-tone flatline pinned at meanpch - pair with vibrato 2 to re-animate); range exactly 1 with contour < 1 reshapes gesture curvature while keeping extent. meanpch chooses the pivot: set it AT the material's mean for symmetric exaggeration, or off-center (e.g. the phrase's lowest note) so exaggeration also transposes everything away from that anchor - rising phrases rise harder. Breakpoint the range ('abs:' times) from 1.0 upward to make a phrase progressively lose its cool, or automate meanpch to drag the pivot through the phrase. Speech-melody work is the classic use: exaggerated speech contours re-applied to the speaker make heightened, sung-speech delivery.",
   "parameters": {
     "pitchfile": {
@@ -74,7 +73,7 @@
     "range 0 is legal (full flatten to meanpch) although the banner claims '>0' - divergence pinned; no upper bound was refused on this build, so extreme ranges are the caller's responsibility (consumer transposition limits apply at transposef time).",
     "Choose meanpch consciously: off-mean pivots transpose material away from the pivot as a side effect of stretching intervals from it.",
     "Siblings verified running and folded into this entry's parameter space: submodes 1/2 (range-only), 3/4 (contour-only), 5 (pitchfile-output twin of 6) - execute()-reachable.",
-    "duration_model 'static' is a schema placeholder (data output). Deterministic (byte-identical data chunks, re-verified tranche 24)."
+    "duration_model 'static' is a schema placeholder (data output). Deterministic (byte-identical data chunks)."
   ],
-  "references": ["cdp://docs/html/crepitch", "docs/curation/tranche22_pitchdata.md", "docs/curation/tranche24_schema_unblocks.md"]
+  "references": ["cdp://docs/html/crepitch"]
 }

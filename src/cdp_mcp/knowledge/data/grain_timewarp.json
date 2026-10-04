@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur * ratio"},
   "curated": true,
   "version_sensitive": false,
@@ -94,7 +93,7 @@
   ],
   "known_issues": [
     "Duration honesty: the exact rule (verified to the sample on 10-, 15- and 20-grain trains) is outdur = ratio x (grain-onset span) + (indur - span); the modelled 'indur * ratio' is exact only when grains span the whole file. Observed errors: -2.5% (dense train, ratio 2), -5.0% (0.2 s tail, ratio 2), -6.7% (ratio 3), +10% relative at ratio 0.5. Budget accordingly when chaining.",
-    "On material where the gate finds fewer than two grains (flat noise, sustained tones) the process exits 0 and returns the input UNCHANGED - ratio has no effect and the duration model over/under-predicts by the full ratio factor. The duration-model fixture's flat-noise input only passes at ratio 1.0 (findings row pinned there); verify real use on grainy material.",
+    "On material where the gate finds fewer than two grains (flat noise, sustained tones) the process exits 0 and returns the input UNCHANGED - ratio has no effect and the duration model over/under-predicts by the full ratio factor. Verify real use on grainy material.",
     "Intergrain times reduced below MINGRAINTIME 0.032 s are silently clamped to 0.032 (banner-documented), so extreme shrink ratios bottom out instead of stacking grains.",
     "DIVERGENCE: banner gate 'default 1' vs real default 0.3; manual len minimum '1' vs enforced 0.1 (family-wide).",
     "afta8's ratio max of 50 is an advisory subset - CDP enforces 0.001 to 1000.",

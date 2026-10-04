@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "gap * (((dur - 0.000001) // gap) + 1)"},
   "curated": true,
   "version_sensitive": true,
@@ -134,7 +133,7 @@
     "-r randomisation is a NO-OP without -m, and with -m it is FIXED-SEQUENCE: the drand48 shim is never seeded in new/shrink.c, so the same command renders byte-identically every run (1.3 s-apart pairs verified identical; different -r values differ). stochastic: false; no seed exists; version_sensitive (a build with working libc drand48 seeding would differ).",
     "SEGFAULT: -s (small) greater than the input duration crashes with exit 139 and no message. contract < shrinkage and -m >= gap refuse with verbatim INVALID DATA errors (quoted in the param descriptions).",
     "All 8 numeric parameters refuse breakpoint files (parameters 2-9, each probed verbatim) - shape time-variation by chaining renders instead.",
-    "Mode semantics (content-verified on a decaying ping): 1 keeps the ATTACK of each repeat (cut from end), 2 the middle, 3 the tail, 4 around a chosen time - modes 2/3 are execute()-reachable with the same argv; mode 4 is curated separately (extra leading time param). Modes 5/6 are multi-output (dropped; see tranche11a findings).",
+    "Mode semantics (content-verified on a decaying ping): 1 keeps the ATTACK of each repeat (cut from end), 2 the middle, 3 the tail, 4 around a chosen time - modes 2/3 are execute()-reachable with the same argv; mode 4 is curated separately (extra leading time param). Modes 5/6 are multi-output (not curated).",
     "gap's floor is the input duration and dur's floor is twice it (runtime-enforced, refusals quoted) - shrink cannot make output shorter than two statements.",
     "-n is a no-op on attack-fronted sources in this mode; -i (per-segment reverse) verified live. Stereo accepted (2-channel output)."
   ],

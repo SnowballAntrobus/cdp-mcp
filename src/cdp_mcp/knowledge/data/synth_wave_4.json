@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "set_by", "param": "dur"},
   "curated": true,
   "version_sensitive": false,
@@ -25,7 +24,7 @@
       "breakpoint_capable": false,
       "default": 44100,
       "flag": null,
-      "description": "Output sample rate - discrete set 16000, 22050, 24000, 32000, 44100, 48000, 88200, 96000 (family behavior re-verified in submode 2 of this tranche: off-set members refused 'Invalid sample rate.', below-range values quote '(16000.000000 to 192000.000000)'). Entry default 44100 - always emitted (positional)."
+      "description": "Output sample rate - discrete set 16000, 22050, 24000, 32000, 44100, 48000, 88200, 96000 (family behavior verified in submode 2: off-set members refused 'Invalid sample rate.', below-range values quote '(16000.000000 to 192000.000000)'). Entry default 44100 - always emitted (positional)."
     },
     "chans": {
       "type": "int",

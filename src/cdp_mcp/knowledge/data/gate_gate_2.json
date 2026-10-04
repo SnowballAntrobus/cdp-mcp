@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -36,7 +35,7 @@
     }
   ],
   "known_issues": [
-    "DURATION IS CONTENT-DEPENDENT: output = sum of kept regions (+1 ms splices). The declared 'static' model is a schema placeholder only - the engine's duration pre-flight over-predicts by the total gated time (safe direction for the size watchdog, wrong for planning). Predict it yourself as the above-threshold time. The findings duration row is null: the flat-noise fixture refuses 'No signal is gateable' (nothing below threshold), exactly like submode 1.",
+    "DURATION IS CONTENT-DEPENDENT: output = sum of kept regions (+1 ms splices). The declared 'static' model is a schema placeholder only - the engine's duration pre-flight over-predicts by the total gated time (safe direction for the size watchdog, wrong for planning). Predict it yourself as the above-threshold time. Flat noise refuses 'No signal is gateable' (nothing below threshold), exactly like submode 1.",
     "Same content refusals as submode 1 (verbatim): 'ERROR: No signal is gateable' / 'ERROR: Entire signal would be gated.'",
     "Same detection pins as submode 1: absolute dBFS threshold (not peak-relative), per-sample runs > 1 ms (edges) / 2 ms (interior), 1 ms hardcoded splices at every join.",
     "MONO ONLY: stereo refuses 'File <name> is not of correct type (must be mono)'.",

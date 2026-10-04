@@ -10,7 +10,6 @@
   "output_format": ".txt",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -39,13 +38,13 @@
     }
   ],
   "known_issues": [
-    "Bare-list outputs use pan letter 'C' - which submix mix treats as NO-PAN, not centre (tranche-5 finding): an all-mono synced list renders MONO. That is usually what you want; for true centre-panned stereo replace C with numeric 0 (or run spacewarp/pan). Also feed such files through submix attenuate/pan only AFTER giving lines numeric pans (pan's no-pan path is broken - see that entry).",
+    "Bare-list outputs use pan letter 'C' - which submix mix treats as NO-PAN, not centre: an all-mono synced list renders MONO. That is usually what you want; for true centre-panned stereo replace C with numeric 0 (or run spacewarp/pan). Also feed such files through submix attenuate/pan only AFTER giving lines numeric pans (pan's no-pan path is broken - see that entry).",
     "NO SAMPLE-RATE VALIDATION: a list mixing 44.1 kHz and 22.05 kHz files is accepted (exit 0, verified) and the mismatch only refuses later at submix mix. Check rates when assembling the list.",
     "Midpoint alignment stacks every file's loudest region at one instant by design - ALWAYS pre-flight with submix getlevel 3 before rendering at the default level-1.0 lines (overload at the mix stage WRAPS).",
     "Mixed mono/stereo lists are fine (verified: stereo entries come out in the 'name time 2 level L level R' form; mix accepts it).",
     "The output is a DATA file (mixfile, .txt): consumer = submix mix's mixfile parameter or the other mixfile entries. Duration pre-flight skipped ('static' is a placeholder); the rendered duration = the longest file when midpoints coincide.",
     "Deterministic: byte-identical output run to run. No numeric parameters at all.",
-    "Arity-0 entry (sources named inside the aux list): call process() with no input argument. duration_row null in the findings (data output)."
+    "Arity-0 entry (sources named inside the aux list): call process() with no input argument (data output)."
   ],
   "references": ["cdp://docs/html/cgromix2"]
 }

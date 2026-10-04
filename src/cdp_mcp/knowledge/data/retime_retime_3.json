@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -70,7 +69,6 @@
   "known_issues": [
     "EVENT DETECTION = EXACT ZEROS: a 'silence' is a run of >= minsil ms of samples that are literally 0.0 (source-verified, no threshold parameter exists). Material with any noise floor refuses 'ERROR: INVALID DATA / ERROR: NO SILENCE-GAPS FOUND IN FILE.' - gate or edit true zeros into the sound first, or use retime mode 1 (manual peak times) instead.",
     "Static duration_model is a ceiling, not exact: actual outdur = last_event_onset + (outevwidth + splicelen)/1000 (verified exact on 3 probes) - output SHRINKS when the source has a long tail after its last event (2.5 s fixture -> 2.09 s). Safe direction for the pre-flight (never longer than indur + 1.001 s).",
-    "The shared-fixture duration row is not pinned for this mode (flat noise refuses); the duration rule is pinned in docs/curation/tranche11b_event_timing.md instead.",
     "Deterministic (identical decoded shas 1.2 s apart); stereo accepted (2-ch output, same duration rule)."
   ],
   "references": ["cdp://docs/html/cr8new"]

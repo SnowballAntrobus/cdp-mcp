@@ -386,7 +386,7 @@ exit 255
     assert p["status"] == "failed"
     types = {e["type"] for e in p["errors"]}
     assert "output_exists" in types
-    # Generic subprocess_error coexists (additive, no dedup in Phase 1b).
+    # Generic subprocess_error coexists (additive, no dedup).
     assert "subprocess_error" in types
 
 
@@ -573,8 +573,8 @@ async def test_graph_json_records_user_intent(mcp_with_process):
 
 
 # ---------------------------------------------------------------------------
-# Pre-flight duration prediction (Task 6) — process() rejects runaway
-# durations BEFORE spawning CDP. Complements the reactive watchdog (Task 7).
+# Pre-flight duration prediction — process() rejects runaway durations
+# BEFORE spawning CDP. Complements the reactive disk watchdog.
 # ---------------------------------------------------------------------------
 
 
@@ -604,7 +604,7 @@ async def test_process_preflight_rejects_runaway_duration(mcp_with_process):
 
 
 # ---------------------------------------------------------------------------
-# Disk watchdog (Task 7) — process() surfaces size_cap_exceeded in the
+# Disk watchdog — process() surfaces size_cap_exceeded in the
 # envelope and precedence-orders it ahead of the generic subprocess_error.
 # ---------------------------------------------------------------------------
 
@@ -657,7 +657,7 @@ exec "{_FAKE_SUBPROCESS}" --write-wav "$OUTPUT" --sleep 3
 
 
 # ---------------------------------------------------------------------------
-# Polymorphic parameters + breakpoint compilation (Task 8)
+# Polymorphic parameters + breakpoint compilation
 # ---------------------------------------------------------------------------
 
 
@@ -704,16 +704,13 @@ exec "{_FAKE_SUBPROCESS}" --write-ana "$OUTPUT"
 
 
 async def test_process_breakpoint_not_capable_rejected(mcp_with_process):
-    """A stay-False parameter rejects breakpoint values with a structured
-    error before CDP spawns.
+    """A non-breakpoint-capable parameter rejects breakpoint values with a
+    structured error before CDP spawns.
 
-    Phase 2 Task 5 empirically confirmed ``extend loop``'s ``cnt`` rejects
-    envelopes (CDP responds ``brkpnt_files not permitted``), so the
-    knowledge JSON keeps ``breakpoint_capable: false`` for it. The
-    pre-Task-5 version of this test used ``modify brassage``'s
-    ``velocity``, which DID flip to True in Task 5. ``cnt`` is the
-    structurally clearest stay-False case (a "breakpoint envelope of
-    loop-repeat counts" doesn't make sense).
+    ``extend loop``'s ``cnt`` rejects envelopes in CDP (``brkpnt_files not
+    permitted``), so the knowledge JSON keeps ``breakpoint_capable: false``
+    for it — and a "breakpoint envelope of loop-repeat counts" doesn't make
+    sense anyway.
     """
     mcp, sessions, _tracker, _cdp_path = mcp_with_process
     session, _ = sessions.set_active("s1")
@@ -783,8 +780,7 @@ async def test_process_breakpoint_compilation_records_sha_in_lineage(
     mcp_with_process,
 ):
     """Every compiled .brk records its content sha in
-    NodeLineage.compiled_breakpoints — what Task 12's cache key will
-    consume."""
+    NodeLineage.compiled_breakpoints."""
     mcp, sessions, _tracker, cdp_path = mcp_with_process
     session, _ = sessions.set_active("s1")
     _write_real_wav(session.inputs_dir / "frog.wav", duration_s=2.0)
@@ -837,7 +833,7 @@ async def test_process_breakpoint_source_kind_ana_sfprops_fallback(
     _resolve_source_duration falls back to sfprops via read_ana_duration.
 
     Asserts the lineage record carries source_kind="ana_sfprops" and
-    the duration matches the fake sfprops output. Phase 2 Task 2.
+    the duration matches the fake sfprops output.
     """
     mcp, sessions, _tracker, cdp_path = mcp_with_process
     session, _ = sessions.set_active("s1")

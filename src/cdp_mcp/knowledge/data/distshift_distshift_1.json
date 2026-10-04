@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -55,7 +54,7 @@
     "Unipolar / zero-crossing-free material refused cleanly: 'ERROR: INVALID DATA / ERROR: Failed to find any half-wavesets.'",
     "Stereo refused: 'ERROR: File st2.wav is not of correct type (must be mono)'.",
     "Deterministic (repeat runs byte-identical); no time-variable parameters - render steps for evolution.",
-    "Mode 2's duration (for the record) was static within 2% when it didn't corrupt (1.9966 tone, 1.9625 at grpcnt 6)."
+    "Mode 2's duration was static within 2% when it didn't corrupt (1.9966 tone, 1.9625 at grpcnt 6)."
   ],
   "references": ["cdp://docs/html/distshift"]
 }

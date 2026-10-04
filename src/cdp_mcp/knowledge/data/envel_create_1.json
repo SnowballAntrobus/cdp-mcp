@@ -10,7 +10,6 @@
   "output_format": ".evl",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -48,10 +47,10 @@
     }
   ],
   "known_issues": [
-    "DATA OUTPUT (.evl): a RIFF/WAVE-dressed envelope (FLOAT, srate 1000/wsize) that would PASS audio verification under a .wav name and poison downstream consumers - the .evl data kind exists exactly for this (envel extract precedent). It cannot be auditioned or used as an audio input; duration pre-flight is skipped ('static' model is a placeholder; findings duration row null).",
+    "DATA OUTPUT (.evl): a RIFF/WAVE-dressed envelope (FLOAT, srate 1000/wsize) that would PASS audio verification under a .wav name and poison downstream consumers - the .evl data kind exists exactly for this (envel extract precedent). It cannot be auditioned or used as an audio input; duration pre-flight is skipped ('static' model is a placeholder).",
     "createfile rules (all verbatim refusals): times < 0.010 s apart -> 'timegap ... is too small.'; plain levels above 1 -> 'Level value ... out of range'; dB values REQUIRE the 'dB' suffix (a bare -6 is an out-of-range plain level).",
     "The envelope's length = the last createfile time; there is no duration parameter.",
-    "Consumers: envel impose 2 / replace 2 (verified), envel reshape / envtobrk (this tranche's probes), all via execute() except the curated envtobrk.",
+    "Consumers: envel impose 2 / replace 2 (verified), envel reshape / envtobrk (probed), all via execute() except the curated envtobrk.",
     "Mode 2 (same createfile -> TEXT breakpoint output, expanding 'e' segments into many linear points) is not curated: reach it via execute(); it refuses reserved output extensions like .wav.",
     "Determinism: envelope data chunk byte-identical across runs; one byte in the RIFF LIST date-comment chunk differs (same as envel extract)."
   ],

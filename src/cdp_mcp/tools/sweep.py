@@ -1,17 +1,13 @@
 """The ``sweep()`` MCP tool — ONE source, MANY parameter variants, one graph.
 
-Phase 4. This tool deliberately reverses a design-doc non-goal. The doc's
-Non-Goals list included "Parameter sweep automation as a dedicated tool
-(`batch` + `process` covers it)" — but real usage (session transcripts
-reviewed 2026-07-14) showed the LLM hand-looping ``process()`` calls to
+``sweep()`` is the inverse of ``batch()``: where batch holds params
+constant and varies the material, sweep holds the material constant and
+varies the params. Without it the LLM hand-loops ``process()`` calls to
 explore one sound across parameter settings, paying a full result
-envelope (context block included) per variant and burning tokens on
-mechanical repetition. ``sweep()`` is the inverse of ``batch()``: where
-batch holds params constant and varies the material, sweep holds the
-material constant and varies the params. Its per-variant reports are
+envelope (context block included) per variant. Per-variant reports are
 compact by design — token economy is the tool's reason to exist.
 
-Contracts (mirroring ``batch()``, design doc Tool Surface § batch):
+Contracts (mirroring ``batch()``):
 
 - **Validate everything first, execute nothing on any validation
   failure.** Each variant runs through ``validate_node(dry_run=True)``;
@@ -88,12 +84,10 @@ async def sweep_impl(
         return _failure(session, latest_tracker, [lookup_error])
     assert entry is not None  # resolve_entry contract
 
-    # Arity-0 exclusion (Phase 5 wave 2a, documented choice): sweep()'s
-    # signature requires ONE source reference; a generator has none, so
-    # every variant would fail the arity check anyway. Refuse up front
-    # with the actionable route instead of N confusing per-variant
-    # errors. (A future parameter-exploration story for generators
-    # belongs to a signature redesign, not a special-cased input.)
+    # Arity-0 exclusion: sweep()'s signature requires ONE source
+    # reference; a generator has none, so every variant would fail the
+    # arity check anyway. Refuse up front with the actionable route
+    # instead of N confusing per-variant errors.
     if entry.input_arity == 0:
         return _failure(session, latest_tracker, [ErrorEntry(
             type="arity_zero_unsupported",

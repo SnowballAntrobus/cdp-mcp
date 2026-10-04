@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": "related",
   "duration_model": {"kind": "set_by", "param": "outdur"},
   "curated": true,
   "version_sensitive": false,
@@ -83,8 +82,8 @@
     }
   ],
   "known_issues": [
-    "Output overruns outdur by up to about one chunk (< maxseglen) as CDP completes the final chunk: max observed +3.6% over 8 seeds with maxseglen 0.2 / outdur 5, but +5.9% with maxseglen 0.3 / outdur 4. The set_by model predicts within 5% only when maxseglen is small relative to outdur (maxseglen/outdur <= ~0.04 is safe); the pinned duration row uses such params.",
-    "Stochastic, and unseeded runs take their seed from the clock: two runs launched within the same second return byte-identical audio; runs a second apart differ. Pass 'seed' for reproducibility. Stereo seed-linking machinery (linking separate mono runs by seed) lands later; channels within a single multi-channel file already share one cut sequence.",
+    "Output overruns outdur by up to about one chunk (< maxseglen) as CDP completes the final chunk: max observed +3.6% over 8 seeds with maxseglen 0.2 / outdur 5, but +5.9% with maxseglen 0.3 / outdur 4. The set_by model predicts within 5% only when maxseglen is small relative to outdur (maxseglen/outdur <= ~0.04 is safe).",
+    "Stochastic, and unseeded runs take their seed from the clock: two runs launched within the same second return byte-identical audio; runs a second apart differ. Pass 'seed' for reproducibility. Channels within a single multi-channel file share one cut sequence.",
     "The -b (force output to start at the infile beginning) and -e (force it to end at the infile end) value-less flags are not exposed in the curated parameters — same policy as extend loop's -b. Reach for execute() if you need them.",
     "All four numeric parameters reject breakpoint files ('ERROR: Cannot read parameter N [...]: brkpnt_files not permitted.').",
     "minseglen/maxseglen bounds are input- and splice-dependent, enforced by CDP at runtime rather than fixed constants (e.g. maxseglen upper bound shrinks with the splice: '(0.031000 to 1.985000)' observed for minseglen on a 2 s file)."

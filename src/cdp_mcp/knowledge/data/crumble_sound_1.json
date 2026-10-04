@@ -10,11 +10,10 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
-  "description": "DISINTEGRATION-INTO-SPACE: projects a mono source onto all 8 channels of an 8-channel output (mode 1; mode 2 = 16 channels, extra dur3 positional), then from 'stt' cuts it into segments that scatter over progressively smaller channel-groups - intact image, then 2 images (dur1 seconds), then 4 (dur2), the sound literally crumbling across the array. SEEDED and reproducible: same seed byte-identical 1.2 s apart, seeds 5 vs 9 differ; seed is REQUIRED (range 1-256, 0 refused 'out of range (1.000000 to 256.000000)') and always live (even with all scatter at 0, seeds differ). Duration approximately static minus a size-dependent tail loss: 1.6879-1.7000 from 2.0 (size 0.05-0.1, any stt/seed), 1.5000 at size 0.2, 2.6668 from 3.0 - the model over-predicts by 8-25% depending on size (no closed form; row withheld). ostrch stretches the crumbled section (3.0876 at ostrch 2); the sum stt+dur1+dur2 must fit inside the input (refusal verbatim). size and pscat verified breakpoint-capable through output time. MONO in; EIGHT-CHANNEL out.",
+  "description": "DISINTEGRATION-INTO-SPACE: projects a mono source onto all 8 channels of an 8-channel output (mode 1; mode 2 = 16 channels, extra dur3 positional), then from 'stt' cuts it into segments that scatter over progressively smaller channel-groups - intact image, then 2 images (dur1 seconds), then 4 (dur2), the sound literally crumbling across the array. SEEDED and reproducible: same seed byte-identical 1.2 s apart, seeds 5 vs 9 differ; seed is REQUIRED (range 1-256, 0 refused 'out of range (1.000000 to 256.000000)') and always live (even with all scatter at 0, seeds differ). Duration approximately static minus a size-dependent tail loss: 1.6879-1.7000 from 2.0 (size 0.05-0.1, any stt/seed), 1.5000 at size 0.2, 2.6668 from 3.0 - the model over-predicts by 8-25% depending on size (no closed form). ostrch stretches the crumbled section (3.0876 at ostrch 2); the sum stt+dur1+dur2 must fit inside the input (refusal verbatim). size and pscat verified breakpoint-capable through output time. MONO in; EIGHT-CHANNEL out.",
   "musical_use": "The end-of-the-world gesture for multichannel work: a sound holds its center, then fractures - first into a stereo-ish split, then into four images hopping around the array, segments transposing (pscat) and scattering (iscat/oscat) as it goes. stt places the fracture moment; dur1/dur2 pace the two disintegration stages; size sets the rubble grain. ostrch > 1 opens silent gaps so the crumble also DECELERATES - crumble + timestretch in one. Because the seed is required and reproducible, variants are honest A/Bs. The 8-channel wav imports straight into a DAW for spatial mixing, or fold it down for a stereo 'shattering' bed; breakpoint size (small to large) to make the rubble coarsen as the sound dies.",
   "parameters": {
     "stt": {
@@ -163,8 +162,8 @@
     }
   ],
   "known_issues": [
-    "EIGHT-CHANNEL OUTPUT (mode 1; mode 2 = 16): downstream mono/stereo tools will refuse it - treat as a terminal/DAW-bound render. This is the spatial member of the tranche, curated for the gesture; fold down externally for stereo use.",
-    "Duration honesty: 'static' over-predicts - observed 1.69-1.70 from 2.0 at size 0.05-0.1 (any stt, any seed), 1.50 at size 0.2, 2.67 from 3.0; ostrch > 1 instead EXTENDS (3.09 at 2). No closed form found (size/seed-dependent tail loss); the shared flat-noise duration row is withheld with this evidence. Budget -25%/+ostrch when planning.",
+    "EIGHT-CHANNEL OUTPUT (mode 1; mode 2 = 16): downstream mono/stereo tools will refuse it - treat as a terminal/DAW-bound render. Fold down externally for stereo use.",
+    "Duration honesty: 'static' over-predicts - observed 1.69-1.70 from 2.0 at size 0.05-0.1 (any stt, any seed), 1.50 at size 0.2, 2.67 from 3.0; ostrch > 1 instead EXTENDS (3.09 at 2). No closed form found (size/seed-dependent tail loss). Budget -25%/+ostrch when planning.",
     "seed is REQUIRED and 1-256 (0 refused) - reproducible by construction; no clock path.",
     "stt + dur1 + dur2 > indur refused (verbatim above).",
     "size and pscat breakpoint-verified; the other starred params (rand/iscat/oscat/ostrch/tail) are banner-claimed time-variable but not independently verified - kept scalar in this entry.",

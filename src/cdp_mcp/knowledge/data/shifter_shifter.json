@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": null,
   "duration_model": {"kind": "set_by", "param": "dur"},
   "curated": true,
   "version_sensitive": true,
@@ -125,7 +124,7 @@
     }
   ],
   "known_issues": [
-    "Duration rounds UP to the cycle grid: exact when dur is a multiple of cycdur (6.0 verified end-to-end), otherwise up to a few percent over (+1.25% at dur 4/cycdur 1; +4.3% with a 25-beat cycle). SOURCE-LENGTH OVERHANG: when the source outlasts the beat interval the final repeat plays out past dur (+28% observed: 7.6875 from dur 6 with a 2 s source at 0.25 s beats) - the set_by model assumes source <= beat interval; the duration row pins a 0.3 s source.",
+    "Duration rounds UP to the cycle grid: exact when dur is a multiple of cycdur (6.0 verified end-to-end), otherwise up to a few percent over (+1.25% at dur 4/cycdur 1; +4.3% with a 25-beat cycle). SOURCE-LENGTH OVERHANG: when the source outlasts the beat interval the final repeat plays out past dur (+28% observed: 7.6875 from dur 6 with a 2 s source at 0.25 s beats) - the set_by model assumes source <= beat interval.",
     "-r random focus order is FIXED-SEQUENCE (byte-identical reruns; no seed flag exists) - version_sensitive; -z is a no-op below 3 cycles (verified).",
     "Everything is scalar: cycdur and boost refuse breakpoints verbatim; the rest are structural ints.",
     "MONO input only. ochans > 2 assumes loudspeaker arrays (banner; -l linear-array switch) - out of engine scope.",

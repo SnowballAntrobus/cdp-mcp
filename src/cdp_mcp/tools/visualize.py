@@ -32,16 +32,16 @@ from ..graph import (
     build_context_block,
     resolve_target,
 )
-
-# Importing visualization here also locks in matplotlib's Agg backend
-# before any test or tool imports librosa.display (which transitively
-# imports pyplot).
 from ..progress import run_with_progress
 from ..pvoc import PVOCFailedError, synth_for_audition
 from ..schema import ContextBlock, ErrorEntry, ResultEnvelope
 from ..security import SecurityError
 from ..session import SessionManager, SessionNotActiveError
 from ..utils import sha256_file
+
+# Importing visualization here also locks in matplotlib's Agg backend
+# before any test or tool imports librosa.display (which transitively
+# imports pyplot).
 from ..visualization import (
     _FIG_DPI,
     _FIG_H_INCHES,
@@ -204,12 +204,12 @@ async def visualize_impl(
     )
     png_path = vis_dir / f"{_normalize_target_id(target, audio_path)}_{timestamp}.png"
 
-    # 6. Cache lookup (Task 10). The rendered PNG is a pure function of
+    # 6. Cache lookup. The rendered PNG is a pure function of
     # (audio bytes, mode, window, render params, librosa+mpl versions).
     # On hit, materialize the cached PNG into the session's
     # visualizations/ dir (timestamped path the LLM expects) and
     # populate metadata from soundfile + PIL — no librosa load needed.
-    # Hash off the event loop (Phase 2 hardening, M2).
+    # Hash off the event loop.
     audio_sha = await asyncio.to_thread(sha256_file, audio_path)
     render_params = (
         f"nfft={_N_FFT},hop={_HOP_LENGTH},dpi={_FIG_DPI},"
@@ -231,11 +231,10 @@ async def visualize_impl(
             cached = True
         except Exception:  # noqa: BLE001 — treat any cache-hit hiccup as a miss
             # Cache file unreadable, corrupt PNG, or unreadable audition
-            # wav (sf.LibsndfileError is a RuntimeError subclass, which
-            # the old (OSError, ValueError) guard let escape as a raw
-            # protocol error). Fall through to a fresh render — the
-            # cache is an optimization, never a correctness dependency.
-            # (Phase 2 hardening, M3.)
+            # wav (sf.LibsndfileError is a RuntimeError subclass, so an
+            # (OSError, ValueError) guard would miss it). Fall through to
+            # a fresh render — the cache is an optimization, never a
+            # correctness dependency.
             cached = False
 
     # 7. Render — off the event loop via asyncio.to_thread, with
@@ -285,8 +284,7 @@ async def visualize_impl(
             ]
         except Exception as e:  # noqa: BLE001 — soundfile/librosa raise a zoo
             # Corrupt/truncated/unsupported audio must surface as a
-            # structured envelope, not a raw protocol error. (Phase 2
-            # hardening, M3.)
+            # structured envelope, not a raw protocol error.
             return [
                 _failed_envelope(
                     session,

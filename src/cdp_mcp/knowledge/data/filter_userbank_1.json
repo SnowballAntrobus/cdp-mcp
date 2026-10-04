@@ -10,11 +10,10 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur + tail"},
   "curated": true,
   "version_sensitive": false,
-  "description": "A resonant filter bank at USER-CHOSEN fixed frequencies - the free-tuning sibling of the curated harmonic 'filter bank' modes. Pinned to submode 1 (filter pitches in Hz; submode 2 takes MIDI values, same argv). The fbank parameter is an auxiliary text file (write_data_file()): one 'pitch amp' pair per line; amps numeric 0.001-10000 or dB ('-6dB' verified); ';' comments legal. Error surface verbatim: 'Not enough values on line 1: file ...' (a frequency-only list - e.g. raw filter bankfrqs output - is REFUSED; amplitudes must be added); pitch checked in-file at 0.1-22050 Hz ('frq (30000.000) on line 1 out of range (0.1 to 22050.0):file ...'). Output duration is exactly indur + tail with the family's UNDOCUMENTED tail default of 1.0 s (2 s -> 3.0000 with no -t; -t2 -> 4.0; -t0.5 -> 2.5, all sample-exact); the entry pins tail explicitly. Q is time-variable (breakpoint verified: differs from both scalar-endpoint renders); gain and tail refuse brk files. Fully deterministic (no scatter path). Mono and stereo accepted. Does NOT run the filter-bank normalization pre-pass (FLTBANKU never sets do_norm, filters0.c) - the P5-1 vintage-binary hang does not apply; version_sensitive false.",
+  "description": "A resonant filter bank at USER-CHOSEN fixed frequencies - the free-tuning sibling of the curated harmonic 'filter bank' modes. Pinned to submode 1 (filter pitches in Hz; submode 2 takes MIDI values, same argv). The fbank parameter is an auxiliary text file (write_data_file()): one 'pitch amp' pair per line; amps numeric 0.001-10000 or dB ('-6dB' verified); ';' comments legal. Error surface verbatim: 'Not enough values on line 1: file ...' (a frequency-only list - e.g. raw filter bankfrqs output - is REFUSED; amplitudes must be added); pitch checked in-file at 0.1-22050 Hz ('frq (30000.000) on line 1 out of range (0.1 to 22050.0):file ...'). Output duration is exactly indur + tail with the family's UNDOCUMENTED tail default of 1.0 s (2 s -> 3.0000 with no -t; -t2 -> 4.0; -t0.5 -> 2.5, all sample-exact); the entry pins tail explicitly. Q is time-variable (breakpoint verified: differs from both scalar-endpoint renders); gain and tail refuse brk files. Fully deterministic (no scatter path). Mono and stereo accepted. Does NOT run the filter-bank normalization pre-pass (FLTBANKU never sets do_norm, filters0.c) - the vintage-binary bank hang does not apply; version_sensitive false.",
   "musical_use": "Tune any material to any chord, scale or spectrum: write the frequencies you want (a chord's notes, measured formants, a bankfrqs-generated series with hand-edited amps) and the bank rings exactly those. Per-filter amplitude is the voicing control the harmonic bank lacks - weight the fundamental heavily and let upper resonances whisper, or notch a member to 0.001 without removing the line. Low Q (1-20) colours the source; high Q (hundreds+) turns transients into ringing chords - raise gain substantially as Q climbs. A time-varying Q breakpoint morphs coloured noise into pure ringing. Pairs naturally with filter bankfrqs (generate a frequency list, add amps, feed it here) and is the fixed-frequency little sibling of varibank (whose bands move over time).",
   "parameters": {
     "fbank": {
@@ -83,7 +82,7 @@
     "The fbank pitch column's real in-file range is 0.1-22050 Hz, not the banner's '0Hz to sr/3'.",
     "Only Q accepts breakpoint files (verified against both endpoints); gain refuses as parameter 2, tail as parameter 6 (CDP's brk-stage numbering).",
     "Deterministic (two runs 1.2 s apart byte-identical in decoded samples); no scatter/random path exists in this mode.",
-    "No normalization pre-pass runs here (source: filters0.c do_norm only for FLTBANKN/V/V2) - the vintage-binary bank hang (P5-1) does not apply.",
+    "No normalization pre-pass runs here (source: filters0.c do_norm only for FLTBANKN/V/V2) - the vintage-binary bank hang does not apply.",
     "Submode 2 (MIDI pitches in the file) verified working, same argv - separate triple, not curated."
   ],
   "references": ["cdp://docs/html/cgrofilt"]

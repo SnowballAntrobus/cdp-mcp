@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -73,7 +72,7 @@
   ],
   "known_issues": [
     "BANNER LIES ABOUT -m: the advertised '[-mmaxup]' flag is REFUSED by the binary ('ERROR: Unknown variant flag -m', exit 255) - only -d (maxdown) exists. Not exposed.",
-    "BINARY BUG - '-n' CORE-DUMPS AT TEARDOWN: with -n (raise all peaks to the maximum) the full output file is written and then the process crashes ('dumped core', nonzero exit) - a broken exit contract the engine would read as failure, so -n is not exposed (same failure family as specfnu mode 21, tranche 9).",
+    "BINARY BUG - '-n' CORE-DUMPS AT TEARDOWN: with -n (raise all peaks to the maximum) the full output file is written and then the process crashes ('dumped core', nonzero exit) - a broken exit contract the engine would read as failure, so -n is not exposed (same failure family as specfnu mode 21).",
     "Multi-spike form: the peaks slot accepts a datafile of trof-peak-trof time triplets ('Adjacent trofs may be at the same time, but other times must advance'); a plain list of times is consumed in groups of three. Inline extra argv times are NOT accepted. execute() only - this entry pins the scalar single-peak form.",
     "peak-time refusals arrive under a spurious 'ERROR: MEMORY ERROR' banner (verbatim above); the real message follows it.",
     "Deterministic; duration static and exact at both probed input durations; stereo accepted."

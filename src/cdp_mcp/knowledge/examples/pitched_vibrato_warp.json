@@ -3,7 +3,7 @@
  "title": "Transpose, waver, and varispeed a pitched sustain",
  "material": "pitched sustained material - winds, bowed strings, vocal drones",
  "description": "A pitch-centric chain for material with a coherent harmonic spectrum. repitch transpose shifts the analysis up an octave without changing duration; strange waver imposes a slow spectral vibrato; modify speed then varispeeds an octave DOWN - halving pitch back to the original register while doubling duration - and envel dovetail cleans the edges with fades.",
- "source": "Verified end-to-end on an odd-harmonic clarinet proxy in the Phase 5 generalization matrix (tests/test_generalization.py, clarinet chain; docs/generalization-matrix.md).",
+ "source": "Verified end-to-end on an odd-harmonic clarinet proxy in the generalization matrix (tests/test_generalization.py, clarinet chain).",
  "definition": {
   "inputs": {
    "src": "YOUR_INPUT.wav"

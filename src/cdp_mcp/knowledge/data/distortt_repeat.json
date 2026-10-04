@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "(dur if dur < offset / 1000 + (indur - offset / 1000) * rpt else offset / 1000 + (indur - offset / 1000) * rpt)"},
   "curated": true,
   "version_sensitive": false,

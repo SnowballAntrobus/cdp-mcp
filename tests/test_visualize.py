@@ -182,7 +182,7 @@ async def test_window_past_end_returns_invalid_window(mcp_with_visualize):
 
 
 # ---------------------------------------------------------------------------
-# Task 10 — Visualization cache: miss populates, hit skips render
+# Visualization cache: miss populates, hit skips render
 # ---------------------------------------------------------------------------
 
 
@@ -245,7 +245,7 @@ async def test_visualize_cache_invalidates_on_matplotlib_version_change(
 
 
 # ---------------------------------------------------------------------------
-# Task 11 — Audition cache user-facing payoff: parameter variation hits cache
+# Audition cache: parameter variation hits cache
 # ---------------------------------------------------------------------------
 
 
@@ -257,8 +257,8 @@ async def test_visualize_param_variation_hits_audition_cache(
     runs. Second call: viz miss (different window) + audition hit →
     pvoc synth MUST NOT run.
 
-    This is the headline payoff of Task 11 — varying parameters on a
-    spectral target gets cheap after the first call.
+    This is the audition cache's headline payoff — varying parameters on
+    a spectral target gets cheap after the first call.
     """
     mcp, sessions, _tracker = mcp_with_visualize
     session, _ = sessions.set_active("s1")

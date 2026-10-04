@@ -10,12 +10,11 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur * repeats"},
   "curated": true,
   "version_sensitive": false,
   "description": "Pitch-synchronous time-stretch by DUPLICATION: each chunk of segcnt FOF grains (cut at the period boundaries given by the pitch data file) is played 'repeats' times back-to-back, so the sound lengthens by exactly that factor with NO gaps - the dense, continuous counterpart to psow stretch's spaced repositioning. Pitch and vowel formants preserved. Duration model indur * repeats verified to -0.11% (x2 -> 3.9956 from 2.0, x3 -> 5.9935, x2 on 3 s -> 5.9956; segcnt does not change duration - x2 at segcnt 4 also 3.9956). repeats is breakpoint-capable as a positional brk file (verified: a 2->4 ramp renders 5.9834 s, differing from the x2 and x4 scalar renders); segcnt refuses breakpoints (family-standard). CDP-enforced: repeats 2-256 (a repeat count of 1 - identity - is REFUSED: 'Parameter[2] Value (1.000000) out of range (2.000000 to 256.000000)'), segcnt 1-256. MONO only; deterministic. Same garbage-through landmine as the whole psow family: flat noise with a fake trace runs cleanly (3.9971 s from 2 s).",
-  "musical_use": "Lengthening a voice while keeping it CONTINUOUS - where psow stretch opens rhythmic gaps at big ratios, dupl fills time with repeated FOFs, at the cost of a static, sample-hold quality when repeats is high (each pitch period frozen and restated). segcnt is the graininess dial: 1 repeats individual periods (smoothest, closest to classic PSOLA stretching); 10-15 repeats whole packets and the repetition becomes audible as flutter/stutter - a deliberate effect. Small pitch steps in the source become terraced glissandi since each chunk holds its pitch while repeating. Combine with psow stretch in series (dupl x2 then stretch x1.5) to trade smoothness against pulse. Time-varying repeats (breakpoint) makes the voice progressively 'stick': 2 rising to 6 across a phrase is a freeze-in-motion. Same pitch-trace workflow as psow stretch (write_data_file() for steady pitches; repitch getpitch via execute() for real voices).",
+  "musical_use": "Lengthening a voice while keeping it CONTINUOUS - where psow stretch opens rhythmic gaps at big ratios, dupl fills time with repeated FOFs, at the cost of a static, sample-hold quality when repeats is high (each pitch period frozen and restated). segcnt is the graininess dial: 1 repeats individual periods (smoothest, closest to classic PSOLA stretching); 10-15 repeats whole packets and the repetition becomes audible as flutter/stutter - a deliberate effect. Small pitch steps in the source become terraced glissandi since each chunk holds its pitch while repeating. Combine with psow stretch in series (dupl x2 then stretch x1.5) to trade smoothness against pulse. Time-varying repeats (breakpoint) makes the voice progressively 'stick': 2 rising to 6 across a phrase is a freeze-in-motion. Same pitch-trace workflow as psow stretch (write_data_file() for steady pitches; repitch getpitch for real voices).",
   "parameters": {
     "pitchdata": {
       "type": "aux_file",
@@ -63,7 +62,7 @@
     "Duration honesty: indur * repeats exact to -0.11% on all probes (repeats 2-4, indur 2-3 s, segcnt 1-4).",
     "Overlap-free by construction (chunks butt end-to-end), so no clipping risk from the stretch itself - unlike psow stretch at ratios < 1.",
     "MONO only ('must be mono', psow-wide). Deterministic (runs 1.2 s apart byte-identical).",
-    "Pitch-trace workflow: repitch getpitch -> ptobrk not yet curated; use execute() for real voices or write_data_file() for known pitches (verified)."
+    "Pitch-trace workflow: repitch getpitch -> ptobrk for real voices, or write_data_file() for known pitches (verified)."
   ],
   "references": ["cdp://docs/html/cgropsow"]
 }

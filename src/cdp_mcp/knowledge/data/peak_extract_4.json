@@ -10,7 +10,6 @@
   "output_format": ".txt",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -124,7 +123,7 @@
     }
   ],
   "known_issues": [
-    "DATA OUTPUT (.txt): 'frq<TAB>amp' per stream (or MIDI with -m; 2-row varibank with -f) - filter-bank food, not audio. Duration pre-flight skipped; duration_row null in the findings (no audio duration).",
+    "DATA OUTPUT (.txt): 'frq<TAB>amp' per stream (or MIDI with -m; 2-row varibank with -f) - filter-bank food, not audio. Duration pre-flight skipped (no audio duration).",
     "Reserved audio extensions refused for the output ('ERROR: Cannot open a textfile (pko.wav) with a reserved extension.' verbatim) - the engine names data outputs .txt, which CDP accepts.",
     "lo/hi bounds are input-dependent (analysis channel width to nyquist).",
     "Mode 4 assumes a relatively constant spectrum (banner) - it averages stream motion away; time-varying stream data lives in sibling modes 1-3 (mode 1's per-window peak counts vary; 2/3 stream them).",

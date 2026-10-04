@@ -1,12 +1,12 @@
 """The ``batch()`` MCP tool — N ``process()``-equivalent runs, one graph.
 
-Phase 2. Exploration primitive: run the same curated (program, mode,
-params) over a list of inputs — parameter constant, material varying —
-and get every result in ONE graph directory without evicting the
-conversational context (a 10-element batch pushes a single synthetic
-``recent_graphs`` entry; design-doc Context Block rule 6).
+Exploration primitive: run the same curated (program, mode, params) over
+a list of inputs — parameter constant, material varying — and get every
+result in ONE graph directory without evicting the conversational
+context (a 10-element batch pushes a single synthetic ``recent_graphs``
+entry).
 
-Contracts (design doc, Tool Surface § batch):
+Contracts:
 
 - **Validate everything first, execute nothing on any validation
   failure.** Each element runs through ``validate_node(dry_run=True)``;
@@ -15,9 +15,7 @@ Contracts (design doc, Tool Surface § batch):
   mid-batch CDP failure yields ``partial_success`` with the survivors
   on disk.
 - Node ids are ``n1_batch_0`` … ``n1_batch_{N-1}`` (auto-PVOC nodes
-  derive ``n1_batch_i_pvoc1``; the design sketch showed ``n0_batch_i``
-  for these — the derived-suffix scheme shipped instead, uniform with
-  ``graph()``).
+  derive ``n1_batch_i_pvoc1``, the same suffix scheme as ``graph()``).
 - ``latest`` is untouched; elements resolve via ``latest_batch[i]`` or
   ``<graph_id>:n1_batch_i``.
 """
@@ -79,10 +77,9 @@ async def batch_impl(
         return _failure(session, latest_tracker, [lookup_error])
     assert entry is not None  # resolve_entry contract
 
-    # Arity-0 exclusion (Phase 5 wave 2a, documented choice): batch()
-    # maps one op over MANY inputs — a generator has no inputs to map
-    # over, so the tool's spec shape cannot express it. process() runs
-    # generators directly (omit input).
+    # Arity-0 exclusion: batch() maps one op over MANY inputs — a
+    # generator has no inputs to map over, so the tool's spec shape
+    # cannot express it. process() runs generators directly (omit input).
     if entry.input_arity == 0:
         return _failure(session, latest_tracker, [ErrorEntry(
             type="arity_zero_unsupported",

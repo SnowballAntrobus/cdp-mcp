@@ -98,7 +98,7 @@ async def test_set_session_invalid_name_raises_tool_error(mcp_with_workspace):
 
 async def test_set_session_clears_latest_tracker(mcp_with_workspace):
     """set_session() resets the conversational state (latest, prev_1..) so
-    each session activation starts fresh — design-doc Rule 2."""
+    each session activation starts fresh."""
     mcp, _, _, tracker, _ = mcp_with_workspace
 
     # Activate a session, then push two entries onto the tracker.
@@ -308,7 +308,7 @@ async def test_read_envelope_truncates_large_files(mcp_with_workspace):
 
 
 # ---------------------------------------------------------------------------
-# Task 10 — Cache block in describe_workspace
+# Cache block in describe_workspace
 # ---------------------------------------------------------------------------
 
 
@@ -330,7 +330,7 @@ async def test_describe_workspace_reports_cache_sizes(mcp_with_workspace):
     assert cache["pvoc_bytes"] == 1000
     assert cache["analysis_bytes"] == 250
     assert cache["visualizations_bytes"] == 500
-    assert cache["audition_bytes"] == 0  # populated by Task 11
+    assert cache["audition_bytes"] == 0
     assert cache["total_bytes"] == 1750
 
 
@@ -349,7 +349,7 @@ async def test_describe_workspace_no_session_includes_cache_block(
 
 
 # ---------------------------------------------------------------------------
-# describe_workspace: history (design-doc commitment, added Phase 2)
+# describe_workspace: history
 # ---------------------------------------------------------------------------
 
 

@@ -3,7 +3,7 @@
  "title": "Spectral smear into granular half-speed and a loop",
  "material": "any mono source; textured or noisy material responds especially well",
  "description": "The canonical starter chain: time-average the spectrum with blur blur (softening attacks and fusing texture), pull the result through modify brassage at half velocity (granular time-stretch that keeps pitch), then cut a rhythmic cell from it with extend loop. Auto-PVOC handles both domain crossings \u2014 you feed a .wav and get a .wav back.",
- "source": "Verified end-to-end against real CDP since Phase 1a as the acceptance chain (tests/test_acceptance.py).",
+ "source": "Verified end-to-end against real CDP as the acceptance chain (tests/test_acceptance.py).",
  "definition": {
   "inputs": {
    "src": "YOUR_INPUT.wav"

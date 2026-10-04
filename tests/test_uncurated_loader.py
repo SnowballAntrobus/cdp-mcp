@@ -1,8 +1,8 @@
-"""Phase 3: uncurated long-tail loading.
+"""Uncurated long-tail loading.
 
-``scripts/generate_uncurated_entries.py`` writes minimal ``curated: false``
-stubs into ``src/cdp_mcp/knowledge/data_uncurated/``; the loader picks them
-up alongside the curated ``data/`` entries. These tests pin the contract:
+``src/cdp_mcp/knowledge/data_uncurated/`` holds minimal ``curated: false``
+stubs; the loader picks them up alongside the curated ``data/`` entries.
+These tests pin the contract:
 
 - both directories load into one index;
 - ``curated_only`` filtering separates the populations correctly;
@@ -32,13 +32,10 @@ def index() -> KnowledgeIndex:
 
 
 def _uncurated_stub_entries() -> list[dict]:
-    """Read the generated stubs straight from the packaged directory."""
+    """Read the stubs straight from the packaged directory."""
     root = files("cdp_mcp.knowledge").joinpath("data_uncurated")
     with as_file(root) as d:
-        assert d.is_dir(), (
-            "data_uncurated/ missing — run "
-            "scripts/generate_uncurated_entries.py"
-        )
+        assert d.is_dir(), "the packaged data_uncurated/ directory is missing"
         return [
             json.loads(p.read_text(encoding="utf-8"))
             for p in sorted(d.glob("*.json"))
@@ -55,9 +52,9 @@ def test_loader_loads_both_directories(index):
     curated = index.get("blur", "blur")
     assert curated is not None
     assert curated.curated is True
-    # ... and every generated stub from data_uncurated/ is retrievable.
+    # ... and every stub from data_uncurated/ is retrievable.
     stubs = _uncurated_stub_entries()
-    assert stubs, "generator produced no stubs"
+    assert stubs, "data_uncurated/ holds no stubs"
     for stub in stubs:
         loaded = index.get(stub["program"], stub["mode"])
         assert loaded is not None, f"stub {stub['program']} not loaded"
@@ -67,7 +64,7 @@ def test_loader_loads_both_directories(index):
 
 
 def test_uncurated_stubs_never_collide_with_curated_programs(index):
-    """The generator only emits programs with no curated entry, so no
+    """Stubs exist only for programs with no curated entry, so no
     (program, mode) key in the index can be both."""
     curated_programs = {
         e.program for e in index.list_entries(curated_only=True)

@@ -10,11 +10,10 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "expression", "expr": "indur_max"},
   "curated": true,
   "version_sensitive": false,
-  "description": "Mixes several files under a moving-fader automation score: balance_data lists, per timepoint, the RELATIVE level of every file (each line is auto-SCALED to sum to 1 - verified: a '2 3' line renders byte-identical to '0.4 0.6'), and envelope_data shapes the OVERALL loudness of the summed mix over time. The relative mix is therefore always a convex combination (cannot overload by itself), but the overall envelope CAN push it over full scale - and then the 16-bit output WRAPS (verified: envelope 3.0 on hot material, 100% of over-samples bit-match wrap_int16, 0% match clipping - the P5-3 pathology). Output duration = the LONGEST input, exact on all probes (2.0 both orders; 3.0 with three files). Cross-validated against the family: a linear 1->0 balance under a flat envelope renders BYTE-IDENTICAL to submix crossfade mode 1 on the same pair. This entry pins TWO inputs (a 3-file run verified - execute() for more; balance lines then need one level column per file). All files must share one channel count (refusal verbatim). Deterministic.",
+  "description": "Mixes several files under a moving-fader automation score: balance_data lists, per timepoint, the RELATIVE level of every file (each line is auto-SCALED to sum to 1 - verified: a '2 3' line renders byte-identical to '0.4 0.6'), and envelope_data shapes the OVERALL loudness of the summed mix over time. The relative mix is therefore always a convex combination (cannot overload by itself), but the overall envelope CAN push it over full scale - and then the 16-bit output WRAPS (verified: envelope 3.0 on hot material, 100% of over-samples bit-match wrap_int16, 0% match clipping - the submix mix wrap pathology). Output duration = the LONGEST input, exact on all probes (2.0 both orders; 3.0 with three files). Cross-validated against the family: a linear 1->0 balance under a flat envelope renders BYTE-IDENTICAL to submix crossfade mode 1 on the same pair. This entry pins TWO inputs (a 3-file run verified - execute() for more; balance lines then need one level column per file). All files must share one channel count (refusal verbatim). Deterministic.",
   "musical_use": "Level automation as a score: ride two layers against each other with arbitrary trajectories - slow figure/ground swaps, rhythmic ducking, a texture that surfaces only in the gaps of another - then master the whole gesture with one overall envelope (swells, fades, pulses). This is the multi-file generalisation of submix balance's single fader, and the mixfile stage is bypassed entirely: write both data files with write_data_file() and go straight to sound. Times in both files are output-time seconds; values between timepoints interpolate linearly. Keep the envelope at or below 1 unless you KNOW the summed material has headroom - overs WRAP, they do not saturate (stage headroom in the sources or the envelope, never after). The balance file cannot vary the overall level (lines are re-scaled to sum 1) - that is exactly what envelope_data is for.",
   "parameters": {
     "balance_data": {
@@ -45,14 +44,14 @@
     }
   ],
   "known_issues": [
-    "OVERLOAD WRAPS (same pathology as submix mix, P5-3): when envelope x mix exceeds full scale, the output equals INTEGER WRAPAROUND of the ideal sum (verified: envelope 3.0 on near-full-scale material - every over-sample bit-matches wrap_int16, none match clipping; positive overs return as large negative samples). The balance stage cannot overload (convex), so the envelope is the only risky knob: keep it <= 1 unless the sources have measured headroom. getlevel cannot pre-flight this mode (no mixfile) - stage headroom in the sources or envelope.",
+    "OVERLOAD WRAPS (same pathology as submix mix): when envelope x mix exceeds full scale, the output equals INTEGER WRAPAROUND of the ideal sum (verified: envelope 3.0 on near-full-scale material - every over-sample bit-matches wrap_int16, none match clipping; positive overs return as large negative samples). The balance stage cannot overload (convex), so the envelope is the only risky knob: keep it <= 1 unless the sources have measured headroom. getlevel cannot pre-flight this mode (no mixfile) - stage headroom in the sources or envelope.",
     "NO SAMPLE-RATE VALIDATION (first-class divergence): a 44.1 kHz + 22.05 kHz pair is ACCEPTED (exit 0) and the mismatched file is read at the output rate - double-speed chipmunking, no warning. Every other probed submix mode refuses mixed rates. Verify rates yourself before calling.",
     "Channel counts must match: 'ERROR: Process only works with files having the same number of channels: file N will not work' (verbatim). Stereo pairs verified clean. Single input refused ('Insufficient input files for this process').",
     "balance_data lines are re-scaled to sum to 1 - the file CANNOT change the overall level (banner-documented, byte-verified). Use envelope_data for level moves.",
     "This entry pins 2 inputs; the binary is variadic (3-file run verified, balance lines carrying 3 columns). Use execute() for wider stacks.",
     "Data-file refusals are quoted verbatim in the parameter descriptions (begin-at-zero, zero-levels with its off-by-one line number, the misleading wrong-column-count message). Envelope point values cap at 256.",
-    "Deterministic: identical decoded shas 1.2 s apart. Cross-check: linear balance + flat envelope == submix crossfade 1, byte-identical (recorded in the tranche transcript).",
-    "Multi-input entry: duration rule (indur_max) verified at 2 and 3 inputs; duration_row null (tranche-11 rule; aux files also don't fit the shared fixture)."
+    "Deterministic: identical decoded shas 1.2 s apart. Cross-check: linear balance + flat envelope == submix crossfade 1, byte-identical.",
+    "Multi-input entry: duration rule (indur_max) verified at 2 and 3 inputs."
   ],
   "references": ["cdp://docs/html/cgromix2"]
 }

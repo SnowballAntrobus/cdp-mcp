@@ -60,7 +60,7 @@ def render_spectrogram(
 ) -> SpectrogramResult:
     """Render a mel spectrogram PNG to ``output_path``.
 
-    Phase 1a defaults are locked: mel scale, magma colormap, 1024×768
+    Rendering settings are fixed: mel scale, magma colormap, 1024×768
     (±10% after ``bbox_inches="tight"`` trim), dB range [-90, 0], 2048 FFT,
     512 hop, Hann window. No user overrides.
 
@@ -69,7 +69,7 @@ def render_spectrogram(
         output_path: PNG destination. Parent directory must exist.
         t_start: Optional time-window start in seconds.
         t_duration: Optional time-window duration in seconds.
-        markers: Optional vertical marker times in seconds (Phase 2,
+        markers: Optional vertical marker times in seconds (used by
             ``segments()``) — drawn as thin cyan lines over the
             spectrogram. Callers must fold the marker list into their
             cache key (marker positions change the pixels).
@@ -229,15 +229,12 @@ def _apply_window(
 
 
 # ---------------------------------------------------------------------------
-# Tool-result size cap (Phase 2 QA finding, 2026-07-14)
+# Tool-result size cap
 # ---------------------------------------------------------------------------
 
 # Claude Desktop rejects tool results over ~1 MB; the PNG travels
 # base64-encoded (×4/3), so the on-disk file must stay under ~750 KB.
 # 700 KB leaves margin for the JSON envelope sharing the result.
-# Empirically discovered when a 3-panel progression() composite blew the
-# cap — resolving the design doc's "MCP image-per-turn limits" open
-# question.
 _TOOL_RESULT_PNG_CAP_BYTES = 700_000
 
 

@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": true,
@@ -45,7 +44,7 @@
     "channo range is input-dependent (1..channels) - the refusal quotes the per-file bound.",
     "Multichannel (>2) inputs: banner says one channel is zeroed in place (stereo verified; >2 unprobed beyond acceptance elsewhere in the family).",
     "Deterministic; static duration sample-exact.",
-    "Split modes 1 (extract channo) and 2 (extract all) have NO outfile argv (auto-named '<input_stem>_c<n>.wav' in cwd, content verified bit-equal to the channel) - engine-incompatible, reachable via execute() with cwd control (tranche 11b drop records)."
+    "Split modes 1 (extract channo) and 2 (extract all) have NO outfile argv (auto-named '<input_stem>_c<n>.wav' in cwd, content verified bit-equal to the channel) - engine-incompatible, reachable via execute() with cwd control."
   ],
   "references": ["cdp://docs/html/cgrohous"]
 }

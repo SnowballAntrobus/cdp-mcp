@@ -1,12 +1,10 @@
 """The ``cdp://examples/*`` library — verified chain recipes.
 
-Phase 5 deliverable (design list: "examples library, sourced from saved
-graphs"). Each example is a package-shipped JSON carrying a ready-to-run
+Each example is a package-shipped JSON carrying a ready-to-run
 ``graph()`` definition (``{inputs, nodes, output}``) plus the musical
 intent, the material it suits, and provenance — every chain shipped here
-has been executed end-to-end against real CDP (the Phase 1a acceptance
-chain, the Phase 5 generalization matrix, or a tranche transcript; each
-example's ``source`` field says which).
+has been executed end-to-end against real CDP, and each example's
+``source`` field records where.
 
 Two access points:
 

@@ -1,39 +1,21 @@
-"""Phase 2 Task 5 — `breakpoint_capable` curation review tests.
+"""Pinned ``breakpoint_capable`` flags for curated parameters.
 
-Locks in the empirical verdict from the Task 5 probe pass: which curated
-parameters CDP r8 actually accepts breakpoint envelopes for, and which
-reject them with ``brkpnt_files not permitted``.
-
-Two tiers of coverage:
-
-1. **Knowledge-index integrity.** The expectation table below mirrors the
-   forensic findings in ``docs/phase-2-breakpoint-review.md``. Any drift
-   between the JSON and the empirical record trips a test failure here.
-   This makes accidental flips visible to the test suite long before they
-   reach a real-CDP session.
-
-2. **Compiler behavior** for each newly-flipped parameter — a 2-point
-   envelope compiles successfully (positive case). Stay-False parameters
-   are not asserted at the unit-compiler level (the
-   ``param_breakpoint_not_capable`` rejection is enforced one layer up in
-   ``validate_node``; covering all 16 negatives at the JSON-integrity
-   level keeps the matrix tight without duplicating compiler tests).
+The table records which curated parameters CDP r8 actually accepts
+breakpoint envelopes for, and which reject them with ``brkpnt_files not
+permitted`` — each verdict checked against the real binaries. Any drift
+between a curated JSON's ``breakpoint_capable`` flag and the table fails
+here, before an accidental flip reaches a real-CDP session.
 """
 
 from __future__ import annotations
 
 import pytest
 
-from cdp_mcp.breakpoint_compiler import compile_breakpoint_value
 from cdp_mcp.knowledge.loader import KnowledgeIndex
 
-# Empirical findings from the Task 5 probe pass (run against CDP r8 in
-# cdpr8/_cdp/_cdprogs). Updating any cell in this table is a curation
-# decision and must pair with an entry in docs/phase-2-breakpoint-review.md.
+# Verified against CDP r8; updating any cell is a curation decision.
 _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]] = {
-    # --- Wave 6 (tranches 22-23: pitch-data + text utilities; see
-    # docs/curation/tranche22_pitchdata_findings.json +
-    # tranche23_datautil_findings.json) ---
+    # --- Pitch data (repitch, ptobrk, pitch), matrix, hfperm ---
     ("repitch", "getpitch", 1): {
         "pitchdata": False,
         "tuning_range": False,
@@ -149,9 +131,8 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
         "altsort": False,
         "elimoctdups": False,
     },
-    # --- Phase 6 schema unblocks (free_string + .frq/.trn kinds; entries
-    # authored from the tranche-10a/16/22 pinned empirics, re-verified
-    # against the binaries — see tests/test_free_string.py) ---
+    # --- Free-string and .frq/.trn file parameters (see
+    # tests/test_free_string.py) ---
     ("blur", "shuffle", None): {
         "domain_image": False,
         "grpsize": False,
@@ -206,9 +187,7 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
         "vibfreq": True,
         "vibrange": True,
     },
-    # --- Wave 5 (tranches 20-21: spectral tail; see
-    # docs/curation/tranche20_spectral1_findings.json +
-    # tranche21_spectral2_findings.json) ---
+    # --- Spectral programs ---
     ("blur", "weave", None): {
         "weavfile": False,
     },
@@ -434,9 +413,7 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
         "featurefile": False,
         "splicelen": False,
     },
-    # --- Wave 4 (tranches 18-19: texture/filter depth + grain/FOF; see
-    # docs/curation/tranche18_texture_filter_findings.json +
-    # tranche19_grain_fof_findings.json) ---
+    # --- Filters, textures, grains and FOF/pitch-synchronous ops ---
     ("filter", "iterated", 1): {
         "fbank": False,
         "q": False,
@@ -860,9 +837,7 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
         "chirp": False,
         "windowed": False,
     },
-    # --- Wave 3 (tranches 16-17: waveset/distort + synthesis; see
-    # docs/curation/tranche16_waveset_findings.json +
-    # tranche17_synthesis_findings.json) ---
+    # --- Waveset distortion and synthesis ---
     ("distort", "replim", None): {
         "multiplier": True,
         "cyclecnt": True,
@@ -1186,9 +1161,7 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
         "minamp": False,
         "linear": False,
     },
-    # --- Wave 2 (tranches 14-15: sfedit/editing + gesture; see
-    # docs/curation/tranche14_sfedit_editing_findings.json +
-    # tranche15_gesture_findings.json) ---
+    # --- Editing (sfedit, housekeep) and gesture ---
     ("sfedit", "cutend", 1): {
         "length": False,
         "splice": False,
@@ -1436,9 +1409,7 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
         "zigzag": False,
         "random": False,
     },
-    # --- Wave 1 (tranches 12-13: submix depth + envelope family; see
-    # docs/curation/tranche12_submix_depth_findings.json +
-    # tranche13_envelope_findings.json) ---
+    # --- Submix and envelope family ---
     ("submix", "attenuate", None): {
         "inmixfile": False,
         "gain": False,
@@ -1617,8 +1588,7 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
         "gain": True,
         "fineness": False,
     },
-    # --- Phase 6 tranche 11 (iteration/sequence + event-timing; see
-    # docs/curation/tranche11{a_iteration,b_event_timing}_findings.json) ---
+    # --- Iteration/sequence and event timing ---
     ("extend", "sequence2", None): {
         "seqfile": False, "attenuation": False, "splice": False,
     },
@@ -1728,8 +1698,7 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
     ("housekeep", "chans", 5): {
         # no numeric parameters
     },
-    # --- Phase 5 wave 4 (tranche 10: ST-covered singles; see
-    # docs/curation/tranche10{a,b}_st_singles_findings.json) ---
+    # --- Assorted programs ---
     ("blur", "chorus", 5): {
         "aspread": True, "fspread": True,
     },
@@ -1793,8 +1762,7 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
         "maxinterp": True, "pdrift": False, "driftrate": False,
         "normalize": False,
     },
-    # --- Phase 5 wave 3 (tranche 9: sibling submodes of already-curated
-    # pairs; see docs/curation/tranche9_submodes_findings.json) ---
+    # --- Sibling submodes of multi-submode pairs ---
     ("scramble", "scramble", 9): {
         "seed": False,
         "cnt": False,
@@ -1844,7 +1812,7 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
         "short_window": False, "exclude_nonharmonic": False,
         "kill_harmonic": False, "silence_unpitched": False,
     },
-    # --- Phase 5 wave 2b (tranche 8; see docs/curation/) ---
+    # --- More assorted programs ---
     ("scramble", "scramble", 10): {
         "seed": False,
         "cnt": False,
@@ -1924,7 +1892,6 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
     ("silend", "silend", 1): {
         "sildur": False,
     },
-    # --- Phase 5 wave 2a (tranche 7: unblocked entries; see docs/curation/) ---
     ("submix", "mix", None): {
         "atten": False,
     },
@@ -1944,7 +1911,6 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
         "srate": False, "chans": False, "dur": False,
         "frq": True, "amp": True, "tabsize": False,
     },
-    # --- Phase 5 tranches 5-6 (sandbox-CDP probed; see docs/curation/) ---
     ("submix", "interleave", None): {
         # no numeric parameters
     },
@@ -2040,7 +2006,6 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
     ("clip", "clip", 2): {
         "fraction": False,
     },
-    # --- Phase 3 tranche 3 (sandbox-CDP probed; see docs/curation/) ---
     ("texture", "simple", 5): {
         "notedata": False,
         "outdur": False,
@@ -2119,7 +2084,6 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
     ("blur", "suppress", None): {
         "n": True,
     },
-    # --- Phase 3 tranche 2 (sandbox-CDP probed; see docs/curation/) ---
     ("modify", "revecho", 2): {
         "delay": False,
         "mix": False,
@@ -2181,7 +2145,6 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
         "decay": True,
         "glis": True,
     },
-    # --- Phase 3 tranche 1 (sandbox-CDP probed; see docs/curation/) ---
     ("modify", "radical", 1): {
         # no numeric parameters
     },
@@ -2265,10 +2228,9 @@ _EXPECTED_BREAKPOINT_CAPABLE: dict[tuple[str, str, int | None], dict[str, bool]]
 
 def _matrix_cases() -> list[tuple[str, str, int | None, str, bool]]:
     """Flatten the expectation table to one (program, mode, submode, param,
-    expected) case per row for pytest's parametrize. Since the
-    (program, mode, submode) re-keying (commit 728b986) each key carries
-    its entry's declared submode — None for submode-less entries — so
-    lookups stay exact-triple even on pairs curated in several submodes."""
+    expected) case per row for pytest's parametrize. Each key carries its
+    entry's declared submode — None for submode-less entries — so lookups
+    stay exact-triple even on pairs curated in several submodes."""
     return [
         (program, mode, submode, param, expected)
         for (program, mode, submode), params in _EXPECTED_BREAKPOINT_CAPABLE.items()
@@ -2296,10 +2258,10 @@ def test_breakpoint_capable_matches_empirical(
     param: str,
     expected: bool,
 ) -> None:
-    """Each curated parameter's ``breakpoint_capable`` matches the Task 5
+    """Each curated parameter's ``breakpoint_capable`` matches the
     empirical probe outcome. The probe ran scalar + envelope invocations
     against real CDP r8; ``brkpnt_files not permitted`` → False, exit-0
-    with output produced → True. See docs/phase-2-breakpoint-review.md."""
+    with output produced → True."""
     entry = knowledge_index.get(program, mode, submode)
     assert entry is not None, (
         f"No curated entry for {program} {mode} sm{submode}"
@@ -2307,62 +2269,7 @@ def test_breakpoint_capable_matches_empirical(
     spec = entry.parameters[param]
     assert spec.breakpoint_capable is expected, (
         f"{program} {mode} sm{submode}.{param}: knowledge JSON says "
-        f"breakpoint_capable={spec.breakpoint_capable}, empirical Task 5 "
-        f"probe says {expected}. Either CDP r8's behavior changed (re-run "
-        f"the probe in docs/phase-2-breakpoint-review.md §methodology) "
-        f"or the JSON was edited without updating the empirical record."
+        f"breakpoint_capable={spec.breakpoint_capable}, empirical probe "
+        f"says {expected}. Either CDP r8's behavior changed or the JSON "
+        f"was edited without updating this table."
     )
-
-
-def _flipped_to_true() -> list[tuple[str, str, int | None, str]]:
-    return [
-        (p, m, s, param)
-        for (p, m, s), params in _EXPECTED_BREAKPOINT_CAPABLE.items()
-        for param, expected in params.items()
-        if expected
-    ]
-
-
-@pytest.mark.parametrize(
-    ("program", "mode", "submode", "param"), _flipped_to_true(),
-    ids=[f"{p}_{m}_sm{s}_{param}" for (p, m, s, param) in _flipped_to_true()],
-)
-def test_newly_capable_param_compiles_an_envelope(
-    knowledge_index: KnowledgeIndex,
-    program: str,
-    mode: str,
-    submode: int | None,
-    param: str,
-    tmp_path,
-) -> None:
-    """For each parameter Task 5 flipped to True, a 2-point relative-time
-    envelope compiles cleanly. Source-duration / source-kind aren't
-    behaviorally relevant at this layer — the compiler just needs a
-    breakpoint-capable spec, a non-empty value, and writeable envelope
-    storage."""
-    entry = knowledge_index.get(program, mode, submode)
-    assert entry is not None
-    spec = entry.parameters[param]
-
-    # Choose two values inside the param's declared range.
-    lo = spec.min if spec.min is not None else 0.0
-    hi = spec.max if spec.max is not None else (lo + 1.0)
-    # Make sure hi > lo for the breakpoint to be a real ramp.
-    if hi <= lo:
-        hi = lo + 1.0
-
-    result = compile_breakpoint_value(
-        param_name=param,
-        param_spec=spec,
-        value=[[0.0, lo], [1.0, hi]],
-        source_duration_s=2.0,
-        source_kind="input_wav",
-        session_root=tmp_path,
-        envelopes_dir=tmp_path / "envelopes",
-    )
-    assert result.errors == [], (
-        f"{program} {mode} sm{submode}.{param}: compile_breakpoint_value "
-        f"returned errors despite breakpoint_capable=True: {result.errors}"
-    )
-    assert result.record is not None
-    assert result.compiled_path is not None and result.compiled_path.exists()

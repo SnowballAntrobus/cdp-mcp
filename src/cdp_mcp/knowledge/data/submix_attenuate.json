@@ -10,7 +10,6 @@
   "output_format": ".txt",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -77,7 +76,7 @@
     "gain 0 is CDP-legal but writes an all-zero-level mixfile that renders silence downstream (curated minimum 0.000001 keeps it reachable-but-nonzero). Values > 1 amplify - re-run getlevel afterwards if you push levels up.",
     "The named sound files must exist and be valid (CDP parses the mixfile fully; missing names refuse with the 'is not a sndfile' warning family). Line numbers are 1-based and bounds are input-dependent (refusals quote the file's own line count).",
     "Deterministic: byte-identical output run to run. gain refuses breakpoints (parameter 1).",
-    "Arity-0 entry: call process() with no input argument. Data output - duration_row null in the findings."
+    "Arity-0 entry: call process() with no input argument. Data output."
   ],
   "references": ["cdp://docs/html/cgromix2"]
 }

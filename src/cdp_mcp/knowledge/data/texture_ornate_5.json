@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": null,
   "duration_model": {"kind": "set_by", "param": "outdur"},
   "curated": true,
   "version_sensitive": false,
@@ -271,7 +270,7 @@
     }
   ],
   "known_issues": [
-    "Duration honesty (set_by outdur): +23% at outdur 5, +9.9% at outdur 8 with a 1.5 s line and small ornaments (0.5 s ping source) - overshoot is about the line span plus the final ornament's tail; duration row pinned at outdur 8, tol 0.2, seed 5.",
+    "Duration honesty (set_by outdur): +23% at outdur 5, +9.9% at outdur 8 with a 1.5 s line and small ornaments (0.5 s ping source) - overshoot is about the line span plus the final ornament's tail.",
     "Notedata needs at least TWO '#N' blocks after the pitch line (line, then ornament(s)); one or zero blocks refuse 'Insufficient motifs in notedata file.' verbatim. Extra ornament blocks are legal (3-block file verified).",
     "Ornament placement before/after each line note is randomly permuted per note (source texture4.c PM_ORNPOS); preornate/postornate force it (separate curated entries; all three DIFFER at the same seed - byte-proof recorded).",
     "Breakpoint surface: outdur/gpspace/contour/seed refuse (parameters 1/14/17/30 verbatim - same numbering as texture decorated); all other numeric positionals plus -a/-p/-s accept (full per-parameter sweep, exit 0; skiptime additionally verified against both endpoints at seed 5).",

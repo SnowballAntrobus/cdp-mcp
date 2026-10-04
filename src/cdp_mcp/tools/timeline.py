@@ -1,15 +1,15 @@
 """The ``timeline()`` MCP tool — deterministic multi-source event placement.
 
-Phase 6 core build. ``timeline()`` renders an explicit event list
+``timeline()`` renders an explicit event list
 ``[{source, at, level?, pan?}]`` into one soundfile through CDP's
 ``submix mix`` engine: the tool validates every reference (full grammar,
 including ``latest_batch[i]``), pins SR/channel compatibility against
-the submix-mix empirics (tranche 5/7/12), writes the mixfile into the
-session's ``data/`` directory, and executes through ``validate_node`` /
-``execute_validated_node`` so security, the watchdog, and lineage are
-inherited unchanged.
+empirically verified ``submix mix`` behavior, writes the mixfile into
+the session's ``data/`` directory, and executes through
+``validate_node`` / ``execute_validated_node`` so security, the
+watchdog, and lineage are inherited unchanged.
 
-Two facts drive the design (forensics P5-3):
+Two facts drive the design:
 
 - ``submix mix`` output duration is ``max(at + dur) − min(at)`` and the
   engine's pre-flight deliberately can't compute it (the durations live
@@ -21,10 +21,10 @@ Two facts drive the design (forensics P5-3):
   feeds ``submix mix``'s ``atten`` (``-g``), which attenuates the float
   sum pre-quantisation.
 
-Routing decision (phase-6 design, post-run recheck): v1 is SUBMIX-ONLY.
-Pitch-bearing event lists are ``extend sequence2``'s job — the docstring
-says so; there is no auto-routing (the two engines' wrap and duration
-semantics differ enough that silent routing would surprise).
+Routing: ``timeline()`` is SUBMIX-ONLY. Pitch-bearing event lists are
+``extend sequence2``'s job — the docstring says so; there is no
+auto-routing (the two engines' wrap and duration semantics differ enough
+that silent routing would surprise).
 """
 
 from __future__ import annotations
@@ -66,10 +66,10 @@ _EVENT_KEYS = frozenset({"source", "at", "level", "pan"})
 # nonzero. A getlevel factor below this is clamped (with a warning).
 _ATTEN_MIN = 1e-6
 
-# getlevel 3 report grammar (tranche 12 §7, verbatim format): zero or
-# more clip lines, a blank line, then MAX SAMPLE + NORMALISATION
-# REQUIRED. The factor is 1/peak UNCONDITIONALLY — > 1 means available
-# headroom, only < 1 means the render would wrap.
+# getlevel 3 report grammar (verbatim format): zero or more clip lines,
+# a blank line, then MAX SAMPLE + NORMALISATION REQUIRED. The factor is
+# 1/peak UNCONDITIONALLY — > 1 means available headroom, only < 1 means
+# the render would wrap.
 _FACTOR_RE = re.compile(r"NORMALISATION REQUIRED\s*:\s*([-+0-9.eE]+)")
 _PEAK_RE = re.compile(r"MAX SAMPLE ENCOUNTERED\s*:\s*([-+0-9.eE]+)")
 
@@ -287,7 +287,7 @@ async def timeline_impl(
         "issued_at": datetime.now(timezone.utc).isoformat(),
     })
 
-    # ---- Headroom staging (P5-3): curated getlevel 3 via the engine -------
+    # ---- Headroom staging: curated getlevel 3 via the engine --------------
     headroom_report: dict[str, Any] = {
         "mode": headroom, "factor": None, "peak": None,
         "applied": False, "report": None,
@@ -519,11 +519,11 @@ def _resolve_and_probe_events(
     """Resolve each event's reference and probe SR/channels/duration.
 
     Mutates the events in place; returns the collected errors. Pinned
-    rules (submix mix empirics, tranches 5/7/12): sources are .wav; the
+    rules (verified ``submix mix`` behavior): sources are .wav; the
     chans column must equal the file's real channel count (probed here,
     emitted by us); pan lines are mono-only in the verified line syntax
     ('sndname start 1 level pan' — the stereo panned form takes four
-    level/pan columns and is out of v1 scope); mixfile paths resolve
+    level/pan columns and is not supported); mixfile paths resolve
     against the session root and cannot contain whitespace.
     """
     errors: list[ErrorEntry] = []

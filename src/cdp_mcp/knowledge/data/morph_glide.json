@@ -10,7 +10,6 @@
   "output_format": ".ana",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "set_by", "param": "duration"},
   "curated": true,
   "version_sensitive": false,
@@ -41,7 +40,7 @@
     }
   ],
   "known_issues": [
-    "Inputs should be single-window analysis files made with spec grab (spec grab infile outfile time — not yet a curated entry). CDP r8 accepts full-length .ana files without any error but uses only their FIRST analysis window, which is rarely what you want — grab explicitly to choose the freeze points."
+    "Inputs should be single-window analysis files made with spec grab (spec grab infile outfile time). CDP r8 accepts full-length .ana files without any error but uses only their FIRST analysis window, which is rarely what you want — grab explicitly to choose the freeze points."
   ],
   "references": ["cdp://docs/html/cmorph"]
 }

@@ -3,7 +3,7 @@
  "title": "Sweep-filter a texture bed, blur it, granulate, re-cut",
  "material": "broadband textures - field recordings, room tone, noise beds",
  "description": "Animates static texture: a slow sweeping filter drags a resonant peak across the bed, blur blur fuses what remains, brassage half-speeds it granularly, and extend scramble re-cuts the result into a new 4-second sequence of chunks (seeded, so the chunk order is reproducible).",
- "source": "Verified end-to-end on a drifting filtered-noise field proxy in the Phase 5 generalization matrix (tests/test_generalization.py, field chain; docs/generalization-matrix.md).",
+ "source": "Verified end-to-end on a drifting filtered-noise field proxy in the generalization matrix (tests/test_generalization.py, field chain).",
  "definition": {
   "inputs": {
    "src": "YOUR_INPUT.wav"

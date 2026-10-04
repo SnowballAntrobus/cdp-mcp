@@ -1,4 +1,4 @@
-"""MIR v2 upgrade tests (docs/mir-gap-analysis.md).
+"""MIR v2 upgrade tests.
 
 Scorecard: flatness_db separates noise from tone by >30 dB where
 centroid/zcr conflate the two; rolloff-85 orders low tone < high tone <
@@ -7,7 +7,7 @@ sees a scramble-like sequence that whole-file means are blind to;
 inharmonicity separates detuned partials from a harmonic series;
 stereo_width separates dual-mono from decorrelated stereo; pyin f0
 lands on a 220 Hz sine (generous tolerances — platform variance).
-Cache keys are bumped to v2, and cluster() with the 33-dim vector is
+Cache keys are bumped to v3, and cluster() with the 33-dim vector is
 still deterministic and still separates test_cluster.py's three
 synthetic groups.
 """
@@ -38,8 +38,7 @@ from cdp_mcp.tools import cluster as cluster_module
 
 _SR = 22050
 
-# Stretched-partial multipliers — bell-like, off the harmonic series
-# (the stretch spectrum claim from gap analysis §3.b).
+# Stretched-partial multipliers — bell-like, off the harmonic series.
 _DETUNED_MULTIPLIERS = [1.0, 2.13, 3.29, 4.48, 5.71, 6.97, 8.27, 9.61]
 
 
@@ -68,7 +67,7 @@ def _noise(seconds: float = 2.0, amp: float = 0.3, seed: int = 0) -> np.ndarray:
 
 
 def _click_train(seconds: float = 2.0, rate_hz: float = 6.0) -> np.ndarray:
-    """4 ms noise-burst clicks — the gap analysis's clicks.wav recipe."""
+    """4 ms noise-burst clicks."""
     rng = np.random.default_rng(1)
     y = np.zeros(int(_SR * seconds), dtype=np.float32)
     burst = int(0.004 * _SR)
@@ -80,8 +79,8 @@ def _click_train(seconds: float = 2.0, rate_hz: float = 6.0) -> np.ndarray:
 
 def _scramble_like(seconds: float = 2.0, n_segments: int = 8) -> np.ndarray:
     """Concatenated different-frequency segments (200 / 4000 Hz
-    alternating) — the seq.wav pattern whose centroid trajectory a
-    whole-file mean cannot see (gap analysis §3.f)."""
+    alternating) — a pattern whose centroid trajectory a whole-file mean
+    cannot see."""
     seg = int(_SR * seconds) // n_segments
     t = np.arange(seg) / _SR
     parts = [
@@ -106,8 +105,8 @@ def _total_variation(values: list[float]) -> float:
 
 
 def test_flatness_db_separates_noise_from_sine(tmp_path):
-    """The D1 axis: >30 dB of separation where centroid/zcr conflate
-    "noisier" with "brighter" (gap analysis §3.a)."""
+    """Noisiness: >30 dB of separation where centroid/zcr conflate
+    "noisier" with "brighter"."""
     s_noise = extract_scorecard(_write(tmp_path / "noise.wav", _noise()))
     s_sine = extract_scorecard(_write(tmp_path / "sine.wav", _sine(220.0)))
     assert s_noise.spectral_flatness_db - s_sine.spectral_flatness_db > 30.0
@@ -170,9 +169,9 @@ def test_trajectory_short_file_degrades_gracefully(tmp_path):
 
 
 def test_trajectory_total_variation_scramble_vs_steady(tmp_path):
-    """The D7 fix: a scramble-like sequence and a steady tone are nearly
-    identical in whole-file means, but the centroid trajectory's total
-    variation separates them by orders of magnitude (§3.f)."""
+    """A scramble-like sequence and a steady tone are nearly identical in
+    whole-file means, but the centroid trajectory's total variation
+    separates them by orders of magnitude."""
     v_seq = extract_verbose(_write(tmp_path / "seq.wav", _scramble_like()))
     v_steady = extract_verbose(_write(tmp_path / "steady.wav", _sine(200.0)))
     tv_seq = _total_variation(v_seq["trajectory"]["centroid_hz"])
@@ -182,8 +181,8 @@ def test_trajectory_total_variation_scramble_vs_steady(tmp_path):
 
 
 def test_inharmonicity_detuned_partials_vs_harmonic(tmp_path):
-    """The D6 axis: partials off the harmonic series score well above a
-    true harmonic series (§3.b: 0.0019 -> 0.0140 on stretch spectrum)."""
+    """Partials off the harmonic series score well above a true harmonic
+    series (0.0019 -> 0.0140 on stretch spectrum output)."""
     harmonic = _partials([float(n) for n in range(1, 9)])
     detuned = _partials(_DETUNED_MULTIPLIERS)
     inh_h = extract_verbose(_write(tmp_path / "harm.wav", harmonic))["inharmonicity"]
@@ -195,8 +194,8 @@ def test_inharmonicity_detuned_partials_vs_harmonic(tmp_path):
 
 
 def test_roughness_and_attack_click_train_vs_tone(tmp_path):
-    """D3/D4: envelope modulation and attack sharpness are high for a
-    click train, low for a sustained harmonic tone (§3.c)."""
+    """Envelope modulation and attack sharpness are high for a click
+    train, low for a sustained harmonic tone."""
     v_clicks = extract_verbose(_write(tmp_path / "clicks.wav", _click_train()))
     v_tone = extract_verbose(
         _write(tmp_path / "tone.wav", _partials([float(n) for n in range(1, 9)]))
@@ -254,7 +253,7 @@ def test_verbose_v1_keys_untouched(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Sub-register fixes (2026-07): rate-invariant n_fft, pinned-floor pyin
+# Sub-register analysis: rate-invariant n_fft, pinned-floor pyin
 # detector, sub block, inharmonicity guard
 # ---------------------------------------------------------------------------
 

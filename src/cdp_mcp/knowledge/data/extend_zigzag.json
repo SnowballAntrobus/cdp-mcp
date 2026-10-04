@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": true,
-  "stereo_link_default": "related",
   "duration_model": {"kind": "set_by", "param": "dur"},
   "curated": true,
   "version_sensitive": false,
@@ -104,8 +103,8 @@
     }
   ],
   "known_issues": [
-    "'dur' is a floor, not a target: mode 1 must end at the file end, so CDP keeps zigzagging past 'dur' until a final leg can land there. Observed outputs for dur=5 on a 2 s input: 5.25-7.64 s across seeds (up to +53%, and more than dur + indur is possible). The set_by duration model is deliberately retained as the best available lower-bound predictor — 'static' (= indur) would be far worse for an extend process — but no duration row is pinned in the shared formula table because the prediction is not within 5%.",
-    "Stochastic, and unseeded runs take their seed from the clock: two runs launched within the same second return byte-identical audio; runs a second apart differ. Pass 'seed' for reproducibility. Stereo seed-linking machinery (linking separate mono runs by seed) lands later; channels within a single multi-channel file already share one zigzag path.",
+    "'dur' is a floor, not a target: mode 1 must end at the file end, so CDP keeps zigzagging past 'dur' until a final leg can land there. Observed outputs for dur=5 on a 2 s input: 5.25-7.64 s across seeds (up to +53%, and more than dur + indur is possible). The set_by duration model is deliberately retained as the best available lower-bound predictor — 'static' (= indur) would be far worse for an extend process — but the prediction is not within 5%.",
+    "Stochastic, and unseeded runs take their seed from the clock: two runs launched within the same second return byte-identical audio; runs a second apart differ. Pass 'seed' for reproducibility. Channels within a single multi-channel file share one zigzag path.",
     "Some (params, seed) combinations abort with 'ERROR: Final zig too short for splicelen.' (observed with seed 7 on a 2 s input) — retry with a different seed or a shorter splicelen.",
     "All six numeric parameters reject breakpoint files ('ERROR: Cannot read parameter N [...]: brkpnt_files not permitted.')."
   ],

@@ -10,12 +10,11 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
   "description": "Envelope-domain GATE (envel warp mode 8 of 15): extracts the amplitude envelope at wsize resolution, zeroes every WINDOW whose envelope value falls at or below the gate, and multiplies the reshaped envelope back onto the sound - so below-gate windows become literal digital zeros while kept windows pass through untouched (verified bit-exact passthrough on an in-range source; a 2.5 s input stays 2.5 s, static duration). The threshold is an ABSOLUTE amplitude 0-1 (not peak-relative: with gate 0.05 on a file peaking at 0.25, a 0.02-amplitude segment was fully zeroed even though it is 0.08 of the peak). smoothing > 0 additionally excises below-gate segments shorter than that many windows (removes stray gate chatter). gate is breakpoint-capable (verified: a 0.01->0.3 ramp renders differently from both scalar endpoints); wsize and smoothing refuse breakpoints. Deterministic; stereo accepted.",
-  "musical_use": "The window-resolution sibling of the gate program - and the second verified retime-enabler of this tranche: gating a four-burst recording with a noise floor at gate 0.05 produced zero runs that made 'retime retime 4' find all 4 events (vs 1 ungated). Compared to 'gate gate 1' (per-sample runs, mono, dB threshold) this one works on WINDOWS (choose wsize to set the rhythmic granularity of the gating), takes stereo, uses a linear 0-1 threshold, and - because gate can ride a breakpoint - the threshold itself can evolve: raise it through a phrase to progressively strip quiet detail, or duck it where you want the floor kept. wsize 5-20 ms follows syllable detail; 50-200 ms gates whole gestures. smoothing 1-5 windows cleans flutter at the gate boundary without raising the threshold. For per-sample precision or exact dB levels use the curated gate program instead.",
+  "musical_use": "The window-resolution sibling of the gate program - and a verified retime-enabler: gating a four-burst recording with a noise floor at gate 0.05 produced zero runs that made 'retime retime 4' find all 4 events (vs 1 ungated). Compared to 'gate gate 1' (per-sample runs, mono, dB threshold) this one works on WINDOWS (choose wsize to set the rhythmic granularity of the gating), takes stereo, uses a linear 0-1 threshold, and - because gate can ride a breakpoint - the threshold itself can evolve: raise it through a phrase to progressively strip quiet detail, or duck it where you want the floor kept. wsize 5-20 ms follows syllable detail; 50-200 ms gates whole gestures. smoothing 1-5 windows cleans flutter at the gate boundary without raising the threshold. For per-sample precision or exact dB levels use the curated gate program instead.",
   "parameters": {
     "wsize": {
       "type": "float",
@@ -65,7 +64,7 @@
     "OVER-FULL-SCALE SOURCES ARE RENORMALIZED: on a float source peaking at 1.128, every kept sample came back scaled by 0.887 = 1/1.128 (output peak exactly 1.0). In-range sources are untouched - only relevant for float chains running hotter than 0 dBFS.",
     "No refusal when nothing falls below the gate - unlike the gate program's 'No signal is gateable', this mode just passes the file through (verified on flat noise, output = 2.0 s, static).",
     "wsize's maximum is the input duration in ms (input-dependent); the same rule as the rest of the envel family.",
-    "envel warp's other 13 modes (normalise, reverse, exaggerate, ..., ducked) share this argv shape with different 'various_params'; only modes 8 (gate) and 11 (corrugate) are curated this tranche - the full mode table is recorded in docs/curation/tranche13_envelope.md.",
+    "envel warp's other 13 modes (normalise, reverse, exaggerate, ..., ducked) share this argv shape with different 'various_params'; only modes 8 (gate) and 11 (corrugate) are curated.",
     "Deterministic: two runs > 1.1 s apart produce identical decoded sha256. Stereo accepted (2-channel output, same duration)."
   ],
   "references": ["cdp://docs/html/cgroenvl"]

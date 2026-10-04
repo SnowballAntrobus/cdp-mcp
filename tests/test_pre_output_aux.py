@@ -1,10 +1,8 @@
-"""Phase 5 wave 2a: ``position: "pre_output"`` aux-parameter placement.
+"""``position: "pre_output"`` aux-parameter placement.
 
-The engine gap that dropped ``submix mix`` and ``formants put`` in
-tranche 5 (docs/curation/tranche5_mix_env_findings.json, dropped[0] and
-dropped[3]): those programs want their data file BETWEEN the inputs and
-the output path (``submix mix mixfile outfile``), while ``build_cdp_argv``
-rendered every parameter after the output.
+``submix mix`` and ``formants put`` want their data file BETWEEN the inputs
+and the output path (``submix mix mixfile outfile``); ``build_cdp_argv``
+otherwise renders every parameter after the output.
 
 Coverage:
 
@@ -20,9 +18,9 @@ Coverage:
    the path-scope gate (``path_outside_session``), same boundary as
    ordinary aux files.
 
-Plus real-CDP-gated re-verification of the tranche-5 empirics the
-``submix mix`` entry ships: the duration rule (max(at+dur) − min(at),
-leading silence stripped) and linear overlap summation.
+Plus real-CDP-gated checks of the empirics the ``submix mix`` entry
+ships: the duration rule (max(at+dur) − min(at), leading silence
+stripped) and linear overlap summation.
 """
 
 from __future__ import annotations
@@ -81,8 +79,7 @@ def test_position_rejected_on_flagged_aux_file():
 
 
 def test_position_none_unconstrained():
-    # position=None imposes nothing — the Phase 3 aux_file shape parses
-    # exactly as before.
+    # position=None imposes nothing.
     spec = ParameterSpec(type="aux_file")
     assert spec.position is None
 
@@ -164,7 +161,7 @@ def test_pre_output_declaration_order_preserved():
 
 
 def test_ordinary_params_unaffected_by_pre_output_split():
-    """No pre_output params → byte-for-byte the Phase 3 layout."""
+    """No pre_output params → every parameter renders after the output."""
     entry = _entry({
         "cnt": ParameterSpec(type="int"),
         "gain": ParameterSpec(
@@ -319,7 +316,7 @@ async def test_submix_mix_duration_preflight_skips(submix_env):
 
 
 # ---------------------------------------------------------------------------
-# Real CDP (gated): the tranche-5 submix mix empirics the entry ships
+# Real CDP (gated): the submix mix empirics the entry ships
 # ---------------------------------------------------------------------------
 
 
@@ -395,7 +392,7 @@ async def test_submix_mix_real_cdp_duration_rule(real_submix_env):
 @pytest.mark.timeout(60)
 async def test_submix_mix_real_cdp_linear_overlap_sum(real_submix_env):
     """Two 0.5-level copies of one file sum bit-identically to the
-    original — the linearity half of the overload-WRAPS finding."""
+    original — summation is linear."""
     env = real_submix_env
     session = env["session"]
     (session.root / "data" / "sum.mix").write_text(

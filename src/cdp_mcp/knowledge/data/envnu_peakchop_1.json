@@ -10,7 +10,6 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -147,9 +146,9 @@
     }
   ],
   "known_issues": [
-    "DURATION IS CONTENT-DEPENDENT (number of detected peaks x beat) - the 'static' model is a placeholder; the findings duration row is null. Pins: syl2 (4 peaks) -> 1.54 s @120 MM / 3.04 s @60 MM; a 2 s enveloped bed -> 5.04 s @120. Output can be much longer OR shorter than the input.",
+    "DURATION IS CONTENT-DEPENDENT (number of detected peaks x beat) - the 'static' model is a placeholder. Pins: syl2 (4 peaks) -> 1.54 s @120 MM / 3.04 s @60 MM; a 2 s enveloped bed -> 5.04 s @120. Output can be much longer OR shorter than the input.",
     "BREAKPOINT TIMES ARE OUTPUT TIMES (banner verbatim: 'Times in breakpoint files are times in the output') - the engine compiles relative-time envelopes against the INPUT duration, so supply absolute-time lists for long outputs and expect the tail to hold the last value.",
-    "scatter is DETERMINISTIC: -s0.5 runs > 1.1 s apart rendered byte-identically and no seed exists (unseeded fixed-sequence generator, same family as the modify revecho drand48 shim, tranche 2). A/B variation via scatter VALUE changes, not reruns.",
+    "scatter is DETERMINISTIC: -s0.5 runs > 1.1 s apart rendered byte-identically and no seed exists (unseeded fixed-sequence generator, same family as the modify revecho drand48 shim). A/B variation via scatter VALUE changes, not reruns.",
     "pkwidth's 'less than minimum peak distance' rule is enforced only by mode 2 ('New peakwidth too wide for the input data.'); mode 1 accepts oversized widths and overlaps events - use gain.",
     "wsize 1-1000 ms enforced (banner says 1-64: advisory).",
     "Stereo accepted, but peak detection runs on the stereo envelope - the same fixture gated differently as stereo (3.54 s vs 1.54 s mono probe): channel layout changes the detected peak count."

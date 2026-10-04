@@ -10,7 +10,6 @@
   "output_format": ".ana",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
@@ -112,7 +111,7 @@
   "known_issues": [
     "CENTRE IS A NO-OP IN PEAK MODE ON PITCHED MATERIAL (first-class binary bug): specfnu.c case(F_SQUEEZE) ends with an unconditional 'dz->fundamental = 1;' (line 3468) that overrides the -f gating above it, and formants_squeeze() then replaces the selected formant-peak channel with the fundamental's channel on every pitched window. Empirical: centre 1/2/3/4 (and 2.5) byte-identical on a 4-formant synthetic vowel whose four peaks mode 21 verifiably detects; spectral centroid lands in the fundamental region for all of them. centre DOES work with -t (trough mode: centre 1 vs 3 differ) and on unpitched sources (noise: centre 1 vs 4 differ). Consequence: -f is also meaningless (bit-identical to base) in peak mode.",
     "Fractional centre values are accepted (2.5 ran; int-typed slot, value evidently rounded/truncated) - stick to integers 1-4.",
-    "SPECFNU is platform-fragile as a family: mode 19 (RANDOMISE PARTIALS) crashes at teardown on this build, and mode 21 (SEE SPEC PEAKS/TROFS) was ALSO seen to abort (core dump) AFTER writing its complete, usable textfile during this tranche's probing. Mode 2 itself probed clean (exit 0, deterministic, non-silent).",
+    "SPECFNU is platform-fragile as a family: mode 19 (RANDOMISE PARTIALS) crashes at teardown on this build, and mode 21 (SEE SPEC PEAKS/TROFS) was ALSO seen to abort (core dump) AFTER writing its complete, usable textfile. Mode 2 itself probed clean (exit 0, deterministic, non-silent).",
     "Every specfnu run on this build - successful ones included - prints 'WARNING: failed to write PEAK data' to stderr; the .ana output is complete and resynthesises normally. Do not treat that warning as failure.",
     "Supplying -x and -k together is refused with 'ERROR: SUPPRESS NON-HARMONICS WITH SUPPRESS-HARMONICS WILL PRODUCE ZERO SIGNAL LEVEL.' (exit 255).",
     "Time-domain input refused ('ERROR: INVALID DATA / ERROR: File ... is not of correct type') - input must be .ana (auto-PVOC inserts the conversion).",

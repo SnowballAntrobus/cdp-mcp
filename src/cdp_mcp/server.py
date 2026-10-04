@@ -47,7 +47,7 @@ from .tools import progression as progression_module
 from .tools import provenance as provenance_module
 from .tools import search_programs as search_programs_module
 from .tools import segments as segments_module
-from .tools import session_config as session_config_module
+from .tools import session_files as session_files_module
 from .tools import sweep as sweep_module
 from .tools import tagging as tagging_module
 from .tools import templates as templates_module
@@ -89,15 +89,15 @@ def _resolve_sessions_root() -> Path:
 _sessions_root = _resolve_sessions_root()
 _session_manager = SessionManager(_sessions_root, lambda: _cdp_config)
 
-# In-memory "recent successful nodes" deque, shared by Task 5+ tools. Reset
+# In-memory "recent successful nodes" deque, shared by the tools below. Reset
 # on each server process start AND on every set_session() call — "latest"
 # and "prev_1..prev_4" are conversational state, not session state.
 _latest_tracker = LatestTracker()
 
-# Cache root for content-addressable artifacts (Phase 1b cache, etc.). The
-# directory is created at startup so the path-scope security check has a
-# stable, resolved directory to validate against from day one, even before
-# any caching actually happens.
+# Cache root for content-addressable artifacts. The directory is created
+# at startup so the path-scope security check has a stable, resolved
+# directory to validate against from day one, even before any caching
+# actually happens.
 _cache_root = (Path.home() / ".cdp_mcp" / "cache").resolve()
 _cache_root.mkdir(parents=True, exist_ok=True)
 
@@ -160,8 +160,8 @@ analyze_module.register(
     cache_root=_cache_root,
 )
 
-# Observation track (Phase 2): segments / compare / progression share
-# visualize's dependency shape; cluster (Phase 3) joins them.
+# Observation tools: segments / compare / progression / cluster share
+# visualize's dependency shape.
 for _obs_module in (
     segments_module, compare_module, progression_module, cluster_module,
 ):
@@ -173,7 +173,7 @@ for _obs_module in (
         cache_root=_cache_root,
     )
 
-# Phase 3: docs search, provenance, data files.
+# Docs search, provenance, data files.
 docs_module.register(
     mcp,
     docs_root_provider=lambda: docs_module.derive_docs_root(
@@ -194,7 +194,7 @@ data_files_module.register(
     sessions=_session_manager,
 )
 
-# Phase 4: sweep, session lifecycle, cleanup, templates, prompts.
+# Sweep, session lifecycle, cleanup, templates, prompts.
 sweep_module.register(
     mcp,
     sessions=_session_manager,
@@ -205,7 +205,7 @@ sweep_module.register(
 )
 tagging_module.register(mcp, sessions=_session_manager, latest_tracker=_latest_tracker)
 journal_module.register(mcp, sessions=_session_manager)
-session_config_module.register(mcp, sessions=_session_manager)
+session_files_module.register(mcp, sessions=_session_manager)
 cleanup_module.register(
     mcp,
     sessions=_session_manager,
@@ -215,10 +215,10 @@ cleanup_module.register(
 templates_module.register(mcp, sessions=_session_manager)
 prompts.register(mcp)
 
-# Phase 5: packaged examples library (cdp://examples/*, read via read_doc).
+# Packaged examples library (cdp://examples/*, read via read_doc).
 examples_module.register(mcp)
 
-# Phase 6: gesture construction + discoverability.
+# Gesture construction (timeline) + program search.
 timeline_module.register(
     mcp,
     sessions=_session_manager,

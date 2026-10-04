@@ -300,8 +300,8 @@ async def test_cdp_silent_output_writes_silent_wav(tmp_path):
 
 
 async def test_parse_known_args_lets_unrecognized_flags_pass(tmp_path):
-    """parse_args → parse_known_args widening: unknown flags no longer
-    error. --cdp-sigill-on-dot-path scans the leftover positional args."""
+    """The fake parses with parse_known_args: unknown flags don't error.
+    --cdp-die-on-dot-path scans the leftover positional args."""
     result = await run_cdp_command(
         _fake_argv("--this-flag-does-not-exist", "value", "--exit", "0"),
         cwd=tmp_path,
@@ -312,7 +312,7 @@ async def test_parse_known_args_lets_unrecognized_flags_pass(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Disk watchdog (Task 7) — unit tests against _disk_watchdog directly
+# Disk watchdog — unit tests against _disk_watchdog directly
 # ---------------------------------------------------------------------------
 
 
@@ -478,7 +478,7 @@ async def test_run_cdp_command_no_watchdog_when_kwargs_absent(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Cancellation cleanup (Phase 2 hardening)
+# Cancellation cleanup
 # ---------------------------------------------------------------------------
 
 
@@ -488,11 +488,11 @@ async def test_cancellation_kills_subprocess_and_reaps_helpers(
 ):
     """Cancelling the tool task mid-run must not leak the CDP process.
 
-    Regression for the pre-hardening behavior: a client stop/disconnect
-    (FastMCP cancels the tool task) left the subprocess running to
-    completion in the background and the progress task firing on a dead
-    request context. The ``finally`` block in ``run_cdp_command`` now
-    kills the process tree and reaps every helper task on any exit.
+    A client stop/disconnect (FastMCP cancels the tool task) would
+    otherwise leave the subprocess running to completion in the
+    background and the progress task firing on a dead request context.
+    The ``finally`` block in ``run_cdp_command`` kills the process tree
+    and reaps every helper task on any exit.
     """
     procs: list[asyncio.subprocess.Process] = []
     real_create = asyncio.create_subprocess_exec

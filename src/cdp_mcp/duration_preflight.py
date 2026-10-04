@@ -3,10 +3,10 @@
 Evaluates a curated entry's ``duration_model`` against the supplied
 parameters and input durations, and returns structured ``ErrorEntry``
 items when the predicted output duration violates the cap or doesn't
-compute cleanly. Complements the reactive disk watchdog (Task 7) —
-pre-flight catches cleanly-curated mis-parameterizations cheaply
-(before CDP spawns); the watchdog catches everything pre-flight can't
-predict.
+compute cleanly. Complements the reactive disk watchdog in
+:mod:`cdp_mcp.subprocess_core` — pre-flight catches cleanly-curated
+mis-parameterizations cheaply (before CDP spawns); the watchdog catches
+everything pre-flight can't predict.
 
 Expressions are evaluated via ``simpleeval`` (single-file, zero-deps,
 no function calls allowed). The threat surface is curated JSON entries,
@@ -14,11 +14,11 @@ not user input, so the safety story is defense in depth rather than
 first-line protection.
 
 A note on .ana inputs: ``soundfile.info()`` doesn't read CDP's .ana
-format, so input durations for .ana files are ``None`` in Phase 1b.
-The evaluator handles ``None`` per-kind. Task 8's lineage
-``source_wav_duration_s`` field will fill in the chained case; pre-
-converted .ana files in ``inputs/`` remain a gap with no current
-solution. The watchdog (Task 7) covers either way.
+format. With the CDP-context kwargs supplied (``validate_node`` always
+supplies them), .ana durations come from ``sfprops -d`` via
+:func:`pvoc.read_ana_duration`; otherwise, or if that fails, they are
+``None``, which the evaluator handles per kind. The watchdog covers
+either way.
 """
 
 from __future__ import annotations
@@ -34,7 +34,6 @@ from .limits import OUTPUT_DURATION_CAP_S
 from .schema import (
     DATA_OUTPUT_FORMATS,
     DurationModelExpression,
-    DurationModelLinear,
     DurationModelSetBy,
     DurationModelStatic,
     ErrorEntry,
@@ -69,10 +68,8 @@ async def _read_duration_seconds(
 
     For ``.ana`` files (which soundfile can't read), falls back to
     :func:`pvoc.read_ana_duration` — a shell-out to CDP's ``sfprops
-    -d`` — when the CDP context kwargs are supplied. The fallback is
-    optional so the existing unit-test path that calls this without
-    CDP context still works (the .ana branch just returns ``None``,
-    matching Phase 1b behavior).
+    -d`` — when the CDP context kwargs are supplied. Without them the
+    .ana branch just returns ``None``.
     """
     try:
         info = sf.info(str(path))
@@ -120,12 +117,7 @@ def _evaluate_duration_model(
             return None  # chain invariant — skip pre-flight
         return max(known)
 
-    if isinstance(model, (DurationModelSetBy, DurationModelLinear)):
-        # `linear` is currently identical to `set_by` — the schema's
-        # `linear` kind doesn't encode a multiplier field, so we
-        # evaluate as `outdur = float(params[param])`. The kind tag is
-        # preserved for future schema refinement (a `factor_expr` field
-        # would genuinely distinguish linear from set_by).
+    if isinstance(model, DurationModelSetBy):
         param_name = model.param
         if param_name not in params:
             raise DurationModelError(
@@ -143,28 +135,26 @@ def _evaluate_duration_model(
             ) from e
 
     if isinstance(model, DurationModelExpression):
-        # Chain invariant: if any input duration is None (e.g. a .ana
-        # file, which soundfile.info doesn't read) AND the expression
-        # references indur, skip pre-flight. The Task 7 watchdog
-        # catches runaways post-spawn. Task 8's lineage will close
-        # this gap by recording source_wav_duration_s for chained
-        # .ana inputs. The "indur" substring check is conservative
-        # — it also matches names like "indur1", "indur2" — but that
-        # IS the intent: any missing input duration that the expression
-        # might reference means we can't predict.
+        # Chain invariant: if any input duration is None (e.g. an .ana
+        # whose duration couldn't be read) AND the expression references
+        # indur, skip pre-flight. The watchdog catches runaways
+        # post-spawn. The "indur" substring check is conservative — it
+        # also matches names like "indur1", "indur2" — but that IS the
+        # intent: any missing input duration that the expression might
+        # reference means we can't predict.
         if any(d is None for d in indurs) and "indur" in model.expr:
             return None
-        # Arity-0 (Phase 5 wave 2a): with no inputs at all, an
-        # indur-referencing expression is equally unpredictable — the
-        # any() guard above is vacuously False on an empty list, so
-        # guard explicitly rather than falling through to a KeyError.
+        # Arity-0: with no inputs at all, an indur-referencing expression
+        # is equally unpredictable — the any() guard above is vacuously
+        # False on an empty list, so guard explicitly rather than
+        # falling through to a KeyError.
         if not indurs and "indur" in model.expr:
             return None
 
-        # Task 8: if any param is a breakpoint value (list or .brk path),
+        # If any param is a breakpoint value (list or .brk path),
         # pre-flight can't predict — the parameter varies over time.
-        # Skip; the Task 7 watchdog catches runaway output, and the
-        # breakpoint compiler (step 8.5 in process.py) runs structured
+        # Skip; the watchdog catches runaway output, and the
+        # breakpoint compiler (validate_node step 8.5) runs structured
         # validation independently.
         for name, value in params.items():
             if not isinstance(value, (int, float)) or isinstance(value, bool):
@@ -216,7 +206,6 @@ def _evaluate_duration_model(
             # operand values raise ValueError/MemoryError. All of them
             # are curation defects that must surface as the structured
             # predicted_duration_evaluation_failed, not a raw crash.
-            # (Phase 2 hardening, M11.)
             TypeError,
             ValueError,
             KeyError,
@@ -284,24 +273,23 @@ async def check_duration_preflight(
     Optional CDP-context kwargs (``session_root``, ``cdp_path``,
     ``cdp_version``, ``ana_duration_cache_dir``) enable the ``.ana``
     duration fallback for inputs soundfile can't read. When omitted,
-    behavior reduces to Phase 1b: ``.ana`` durations resolve to
-    ``None`` and the chain-invariant skip path engages. All four must
-    be provided together to activate the fallback.
+    ``.ana`` durations resolve to ``None`` and the chain-invariant skip
+    path engages. All four must be provided together to activate the
+    fallback.
 
-    ``indur_overrides`` (Phase 2 Task 11a): per-input duration
-    overrides for callers that already *know* an input's duration from
-    somewhere other than the file on disk — ``graph(dry_run=True)``
-    chains one node's predicted duration into the next node's input
-    without any file existing yet. Positionally aligned with
-    ``resolved_inputs``; a ``None`` entry (or a shorter list) means
-    "probe the file as usual".
+    ``indur_overrides``: per-input duration overrides for callers that
+    already *know* an input's duration from somewhere other than the
+    file on disk — ``graph(dry_run=True)`` chains one node's predicted
+    duration into the next node's input without any file existing yet.
+    Positionally aligned with ``resolved_inputs``; a ``None`` entry (or
+    a shorter list) means "probe the file as usual".
 
-    Data outputs (Phase 5 wave 2a): entries whose ``output_format`` is
-    a data format (.evl/.for/.txt/.frq/.trn) skip pre-flight entirely — the
-    output has no audio duration to predict or cap (envel extract's
-    .evl "duration" is one float per envelope window; a formants get
-    output misreports 107 s via sfprops from a 2 s source). The size
-    watchdog still bounds the subprocess reactively.
+    Data outputs: entries whose ``output_format`` is a data format
+    (.evl/.for/.txt/.frq/.trn) skip pre-flight entirely — the output has
+    no audio duration to predict or cap (envel extract's .evl "duration"
+    is one float per envelope window; a formants get output misreports
+    107 s via sfprops from a 2 s source). The size watchdog still bounds
+    the subprocess reactively.
     """
     if entry.output_format in DATA_OUTPUT_FORMATS:
         return [], None
@@ -336,8 +324,8 @@ async def check_duration_preflight(
                 "The duration_model for this entry couldn't be computed "
                 "against your parameters. This is likely a curation "
                 "defect. Either correct the parameters and retry, or "
-                "call this via execute() to bypass pre-flight — the "
-                "disk watchdog still protects against runaway output."
+                "call this via execute() to bypass pre-flight — note "
+                "that execute() has no disk watchdog, only its timeout."
             ),
         )], None
 

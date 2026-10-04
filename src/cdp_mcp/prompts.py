@@ -2,8 +2,7 @@
 
 Three ``@mcp.prompt()`` templates (FastMCP renders a returned string as
 a single user message). Each is a short, ordered recipe over REAL tool
-names — the design doc's canonical workflows ("Exploratory generation",
-"Library curation at scale") turned into prompts the client can invoke
+names — canonical workflows turned into prompts the client can invoke
 with arguments. They tell the model *which tools in which order*, not
 what to think; observations (analyze / compare / cluster) stay the
 ground truth at every step.

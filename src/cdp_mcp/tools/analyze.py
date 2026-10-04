@@ -170,16 +170,14 @@ async def analyze_impl(
             ],
         )
 
-    # 5. Cache lookup (Task 10). The scorecard JSON is a pure function of
+    # 5. Cache lookup. The scorecard JSON is a pure function of
     # (audio bytes, feature_set, window, librosa-stack versions). On hit,
     # we skip the librosa extraction entirely.
-    # Hash off the event loop — sha256 of a long wav is exactly the
-    # sync CPU work the async commitment says must not starve MCP
-    # heartbeats. (Phase 2 hardening, M2.)
-    # feature_set "concise_v3" since the sub-register fix scaled the
-    # centroid STFT window with sample rate (n_fft 4096 at 96 kHz) —
-    # high-rate scorecards change. Old concise_v1/v2 entries orphan
-    # harmlessly (never matched, swept by ordinary cache cleanup).
+    # Hash off the event loop — sha256 of a long wav is sync CPU work
+    # that must not starve MCP heartbeats.
+    # The feature_set version suffix changes whenever extraction output
+    # changes; entries under older suffixes are never matched and are
+    # swept by ordinary cache cleanup.
     audio_sha = await asyncio.to_thread(sha256_file, audio_path)
     cache_key = analysis_cache_key(audio_sha, "concise_v3", t_start, t_duration)
     cache = cache_lookup(cache_root, "analysis", cache_key, ".json")
@@ -236,7 +234,6 @@ async def analyze_impl(
             # sf.LibsndfileError is a RuntimeError subclass; audioread and
             # librosa raise their own types; corrupt/truncated audio must
             # surface as a structured envelope, not a raw protocol error.
-            # (Phase 2 hardening, M3.)
             return _failed_envelope(
                 session,
                 latest_tracker,
@@ -264,15 +261,12 @@ async def analyze_impl(
             {"scorecard": scorecard_dict, "warnings": warnings},
         )
 
-    # 6.5. Verbose block (Phase 2, opt-in). Cached separately in the
+    # 6.5. Verbose block (opt-in). Cached separately in the
     # analysis tier — verbose extraction (MFCC/chroma/beat tracking) is
     # several times the cost of the scorecard, and most calls don't
     # want it.
     verbose_block: dict | None = None
     if verbose:
-        # feature_set "verbose_v3" since the sub-register fix: the
-        # payload gained the sub block + f0_pinned_at_floor, and the
-        # trajectory STFT window now scales with sample rate.
         verbose_cache = cache_lookup(
             cache_root, "analysis",
             analysis_cache_key(audio_sha, "verbose_v3", t_start, t_duration),
@@ -289,7 +283,7 @@ async def analyze_impl(
                     ctx, "extracting verbose features", extract_verbose,
                     audio_path, t_start, t_duration,
                 )
-            except Exception as e:  # noqa: BLE001 — librosa zoo (M3)
+            except Exception as e:  # noqa: BLE001 — librosa raises a zoo
                 return _failed_envelope(session, latest_tracker, [ErrorEntry(
                     type="analysis_failed",
                     message=(
@@ -360,7 +354,7 @@ def register(
         ``sample_rate``. Any warnings (e.g. "audio too short for LUFS")
         surface in ``warnings``.
 
-        How to read the v2 fields: ``spectral_flatness_db`` near 0 dB
+        How to read these fields: ``spectral_flatness_db`` near 0 dB
         means noise-like; very negative (below roughly -40 dB) means
         pitched/tonal — it distinguishes "went noisy" from "went
         bright", which centroid/zcr alone cannot. Read it jointly with
@@ -378,7 +372,7 @@ def register(
         ``verbose=True`` adds an ``analysis_verbose`` block: MFCC
         means/stds (13 coefficients — timbre), chroma means (12 pitch
         classes — harmonic color), a tempo estimate, per-channel
-        peak/RMS, plus the v2 additions — ``trajectory`` (16 points of
+        peak/RMS, plus ``trajectory`` (16 points of
         rms_db/centroid_hz/flatness_db across the file: the numeric
         view of temporal evolution — dissolves, glissandi, scrambling
         — that whole-file means cannot see), ``inharmonicity``

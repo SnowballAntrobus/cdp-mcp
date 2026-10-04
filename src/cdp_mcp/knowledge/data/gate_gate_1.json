@@ -10,12 +10,11 @@
   "output_format": ".wav",
   "stability": "stable",
   "phase_sensitive": false,
-  "stereo_link_default": null,
   "duration_model": {"kind": "static"},
   "curated": true,
   "version_sensitive": false,
   "description": "Noise gate that replaces low-level passages with LITERAL DIGITAL ZEROS, in place (duration sample-exact: 110250 frames in -> 110250 frames out). Threshold semantics pinned against the binary and source (dev/standalone/gate.c): gatelevel is an ABSOLUTE level in dBFS (not peak-relative - a 0.005-amplitude segment is zeroed at -40 dB while a 0.02 segment survives, regardless of the file peaking at 0.25), and gating operates on CONTIGUOUS RUNS of samples whose |value| stays below the threshold - not on envelope windows. A run only becomes a gated region if it is longer than ~2 ms (interior; > 1 ms at the file edges): splicelen is hardcoded to 1 ms, and 1 ms fade-down/fade-up splices are applied at each region boundary, so the zero runs are click-free. Loud material is never touched: a full-scale sine's brief near-zero crossings are far shorter than 2 ms, so the file refuses with 'No signal is gateable' rather than distorting. Deterministic (identical decoded samples > 1.1 s apart). Mono only.",
-  "musical_use": "THE UPSTREAM FIX FOR retime ON REAL RECORDINGS (the tranche-13 headline chain, verified end-to-end): retime's event modes detect silences as runs of EXACT zeros (tranche 11b - no threshold exists there), so any real recording with a noise floor reads as ONE event. Gate it first: a 2.5 s fixture with four bursts over a -54 dBFS noise floor went from 'WARNING: only 1 event found' (near-passthrough) to 'INFO: 4 events found' and a correct 120 MM retime after 'gate gate 1 in out -40'. Choose gatelevel between the noise floor and the quietest material you want to keep - the threshold is absolute, so read levels off the source, not off its peak. Beyond the retime chain: classic noise-floor cleanup between events, and a zero-run generator for anything downstream that keys on true silence (housekeep gate cuts at zero runs, sfedit-style silence logic). Use gate mode 2 (submode 2) to EXCISE the quiet passages instead of silencing them.",
+  "musical_use": "THE UPSTREAM FIX FOR retime ON REAL RECORDINGS (verified end-to-end): retime's event modes detect silences as runs of EXACT zeros (no threshold exists there), so any real recording with a noise floor reads as ONE event. Gate it first: a 2.5 s fixture with four bursts over a -54 dBFS noise floor went from 'WARNING: only 1 event found' (near-passthrough) to 'INFO: 4 events found' and a correct 120 MM retime after 'gate gate 1 in out -40'. Choose gatelevel between the noise floor and the quietest material you want to keep - the threshold is absolute, so read levels off the source, not off its peak. Beyond the retime chain: classic noise-floor cleanup between events, and a zero-run generator for anything downstream that keys on true silence (housekeep gate cuts at zero runs, sfedit-style silence logic). Use gate mode 2 (submode 2) to EXCISE the quiet passages instead of silencing them.",
   "parameters": {
     "gatelevel": {
       "type": "float",
@@ -41,11 +40,11 @@
     }
   ],
   "known_issues": [
-    "CONTENT REFUSALS (both verbatim, exit 255): 'ERROR: No signal is gateable' when no below-threshold run longer than the splice window exists (steady tones, flat noise beds - the shared duration fixture refuses exactly this way, so the findings duration row is null); 'ERROR: Entire signal would be gated.' when the whole file sits below the threshold.",
+    "CONTENT REFUSALS (both verbatim, exit 255): 'ERROR: No signal is gateable' when no below-threshold run longer than the splice window exists (steady tones, flat noise beds); 'ERROR: Entire signal would be gated.' when the whole file sits below the threshold.",
     "Threshold is ABSOLUTE dBFS, not relative to the file's peak (pinned with a peak-0.25 fixture at -40 dB: 0.005-amplitude content zeroed, 0.02 kept). Set it from the source's real levels.",
     "Gating is per-sample-run, not per-envelope-window: a below-threshold run must exceed 2 x 1 ms (interior; 1 ms at file edges) to be gated; shorter dips - including zero-crossings of loud material - are never touched. splicelen is hardcoded at 1 ms (source: gate.c line 1107).",
     "MONO ONLY: stereo refuses 'File <name> is not of correct type (must be mono)'. The source contains dead multichannel code behind the check (a '**** THIS NEEDS TO BE FIXED ****' comment sits in the scan loop).",
-    "Kept regions are bit-identical to the source except the 1 ms boundary splices; zero regions are exact zeros - which is the whole point for retime (tranche 11b: retime counts silences as runs of samples == 0.0).",
+    "Kept regions are bit-identical to the source except the 1 ms boundary splices; zero regions are exact zeros - which is the whole point for retime (retime counts silences as runs of samples == 0.0).",
     "Duration static and sample-exact (frames preserved). Deterministic: two runs > 1.1 s apart produce identical decoded sha256."
   ],
   "references": ["cdp://docs/html/cgroenvl"]

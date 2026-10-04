@@ -1,7 +1,5 @@
 """Graph directory bookkeeping, reference resolution, and output verification.
 
-Three responsibilities under one roof for Phase 1a:
-
 - :class:`GraphDir` — manages one ``<session>/graphs/<id>/`` directory and
   the metadata files within (``graph.json``, ``node_index.json``,
   ``lineage.json``).
@@ -69,7 +67,6 @@ class GraphDir:
     """
 
     def __init__(self, session: Session, slug: str) -> None:
-        self._session = session
         self._id = _make_graph_id(slug)
         self._root = session.graphs_dir / self._id
         # exist_ok=False so a collision is loud; with millisecond timestamps
@@ -115,8 +112,8 @@ class GraphDir:
 
         Two-step write: ``node_index.json`` then ``lineage.json``. A crash
         between the two leaves the node visible in the index without a
-        lineage entry, which is acceptable for Phase 1a — downstream
-        reference resolution still works.
+        lineage entry, which is acceptable — downstream reference
+        resolution still works.
         """
         index = self._read_json(self.node_index_path)
         index[node_id] = output_filename
@@ -133,24 +130,9 @@ class GraphDir:
             json.dumps(lineage_data, indent=2, sort_keys=True) + "\n",
         )
 
-    def get_node_output_path(self, node_id: str) -> Path | None:
-        index = self._read_json(self.node_index_path)
-        filename = index.get(node_id)
-        if filename is None:
-            return None
-        return self._root / filename
-
-    def node_ids(self) -> list[str]:
-        return sorted(self._read_json(self.node_index_path).keys())
-
     @staticmethod
     def _read_json(path: Path) -> dict:
         return json.loads(path.read_text(encoding="utf-8"))
-
-
-# ---------------------------------------------------------------------------
-# LatestTracker
-# ---------------------------------------------------------------------------
 
 
 def lookup_source_wav_duration(
@@ -160,12 +142,11 @@ def lookup_source_wav_duration(
 ) -> float | None:
     """Read ``source_wav_duration_s`` from a node's lineage record.
 
-    Used by the breakpoint compiler (Task 8) when the input to the main
-    op is a `.ana` file that came from an auto-PVOC node in this graph.
+    Used for breakpoint compilation when the input to the main op is a
+    `.ana` file that came from an auto-PVOC node in this graph.
     Single-level lookup — does NOT walk further upstream. Returns
-    ``None`` when the lineage file is missing, the field is unset
-    (e.g., older pre-Task-8 lineage), or any read/parse error. Never
-    raises.
+    ``None`` when the lineage file is missing, the field is unset, or
+    any read/parse error. Never raises.
     """
     lineage_path = session.graphs_dir / graph_id / "lineage.json"
     try:
@@ -175,6 +156,11 @@ def lookup_source_wav_duration(
         return float(v) if v is not None else None
     except (OSError, json.JSONDecodeError, ValueError, TypeError):
         return None
+
+
+# ---------------------------------------------------------------------------
+# LatestTracker
+# ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -193,12 +179,12 @@ class LatestTracker:
     Provides positional aliases ``latest`` (deque[0]) and ``prev_1`` ..
     ``prev_4`` (deque[1..4]). Per-process state; not persisted; reset on
     every ``set_session()`` call so a fresh session activation starts with
-    an empty conversational history (design-doc Rule 2).
+    an empty conversational history.
 
     New actions push to the front via ``update()``; the oldest slot falls
-    off when capacity is exceeded. Cleanup of a specific graph (Task 14+)
+    off when capacity is exceeded. ``cleanup()`` of a specific graph
     sets the matching slot to ``None`` but does NOT shift adjacent slots —
-    holes stay holes until aged off by new actions (Rule 3).
+    holes stay holes until aged off by new actions.
     """
 
     _CAPACITY = 5  # latest + prev_1..prev_4
@@ -213,11 +199,10 @@ class LatestTracker:
         self._deque.appendleft(_Slot(graph_id=graph_id, node_id=node_id))
 
     def record_batch(self, graph_id: str, node_ids: list[str]) -> None:
-        """Push ONE synthetic entry for a whole batch() call (design-doc
-        Context Block rule 6 — a 10-element batch must not evict the
-        entire conversational window). ``latest`` continues to name the
-        last *single-output* action; individual elements resolve via
-        ``latest_batch[i]``."""
+        """Push ONE synthetic entry for a whole batch() call (a
+        10-element batch must not evict the entire conversational
+        window). ``latest`` continues to name the last *single-output*
+        action; individual elements resolve via ``latest_batch[i]``."""
         self._deque.appendleft(_Slot(
             graph_id=graph_id, node_id=None, batch_size=len(node_ids),
         ))
@@ -230,10 +215,10 @@ class LatestTracker:
     @property
     def latest(self) -> str | None:
         """``"<graph_id>:<node_id>"`` of the most recent *single-output*
-        action. Batch entries are transparent to ``latest`` (rule 6 —
-        it keeps naming the last single-output action), but a hole
+        action. Batch entries are transparent to ``latest`` (it keeps
+        naming the last single-output action), but a hole
         (cleanup-pruned slot) ends the scan: a pruned latest is gone,
-        not silently replaced by something older (rule 3)."""
+        not silently replaced by something older."""
         for s in self._deque:
             if s is None:
                 return None
@@ -250,8 +235,8 @@ class LatestTracker:
 
     def remove(self, graph_id: str) -> None:
         """Mark every slot pointing at ``graph_id`` as a hole. Other slots
-        are NOT shifted to fill the gap. Used by the cleanup() transaction
-        in Task 14+; no production caller exists in Phase 1b.
+        are NOT shifted to fill the gap. Called by ``cleanup()`` for each
+        deleted graph.
         """
         for i, slot in enumerate(self._deque):
             if slot is not None and slot.graph_id == graph_id:
@@ -263,7 +248,7 @@ class LatestTracker:
         """Materialize the deque as a list of RecentGraphEntry for the
         context block. Holes are skipped; non-hole entries keep their
         positional alias (``latest``, ``prev_1``, …) even when surrounded
-        by holes — this matches design-doc Rule 3."""
+        by holes."""
         out: list[RecentGraphEntry] = []
         for i, slot in enumerate(self._deque):
             if slot is None:
@@ -304,7 +289,7 @@ def build_context_block(
     inputs first.
 
     The broader filesystem-scan-based "history" view is in
-    ``describe_workspace``; explicit tagging is reserved for Phase 4.
+    ``describe_workspace``.
     """
     input_files: list[str] = []
     if session.inputs_dir.exists():
@@ -357,14 +342,12 @@ def resolve_target(
     - absolute path — must exist AND live inside the session tree.
     - relative path — resolved against ``session.inputs_dir``.
 
-    Containment (Phase 2 hardening, M5): every resolved path must live
-    inside the session tree. v9 deferred this to the execute() security
-    boundary, which held only as long as every consumer funneled the
-    result back through ``validate_command`` — ``analyze``/``visualize``
-    read their targets directly, and Phase 2's ``graph()`` resolves
-    references in new places. The resolver is the one chokepoint all of
-    them share, so the check lives here: graph IDs must be bare names
-    (no separators or ``..``), ``node_index.json`` filenames must stay
+    Containment: every resolved path must live inside the session tree.
+    Not every consumer funnels the result back through
+    ``validate_command`` — ``analyze``/``visualize`` read their targets
+    directly — and the resolver is the one chokepoint all of them
+    share, so the check lives here: graph IDs must be bare names (no
+    separators or ``..``), ``node_index.json`` filenames must stay
     inside their graph directory, and both absolute and relative refs
     must resolve inside ``session.root``.
 
@@ -388,7 +371,7 @@ def resolve_target(
         return resolved
 
     if ref == "latest":
-        canonical = latest.latest  # skips batch entries (rule 6)
+        canonical = latest.latest  # skips batch entries
         if canonical is None:
             raise ReferenceResolutionError(
                 "Reference 'latest' has no value yet — no single-output "
@@ -527,8 +510,8 @@ def verify_output(
     - File size > ``min_size_bytes`` (catches header-only / empty output).
     - For ``.wav``: RMS > ``silence_threshold_dbfs``.
     - For ``.ana``: size only (RMS isn't meaningful spectrally).
-    - For data outputs (``DATA_OUTPUT_FORMATS``: .evl/.for/.txt — Phase 5
-      wave 2a; .frq/.trn — Phase 6 tranche 24): exists + non-empty only.
+    - For data outputs (``DATA_OUTPUT_FORMATS``: .evl, .for, .txt, .frq,
+      .trn): exists + non-empty only.
       Never decoded as audio — envel extract's .evl is a RIFF container
       soundfile happily "reads" as a 57 Hz pseudo-wav (repitch's .frq /
       .trn are the same shape at window rate 344), so an RMS/silence
@@ -599,17 +582,13 @@ def _compute_wav_rms_dbfs(
     - On below-threshold but non-silent → ``(dbfs, "below silence threshold ...")``
     - On healthy wav → ``(dbfs, None)``
 
-    Stereo content is flattened (not channel-averaged) before RMS — see the
-    Task 4 plan for why: averaging cancels anti-correlated channels and
-    underreports total signal energy.
+    Stereo content is flattened (not channel-averaged) before RMS:
+    averaging cancels anti-correlated channels and underreports total
+    signal energy.
 
-    Reads in fixed-size blocks and accumulates sum-of-squares in float64
-    (Phase 2 hardening, M2): the previous whole-file ``sf.read`` decoded
-    a cap-sized (1 GB) wav into ~4 GB of float64 *plus* a flatten copy —
-    an ~8 GB transient — while blocking whatever thread runs it. The
-    blockwise result is identical (same float64 accumulation order,
-    modulo block-boundary summation order, far below audible or
-    threshold-relevant precision).
+    Reads in fixed-size blocks and accumulates sum-of-squares in float64,
+    so memory stays bounded: a whole-file read of a cap-sized (1 GB) wav
+    would decode into ~4 GB of float64.
     """
     # Lazy import: soundfile pulls in libsndfile via cffi; not free.
     import numpy as np
